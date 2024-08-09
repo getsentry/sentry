@@ -11,7 +11,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   codes: string[];
@@ -84,16 +83,16 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
 export default RecoveryCodes;
 
 const CodeContainer = styled(Panel)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Code = styled(PanelItem)`
   font-family: ${p => p.theme.text.familyMono};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;

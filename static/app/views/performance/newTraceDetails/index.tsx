@@ -22,7 +22,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -1061,7 +1060,7 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   background-color: ${p => p.theme.background};
 `;
@@ -1070,7 +1069,7 @@ const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
   grid-template-columns: 1fr min-content min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TraceGrid = styled('div')<{

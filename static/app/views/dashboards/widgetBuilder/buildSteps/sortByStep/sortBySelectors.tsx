@@ -6,7 +6,6 @@ import uniqBy from 'lodash/uniqBy';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue, TagCollection} from 'sentry/types';
 import {
   EQUATION_PREFIX,
@@ -192,7 +191,7 @@ export function SortBySelectors({
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 200px 1fr;

@@ -62,7 +62,6 @@ function RecoveryOptionsModal({
   return (
     <Fragment>
       <Header closeButton>{t('Two-Factor Authentication Enabled')}</Header>
-
       <Body>
         <TextBlock>
           {t('Two-factor authentication via %s has been enabled.', authenticatorName)}
@@ -86,7 +85,6 @@ function RecoveryOptionsModal({
           </Alert>
         )}
       </Body>
-
       {displaySmsPrompt ? (
         // set up backup phone number
         <Footer>

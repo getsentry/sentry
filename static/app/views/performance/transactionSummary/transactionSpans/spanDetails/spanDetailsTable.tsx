@@ -12,7 +12,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -223,7 +222,7 @@ const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
 const DurationBar = styled('div')`
   position: relative;
   display: flex;
-  top: ${space(0.5)};
+  top: ${p => p.theme.space(0.5)};
   background-color: ${p => p.theme.gray100};
 `;
 

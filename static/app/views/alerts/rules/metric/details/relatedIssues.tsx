@@ -9,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import useRouter from 'sentry/utils/useRouter';
 import {
@@ -132,14 +131,14 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space(1)};
   }
 `;
 

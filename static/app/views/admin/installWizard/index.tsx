@@ -8,7 +8,6 @@ import ApiForm from 'sentry/components/forms/apiForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import type {Field} from '../options';
@@ -186,7 +185,7 @@ const Pattern = styled('div')`
 
 const Heading = styled('h1')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: space-between;
   grid-auto-flow: column;
   line-height: 36px;

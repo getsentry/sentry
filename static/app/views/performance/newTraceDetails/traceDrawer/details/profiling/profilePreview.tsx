@@ -11,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -257,7 +256,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 const Container = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   justify-content: space-between;
   flex-direction: column;
 
@@ -272,7 +271,7 @@ const InstructionsContainer = styled('div')`
   }
 
   display: flex;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   flex-direction: column;
   align-items: start;
 `;
@@ -297,22 +296,22 @@ const Image = styled('img')`
 
 const FlamegraphContainer = styled('div')`
   height: 310px;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   position: relative;
 `;
 
 const LegendContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
 `;
 
 const LegendItem = styled('span')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -330,7 +329,7 @@ const HeaderContainer = styled('div')`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SubText = styled('p')`

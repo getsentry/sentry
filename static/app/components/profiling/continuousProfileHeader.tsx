@@ -5,7 +5,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ContinuousProfileHeader() {
@@ -32,19 +31,19 @@ export function ContinuousProfileHeader() {
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   nav {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
   }
 `;
 
 const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)} !important;
 `;

@@ -6,7 +6,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -78,7 +77,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord, isVideoReplay}: Props) {
 export default DetailsPageBreadcrumbs;
 
 const CenteredFeatureBadge = styled(FeatureBadge)`
-  height: ${space(2)};
+  height: ${p => p.theme.space(2)};
 `;
 
 const StyledSpan = styled('span')`

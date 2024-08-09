@@ -5,7 +5,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Deploy} from 'sentry/types';
 
 type Props = {
@@ -40,10 +39,10 @@ function Deploys({version, orgSlug, projectId, deploys}: Props) {
 
 const Row = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
 `;

@@ -14,7 +14,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -289,13 +288,13 @@ function TagsSideBar(props: {
 
 const RadioLabel = styled('label')`
   cursor: pointer;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -303,7 +302,7 @@ const SidebarTagValue = styled('span')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
@@ -316,7 +315,7 @@ const ReversedLayoutBody = styled('div')`
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    gap: ${space(3)};
+    gap: ${p => p.theme.space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -347,8 +346,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr auto;

@@ -8,7 +8,6 @@ import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
@@ -96,15 +95,15 @@ const SuccessModal = styled('div')`
   justify-items: center;
   text-align: center;
   padding-top: 10px;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space(4)};
 `;
 
 const StyledIconMegaphone = styled(IconMegaphone)`
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space(3)};
 `;
 
 const StyledHeader = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledText = styled('p')`
@@ -116,7 +115,7 @@ const ReceiveEmailMessage = styled(StyledText)`
 `;
 
 const StyledEmailField = styled(EmailField)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
   padding-left: 0;
 `;
 

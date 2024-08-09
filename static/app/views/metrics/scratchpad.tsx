@@ -5,7 +5,6 @@ import * as echarts from 'echarts/core';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
@@ -217,7 +216,7 @@ function MultiChartWidgetQueries({
 const StyledMetricDashboard = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   @media (max-width: ${props => props.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(2, minmax(${MIN_WIDGET_WIDTH}px, 1fr));

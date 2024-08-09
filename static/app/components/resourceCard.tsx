@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   imgUrl: string;
@@ -24,13 +23,13 @@ function ResourceCard({title, link, imgUrl}: Props) {
 export default ResourceCard;
 
 const StyledLink = styled(ExternalLink)`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   flex: 1;
 `;
 
 const StyledImg = styled('img')`
   display: block;
-  margin: 0 auto ${space(3)} auto;
+  margin: 0 auto ${p => p.theme.space(3)} auto;
   height: 160px;
 `;
 

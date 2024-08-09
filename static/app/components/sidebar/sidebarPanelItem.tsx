@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -81,7 +80,7 @@ const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 
   :not(:first-child) {
     border-top: 1px solid ${p => p.theme.innerBorder};
@@ -91,12 +90,12 @@ const SidebarPanelItemRoot = styled('div')`
 const TitleWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   ${p => !p.hasSeen && 'font-weight: ${p => p.theme.fontWeightBold};'};
 
@@ -106,7 +105,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
 `;
 
 const Text = styled('div')`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
 
   &:last-child {
     margin-bottom: 0;

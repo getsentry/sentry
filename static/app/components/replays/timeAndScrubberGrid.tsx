@@ -92,7 +92,7 @@ const Grid = styled('div')<{isCompact: boolean}>`
   grid-template-areas:
     '. timeline timelineSize'
     'currentTime scrubber duration';
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   ${p =>

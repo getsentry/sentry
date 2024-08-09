@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Release} from 'sentry/types';
 
 type Props = {
@@ -39,7 +38,7 @@ const ReleaseSummaryHeading = styled('div')`
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 export default ReleaseCardCommits;

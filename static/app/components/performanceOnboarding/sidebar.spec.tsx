@@ -57,11 +57,12 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
 
     const statusPageData: StatuspageIncident[] = [];
-    jest
-      .spyOn(incidentsHook, 'useServiceIncidents')
-      .mockImplementation(
-        () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
-      );
+    jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () =>
+        ({
+          data: statusPageData,
+        }) as UseQueryResult<StatuspageIncident[]>
+    );
   });
 
   afterEach(() => {

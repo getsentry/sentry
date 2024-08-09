@@ -30,7 +30,6 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -396,7 +395,7 @@ function OnboardingContent({
 }
 
 const Header = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 const TaskSidebarPanel = styled(SidebarPanel)`
@@ -416,8 +415,8 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: 50px ${p => p.theme.space(4)} ${p => p.theme.space(4)} ${p => p.theme.space(4)};
 `;
 
 const Heading = styled('div')`
@@ -427,7 +426,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -440,24 +439,24 @@ const HeaderActions = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 const PlatformLabel = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const PlatformSelect = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   flex-wrap: wrap;
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 export default ReplaysOnboardingSidebar;

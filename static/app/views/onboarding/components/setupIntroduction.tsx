@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 
 import StepHeading from './stepHeading';
@@ -30,7 +29,7 @@ export default function SetupIntroduction({stepHeaderText, platform}: Props) {
 
 const TitleContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   ${StepHeading} {
     margin-bottom: 0;

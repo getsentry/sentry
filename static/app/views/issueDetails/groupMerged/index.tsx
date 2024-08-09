@@ -10,7 +10,6 @@ import QueryCount from 'sentry/components/queryCount';
 import {t, tct} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -181,11 +180,11 @@ export {GroupMergedView};
 export default withOrganization(GroupMergedView);
 
 const Title = styled('h4')`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   small {
     color: ${p => p.theme.subText};

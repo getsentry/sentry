@@ -9,7 +9,6 @@ import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
@@ -183,8 +182,8 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
 export default UploadBackup;
 
 const StyledUploadIcon = styled(IconUpload)`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Wrapper = styled('div')`
@@ -192,7 +191,7 @@ const Wrapper = styled('div')`
   max-height: 525px;
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
   background-color: ${p => p.theme.surface400};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -202,15 +201,16 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.gray300};
   mark {
     border-radius: 8px;
-    padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)}
+      ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
     background: ${p => p.theme.gray100};
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
   h2 {
     color: ${p => p.theme.gray500};
   }
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
   .encrypt-help {
     color: ${p => p.theme.gray500};
@@ -226,7 +226,7 @@ const FinishedWell = styled(Well)`
   align-items: center;
   text-align: left;
   div {
-    margin-left: ${space(2)};
+    margin-left: ${p => p.theme.space(2)};
     line-height: 1;
   }
   a {
@@ -239,7 +239,7 @@ const FinishedWell = styled(Well)`
 `;
 
 const UploadWell = styled(Well)<UploadWellProps>`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   height: 140px;
   border-style: ${props => (props.draggedOver ? 'solid' : 'dashed')};
   border-width: medium;
@@ -260,7 +260,7 @@ const UploadWrapper = styled('div')`
   display: flex;
   justify-content: center;
   a {
-    padding-left: ${space(0.5)};
+    padding-left: ${p => p.theme.space(0.5)};
   }
   input[type='file'] {
     display: none;

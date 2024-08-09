@@ -15,7 +15,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Switch from 'sentry/components/switchButton';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarProject,
   Organization,
@@ -175,7 +174,7 @@ export class InstalledPlugin extends Component<Props> {
 export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   border: 1px solid ${p => p.theme.border};
   border-bottom: none;
   background-color: ${p => p.theme.background};

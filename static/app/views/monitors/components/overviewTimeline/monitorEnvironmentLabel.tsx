@@ -10,7 +10,6 @@ import {
   IconUnsubscribed,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
   type MonitorEnvironment,
@@ -83,7 +82,7 @@ export default function MonitorEnvironmentLabel({monitorEnv}: Props) {
 const EnvWithStatus = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   opacity: var(--disabled-opacity);
 `;

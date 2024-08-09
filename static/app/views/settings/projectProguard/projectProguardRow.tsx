@@ -12,7 +12,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
@@ -126,19 +125,19 @@ const SizeColumn = styled('div')`
 const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space(4)};
   overflow-wrap: break-word;
   word-break: break-all;
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;
   color: ${p => p.theme.subText};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 export default ProjectProguardRow;

@@ -20,7 +20,6 @@ import StreamGroup, {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
@@ -351,7 +350,7 @@ export {GroupList};
 export default withApi(withSentryRouter(GroupList));
 
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};

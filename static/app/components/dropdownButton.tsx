@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
-import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
   /**
@@ -66,7 +65,7 @@ const ChevronWrap = styled('div')`
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
   flex-shrink: 0;
 
   button:hover & {
@@ -94,7 +93,7 @@ const LabelText = styled('span')`
   }
 
   font-weight: ${p => p.theme.fontWeightBold};
-  padding-right: ${space(0.75)};
+  padding-right: ${p => p.theme.space(0.75)};
 `;
 
 export default forwardRef<HTMLButtonElement, DropdownButtonProps>((props, ref) => (

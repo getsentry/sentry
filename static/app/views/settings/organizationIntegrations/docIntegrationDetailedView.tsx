@@ -108,12 +108,12 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 }
 
 const LearnMoreButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
   position: relative;
   top: 1px;
 `;

@@ -10,7 +10,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 
 function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');
@@ -55,12 +54,12 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   padding: 0;
   border: none;
 
   & + & {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 

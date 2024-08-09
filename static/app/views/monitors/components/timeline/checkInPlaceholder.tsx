@@ -1,8 +1,6 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const SPACING = 15;
 
 export function CheckInPlaceholder() {
@@ -29,7 +27,7 @@ export function CheckInPlaceholder() {
 }
 
 const PlaceholderSvg = styled('svg')`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
 `;
 
 const gradientAnimation = keyframes`

@@ -4,7 +4,6 @@ import {Button} from 'sentry/components/button';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 
 type Props = {
@@ -37,7 +36,7 @@ export default Expander;
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   span:first-child {
     padding: 3px;
   }

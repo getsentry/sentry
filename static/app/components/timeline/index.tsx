@@ -3,7 +3,6 @@ import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
@@ -65,8 +64,8 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   display: grid;
   align-items: start;
   grid-template: auto auto / 22px 1fr auto;
-  grid-column-gap: ${space(1)};
-  margin: ${space(1)} 0;
+  grid-column-gap: ${p => p.theme.space(1)};
+  margin: ${p => p.theme.space(1)} 0;
   &:first-child {
     margin-top: 0;
   }
@@ -85,7 +84,7 @@ const IconWrapper = styled('div')`
   z-index: 10;
   svg {
     display: block;
-    margin: ${space(0.5)};
+    margin: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -107,7 +106,7 @@ const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.subText};
-  margin: ${space(0.25)} 0 0;
+  margin: ${p => p.theme.space(0.25)} 0 0;
   font-size: ${p => p.theme.fontSizeSmall};
   word-wrap: break-word;
 `;
@@ -121,10 +120,10 @@ export const Text = styled('div')`
 `;
 
 export const Data = styled('div')`
-  border-radius: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   border: 1px solid ${p => p.theme.translucentInnerBorder};
-  margin: ${space(0.75)} 0 0 -${space(0.75)};
+  margin: ${p => p.theme.space(0.75)} 0 0 -${p => p.theme.space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   background: ${p => p.theme.backgroundSecondary};

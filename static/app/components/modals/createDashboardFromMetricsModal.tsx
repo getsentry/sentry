@@ -13,7 +13,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SelectValue} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -211,14 +210,14 @@ export default CreateDashboardFromMetricsModal;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space(1.5)};
     width: 100%;
 
     > button {

@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   name: string;
@@ -51,6 +50,6 @@ const Code = styled('code')`
     padding-inline: 0;
   }
   & > [data-node] {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
   }
 `;

@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
-import {space} from 'sentry/styles/space';
 import type {
   Group,
   GroupActivityReprocess,
@@ -223,14 +222,14 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space(1)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -243,15 +242,15 @@ const GroupContent = styled(Layout.Main)`
   background: ${p => p.theme.backgroundSecondary};
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
-  padding: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-right: ${space(4)};
+    padding-right: ${p => p.theme.space(4)};
     padding-left: 0;
   }
 `;

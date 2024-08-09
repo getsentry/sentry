@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   description: ReactNode;
@@ -58,7 +57,7 @@ export default function PageBanner({
 
 const Wrapper = styled(Panel)`
   display: flex;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   min-height: 100px;
   justify-content: space-between;
   align-items: center;
@@ -68,8 +67,8 @@ const Wrapper = styled(Panel)`
 const CloseButton = styled(Button)`
   justify-content: center;
   position: absolute;
-  top: -${space(1)};
-  right: -${space(1)};
+  top: -${p => p.theme.space(1)};
+  right: -${p => p.theme.space(1)};
   border-radius: 50%;
   height: ${p => p.theme.iconSizes.lg};
   width: ${p => p.theme.iconSizes.lg};
@@ -96,7 +95,7 @@ const Stack = styled('div')`
   flex-direction: column;
   justify-content: space-between;
   max-width: 50%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TextContainer = styled('div')`
@@ -105,7 +104,7 @@ const TextContainer = styled('div')`
   justify-content: space-between;
   z-index: 1;
   h4 {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -119,6 +118,6 @@ const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeightNormal};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   text-transform: uppercase;
 `;

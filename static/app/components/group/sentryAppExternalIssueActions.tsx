@@ -9,7 +9,6 @@ import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -147,8 +146,8 @@ function SentryAppExternalIssueActions({
 
 const StyledSentryAppComponentIcon = styled(SentryAppComponentIcon)`
   color: ${p => p.theme.textColor};
-  width: ${space(3)};
-  height: ${space(3)};
+  width: ${p => p.theme.space(3)};
+  height: ${p => p.theme.space(3)};
   cursor: pointer;
   flex-shrink: 0;
 `;

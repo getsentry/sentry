@@ -17,7 +17,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserIdentityConfig} from 'sentry/types';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -238,7 +237,7 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: ${p => (p.isSingleLine ? 'center' : 'space-between')};
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space(1.5)};
 `;
 const IdentityName = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
@@ -253,7 +252,7 @@ const TagWrapper = styled('div')`
   align-items: center;
   justify-content: flex-start;
   flex-grow: 1;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default AccountIdentities;

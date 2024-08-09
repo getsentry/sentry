@@ -9,7 +9,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -149,11 +148,11 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
 `;
 
 const ButtonPanel = styled('div')`
   display: flex;
   align-items: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

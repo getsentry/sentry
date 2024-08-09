@@ -5,7 +5,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 export default storyBook(QuestionTooltip, story => {
   story('Basics', () => {
@@ -99,11 +98,11 @@ export default storyBook(QuestionTooltip, story => {
 
 const IconExamples = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const InlineContainer = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;

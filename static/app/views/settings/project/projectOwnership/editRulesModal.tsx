@@ -5,7 +5,6 @@ import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 interface EditOwnershipRulesModalProps extends EditOwnershipRulesModalOptions {
@@ -52,11 +51,11 @@ export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModa
 
 const StyledPre = styled('pre')`
   word-break: break-word;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   line-height: 1.6;
   color: ${p => p.theme.subText};
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

@@ -5,7 +5,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import SpanOpsQuery from 'sentry/utils/performance/suspectSpans/spanOpsQuery';
@@ -84,8 +83,8 @@ export default function OpsFilter(props: Props) {
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space(1)};
+  height: ${p => p.theme.space(1)};
   border-radius: 100%;
   background-color: ${p => p.backgroundColor};
 `;

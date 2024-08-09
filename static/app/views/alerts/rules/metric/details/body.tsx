@@ -16,7 +16,6 @@ import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -334,15 +333,15 @@ const ActivityWrapper = styled('div')`
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const StyledSubHeader = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   display: flex;
   align-items: center;
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;

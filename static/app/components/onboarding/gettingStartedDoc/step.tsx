@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export enum StepType {
   INSTALL = 'install',
@@ -276,7 +275,7 @@ const Configuration = styled('div')`
 `;
 
 const Configurations = styled(Configuration)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const Description = styled('div')`
@@ -288,14 +287,14 @@ const Description = styled('div')`
   && > h4,
   && > h5,
   && > h6 {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 
 const AdditionalInfo = styled(Description)``;
 
 const GeneralAdditionalInfo = styled(Description)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const OptionalConfigWrapper = styled('div')`

@@ -22,7 +22,6 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 
@@ -320,20 +319,20 @@ const MappedProjectWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   grid-area: sentry-project;
 `;
 
 const Item = styled('div')`
   min-height: 60px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
   grid-template-columns: 2.5fr min-content 2.5fr max-content 30px;
   grid-template-areas: 'mapped-value arrow sentry-project manage-project field-control';
@@ -344,7 +343,7 @@ const MappedItemValue = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: 100%;
   grid-area: mapped-value;
 `;
@@ -389,11 +388,11 @@ const NextButtonPanelAlert = styled(PanelAlert)`
 const NextButtonWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const MappedValueContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

@@ -9,7 +9,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AccessRequest} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
@@ -141,12 +140,12 @@ class OrganizationAccessRequests extends Component<Props, State> {
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
 `;
 
 const StyledButton = styled(Button)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default withApi(OrganizationAccessRequests);

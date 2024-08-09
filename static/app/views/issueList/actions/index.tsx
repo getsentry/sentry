@@ -16,7 +16,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -485,8 +484,8 @@ const StickyActions = styled(Sticky)`
 const ActionsBarContainer = styled('div')`
   display: flex;
   min-height: 45px;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
@@ -498,7 +497,7 @@ const ActionsBarContainer = styled('div')`
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
   display: flex;
   align-items: center;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
   margin-bottom: 1px;
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
@@ -508,9 +507,9 @@ const HeaderButtonsWrapper = styled(motion.div)`
     width: 50%;
   }
   flex: 1;
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
   white-space: nowrap;
@@ -528,11 +527,11 @@ const SelectAllNotice = styled('div')`
 `;
 
 const SelectAllLink = styled('a')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const SortDropdownMargin = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const AnimatedHeaderItemsContainer = styled(motion.div)`

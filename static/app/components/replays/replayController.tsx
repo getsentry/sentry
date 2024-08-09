@@ -11,7 +11,6 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 
 const SECOND = 1000;
@@ -100,7 +99,7 @@ export default function ReplayController({
 
 const ButtonGrid = styled('div')<{isCompact: boolean}>`
   display: flex;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space(2)};
   flex-direction: row;
   justify-content: space-between;
   ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}

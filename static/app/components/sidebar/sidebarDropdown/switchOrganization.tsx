@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -136,7 +135,7 @@ function SwitchOrganization({canCreateOrganization}: Props) {
 export default SwitchOrganization;
 
 const StyledIconAdd = styled(IconAdd)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   color: ${p => p.theme.gray300};
 `;
 
@@ -144,7 +143,7 @@ const MenuItemLabelWithIcon = styled('span')`
   line-height: 1;
   display: flex;
   align-items: center;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 const SubMenuCaret = styled('span')`

@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -100,7 +99,7 @@ export default function FirstEventFooter({
 }
 
 const OnboardingButtonBar = styled(ButtonBar)`
-  margin: ${space(2)} ${space(4)};
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
   justify-self: end;
   margin-left: auto;
 `;
@@ -108,7 +107,7 @@ const OnboardingButtonBar = styled(ButtonBar)`
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink400)};
 `;
 
@@ -160,7 +159,7 @@ StatusWrapper.defaultProps = {
 };
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space(4)};
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;

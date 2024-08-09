@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCircle, IconFlag} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   status: 'error' | 'success' | 'empty';
@@ -40,7 +39,7 @@ function PackageStatus({status, tooltip}: Props) {
 }
 
 const StyledTooltip = styled(Tooltip)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space(0.75)};
 `;
 
 export const PackageStatusIcon = styled('span')`

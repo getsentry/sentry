@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const StepHeading = styled(motion.h2)<{step: number}>`
-  margin-left: calc(-${space(2)} - 30px);
+  margin-left: calc(-${p => p.theme.space(2)} - 30px);
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
 
   &:before {

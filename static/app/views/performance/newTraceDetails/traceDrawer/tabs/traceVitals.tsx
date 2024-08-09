@@ -5,7 +5,6 @@ import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Measurement} from 'sentry/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
@@ -65,8 +64,8 @@ export function TraceVitals(props: TraceVitalsProps) {
 const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: ${space(1)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 interface EventVitalProps {
@@ -121,8 +120,8 @@ function EventVital(props: EventVitalProps) {
 }
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${space(1)} ${space(1.5)};
-  margin-bottom: ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
+  margin-bottom: ${p => p.theme.space(1)};
   ${p => p.failedThreshold && `border: 1px solid ${p.theme.red300};`}
 `;
 
@@ -135,7 +134,7 @@ const FireIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.errorText};
 `;
 

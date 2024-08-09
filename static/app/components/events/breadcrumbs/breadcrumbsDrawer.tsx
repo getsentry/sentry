@@ -25,7 +25,6 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -266,8 +265,8 @@ const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  column-gap: ${space(1)};
-  margin: ${space(1)} 0 ${space(2)};
+  column-gap: ${p => p.theme.space(1)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(2)};
 `;
 
 const Header = styled('h3')`
@@ -293,7 +292,7 @@ const EmptyMessage = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.subText};
-  padding: ${space(3)} ${space(1)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
@@ -303,7 +302,7 @@ const NavigationCrumbs = styled(NavigationBreadcrumbs)`
 
 const CrumbContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

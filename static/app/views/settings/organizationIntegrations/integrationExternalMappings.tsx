@@ -11,7 +11,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
@@ -235,30 +234,30 @@ const MappingTable = styled(PanelTable)`
   ${p =>
     !p.isEmpty
       ? `
-  > :nth-child(n + 5) {
-    display: flex;
-    align-items: center;
-    padding: ${space(1.5)} ${space(2)};
-  }
+> :nth-child(n + 5) {
+display: flex;
+align-items: center;
+padding: ${p.theme.space(1.5)} ${p.theme.space(2)};
+}
 
-  > * {
-    padding: ${space(1)} ${space(2)};
-  }
+> * {
+padding: ${p.theme.space(1)} ${p.theme.space(2)};
+}
 `
       : `
-  > :not(:nth-child(n + 5)) {
-    padding: ${space(1)} ${space(2)};
-  }`}
+> :not(:nth-child(n + 5)) {
+padding: ${p.theme.space(1)} ${p.theme.space(2)};
+}`}
 
   > :nth-child(4n) {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space(1)};
     justify-content: end;
   }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
   min-width: ${p => p.size}px;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const ExternalNameColumn = styled('div')`

@@ -16,7 +16,6 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
@@ -306,12 +305,12 @@ const Steps = styled('div')`
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Content = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const Heading = styled('div')`
@@ -321,7 +320,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`

@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import type {InviteStatus} from './types';
 
@@ -38,7 +37,7 @@ function renderEmailValue<Option extends OptionTypeBase>(
 const EmailLabel = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;
 

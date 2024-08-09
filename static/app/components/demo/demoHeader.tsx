@@ -5,7 +5,6 @@ import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
@@ -85,7 +84,7 @@ export default function DemoHeader() {
 
 // Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')<{collapsed: boolean}>`
-  padding-right: ${space(3)};
+  padding-right: ${p => p.theme.space(3)};
   background-color: ${p => p.theme.white};
   height: ${p => p.theme.demo.headerSize};
   display: flex;
@@ -93,7 +92,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   text-transform: uppercase;
   align-items: center;
   white-space: nowrap;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
 
   margin-left: calc(
     -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}

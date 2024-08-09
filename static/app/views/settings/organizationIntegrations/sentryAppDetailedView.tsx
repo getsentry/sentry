@@ -295,11 +295,11 @@ const Permission = styled('div')`
 `;
 
 const PermissionWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
@@ -309,7 +309,7 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
 `;
 
 const InstallButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const StyledUninstallButton = styled(Button)`

@@ -7,7 +7,6 @@ import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type TIcon = {
   id: string;
@@ -1358,22 +1357,22 @@ const StyledSticky = styled(Sticky)`
 `;
 
 const SectionHeader = styled('h5')`
-  margin-block: ${space(2)};
+  margin-block: ${p => p.theme.space(2)};
 `;
 
 const Grid = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const Cell = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   border: 1px solid transparent;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   cursor: pointer;
 
   &:hover {

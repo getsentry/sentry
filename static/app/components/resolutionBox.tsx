@@ -8,7 +8,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   GroupActivity,
   GroupActivitySetByResolvedInNextSemverRelease,
@@ -131,7 +130,7 @@ function ResolutionBox({statusDetails, projectId, activities = []}: Props) {
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray300};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -141,7 +140,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   align-self: center;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(0.5)} !important;
+    margin-top: ${p => p.theme.space(0.5)} !important;
     align-self: flex-start;
   }
 `;

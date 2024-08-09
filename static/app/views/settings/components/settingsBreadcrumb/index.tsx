@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
@@ -79,7 +78,7 @@ const CrumbLink = styled(Link)`
 
 const Breadcrumbs = styled('nav')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;
 

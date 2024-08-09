@@ -16,7 +16,6 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {createRecentFilterOptionKey} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -240,7 +239,7 @@ const SectionedOverlayFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -259,11 +258,11 @@ const SectionedListBoxPane = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
-const SectionedListBoxTabPane = styled('div')`
-  padding: ${space(0.5)};
+const SectionedListBoxTabPane = styled(SectionedListBoxPane)`
+  padding: ${p => p.theme.space(0.5)};
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const RecentFilterPill = styled('li')`
@@ -305,7 +304,7 @@ const SectionButton = styled(Button)`
   text-align: left;
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1.5)};
   color: ${p => p.theme.subText};
   border: 0;
 

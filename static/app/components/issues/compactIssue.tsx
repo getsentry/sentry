@@ -11,7 +11,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChat, IconMute, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {BaseGroup} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
@@ -190,17 +189,17 @@ const IssueHeaderMetaWrapper = styled('div')`
 
 const StyledErrorLevel = styled(ErrorLevel)`
   display: block;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const IconLink = styled(Link)`
   & > svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;
 
 const IssueRow = styled(PanelItem)`
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(0.75)};
+  padding-top: ${p => p.theme.space(1.5)};
+  padding-bottom: ${p => p.theme.space(0.75)};
   flex-direction: column;
 `;

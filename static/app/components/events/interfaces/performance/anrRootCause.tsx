@@ -11,7 +11,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Organization} from 'sentry/types';
 import {StackView} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -154,7 +153,7 @@ export function AnrRootCause({event, organization}: Props) {
 }
 
 const IssueSummary = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 /**
@@ -179,9 +178,9 @@ const TitleWithLink = styled(GlobalSelectionLink)`
 
 const Title = styled('div')`
   line-height: 1;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const StackTraceWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;

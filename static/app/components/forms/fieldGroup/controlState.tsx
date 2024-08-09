@@ -5,7 +5,6 @@ import Spinner from 'sentry/components/forms/spinner';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 
 export interface ControlStateProps {
   /**
@@ -63,7 +62,7 @@ const ControlStateWrapper = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`

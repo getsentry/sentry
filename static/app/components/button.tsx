@@ -541,7 +541,9 @@ const StyledButton = styled(
   ${p =>
     p.priority === 'link' &&
     `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+  ${p =>
+    p.size === 'zero' &&
+    `height: auto; min-height: auto; padding: ${p.theme.space(0.25)};`}
 
   &:focus {
     outline: none;

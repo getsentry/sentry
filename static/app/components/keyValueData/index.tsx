@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -213,16 +212,16 @@ export function Container({children}: {children: React.ReactNode}) {
 }
 
 export const CardPanel = styled(Panel)`
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space(0.75)};
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space(1.5)};
   grid-template-columns: minmax(100px, auto) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('div')`
   grid-column: span 2;
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   color: ${p => p.theme.headingColor};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
@@ -231,8 +230,8 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: span 2;
-  column-gap: ${space(1.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  column-gap: ${p => p.theme.space(1.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   border-radius: 4px;
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
   box-shadow: inset 0 0 0 1px
@@ -258,7 +257,7 @@ const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space(0.5)};
 `;
 
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
@@ -269,7 +268,7 @@ const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
 const TruncateWrapper = styled('a')`
   display: flex;
   grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
   justify-content: center;
   font-family: ${p => p.theme.text.family};
 `;

@@ -5,7 +5,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
@@ -115,13 +114,13 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: center;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   color: ${p => p.theme.gray200};
   background: ${p => p.theme.backgroundSecondary};
-  ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
+  ${p => !p.contentHeight && `padding: ${p.theme.space(1)} ${p.theme.space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};
   ${p =>
     !p.isCollapsed &&

@@ -10,7 +10,6 @@ import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Organization,
   OrganizationIntegration,
@@ -147,14 +146,14 @@ class IntegrationServerlessRow extends Component<Props, State> {
 export default withApi(IntegrationServerlessRow);
 
 const Item = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
   grid-template-columns: 2fr 1fr 0.5fr;
   grid-template-areas: 'function-name layer-status enable-switch';
@@ -187,7 +186,7 @@ const NameRuntimeVersionWrapper = styled('div')`
 `;
 
 const Name = styled(`span`)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const RuntimeAndVersion = styled('div')`

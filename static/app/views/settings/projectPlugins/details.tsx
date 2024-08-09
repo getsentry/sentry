@@ -11,7 +11,6 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -264,5 +263,5 @@ export {ProjectPluginDetails};
 export default withPlugins(ProjectPluginDetails);
 
 const StyledButton = styled(Button)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;

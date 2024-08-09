@@ -16,7 +16,6 @@ import Radio from 'sentry/components/radio';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   OnboardingSelectedSDK,
   Organization,
@@ -341,9 +340,9 @@ const Header = styled('header')`
   position: relative;
   height: 30px;
 
-  margin: -${space(4)} -${space(2)} 0 -${space(3)};
+  margin: -${p => p.theme.space(4)} -${p => p.theme.space(2)} 0 -${p => p.theme.space(3)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin: -${space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space(4)} -${p => p.theme.space(4)} 0 -${p => p.theme.space(4)};
   }
 `;
 
@@ -361,16 +360,16 @@ const TopFrameworksImageWrapper = styled('div')`
   position: relative;
   width: 256px;
   height: 108px;
-  margin: 0px auto ${space(2)};
+  margin: 0px auto ${p => p.theme.space(2)};
 `;
 
 const Heading = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   text-align: center;
 `;
 
 const Description = styled(TextBlock)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   text-align: center;
 `;
 
@@ -410,21 +409,21 @@ const RadioLabel = styled(RadioLineItem)`
   display: inline-grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   input {
     cursor: pointer;
   }
 `;
 
 const RadioBox = styled(Radio)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 `;
 
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: 100%;
 `;
 

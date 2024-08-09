@@ -8,7 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getIngestionSeriesId, MetricChart} from 'sentry/components/metrics/chart/chart';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
@@ -353,11 +352,11 @@ function MetricChartVisualization({
 const StyledOuterContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 const StyledMetricChartContainer = styled('div')`
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -368,7 +367,7 @@ const ViualizationHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const WidgetTitle = styled('div')`

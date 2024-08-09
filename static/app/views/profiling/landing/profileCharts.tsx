@@ -9,7 +9,6 @@ import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -202,7 +201,7 @@ export function ProfilesChart({
 }
 
 const StyledPanel = styled(Panel)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 `;
 
 const TitleContainer = styled('div')`
@@ -213,6 +212,6 @@ const TitleContainer = styled('div')`
 
 const StyledHeaderTitle = styled(HeaderTitle)<{compact?: boolean}>`
   flex-grow: 1;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
   font-size: ${p => (p.compact ? p.theme.fontSizeSmall : undefined)};
 `;

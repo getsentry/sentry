@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -10,7 +8,7 @@ export const ContextContainer = styled('div')`
 export const ContextHeader = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 export const ContextTitle = styled('h6')`
@@ -30,13 +28,13 @@ export const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   width: 320px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 export const NoContextWrapper = styled('div')`
   color: ${p => p.theme.subText};
   height: 50px;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   flex-direction: column;

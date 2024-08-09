@@ -10,7 +10,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -326,7 +325,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const ToggleButton = styled(Button)`
@@ -341,7 +340,7 @@ const ErrorTitleFlex = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const DocsExternalLink = styled(ExternalLink)`

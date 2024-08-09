@@ -1,16 +1,14 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const ReadoutRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  column-gap: ${space(4)};
-  row-gap: ${space(2)};
+  column-gap: ${p => p.theme.space(4)};
+  row-gap: ${p => p.theme.space(2)};
 `;
 
 export const ToolRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;

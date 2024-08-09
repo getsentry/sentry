@@ -16,7 +16,6 @@ import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -190,7 +189,7 @@ const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
   font-size: 20px;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const TooltipWrapper = styled('div')`

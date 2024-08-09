@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function EventTitleError() {
   return (
@@ -20,14 +19,14 @@ const Wrapper = styled('span')`
 `;
 
 const Title = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.alert.error.color};
   background: ${p => p.theme.alert.error.backgroundLight};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;

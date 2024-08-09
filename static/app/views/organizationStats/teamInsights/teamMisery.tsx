@@ -276,7 +276,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>
@@ -301,8 +301,8 @@ const KeyTransactionTitleWrapper = styled('div')`
 
 const StyledIconStar = styled(IconStar)`
   display: block;
-  margin-right: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const TransactionWrapper = styled('div')`

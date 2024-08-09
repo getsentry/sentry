@@ -7,7 +7,6 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery?: string;
@@ -110,7 +109,7 @@ const StyledInput = styled(InputGroup.Input)`
 
 export const SearchBarTrailingButton = styled(Button)`
   color: ${p => p.theme.subText};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 `;
 
 export default SearchBar;

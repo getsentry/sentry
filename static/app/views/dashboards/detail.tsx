@@ -25,7 +25,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1079,13 +1078,13 @@ class DashboardDetail extends Component<Props, State> {
 const StyledPageHeader = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${space(2)};
+  grid-row-gap: ${p => p.theme.space(2)};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space(2)};
     height: 40px;
   }
 `;

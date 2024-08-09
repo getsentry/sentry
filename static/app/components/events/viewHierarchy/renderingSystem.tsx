@@ -3,7 +3,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -40,7 +39,7 @@ export {RenderingSystem};
 const Container = styled('div')`
   position: absolute;
   top: -0.5px;
-  left: -${space(3)};
+  left: -${p => p.theme.space(3)};
   z-index: 1;
 
   img {

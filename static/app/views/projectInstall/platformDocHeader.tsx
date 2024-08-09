@@ -9,7 +9,6 @@ import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCre
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -139,7 +138,7 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
 const StyledPageHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 
   h2 {
     margin: 0;
@@ -150,7 +149,7 @@ const StyledPageHeader = styled('div')`
     align-items: flex-start;
 
     h2 {
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p => p.theme.space(2)};
     }
   }
 `;

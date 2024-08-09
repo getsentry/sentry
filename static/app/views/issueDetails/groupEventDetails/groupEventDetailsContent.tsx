@@ -47,7 +47,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -502,14 +501,14 @@ export default function GroupEventDetailsContent({
 }
 
 const NotFoundMessage = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
 `;
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1)} ${space(4)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(4)};
   }
 
   &:empty {

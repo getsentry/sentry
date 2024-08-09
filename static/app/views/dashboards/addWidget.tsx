@@ -12,7 +12,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -206,7 +205,7 @@ const InnerWrapper = styled('div')<{onClick?: () => void}>`
 
 const MenuTitle = styled('span')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   & > a {
     font-weight: ${p => p.theme.fontWeightNormal};

@@ -6,7 +6,6 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {NewMonitorButton} from './newMonitorButton';
 
@@ -82,33 +81,33 @@ export function PlatformPickerPanel({onSelect}: Props) {
 }
 
 const OnboardingTitle = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SectionTitle = styled('h5')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
-  margin-bottom: ${space(1)};
-  margin-top: ${space(4)};
+  margin-bottom: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const Actions = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   flex-wrap: wrap;
 `;
 
 const PlatformButton = styled(Button)`
   width: 80px;
   height: 80px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const PlatformOption = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
 `;

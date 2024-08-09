@@ -14,7 +14,6 @@ import ProgressRing, {
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -125,7 +124,7 @@ const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.white};
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
 `;
 
 const Remaining = styled('div')`
@@ -134,7 +133,7 @@ const Remaining = styled('div')`
   color: ${p => p.theme.gray300};
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;
 
@@ -171,7 +170,7 @@ const Container = styled('div')<{isActive: boolean}>`
   cursor: pointer;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   align-items: center;
   transition: background 100ms;
 

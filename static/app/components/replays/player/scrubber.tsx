@@ -7,7 +7,6 @@ import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelin
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -143,14 +142,14 @@ const ZoomIndicatorContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   translate: -6px;
   top: -12px;
 `;
 
 const ZoomIndicator = styled('div')`
-  border-right: ${space(0.25)} solid ${p => p.theme.gray500};
-  height: ${space(1)};
+  border-right: ${p => p.theme.space(0.25)} solid ${p => p.theme.gray500};
+  height: ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -184,12 +183,12 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.purple300};
+    border-right: ${p => p.theme.space(0.25)} solid ${p => p.theme.purple300};
   }
 `;
 
 export const PlayerScrubber = styled(Scrubber)`
-  height: ${space(0.5)};
+  height: ${p => p.theme.space(0.5)};
 
   ${Meter} {
     border-radius: ${p => p.theme.borderRadius};
@@ -245,16 +244,16 @@ export const PlayerScrubber = styled(Scrubber)`
   ${MouseTrackingValue}:after {
     content: '';
     display: block;
-    width: ${space(2)};
-    height: ${space(2)}; /* equal to width */
+    width: ${p => p.theme.space(2)};
+    height: ${p => p.theme.space(2)}; /* equal to width */
     pointer-events: none;
     box-sizing: content-box;
-    border-radius: ${space(2)}; /* greater than or equal to width */
+    border-radius: ${p => p.theme.space(2)}; /* greater than or equal to width */
     border: solid ${p => p.theme.white};
-    border-width: ${space(0.25)};
+    border-width: ${p => p.theme.space(0.25)};
     position: absolute;
-    top: -${space(1)}; /* Half of the height */
-    right: -${space(1.5)}; /* Half of (width + borderWidth) */
+    top: -${p => p.theme.space(1)}; /* Half of the height */
+    right: -${p => p.theme.space(1.5)}; /* Half of (width + borderWidth) */
     z-index: ${p => p.theme.zIndex.initial};
   }
 `;

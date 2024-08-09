@@ -8,7 +8,6 @@ import Truncate from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Frame, Meta, PlatformKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
@@ -217,8 +216,8 @@ export default DefaultTitle;
 
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;
-  top: ${space(0.25)};
-  margin-left: ${space(0.5)};
+  top: ${p => p.theme.space(0.25)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const InFramePosition = styled('span')`
@@ -227,5 +226,5 @@ const InFramePosition = styled('span')`
 `;
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space(0.75)};
 `;

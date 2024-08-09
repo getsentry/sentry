@@ -13,7 +13,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -387,9 +386,9 @@ const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
 const SetupReleases = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space(2)} 0;
   text-align: center;
   color: ${p => p.theme.gray400};
   width: 250px;
@@ -399,5 +398,5 @@ const SetupReleases = styled('div')`
 
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

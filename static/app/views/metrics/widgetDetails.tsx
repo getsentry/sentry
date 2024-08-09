@@ -11,7 +11,6 @@ import {
 } from 'sentry/components/metrics/metricSamplesTable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
@@ -212,18 +211,18 @@ const MetricSampleTableWrapper = HookOrDefault({
 });
 
 const Heading = styled('h6')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const TrayWrapper = styled('div')`
-  padding-top: ${space(4)};
+  padding-top: ${p => p.theme.space(4)};
   display: grid;
   grid-template-rows: auto auto 1fr;
 `;
 
 const ContentWrapper = styled('div')`
   position: relative;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;
 
 const OpenInTracesButton = styled(Button)``;
@@ -231,6 +230,6 @@ const OpenInTracesButton = styled(Button)``;
 const TabsAndAction = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
   align-items: end;
 `;

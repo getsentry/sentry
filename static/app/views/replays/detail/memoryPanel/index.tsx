@@ -5,7 +5,6 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useCountDomNodes from 'sentry/utils/replays/hooks/useCountDomNodes';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import DomNodesChart from 'sentry/views/replays/detail/memoryPanel/domNodesChart';
@@ -81,15 +80,15 @@ const Grid = styled('div')`
   display: grid;
   grid-template-rows: 1fr 1fr;
   grid-template-columns: 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: center;
   height: 100%;
 `;
 
 const ChartWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${space(0.5)};
-  padding: ${space(1)};
+  border-radius: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(1)};
   overflow: hidden;
   display: flex;
   flex-direction: column;

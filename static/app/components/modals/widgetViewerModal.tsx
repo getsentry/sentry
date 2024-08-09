@@ -1171,23 +1171,23 @@ export const modalCss = css`
 const Container = styled('div')<{height?: number | null}>`
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space(3)};
 `;
 
 const QueryContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  top: ${space(1.5)};
-  right: ${space(2)};
+  top: ${p => p.theme.space(1.5)};
+  right: ${p => p.theme.space(2)};
 `;
 
 const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 2;
@@ -1198,7 +1198,7 @@ const ResultsContainer = styled('div')`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
@@ -1214,13 +1214,13 @@ const EmptyQueryContainer = styled('span')`
 const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const WidgetTitleRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

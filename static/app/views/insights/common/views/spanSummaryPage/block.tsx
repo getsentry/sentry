@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
@@ -31,14 +30,14 @@ export function Block({title, description, alignment = 'right', children}: Props
 export const BlockContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
 `;
 
 const BlockWrapper = styled('div')`
   flex-grow: 1;
   min-width: 0;
   word-break: break-word;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const BlockTitle = styled('h3')<{alignment: 'left' | 'right'}>`
@@ -46,7 +45,7 @@ const BlockTitle = styled('h3')<{alignment: 'left' | 'right'}>`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   white-space: nowrap;
-  height: ${space(3)};
+  height: ${p => p.theme.space(3)};
   text-align: ${p => p.alignment};
 `;
 
@@ -57,5 +56,5 @@ const BlockContent = styled('h4')<{alignment: 'left' | 'right'}>`
 `;
 
 const BlockTooltipContainer = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;

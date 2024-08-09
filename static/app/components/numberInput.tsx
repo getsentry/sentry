@@ -10,7 +10,6 @@ import {Button} from 'sentry/components/button';
 import type {InputStylesProps} from 'sentry/components/input';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -99,14 +98,14 @@ const StepWrap = styled('div')<{size?: FormSize}>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: ${space(1.5)};
+  width: ${p => p.theme.space(1.5)};
   height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
 const StepButton = styled(Button)`
   display: flex;
   height: 50%;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   color: ${p => p.theme.subText};
 `;
 

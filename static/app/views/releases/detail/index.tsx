@@ -16,7 +16,6 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Deploy,
   Organization,
@@ -390,7 +389,7 @@ const ProjectsFooterMessage = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: min-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};

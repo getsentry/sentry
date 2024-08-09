@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const makeKey = (prefix: string) => `${prefix}-banner-dismissed`;
 
@@ -88,7 +87,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   align-items: center;
   justify-content: center;
   position: relative;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
   border-radius: ${p => p.theme.borderRadius};
   height: 180px;
@@ -105,7 +104,7 @@ const BannerContent = styled('div')`
   justify-items: center;
   grid-template-rows: repeat(3, max-content);
   text-align: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 const BannerTitle = styled('h1')`
@@ -125,15 +124,15 @@ const BannerSubtitle = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   width: fit-content;
 `;
 
 const CloseButton = styled(Button)`
   position: absolute;
   display: block;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space(2)};
+  right: ${p => p.theme.space(2)};
   color: ${p => p.theme.white};
   cursor: pointer;
   z-index: 1;

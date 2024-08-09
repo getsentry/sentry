@@ -6,7 +6,6 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -195,7 +194,7 @@ const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
 `;
 
 const ProfilesChartContainer = styled('div')`

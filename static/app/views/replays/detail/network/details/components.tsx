@@ -6,14 +6,13 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const Indent = styled('div')`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
 `;
 
 export const InspectorMargin = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const NotFoundText = styled('span')`
@@ -102,9 +101,9 @@ const ToggleButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
 
   :hover {
     background: ${p => p.theme.backgroundSecondary};
@@ -139,7 +138,7 @@ export function SectionItem({
 const StyledKeyValueTable = styled(KeyValueTable)`
   & > dt {
     font-size: ${p => p.theme.fontSizeSmall};
-    padding-left: ${space(4)};
+    padding-left: ${p => p.theme.space(4)};
   }
   & > dd {
     ${p => p.theme.overflowEllipsis};

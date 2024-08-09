@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 const BODY_CLASSES = ['narrow'];
 
@@ -46,7 +45,7 @@ const AuthSidebar = styled('div')`
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
   margin: -1px;
   margin-right: 0;

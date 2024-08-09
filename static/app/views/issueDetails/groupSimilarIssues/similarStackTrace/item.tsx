@@ -199,13 +199,13 @@ const Details = styled('div')`
 
   display: grid;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: max-content auto max-content;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 const Columns = styled('div')`
@@ -237,7 +237,7 @@ const Diff = styled('div')`
   height: 100%;
   display: flex;
   align-items: center;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
 `;
 
 const EventDetails = styled('div')`

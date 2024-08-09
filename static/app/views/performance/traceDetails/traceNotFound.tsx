@@ -12,7 +12,6 @@ import {
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -102,7 +101,7 @@ function TraceNotFound({
 }
 
 const ErrorLabel = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export default TraceNotFound;

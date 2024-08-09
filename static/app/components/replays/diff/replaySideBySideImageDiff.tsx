@@ -63,7 +63,7 @@ const DiffHeader = styled('div')`
   }
 
   div:last-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
   }
 `;
 

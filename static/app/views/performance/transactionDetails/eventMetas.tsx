@@ -12,7 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -218,7 +217,7 @@ class EventMetas extends Component<Props, State> {
 const BrowserCenter = styled('span')`
   display: flex;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const IconContainer = styled('div')`
@@ -228,7 +227,7 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 export function BrowserDisplay({
@@ -281,8 +280,8 @@ const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
   display: grid;
   grid-template-columns: repeat(${p => (p.type === 'transaction' ? 3 : 2)}, 1fr);
   grid-template-rows: repeat(2, auto);
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
@@ -349,7 +348,7 @@ const EventIDContainer = styled('button')`
 `;
 
 const EventIDWrapper = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export function HttpStatus({event}: {event: Event}) {

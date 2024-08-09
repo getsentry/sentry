@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
@@ -87,5 +86,5 @@ DoubleChartRow.defaultProps = {
 };
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;

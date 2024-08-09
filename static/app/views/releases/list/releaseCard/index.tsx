@@ -15,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Release} from 'sentry/types';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
@@ -233,7 +232,7 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
 `;
 
 const ReleaseInfo = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   flex-shrink: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
@@ -254,7 +253,7 @@ export const PackageName = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ReleaseProjects = styled('div')`
@@ -271,13 +270,13 @@ export const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
 `;
 
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -298,8 +297,8 @@ const ExpandButtonWrapper = styled('div')`
     ${p => p.theme.background}
   );
   background-repeat: repeat-x;
-  border-bottom: ${space(1)} solid ${p => p.theme.background};
-  border-top: ${space(1)} solid transparent;
+  border-bottom: ${p => p.theme.space(1)} solid ${p => p.theme.background};
+  border-top: ${p => p.theme.space(1)} solid transparent;
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
@@ -319,7 +318,7 @@ export const ReleaseProjectsLayout = styled('div')<{
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
   width: 100%;
 
@@ -405,7 +404,7 @@ const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.border};
   overflow: hidden;
   height: 24px;

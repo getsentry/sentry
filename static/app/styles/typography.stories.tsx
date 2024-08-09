@@ -565,7 +565,7 @@ const SideBySideList = styled('ul')`
   /* Side-by-side display */
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ColorSwatch = styled(
@@ -585,12 +585,12 @@ const ColorSwatch = styled(
   )
 )`
   display: inline-flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   vertical-align: sub;
 `;
 
@@ -611,7 +611,7 @@ const PositiveLabel = styled(
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const NegativeLabel = styled(
@@ -626,11 +626,11 @@ const NegativeLabel = styled(
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ExamplePanel = styled(Panel)<{fontSize?: 'large'}>`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   ${p =>
     p.fontSize === 'large'
       ? `

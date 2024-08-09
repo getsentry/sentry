@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PullRequest, Repository} from 'sentry/types/integrations';
 
 function renderIcon(repo: Repository) {
@@ -59,7 +58,7 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
 const ExternalPullLink = styled(ExternalLink)`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 export default PullRequestLink;

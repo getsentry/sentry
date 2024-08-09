@@ -5,7 +5,6 @@ import scrollToElement from 'scroll-to-element';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types';
 
 import type DebugImage from '../../debugMeta/debugImage';
@@ -182,7 +181,7 @@ const PackageInfo = styled('span')`
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;

@@ -190,7 +190,7 @@ const alertStyles = ({
 
 const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const IconWrapper = styled('div')`
@@ -210,7 +210,7 @@ const TrailingItems = styled('div')<{showIcon: boolean}>`
   grid-auto-flow: column;
   grid-template-rows: 100%;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
@@ -219,12 +219,12 @@ const TrailingItems = styled('div')<{showIcon: boolean}>`
     grid-row: 2;
     grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
     justify-items: start;
-    margin: ${space(0.5)} 0;
+    margin: ${p => p.theme.space(0.5)} 0;
   }
 `;
 
 const ExpandIconWrap = styled(IconWrapper)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`

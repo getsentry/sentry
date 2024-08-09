@@ -25,7 +25,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {space} from 'sentry/styles/space';
 import type {
   EventsStats,
   MetricsExtractionRule,
@@ -1268,14 +1267,14 @@ const Main = styled(Layout.Main)`
 `;
 
 const AlertListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-top: 0;
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  margin-bottom: -${space(1.5)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)} 0 ${p => p.theme.space(3)};
+  margin-bottom: -${p => p.theme.space(1.5)};
 `;
 
 const AlertName = styled(HeaderTitleLegend)`
@@ -1291,12 +1290,12 @@ const AlertInfo = styled('div')`
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const Aggregate = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default withProjects(RuleFormContainer);

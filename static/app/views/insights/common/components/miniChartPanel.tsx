@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 
 type Props = {
@@ -35,7 +34,7 @@ const ChartLabel = styled('p')`
 `;
 
 const HeaderContainer = styled('div')`
-  padding: 0 ${space(1)} 0 0;
+  padding: 0 ${p => p.theme.space(1)} 0 0;
 `;
 
 const Header = styled('div')`
@@ -47,7 +46,7 @@ const Header = styled('div')`
 `;
 
 const PanelBody = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   ${textStyles};
 `;
 

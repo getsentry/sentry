@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {space} from 'sentry/styles/space';
 import type {IntegrationInstallationStatus} from 'sentry/types';
 
 import {COLORS} from './constants';
@@ -27,9 +26,9 @@ const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   );
 })`
   color: ${p => p.theme[COLORS[p.status]]};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;
 
 export default IntegrationStatus;

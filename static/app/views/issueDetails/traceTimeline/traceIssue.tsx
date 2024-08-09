@@ -111,10 +111,11 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
 
 const TraceIssueLinkContainer = styled(Link)`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   color: ${p => p.theme.textColor};
-  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
-  margin: ${space(1)} 0 ${space(1)} 0;
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(2)}
+    ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} 0;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -148,7 +149,7 @@ const NoOverflowDiv = styled('div')`
 
 const TraceIssueEventTitle = styled('span')`
   font-weight: 600;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const TraceIssueEventSubtitle = styled('span')`

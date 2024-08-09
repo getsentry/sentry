@@ -391,11 +391,11 @@ const fadeIn = keyframes`
 
 const StacktraceLinkWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;
 
 const FixMappingButton = styled(Button)`
@@ -428,6 +428,6 @@ const OpenInLink = styled(ExternalLink)`
 const CodecovWarning = styled('div')`
   display: flex;
   color: ${p => p.theme.errorText};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;

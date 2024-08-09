@@ -402,13 +402,13 @@ const ArchivedId = styled('div')`
 `;
 
 const StyledIconDelete = styled(IconDelete)`
-  margin: ${space(0.25)};
+  margin: ${p => p.theme.space(0.25)};
 `;
 
 const Cols = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   width: 100%;
 `;
 
@@ -437,7 +437,7 @@ const SubText = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 export function TransactionCell({
@@ -667,11 +667,11 @@ const Item = styled('div')<{
 }>`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   ${p =>
     p.isWidget
-      ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
-      : `padding: ${space(1.5)};`};
+      ? `padding: ${p.theme.space(0.75)} ${p.theme.space(1.5)} ${p.theme.space(1.5)} ${p.theme.space(1.5)};`
+      : `padding: ${p.theme.space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
   ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
@@ -683,19 +683,19 @@ const Count = styled('span')`
 const DeadClickCount = styled(Count)`
   display: flex;
   width: 40px;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const RageClickCount = styled(Count)`
   display: flex;
   width: 40px;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const Time = styled('span')`
@@ -706,7 +706,7 @@ const SpanOperationBreakdown = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
@@ -723,8 +723,8 @@ const ActionMenuTrigger = styled(Button)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  padding: ${space(0.75)};
-  left: -${space(0.75)};
+  padding: ${p => p.theme.space(0.75)};
+  left: -${p => p.theme.space(0.75)};
   display: flex;
   align-items: center;
   opacity: 0;
@@ -738,7 +738,7 @@ const ActionMenuTrigger = styled(Button)`
 
 const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
   left: 100%;
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space(0.75)};
   z-index: 1;
 `;
 

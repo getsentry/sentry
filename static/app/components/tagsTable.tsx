@@ -6,7 +6,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTag} from 'sentry/types/event';
 
 type Props = {
@@ -41,5 +40,5 @@ export function TagsTable({event, query, generateUrl}: Props) {
 }
 
 const StyledTagsTable = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;

@@ -17,7 +17,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -579,7 +578,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const EmptyResultsContainer = styled('div')`
@@ -594,7 +593,7 @@ const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
   color: ${p => p.theme.gray300};
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`

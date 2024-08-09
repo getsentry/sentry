@@ -6,7 +6,6 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -42,16 +41,17 @@ export const DesyncedFilterIndicator = styled('div')`
   background: ${p => p.theme.active};
   border: solid 1px ${p => p.theme.background};
   position: absolute;
-  top: -${space(0.5)};
-  right: -${space(0.5)};
+  top: -${p => p.theme.space(0.5)};
+  right: -${p => p.theme.space(0.5)};
 `;
 
 const DesyncedFilterMessageWrap = styled('div')`
   border: solid 1px ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
-  padding: ${space(0.75)};
+  margin: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)}
+    ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.75)};
 
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -66,6 +66,6 @@ const DesyncedFilterMessageFooter = styled('div')`
   width: 100%;
   display: flex;
   justify-content: end;
-  gap: ${space(0.5)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(0.5)};
+  margin-top: ${p => p.theme.space(1)};
 `;

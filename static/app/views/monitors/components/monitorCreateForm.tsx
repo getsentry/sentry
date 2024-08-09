@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import commonTheme from 'sentry/utils/theme';
@@ -237,7 +236,7 @@ const FieldContainer = styled('div')`
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
-  border-radius: 0 ${space(0.75)} ${space(0.75)} 0;
+  border-radius: 0 ${p => p.theme.space(0.75)} ${p => p.theme.space(0.75)} 0;
 
   ${p =>
     p.highlighted
@@ -249,13 +248,13 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
         `};
 
   &:first-child {
-    border-radius: ${space(0.75)} 0 0 ${space(0.75)};
+    border-radius: ${p => p.theme.space(0.75)} 0 0 ${p => p.theme.space(0.75)};
   }
 `;
 
 const ScheduleLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Label = styled('div')`
@@ -264,8 +263,8 @@ const Label = styled('div')`
 `;
 
 const LabelText = styled(Label)`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ScheduleOptions = styled('div')`
@@ -276,7 +275,7 @@ const ScheduleOptions = styled('div')`
 const MultiColumnInput = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProjectOwnerNameInputs = styled(MultiColumnInput)`

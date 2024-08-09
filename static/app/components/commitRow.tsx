@@ -14,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -154,7 +153,7 @@ function CommitRow({
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const AvatarWrapper = styled('div')`
@@ -191,7 +190,7 @@ const CommitMessage = styled('div')`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const Message = styled(TextOverflow)`

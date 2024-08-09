@@ -14,7 +14,6 @@ import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -258,7 +257,7 @@ const StyledAlert = styled(Alert)`
 
 const BackWrapper = styled('div')`
   width: 100%;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space(4)};
 `;
 
 export default withApi(SuperuserStaffAccessForm);

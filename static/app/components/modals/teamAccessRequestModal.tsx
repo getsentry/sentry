@@ -9,7 +9,6 @@ import type {
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
 export interface CreateTeamAccessRequestModalProps
@@ -85,7 +84,7 @@ class CreateTeamAccessRequestModal extends Component<
 const ButtonGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default withApi(CreateTeamAccessRequestModal);

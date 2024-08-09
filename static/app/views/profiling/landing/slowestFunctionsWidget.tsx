@@ -16,7 +16,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -405,8 +404,8 @@ const TransactionsList = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   grid-template-rows: 18px repeat(5, min-content);
-  column-gap: ${space(1)};
-  padding: 0 ${space(2)};
+  column-gap: ${p => p.theme.space(1)};
+  padding: 0 ${p => p.theme.space(2)};
 `;
 
 const TransactionsListHeader = styled('span')<{
@@ -422,5 +421,5 @@ const TransactionsListHeader = styled('span')<{
 const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>`
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: ${p => p.align};
-  padding: ${space(0.5)} 0px;
+  padding: ${p => p.theme.space(0.5)} 0px;
 `;

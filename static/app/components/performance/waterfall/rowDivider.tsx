@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {IconAdd, IconFire, IconGraph, IconProfiling, IconSubtract} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Aliases, Color} from 'sentry/utils/theme';
 
 export const DividerContainer = styled('div')`
@@ -54,11 +53,11 @@ export const BadgeBorder = styled('div')<{
   fillBackground?: boolean;
 }>`
   position: absolute;
-  margin: ${space(0.25)};
+  margin: ${p => p.theme.space(0.25)};
   left: -11px;
   background: ${p => (p.fillBackground ? p.theme[p.color] : p.theme.background)};
-  width: ${space(3)};
-  height: ${space(3)};
+  width: ${p => p.theme.space(3)};
+  height: ${p => p.theme.space(3)};
   border: 1px solid ${p => p.theme[p.color]};
   border-radius: 50%;
   z-index: ${p => p.theme.zIndex.traceView.dividerLine};

@@ -16,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Integration,
   Organization,
@@ -305,7 +304,7 @@ export default withRouteAnalytics(
 
 const Layout = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   width: 100%;
   align-items: center;
   grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
@@ -314,7 +313,7 @@ const Layout = styled('div')`
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0 ${space(1)} 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(1)} 0 ${p => p.theme.space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;

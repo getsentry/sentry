@@ -13,7 +13,6 @@ import RepoLabel from 'sentry/components/repoLabel';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Deploy, Organization, Release, Repository} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
@@ -205,7 +204,7 @@ export {VersionHoverCard};
 export default withApi(withRelease(withRepositories(VersionHoverCard)));
 
 const ConnectRepo = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   text-align: center;
 `;
 
@@ -232,7 +231,7 @@ const VersionWrapper = styled('div')`
 `;
 
 const StyledVersion = styled(Version)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   max-width: 190px;
 `;
 
@@ -242,13 +241,13 @@ const CountSince = styled('div')`
 `;
 
 const StyledLastCommit = styled(LastCommit)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const DeployWrap = styled('div')`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-items: start;
   align-items: center;
 `;

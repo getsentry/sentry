@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {IconFile} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {StoriesQuery} from 'sentry/views/stories/types';
 
@@ -109,14 +108,14 @@ const ListItem = styled('li')`
 
 const Folder = styled('details')`
   cursor: pointer;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
   position: relative;
 
   &:before {
     content: '⏵';
     position: absolute;
-    left: ${space(0.5)};
-    top: ${space(0.25)};
+    left: ${p => p.theme.space(0.5)};
+    top: ${p => p.theme.space(0.25)};
   }
   &[open]:before {
     content: '⏷';
@@ -124,7 +123,7 @@ const Folder = styled('details')`
 `;
 
 const FolderName = styled('summary')`
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 
   color: inherit;
   &:hover {
@@ -146,8 +145,8 @@ const FolderLink = styled(Link)`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: baseline;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.25)};
   white-space: nowrap;
 
   color: inherit;

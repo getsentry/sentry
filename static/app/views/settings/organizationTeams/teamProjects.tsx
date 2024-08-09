@@ -19,7 +19,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
@@ -190,12 +189,12 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   max-width: 100%;
 `;
 
 const ProjectListElement = styled('div')`
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} 0;
 `;
 
 export default TeamProjects;

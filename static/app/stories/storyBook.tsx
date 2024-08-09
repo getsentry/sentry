@@ -73,7 +73,7 @@ const BookTitle = styled('h3')`
 
 const Story = styled('section')`
   & > p {
-    margin: ${space(3)} 0;
+    margin: ${p => p.theme.space(3)} 0;
   }
 `;
 

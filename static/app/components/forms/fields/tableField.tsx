@@ -9,7 +9,6 @@ import type {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -213,21 +212,21 @@ const Header = styled('div')`
 const RowContainer = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Row = styled('div')`
   display: flex;
   flex: 1 0 0;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const RowInput = styled('div')`
   flex: 1;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const RemoveButton = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;

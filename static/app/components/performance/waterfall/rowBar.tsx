@@ -8,7 +8,6 @@ import {
   getDurationPillColours,
   getHatchPattern,
 } from 'sentry/components/performance/waterfall/utils';
-import {space} from 'sentry/styles/space';
 
 export const RowRectangle = styled('div')<{
   isHidden?: boolean;
@@ -30,7 +29,7 @@ export const DurationPill = styled('div')<{
 }>`
   position: absolute;
   border-radius: ${p => p.theme.borderRadius};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   top: 50%;
   display: flex;
   align-items: center;

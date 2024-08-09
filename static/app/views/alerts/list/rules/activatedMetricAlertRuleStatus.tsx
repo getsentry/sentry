@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {IconArrow, IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
@@ -85,12 +84,12 @@ const FlexCenter = styled('div')`
 const IssueAlertStatusWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   line-height: 2;
 `;
 
 const TriggerText = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 `;

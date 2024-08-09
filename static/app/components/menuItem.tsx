@@ -251,19 +251,19 @@ const MenuListItem = styled('li')<MenuListItemProps>`
   ${p =>
     p.divider &&
     `
-    height: 1px;
-    margin: ${space(0.5)} 0;
-    overflow: hidden;
-    background-color: ${p.theme.innerBorder};
-  `}
+height: 1px;
+margin: ${p.theme.space(0.5)} 0;
+overflow: hidden;
+background-color: ${p.theme.innerBorder};
+`}
   ${p =>
     p.header &&
     `
-    padding: ${space(0.25)} ${space(0.5)};
-    font-size: ${p.theme.fontSizeSmall};
-    line-height: 1.4;
-    color: ${p.theme.gray300};
-  `}
+padding: ${p.theme.space(0.25)} ${p.theme.space(0.5)};
+font-size: ${p.theme.fontSizeSmall};
+line-height: 1.4;
+color: ${p.theme.gray300};
+`}
 
   ${getChildStyles}
 `;
@@ -277,7 +277,7 @@ const MenuTarget = styled('span')<MenuListItemProps>`
 const MenuIcon = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`

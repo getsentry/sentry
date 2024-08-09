@@ -15,7 +15,6 @@ import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
 import _TextArea from 'sentry/components/forms/controls/textarea';
 import type {InputProps} from 'sentry/components/input';
 import _Input from 'sentry/components/input';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
@@ -212,7 +211,7 @@ const InputItemsWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   position: absolute;
   top: 50%;

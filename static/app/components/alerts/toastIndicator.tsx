@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
@@ -64,7 +63,7 @@ const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
   height: 40px;
-  max-width: calc(100vw - ${space(4)} * 2);
+  max-width: calc(100vw - ${p => p.theme.space(4)} * 2);
   padding: 0 15px 0 10px;
   margin-top: 15px;
   background: ${p => p.theme.inverted.background};
@@ -95,7 +94,7 @@ Toast.defaultProps = {
 };
 
 const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
   svg {
     display: block;
   }
@@ -110,7 +109,7 @@ const Message = styled('div')`
 
 const Undo = styled(Button)`
   color: ${p => p.theme.inverted.linkColor};
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
 
   &:hover {
     color: ${p => p.theme.inverted.linkHoverColor};

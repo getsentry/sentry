@@ -10,7 +10,6 @@ import styled from '@emotion/styled';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import {space} from 'sentry/styles/space';
 
 interface PlainTextQueryInputProps {
   label?: string;
@@ -87,8 +86,8 @@ const InputWrapper = styled('div')`
 const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
-      ? `${space(0.75)} ${space(1)}`
-      : `${space(0.75)} 48px ${space(0.75)} 44px`};
+      ? `${p.theme.space(0.75)} ${p.theme.space(1)}`
+      : `${p.theme.space(0.75)} 48px ${p.theme.space(0.75)} 44px`};
   width: 100%;
   height: 100%;
   user-select: none;
@@ -102,8 +101,8 @@ const Highlight = styled('div')<{size: 'small' | 'normal'}>`
 const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
-      ? `${space(0.75)} ${space(1)}`
-      : `${space(0.75)} 48px ${space(0.75)} 44px`};
+      ? `${p.theme.space(0.75)} ${p.theme.space(1)}`
+      : `${p.theme.space(0.75)} 48px ${p.theme.space(0.75)} 44px`};
   position: absolute;
   inset: 0;
   resize: none;

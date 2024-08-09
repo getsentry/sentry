@@ -61,7 +61,6 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -986,5 +985,5 @@ export const StyledZoomIcon = styled(IconZoom)`
   background: ${p => p.theme.background};
   padding: 1px;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space(0.5)};
 `;

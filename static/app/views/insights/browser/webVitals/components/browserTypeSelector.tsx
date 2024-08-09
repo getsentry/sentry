@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList} from 'sentry/utils/queryString';
@@ -14,7 +13,7 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const LabelContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: max-content;
 `;
 

@@ -8,7 +8,6 @@ import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTag, Organization} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import type {
@@ -45,8 +44,8 @@ export const TraceViewHeaderContainer = styled(SecondaryHeader)`
 export const TraceDetailHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(3)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(3)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: max-content max-content;
@@ -70,14 +69,14 @@ export const TracePanel = styled(Panel)`
 `;
 
 export const ProjectBadgeContainer = styled('span')`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
   display: flex;
   flex-direction: column;
   justify-content: center;
 `;
 
 const StyledPills = styled(Pills)`
-  padding-top: ${space(1.5)};
+  padding-top: ${p => p.theme.space(1.5)};
 `;
 
 export function Tags({

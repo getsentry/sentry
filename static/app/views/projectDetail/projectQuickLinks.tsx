@@ -6,7 +6,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -100,10 +99,10 @@ const QuickLink = styled(p =>
 )<{
   disabled?: boolean;
 }>`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: auto 1fr;
 
   ${p =>

@@ -8,7 +8,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
 import type {DashboardFilters} from './types';
@@ -129,6 +128,6 @@ const ButtonLabelWrapper = styled('span')`
 
 const MenuTitleWrapper = styled('span')`
   display: inline-block;
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  padding-top: ${p => p.theme.space(0.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
 `;

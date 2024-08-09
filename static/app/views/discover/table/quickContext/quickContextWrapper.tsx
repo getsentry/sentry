@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 
 import {NoContextWrapper} from './styles';
@@ -30,7 +29,7 @@ export function NoContext({isLoading}: NoContextProps) {
 export const HoverWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 export function QuickContextHoverWrapper(
   props: ComponentProps<typeof QuickContextHovercard>

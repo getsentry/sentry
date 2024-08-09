@@ -8,7 +8,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   EntrySpans,
   Event,
@@ -299,14 +298,14 @@ class GroupVariant extends Component<Props, State> {
 }
 
 const VariantWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
@@ -326,7 +325,7 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
     <IconClose size="sm" isCircled color="dangerText" {...p} />
   )
 )`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const GroupingTree = styled('div')`
@@ -337,7 +336,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: auto 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const Hash = styled('span')`

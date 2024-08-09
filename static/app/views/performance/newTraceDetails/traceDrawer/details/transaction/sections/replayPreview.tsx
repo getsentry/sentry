@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -78,7 +77,7 @@ const ReplaySectionContainer = styled('div')`
 const ReplaySectionTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default ReplayPreview;

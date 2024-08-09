@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
@@ -12,7 +11,7 @@ type Props = {
 };
 
 const OrganizationRegionInformationWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   text-align: end;
 `;
 

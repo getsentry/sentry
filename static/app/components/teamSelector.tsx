@@ -30,8 +30,8 @@ const UnassignedWrapper = styled('div')`
 `;
 
 const StyledIconUser = styled(IconUser)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(1)};
+  margin-left: ${p => p.theme.space(0.25)};
+  margin-right: ${p => p.theme.space(1)};
   color: ${p => p.theme.gray400};
 `;
 

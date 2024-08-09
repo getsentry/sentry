@@ -267,7 +267,7 @@ const PanelSubheading = styled('span')`
 `;
 
 const PanelItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 const PanelItemBody = styled('div')`
@@ -278,7 +278,7 @@ const PanelItemBody = styled('div')`
 
 // TODO: simple layout stuff like this should come from a primitive component and we should really stop this `styled` nonsense
 const PanelItemBodyInner = styled('div')`
-  padding-top: ${space(1.5)};
+  padding-top: ${p => p.theme.space(1.5)};
 `;
 
 const EmptyStateDescription = styled('div')`

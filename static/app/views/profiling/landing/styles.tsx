@@ -2,14 +2,13 @@ import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 export const WidgetContainer = styled(Panel)<{height?: string}>`
   ${p => defined(p.height) && `height: ${p.height};`}
   display: flex;
   flex-direction: column;
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 `;
 
 export const HeaderContainer = styled('div')`
@@ -17,8 +16,8 @@ export const HeaderContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr auto;
   grid-template-rows: 26px auto;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
+  padding-right: ${p => p.theme.space(2)};
 `;
 
 export const HeaderTitleLegend = styled(_HeaderTitleLegend)`
@@ -51,7 +50,7 @@ export const StatusContainer = styled('div')`
 `;
 
 export const Accordion = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+  padding: ${p => p.theme.space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
   flex: 1 1 auto;
@@ -61,8 +60,8 @@ export const AccordionItem = styled('li')`
   line-height: ${p => p.theme.text.lineHeightBody};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {IconClose} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 
 import type {CommonSidebarProps} from './types';
 
@@ -123,7 +122,7 @@ export default SidebarPanel;
 
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   height: 60px;
@@ -145,7 +144,7 @@ const PanelClose = styled(IconClose)`
   color: ${p => p.theme.subText};
   cursor: pointer;
   position: relative;
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space(0.75)};
 
   &:hover {
     color: ${p => p.theme.textColor};

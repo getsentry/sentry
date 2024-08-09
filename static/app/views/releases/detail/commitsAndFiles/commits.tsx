@@ -13,7 +13,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit, Project, Repository} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -114,7 +113,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
 }
 
 const Actions = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default withReleaseRepos(Commits);

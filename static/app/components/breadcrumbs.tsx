@@ -8,14 +8,13 @@ import {Chevron} from 'sentry/components/chevron';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
 import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('nav')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 export interface Crumb {
@@ -174,7 +173,7 @@ const BreadcrumbItem = styled('span')`
 
 const BreadcrumbDividerIcon = styled(Chevron)`
   color: ${p => p.theme.subText};
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
   flex-shrink: 0;
 `;
 

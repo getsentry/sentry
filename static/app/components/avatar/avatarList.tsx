@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -156,11 +155,11 @@ const CollapsedAvatarPill = styled('div')`
 
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   height: 24px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   background-color: ${p => p.theme.surface400};
   border: 1px solid ${p => p.theme.border};
   border-radius: 24px;

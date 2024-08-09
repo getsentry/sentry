@@ -5,7 +5,6 @@ import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
 export interface MetricWidgetTitleState {
@@ -76,12 +75,12 @@ export function MetricWidgetTitle({
 const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const WidgetTitleRow = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

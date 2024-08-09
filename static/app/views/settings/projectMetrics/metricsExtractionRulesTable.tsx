@@ -14,7 +14,6 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
@@ -220,9 +219,9 @@ function RulesTable({
 const SearchWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-top: ${p => p.theme.space(4)};
+  margin-bottom: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(1)};
 
   & > h6 {
     margin: 0;
@@ -241,6 +240,6 @@ const Cell = styled('div')<{right?: boolean}>`
   display: flex;
   align-items: center;
   align-self: stretch;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;

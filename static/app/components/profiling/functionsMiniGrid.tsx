@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -135,7 +134,7 @@ export const FunctionsMiniGridHeader = styled('span')<{
 export const FunctionsMiniGridCell = styled('div')<{align?: CSSProperties['textAlign']}>`
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: ${p => p.align};
-  padding: ${space(0.5)} 0px;
+  padding: ${p => p.theme.space(0.5)} 0px;
 `;
 
 const NumberContainer = styled(`div`)`

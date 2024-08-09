@@ -12,7 +12,6 @@ import {IconClose, IconOpen} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
@@ -160,11 +159,11 @@ export const Background = styled('div')<{
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
   border: ${p => p.borderStyle ?? 'solid'} 1px ${p => p.theme.tag[p.type].border};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   display: inline-flex;
 `;
 
@@ -178,7 +177,7 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: ${space(0.5)};
-  margin-right: -${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
+  margin-right: -${p => p.theme.space(0.5)};
   border: none;
 `;

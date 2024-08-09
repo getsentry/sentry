@@ -13,7 +13,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
@@ -229,7 +228,7 @@ const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
-  margin: ${space(0.5)} 0 0 0;
+  margin: ${p => p.theme.space(0.5)} 0 0 0;
 `;
 
 const BannerWrapper = styled('div')`

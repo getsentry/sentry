@@ -90,7 +90,7 @@ const DisplayName = styled('span')`
 
 const Description = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
   color: ${p => p.theme.gray300};
   line-height: 14px;
   ${p => p.theme.overflowEllipsis};

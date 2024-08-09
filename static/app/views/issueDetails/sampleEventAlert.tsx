@@ -4,7 +4,6 @@ import {Button} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -46,5 +45,5 @@ function SampleEventAlert({
 export default SampleEventAlert;
 
 const TextWrapper = styled('span')`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;

@@ -8,7 +8,6 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -245,7 +244,7 @@ export function SpanSamplesContainer({
 }
 
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const SectionTitle = styled('div')`
@@ -253,9 +252,9 @@ const SectionTitle = styled('div')`
 `;
 
 const PaddedTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;

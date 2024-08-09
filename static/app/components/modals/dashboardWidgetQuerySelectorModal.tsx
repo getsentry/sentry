@@ -9,7 +9,6 @@ import Input from 'sentry/components/input';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
@@ -105,21 +104,21 @@ const StyledInput = styled(Input)`
 `;
 const QueryContainer = styled('div')`
   display: flex;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 const OpenInDiscoverButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const Container = styled('div')`
   border: 1px solid ${p => p.theme.border};
   box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.backgroundSecondary};
-  padding: 7px ${space(1)};
+  padding: 7px ${p => p.theme.space(1)};
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: start;
   flex-grow: 1;
   border-radius: ${p => p.theme.borderRadius};
@@ -127,7 +126,7 @@ const Container = styled('div')`
 
 const SearchLabel = styled('label')`
   display: flex;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   margin: 0;
   color: ${p => p.theme.gray300};
 `;

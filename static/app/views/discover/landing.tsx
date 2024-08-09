@@ -14,7 +14,6 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery, Organization, SavedQuery, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -315,7 +314,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
@@ -326,10 +325,10 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   grid-template-columns: auto max-content min-content;
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;

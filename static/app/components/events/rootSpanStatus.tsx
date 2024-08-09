@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 
 type Props = {
@@ -77,7 +76,7 @@ class RootSpanStatus extends Component<Props> {
 const Container = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const Header = styled('div')`

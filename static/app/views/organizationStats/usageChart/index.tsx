@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Outcome} from 'sentry/types';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -548,6 +547,6 @@ const ErrorMessages = styled('div')`
   display: flex;
   flex-direction: column;
 
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

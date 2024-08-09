@@ -8,7 +8,6 @@ import EventTagsTreeRow, {
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -212,7 +211,7 @@ function EventTagsTree(props: EventTagsTreeProps) {
 }
 
 export const TreeContainer = styled('div')<{columnCount: number}>`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
@@ -221,18 +220,18 @@ export const TreeContainer = styled('div')<{columnCount: number}>`
 export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
-  grid-column-gap: ${space(3)};
+  grid-column-gap: ${p => p.theme.space(3)};
   &:first-child {
-    margin-left: -${space(1)};
+    margin-left: -${p => p.theme.space(1)};
   }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space(2)};
   }
 `;
 

@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
@@ -215,7 +214,7 @@ function FieldValidationErrors(props: {
 }
 
 const StyledField = styled(FieldGroup)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const AddGroupButton = styled(Button)`
@@ -225,18 +224,18 @@ const AddGroupButton = styled(Button)`
 const SortableQueryFields = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Ghost = styled('div')`
   position: absolute;
   background: ${p => p.theme.background};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
   width: 100%;
 
   button {

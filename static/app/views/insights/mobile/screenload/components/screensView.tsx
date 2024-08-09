@@ -8,7 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -343,7 +342,7 @@ const ChartsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ChartsContainerWithHiddenOverflow = styled('div')`
@@ -356,9 +355,9 @@ const ChartsContainerItem = styled('div')`
 `;
 
 export const Spacer = styled('div')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

@@ -20,7 +20,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
@@ -576,23 +575,23 @@ const LabelText = styled(Text)`
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
   color: ${p => p.theme.subText};
 `;
 
 const InputGroup = styled('div')`
-  padding-left: ${space(4)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(4)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: ${p => p.columns};
 `;
 

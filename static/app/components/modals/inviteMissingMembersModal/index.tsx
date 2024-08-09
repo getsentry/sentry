@@ -19,7 +19,6 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -339,7 +338,7 @@ const StyledPanelTable = styled(PanelTable)`
 
 const StyledHeader = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
@@ -355,7 +354,7 @@ const ContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 const MemberEmail = styled('div')`

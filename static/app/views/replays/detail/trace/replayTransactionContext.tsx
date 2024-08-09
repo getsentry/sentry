@@ -249,9 +249,22 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next;
         const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexComplete,
+            }) as InternalState
+        );
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexError,
+              indexComplete: true,
+            }) as InternalState
+        );
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }

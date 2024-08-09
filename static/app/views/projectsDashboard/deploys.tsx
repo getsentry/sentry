@@ -7,7 +7,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Deploy as DeployType} from 'sentry/types/release';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -96,7 +95,7 @@ function NoDeploys() {
   );
 }
 const DeployContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   height: 115px;
 `;
 
@@ -104,8 +103,8 @@ const DeployRows = styled(DeployContainer)`
   display: grid;
   grid-template-columns: 30px 1fr 1fr;
   grid-template-rows: auto;
-  grid-column-gap: ${space(1)};
-  grid-row-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
+  grid-row-gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.2;
 `;

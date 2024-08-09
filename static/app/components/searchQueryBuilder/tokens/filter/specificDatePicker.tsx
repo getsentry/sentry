@@ -20,7 +20,6 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
@@ -272,15 +271,15 @@ const Input = styled('input')`
 `;
 
 const ControlsWrapper = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const TimeUtcWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const UtcPickerLabel = styled('label')`
@@ -292,7 +291,7 @@ const UtcPickerLabel = styled('label')`
   margin: 0;
   font-weight: ${p => p.theme.fontWeightNormal};
   user-select: none;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   cursor: pointer;
 
   &:has(:disabled) {
@@ -305,7 +304,7 @@ const CheckboxLabel = styled('label')`
   display: inline-flex;
   align-items: center;
   margin: 0;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
   cursor: pointer;

@@ -6,7 +6,6 @@ import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstract
 import type {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Choices, IssueConfigField, Organization} from 'sentry/types';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -250,11 +249,11 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 }
 
 const BodyText = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const FieldErrorLabel = styled('label')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
   color: ${p => p.theme.errorText};
 `;
 

@@ -229,9 +229,10 @@ export function isMultiSeriesStats(
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (
+    // the isSingleSeriesStats check is for topN queries returning null data
     defined(data) &&
     ((data.data === undefined && data.totals === undefined) ||
-      (defined(isTopN) && isTopN && defined(data) && !isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
+      (defined(isTopN) && isTopN && defined(data) && !isSingleSeriesStats(data)))
   );
 }
 

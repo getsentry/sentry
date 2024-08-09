@@ -12,7 +12,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -127,14 +126,14 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space(1)};
   }
 `;
 

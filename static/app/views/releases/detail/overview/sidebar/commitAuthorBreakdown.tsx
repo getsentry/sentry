@@ -7,7 +7,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit, User} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -108,7 +107,7 @@ const AuthorLine = styled('div')`
   display: inline-grid;
   grid-template-columns: 30px 2fr 1fr 40px;
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

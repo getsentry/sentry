@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OrganizationSummary} from 'sentry/types';
 
 type Props = {
@@ -34,9 +33,9 @@ const SidebarOrgSummary = styled(({organization, projectCount, ...props}: Props)
 ))`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
-  padding: ${space(1)} ${p => p.theme.sidebar.menuSpacing};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.sidebar.menuSpacing};
 `;
 
 const Name = styled('div')<{pendingDeletion: boolean}>`
@@ -51,7 +50,7 @@ const ProjectCount = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
   ${p => p.theme.overflowEllipsis};
 `;
 

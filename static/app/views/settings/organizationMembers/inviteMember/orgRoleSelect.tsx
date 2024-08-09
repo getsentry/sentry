@@ -8,7 +8,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OrgRole} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -81,7 +80,7 @@ class OrganizationRoleSelect extends Component<Props> {
 
 const StyledPanelHeader = styled(PanelHeader)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: left;
 `;
 

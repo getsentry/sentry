@@ -8,7 +8,6 @@ import {
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -145,6 +144,6 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 
 const TimelineTitle = styled(Text)`
   ${p => p.theme.text.cardTitle};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   grid-column: 1;
 `;

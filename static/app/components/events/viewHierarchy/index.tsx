@@ -5,7 +5,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -238,20 +237,20 @@ export {ViewHierarchy};
 
 const Container = styled('div')`
   position: relative;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
 `;
 
 const Content = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   height: 700px;
 `;
 
 const Left = styled('div')<{hasRight?: boolean}>`
   width: ${p => (p.hasRight ? '40%' : '100%')};
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: column;
 `;
 
@@ -280,7 +279,8 @@ const DetailsContainer = styled('div')`
 `;
 
 const ScrollContainer = styled('div')`
-  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(1.5)};
 `;
 
 const RenderedItemsContainer = styled('div')`
@@ -299,7 +299,7 @@ const TreeItem = styled('div')`
 
 // Draw a 1px wide gray marker every 15px
 const DepthMarker = styled('div')<{depth: number}>`
-  padding-left: calc(${space(2)} * ${p => p.depth});
+  padding-left: calc(${p => p.theme.space(2)} * ${p => p.depth});
 
   background-image: repeating-linear-gradient(
     90deg,

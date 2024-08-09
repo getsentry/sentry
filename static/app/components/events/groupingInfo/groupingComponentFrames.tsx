@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 
@@ -85,7 +84,7 @@ class GroupingComponentFrames extends Component<Props, State> {
 }
 
 const ToggleCollapse = styled(Button)`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
   color: ${p => p.theme.linkColor};
 `;
 

@@ -4,7 +4,6 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';
 
@@ -78,13 +77,13 @@ export default LastCommit;
 const InnerWrap = styled('div')`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Message = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const Meta = styled('div')`

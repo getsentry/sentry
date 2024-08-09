@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -254,11 +253,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 export default AppStartup;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 33% 33% 33%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

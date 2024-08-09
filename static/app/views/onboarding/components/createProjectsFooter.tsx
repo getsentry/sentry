@@ -16,7 +16,6 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK, Organization, Project} from 'sentry/types';
 import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -243,8 +242,8 @@ const ButtonWrapper = styled(motion.div)`
   display: flex;
   height: 100%;
   align-items: center;
-  margin-right: ${space(4)};
-  margin-left: ${space(4)};
+  margin-right: ${p => p.theme.space(4)};
+  margin-left: ${p => p.theme.space(4)};
 `;
 
 ButtonWrapper.defaultProps = {
@@ -254,14 +253,14 @@ ButtonWrapper.defaultProps = {
 };
 
 const SelectedPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const PlatformsSelected = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const ClearButton = styled(Button)`
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
   padding: 0;
 `;

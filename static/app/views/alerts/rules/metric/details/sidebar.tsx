@@ -303,16 +303,16 @@ function FilterKeyValueTableRow({
 
 const KeyWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 
   > span {
-    margin-top: ${space(0.25)};
-    height: ${space(2)};
+    margin-top: ${p => p.theme.space(0.25)};
+    height: ${p => p.theme.space(2)};
   }
 `;
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const HeaderItem = styled('div')`
@@ -331,14 +331,14 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
@@ -353,8 +353,8 @@ const OverflowTableValue = styled('div')`
 const TriggerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
-  gap: ${space(1)};
-  margin-top: ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const TriggerTitle = styled('div')`
@@ -380,14 +380,14 @@ const TriggerStep = styled('div')`
 const TriggerActions = styled('div')`
   display: grid;
   grid-template-columns: repeat(1fr);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   align-items: center;
 `;
 
 const TriggerText = styled('span')`
   display: block;
   background-color: ${p => p.theme.surface200};
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};

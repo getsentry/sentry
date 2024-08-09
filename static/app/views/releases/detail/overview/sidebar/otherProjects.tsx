@@ -7,7 +7,6 @@ import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, ReleaseProject} from 'sentry/types';
 
 type Props = {
@@ -70,7 +69,7 @@ const Row = styled('div')`
   grid-template-columns: 1fr max-content;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
   font-size: ${p => p.theme.fontSizeMedium};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>

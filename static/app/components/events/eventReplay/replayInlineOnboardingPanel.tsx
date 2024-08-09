@@ -8,7 +8,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -117,8 +116,8 @@ const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-  margin: ${space(1)} 0;
+  padding: ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(1)} 0;
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
@@ -129,20 +128,20 @@ const BannerWrapper = styled('div')`
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
   max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space(1)};
+  right: ${p => p.theme.space(1)};
   color: ${p => p.theme.white};
   cursor: pointer;
   z-index: 1;
@@ -164,5 +163,5 @@ const Background = styled('div')<{image: any}>`
 
 const ActionButton = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

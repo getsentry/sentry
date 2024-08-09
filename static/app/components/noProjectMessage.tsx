@@ -8,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -96,7 +95,7 @@ function NoProjectMessage({
 export default NoProjectMessage;
 
 const HelpMessage = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Wrapper = styled('div')`

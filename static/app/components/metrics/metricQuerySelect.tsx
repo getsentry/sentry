@@ -322,7 +322,7 @@ function FormattedCondition({condition}: {condition?: MetricsExtractionCondition
 const InfoWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
 `;
@@ -335,10 +335,10 @@ const QueryFooterWrapper = styled('div')`
 `;
 
 const Highlight = styled('span')`
-  padding: ${space(0.5)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.25)};
   overflow: hidden;
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   display: flex;
   white-space: nowrap;

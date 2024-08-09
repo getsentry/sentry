@@ -14,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -530,11 +529,11 @@ class ContextPickerModalContainer extends DeprecatedAsyncComponent<
 export default ContextPickerModalContainer;
 
 const StyledSelectControl = styled(SelectControl)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const ProjectBadgeOption = styled(IdBadge)`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -543,6 +542,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledIntegrationItem = styled('div')`
   display: grid;
-  grid-template-columns: ${space(4)} auto;
+  grid-template-columns: ${p => p.theme.space(4)} auto;
   grid-template-rows: 1fr;
 `;

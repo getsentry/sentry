@@ -10,7 +10,6 @@ import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 export default storyBook(ClippedBox, story => {
   story('Default', () => (
@@ -39,7 +38,7 @@ export default storyBook(ClippedBox, story => {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
     background: ${p => p.theme.background};
     text-align: center;
     pointer-events: none;

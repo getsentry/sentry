@@ -5,7 +5,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -125,7 +124,7 @@ const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
   padding: 0;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const SelectWrapper = styled('div')`

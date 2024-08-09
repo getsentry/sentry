@@ -7,7 +7,6 @@ import DropdownBubble from 'sentry/components/dropdownBubble';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
@@ -449,7 +448,7 @@ const StyledInput = styled(Input)`
     border: 0;
     box-shadow: none;
     font-size: 13px;
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
     font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.gray300};
   }
@@ -469,7 +468,7 @@ const InputLoadingWrapper = styled('div')`
 
 const EmptyMessage = styled('div')`
   color: ${p => p.theme.gray200};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   text-align: center;
   text-transform: none;
 `;
@@ -513,7 +512,7 @@ const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   &:last-child {
     border-bottom: none;
   }
-  padding: ${p => !p.disableLabelPadding && `${space(0.25)} ${space(1)}`};
+  padding: ${p => !p.disableLabelPadding && `${p.theme.space(0.25)} ${p.theme.space(1)}`};
 `;
 
 const ItemList = styled('div')<{maxHeight: NonNullable<MenuProps['maxHeight']>}>`
@@ -525,5 +524,5 @@ const BusyMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(3)} ${space(1)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(1)};
 `;

@@ -3,7 +3,6 @@ import classNames from 'classnames';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Coverage} from 'sentry/types';
 
 interface Props {
@@ -45,7 +44,7 @@ const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 
   .line-number {
     display: flex;
@@ -55,8 +54,8 @@ const Wrapper = styled('div')`
     justify-content: end;
     height: 100%;
     text-align: right;
-    padding-right: ${space(2)};
-    margin-right: ${space(1.5)};
+    padding-right: ${p => p.theme.space(2)};
+    margin-right: ${p => p.theme.space(1.5)};
     background: transparent;
     min-width: 58px;
     border-right-style: solid;

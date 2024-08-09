@@ -10,7 +10,6 @@ import {DateRangePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -247,8 +246,8 @@ const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
 const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(2)};
-  padding: ${space(0.5)} 0;
+  margin: 0 ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(0.5)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -265,7 +264,7 @@ const UtcPicker = styled('div')`
   align-items: center;
   justify-content: flex-end;
   flex: 1;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const UtcPickerLabel = styled('label')`

@@ -4,7 +4,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';
@@ -118,8 +117,8 @@ export default function SpanDetailsHeader(props: HeaderProps) {
 const ContentHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(4)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(4)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr repeat(3, max-content);
@@ -137,7 +136,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   max-height: 32px;
 `;
 
@@ -149,7 +148,7 @@ const SectionSubtext = styled('div')`
 const PercentileHeaderBodyWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(4, max-content);
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 export const SpanLabelContainer = styled('div')`

@@ -9,7 +9,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {decodeList} from 'sentry/utils/queryString';
@@ -84,8 +83,8 @@ export default function FiltersBar({
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1.5)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
@@ -95,11 +94,11 @@ const Wrapper = styled('div')`
 
 const FilterButtons = styled(ButtonBar)`
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     align-items: flex-start;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space(1.5)};
   }
 `;

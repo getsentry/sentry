@@ -164,7 +164,7 @@ function Sidebar({rule, teams, projectSlug}: Props) {
 export default Sidebar;
 
 const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const HeaderItem = styled('div')`
@@ -183,22 +183,22 @@ const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const Step = styled('div')`
   position: relative;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
 
   :first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 
@@ -214,13 +214,13 @@ const StepContent = styled('div')`
     position: absolute;
     height: 100%;
     top: 28px;
-    left: ${space(1)};
+    left: ${p => p.theme.space(1)};
     border-right: 1px ${p => p.theme.gray200} dashed;
   }
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
@@ -228,13 +228,14 @@ const StepLead = styled('div')`
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)}
+    0;
 `;
 
 const Badge = styled('span')`
   display: inline-block;
   background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};
   text-transform: uppercase;
@@ -247,11 +248,11 @@ const Badge = styled('span')`
 const ConditionsBadge = styled('span')`
   display: block;
   background-color: ${p => p.theme.surface200};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   width: fit-content;
   font-weight: ${p => p.theme.fontWeightNormal};
 `;

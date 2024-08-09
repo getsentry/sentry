@@ -19,7 +19,6 @@ import {
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -307,8 +306,8 @@ const TransactionIdTitle = styled('a')`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space(0.75)};
+  right: ${p => p.theme.space(0.5)};
 `;
 
 export default TransactionDetail;

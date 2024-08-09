@@ -179,9 +179,9 @@ const Wrapper = styled(motion.div)`
 
 const ActionItem = styled(motion.div)`
   min-height: 120px;
-  border-radius: ${space(0.5)};
-  padding: ${space(2)};
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.gray200};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -198,12 +198,12 @@ const ActionItem = styled(motion.div)`
 
 const TextWrapper = styled('div')`
   text-align: left;
-  margin: auto ${space(3)};
+  margin: auto ${p => p.theme.space(3)};
   min-height: 70px;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     text-align: center;
-    margin: ${space(1)} ${space(1)};
-    margin-top: ${space(3)};
+    margin: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
+    margin-top: ${p => p.theme.space(3)};
   }
 `;
 
@@ -213,7 +213,7 @@ const Strike = styled('span')`
 
 const ActionTitle = styled('h5')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0 0 ${space(0.5)};
+  margin: 0 0 ${p => p.theme.space(0.5)};
   color: ${p => p.theme.gray400};
 `;
 
@@ -227,7 +227,7 @@ const SubHeaderText = styled(motion.h6)`
 `;
 
 const ButtonWrapper = styled('div')`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space(1)};
   position: relative;
 `;
 

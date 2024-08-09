@@ -23,7 +23,6 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -419,22 +418,22 @@ function CreateProject() {
 export {CreateProject};
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const CreateProjectForm = styled('form')`
   display: grid;
   grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: end;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space(3)} 0;
   background: ${p => p.theme.background};
 `;
 
 const FormLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ProjectNameInputWrap = styled('div')`
@@ -454,7 +453,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 const TeamSelectInput = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

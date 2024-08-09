@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -183,7 +182,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 }
 
 const AddButton = styled(Button)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export default withOrganization(PluginDetailedView);

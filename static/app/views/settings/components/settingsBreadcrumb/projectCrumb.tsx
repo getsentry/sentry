@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -113,6 +112,6 @@ const ProjectName = styled('div')`
   .loading {
     width: ${SPINNER_SIZE};
     height: ${SPINNER_SIZE};
-    margin: 0 ${space(0.25)} 0 0;
+    margin: 0 ${p => p.theme.space(0.25)} 0 0;
   }
 `;

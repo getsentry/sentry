@@ -9,7 +9,6 @@ import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -302,7 +301,7 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ChartValue = styled('div')`
@@ -317,7 +316,7 @@ const ChartSubText = styled('div')<{color?: string}>`
 const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -325,8 +324,8 @@ const SectionHeading = styled('h4')`
 `;
 
 const MiniAggregateWaterfallContainer = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ProjectScoreEmptyLoadingElement = styled('div')`

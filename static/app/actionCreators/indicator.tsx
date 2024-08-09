@@ -7,7 +7,6 @@ import type FormModel from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {space} from 'sentry/styles/space';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
@@ -250,11 +249,11 @@ export function saveOnBlurUndoMessage(
 
 const FormValue = styled('span')`
   font-style: italic;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
 `;
 const FieldName = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
 `;
 const MessageContainer = styled('div')`
   display: flex;

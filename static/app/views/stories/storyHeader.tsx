@@ -23,6 +23,6 @@ const H1 = styled('h1')`
   margin: 0;
 
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;

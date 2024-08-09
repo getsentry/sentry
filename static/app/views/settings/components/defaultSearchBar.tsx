@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 export type RenderSearch = React.ComponentProps<
@@ -10,8 +9,8 @@ export type RenderSearch = React.ComponentProps<
 export const SearchWrapper = styled('div')`
   display: flex;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1.5)};
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
+  margin-top: ${p => p.theme.space(4)};
+  margin-bottom: ${p => p.theme.space(1.5)};
   position: relative;
 `;

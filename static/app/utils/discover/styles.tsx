@@ -4,7 +4,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
-import {space} from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
@@ -59,6 +58,6 @@ export const FlexContainer = styled('div')`
 `;
 
 export const UserIcon = styled(IconUser)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   color: ${p => p.theme.gray400};
 `;

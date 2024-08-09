@@ -1,5 +1,4 @@
 import type {DateTimeProps} from 'sentry/components/dateTime';
-import type {CheckInStatus} from 'sentry/views/monitors/types';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 

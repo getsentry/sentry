@@ -5,7 +5,6 @@ import color from 'color';
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {TraceTimelineTooltip} from 'sentry/views/issueDetails/traceTimeline/traceTimelineTooltip';
 
@@ -116,7 +115,7 @@ const TimestampColumns = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   text-align: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

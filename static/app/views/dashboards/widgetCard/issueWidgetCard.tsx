@@ -5,7 +5,6 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -77,7 +76,7 @@ const LoadingPlaceholder = styled(Placeholder)`
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};

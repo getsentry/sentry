@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {Result} from './sources/types';
 import SearchResult from './searchResult';
@@ -163,5 +162,5 @@ const LoadingWrapper = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;

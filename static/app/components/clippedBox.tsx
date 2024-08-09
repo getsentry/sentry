@@ -6,7 +6,6 @@ import {useReducedMotion} from 'framer-motion';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Content may have margins which can't be measured by our refs, but will affect
 // the total content height. We add this to the max-height to ensure the animation
@@ -298,14 +297,14 @@ export default ClippedBox;
 
 const Wrapper = styled('div')`
   position: relative;
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space(1.5)} 0;
   overflow: hidden;
   will-change: max-height;
   transition: max-height 500ms ease-in-out;
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export const ClipFade = styled('div')`
@@ -320,7 +319,7 @@ export const ClipFade = styled('div')`
     ${p => p.theme.background}
   );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.background};
+  border-bottom: ${p => p.theme.space(1.5)} solid ${p => p.theme.background};
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
   /* Ensure pointer-events trigger event listeners on "Expand" button */

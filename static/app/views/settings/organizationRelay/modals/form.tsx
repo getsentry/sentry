@@ -7,7 +7,6 @@ import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Relay} from 'sentry/types/relay';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -139,7 +138,7 @@ function Form({
 export default Form;
 
 const FieldWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledField = styled(FieldGroup)`

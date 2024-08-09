@@ -47,7 +47,6 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -1031,8 +1030,8 @@ export class NewTraceDetailsSpanBar extends Component<
 }
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-left: ${space(0.25)};
-  margin-bottom: ${space(0.25)};
+  margin-left: ${p => p.theme.space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
 `;
 
 const Regroup = styled('span')``;

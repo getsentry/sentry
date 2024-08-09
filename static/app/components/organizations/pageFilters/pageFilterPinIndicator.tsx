@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PinnedPageFilter} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -33,7 +32,7 @@ const Wrap = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  transform: translateX(-${space(0.25)});
+  transform: translateX(-${p => p.theme.space(0.25)});
 `;
 
 const IndicatorWrap = styled('div')`
@@ -44,7 +43,7 @@ const IndicatorWrap = styled('div')`
   border-radius: 50%;
   background-color: ${p => p.theme.background};
 
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 
   display: flex;
   align-items: center;

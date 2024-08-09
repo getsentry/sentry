@@ -601,12 +601,12 @@ export function Actions(props: Props) {
 const ActionWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ResolvedWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   color: ${p => p.theme.green400};
   font-weight: bold;
@@ -615,7 +615,7 @@ const ResolvedWrapper = styled('div')`
 
 const ResolvedActionWapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
