@@ -129,5 +129,5 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
     if might_have_more:
         auto_resolve_project_issues.delay(
-            project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+            project_id=project_id, cutoff=int(cutoff.timestamp()), chunk_size=chunk_size
         )

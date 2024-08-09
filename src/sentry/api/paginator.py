@@ -228,7 +228,7 @@ class DateTimePaginator(BasePaginator):
 
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        value = float(value.strftime("%s.%f")) * self.multiplier
+        value = value.timestamp() * self.multiplier
         return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
@@ -626,9 +626,7 @@ class CombinedQuerysetPaginator:
 
     def get_item_key(self, item, for_prev=False):
         if self.using_dates:
-            return int(
-                self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
-            )
+            return int(self.multiplier * getattr(item, self.key_from_item(item)).timestamp())
         else:
             return self._prep_value(item, self.key_from_item(item), for_prev)
 

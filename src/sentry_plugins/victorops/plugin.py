@@ -1,6 +1,7 @@
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.shared_integrations.exceptions import ApiError
+
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
@@ -103,7 +104,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 entity_id=group.id,
                 entity_display_name=event.title,
                 state_message=self.build_description(event),
-                timestamp=int(event.datetime.strftime("%s")),
+                timestamp=int(event.datetime.timestamp()),
                 issue_url=group.get_absolute_url(),
                 issue_id=group.id,
                 project_id=group.project.id,

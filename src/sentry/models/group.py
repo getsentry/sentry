@@ -37,14 +37,21 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    GroupCategory,
+    get_group_type_by_type_id,
+)
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
 from sentry.models.commit import Commit
-from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
+from sentry.models.grouphistory import (
+    record_group_history,
+    record_group_history_from_activity_type,
+)
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -916,7 +923,7 @@ class Group(Model):
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+        return math.log(float(times_seen or 1)) * 600 + last_seen.timestamp()
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee
