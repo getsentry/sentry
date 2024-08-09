@@ -175,7 +175,8 @@ def respond_to_slack_command(
     slack_id: str,
     response_url: str | None,
 ) -> None:
-    from sentry.integrations.slack import SUCCESS_LINKED_MESSAGE, SUCCESS_UNLINKED_MESSAGE
+    from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE
+    from sentry.integrations.slack.views.unlink_identity import SUCCESS_UNLINKED_MESSAGE
 
     if command is SlackCommand.LINK:
         log = "slack.link-identity."
