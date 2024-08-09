@@ -62,7 +62,7 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
     actions: docsLink,
   },
   {
-    title: t('Correlate Errors and Performance'),
+    title: t('Correlate Errors and Traces'),
     image: <TourImage src={tourCorrelate} />,
     body: (
       <TourText>

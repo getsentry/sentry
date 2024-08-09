@@ -480,8 +480,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
       <ActionsWrapper>
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
-          {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
           )}
         </BannerDescription>
         <ButtonsWrapper>

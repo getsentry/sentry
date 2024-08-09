@@ -29,7 +29,7 @@ func main() {
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
+    // of transactions for tracing.
     // We recommend adjusting this value in production,
     TracesSampleRate: 1.0,`
         : ''
@@ -56,7 +56,7 @@ func main() {
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
+    // of transactions for tracing.
     // We recommend adjusting this value in production,
     TracesSampleRate: 1.0,`
         : ''
