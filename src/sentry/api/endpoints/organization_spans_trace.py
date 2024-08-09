@@ -1,7 +1,8 @@
 from typing import TypedDict
 
 import sentry_sdk
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -12,7 +13,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -35,10 +36,11 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
     snuba_methods = ["GET"]
 
     @sentry_sdk.tracing.trace
-    def query_trace_data(self, params: ParamsType, trace_id: str) -> list[SnubaTrace]:
+    def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SnubaTrace]:
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params,
+            params={},
+            snuba_params=snuba_params,
             query=f"trace:{trace_id}",
             selected_columns=[
                 "span.op",
@@ -74,22 +76,24 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         )
         return result
 
-    def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return bool(
             features.has("organizations:trace-spans-format", organization, actor=request.user)
         )
 
-    def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
+    def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response(status=404)
 
-        update_snuba_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, snuba_params)
 
         # Bias the results to include any given event_id - note because this loads spans without taking trace topology
         # into account, the descendents of this event might not be in the response
@@ -102,7 +106,7 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset: int, limit: int) -> list[SnubaTrace]:
             """API requires pagination even though it doesn't really work yet... ignoring limit and offset for now"""
             with handle_query_errors():
-                spans = self.query_trace_data(params, trace_id)
+                spans = self.query_trace_data(snuba_params, trace_id)
             return spans
 
         return self.paginate(
