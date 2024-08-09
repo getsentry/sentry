@@ -72,10 +72,9 @@ function TransactionNodeDetailHeader({
         </Tooltip>
         <TraceDrawerComponents.TitleText>
           <div>{t('transaction')}</div>
-          <TraceDrawerComponents.TitleOp>
-            {' '}
-            {node.value['transaction.op'] + ' - ' + node.value.transaction}
-          </TraceDrawerComponents.TitleOp>
+          <TraceDrawerComponents.TitleOp
+            text={node.value['transaction.op'] + ' - ' + node.value.transaction}
+          />
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions
