@@ -2550,7 +2550,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        # issue 2: events 90 minutes ago 1 minute ago
+        # issue 2: events 90 minutes ago and 1 minute ago
         time = datetime.now() - timedelta(minutes=90)
         event2 = self.store_event(
             data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
@@ -2562,6 +2562,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
 
+        sleep(1)
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort="new",
