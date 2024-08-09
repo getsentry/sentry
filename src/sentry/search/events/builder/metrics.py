@@ -55,6 +55,7 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
+from sentry.search.utils import parse_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
@@ -379,9 +380,13 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     # This property is used to determine if a query is using at least one of the fields in the spans namespace.
     @property
     def is_spans_metrics_query(self) -> bool:
-        for query in self.parse_query(self.query):
-            if query.key.name in constants.SPANS_METRICS_TAGS:
-                return True
+        if self.query is not None:
+            tags = parse_query(
+                self.params.projects, self.query, self.params.user, self.params.environments
+            )["tags"]
+            for tag in tags:
+                if tag in constants.SPANS_METRICS_TAGS:
+                    return True
         for column in self.selected_columns:
             # Not using parse_function since it checks against function_converter
             # which is not loaded yet and we also do not need it
@@ -416,7 +421,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     @property
     def use_case_id(self) -> UseCaseID:
 
-        if self.spans_metrics_builder:
+        if self.spans_metrics_builder or self.is_spans_metrics_query:
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
@@ -718,7 +723,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
             result = indexer.resolve(
-                UseCaseID.SPANS if self.is_spans_metrics_query else self.use_case_id,
+                self.use_case_id,
                 self.organization_id,
                 value,
             )
