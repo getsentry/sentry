@@ -105,6 +105,10 @@ class SeerSimilarIssueData:
             # TODO: Report back to seer that the hash has been deleted.
             raise SimilarHashNotFoundError("Similar hash suggested by Seer does not exist")
 
+        if not parent_grouphash.group_id:
+            # TODO: Report back to seer that the hash has been deleted.
+            raise SimilarHashMissingGroupError("Similar hash suggested by Seer missing group id")
+
         # TODO: The `Any` casting here isn't great, but Python currently has no way to
         # relate typeddict keys to dataclass properties
         similar_issue_data: Any = {
