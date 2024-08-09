@@ -14,7 +14,7 @@ export function DatabaseSystemSelector() {
       fields: [SpanMetricsField.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
     },
-    'referrer'
+    'api.starfish.database-system-selector'
   );
 
   console.dir(data);
@@ -30,6 +30,7 @@ export function DatabaseSystemSelector() {
       options={options}
       triggerProps={{prefix: t('DB System')}}
       defaultValue={options[0].value}
+      disabled={isLoading || isError}
     />
   );
 }
