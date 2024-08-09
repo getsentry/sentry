@@ -430,7 +430,6 @@ def test_id_column_validation_failed(params, column, query, message):
 
 @pytest.mark.parametrize(
     ["column"],
-    # [pytest.param(column) for column in chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS)],
     [pytest.param(column) for column in ["profile.id", "profile_id"]],
 )
 @django_db_all
