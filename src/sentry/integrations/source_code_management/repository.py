@@ -7,6 +7,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.repository import RpcRepository
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
@@ -18,7 +19,7 @@ REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{r
 REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
 
 
-class RepositoryIntegration(ABC):
+class RepositoryIntegration(IntegrationInstallation, ABC):
     @property
     def codeowners_locations(self) -> list[str] | None:
         """
