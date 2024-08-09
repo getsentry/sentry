@@ -628,10 +628,10 @@ class EntitySubscriptionTestCase(TestCase):
                 ("count()", "span.op:http.client", False),
                 ("count()", "span.description:abc", False),
                 ("performance_score(measurements.score.lcp)", "", False),
+                ("cache_miss_rate()", "", False),
                 # TODO: The following functions are not supported in the discover metrics dataset yet.
                 # Uncomment these as we port them over.
                 # ("spm()", "", False),
-                # ("cache_miss_rate()", "", False),
                 # ("http_response_rate()", "", False),
                 # ("avg(span.self_time)", "", False),
             ]
