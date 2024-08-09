@@ -73,15 +73,24 @@ export function MetricsExtractionRulesTable({project}: Props) {
     [deleteMetricsExtractionRules]
   );
 
-  const handleEdit = useCallback((rule: MetricsExtractionRule) => {
-    openExtractionRuleEditModal({
-      metricExtractionRule: rule,
-    });
-  }, []);
+  const handleEdit = useCallback(
+    (rule: MetricsExtractionRule) => {
+      openExtractionRuleEditModal({
+        organization,
+        metricExtractionRule: rule,
+        source: 'settings',
+      });
+    },
+    [organization]
+  );
 
   const handleCreate = useCallback(() => {
-    openExtractionRuleCreateModal({projectId: project.id});
-  }, [project]);
+    openExtractionRuleCreateModal({
+      organization,
+      projectId: project.id,
+      source: 'settings',
+    });
+  }, [organization, project.id]);
 
   return (
     <Fragment>
