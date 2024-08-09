@@ -28,13 +28,14 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
 
 
 class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
+    def get_success_template_and_context(
+        self, integration: Integration, params: Mapping[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/msteams/unlinked.html", {}
+
     @property
     def confirmation_template(self) -> str:
         return "sentry/integrations/msteams/unlink-identity.html"
-
-    @property
-    def success_template(self) -> str:
-        return "sentry/integrations/msteams/unlinked.html"
 
     @property
     def no_identity_template(self) -> str | None:

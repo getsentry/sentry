@@ -12,8 +12,6 @@ from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
-from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -72,6 +70,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
         raise NotImplementedError
 
     def link_user(self, slack_request: SlackDMRequest) -> Response:
+        from sentry.integrations.slack.views.link_identity import build_linking_url
+
         if slack_request.has_identity:
             return self.reply(
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
@@ -94,6 +94,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
         return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def unlink_user(self, slack_request: SlackDMRequest) -> Response:
+        from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+
         if not slack_request.has_identity:
             logger.error(".unlink-user.no-identity.error", extra={"slack_request": slack_request})
             metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.no_identity", sample_rate=1.0)

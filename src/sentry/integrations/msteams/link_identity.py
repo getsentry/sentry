@@ -6,11 +6,11 @@ from django.urls import reverse
 
 from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
-from ..types import ExternalProviders
 from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
 
@@ -50,6 +50,10 @@ class MsTeamsLinkingView(LinkingView, ABC):
         return ExternalProviders.MSTEAMS
 
     @property
+    def external_provider_enum(self) -> ExternalProviderEnum:
+        return ExternalProviderEnum.MSTEAMS
+
+    @property
     def salt(self) -> str:
         from .constants import SALT
 
@@ -65,18 +69,19 @@ class MsTeamsLinkingView(LinkingView, ABC):
 
 
 class MsTeamsLinkIdentityView(MsTeamsLinkingView, LinkIdentityView):
-    @property
-    def success_template(self) -> str:
-        return "sentry/integrations/msteams/linked.html"
+    def get_success_template_and_context(
+        self, integration: Integration, params: Mapping[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/msteams/linked.html", {}
 
-    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
+    def notify_on_success(
+        self, integration: Integration, external_id: str, params: Mapping[str, Any]
+    ) -> None:
         if integration is None:
             raise ValueError(
                 'Integration is required for linking (params must include "integration_id")'
             )
         card = build_linked_card()
         client = MsTeamsClient(integration)
-        user_conversation_id = client.get_user_conversation_id(
-            params["teams_user_id"], params["tenant_id"]
-        )
+        user_conversation_id = client.get_user_conversation_id(external_id, params["tenant_id"])
         client.send_card(user_conversation_id, card)
