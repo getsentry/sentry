@@ -38,7 +38,7 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
   const {project, transaction, organization} = props;
   const {query} = useLocation();
 
-  if (!organization.features.includes('continuous-profiling-compat1')) {
+  if (!organization.features.includes('continuous-profiling-compat')) {
     const linkToSummary = generateProfileSummaryRouteWithQuery({
       query,
       orgSlug: organization.slug,
