@@ -2,6 +2,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 export function DatabaseSystemSelector() {
   const handleChange = () => {};
@@ -10,7 +11,7 @@ export function DatabaseSystemSelector() {
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
-      fields: ['span.system', 'count()'],
+      fields: [SpanMetricsField.SPAN_SYSTEM, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
     },
     'referrer'
