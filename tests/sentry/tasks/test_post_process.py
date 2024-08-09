@@ -763,7 +763,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
 
         group = new_event.group
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ONGOING
+        assert group.substatus == GroupSubStatus.NEW
 
         self.call_post_process_group(
             is_new=True,
@@ -1727,7 +1727,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ONGOING
+        assert group.substatus == GroupSubStatus.NEW
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(
