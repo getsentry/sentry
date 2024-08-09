@@ -25,7 +25,7 @@ def should_allow_superuser_access(
     if not features.has("organizations:data-secrecy", organization):
         return True
 
-    # If organization's prevent_superuser_access bitflag is not set, return True
+    # If organization's prevent_superuser_access bitflag is False, return True
     if not organization.flags.prevent_superuser_access:
         return True
 
