@@ -113,8 +113,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 transform_alias_to_input_format=True,
             )
 
-        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
-            rollup = get_rollup_from_range(params["end"] - params["start"])
+        def get_event_stats(
+            _columns, query, snuba_params, _rollup, zerofill_results, _comparison_delta
+        ):
+            rollup = get_rollup_from_range(snuba_params.date_range)
 
             chunks = [
                 top_functions["data"][i : i + FUNCTIONS_PER_QUERY]
@@ -124,7 +126,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             builders = [
                 ProfileTopFunctionsTimeseriesQueryBuilder(
                     dataset=Dataset.Functions,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     interval=rollup,
                     top_events=chunk,
                     other=False,
@@ -151,8 +154,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results = functions.format_top_events_timeseries_results(
                     result,
                     builder,
-                    params,
-                    rollup,
+                    params={},
+                    rollup=rollup,
+                    snuba_params=snuba_params,
                     top_events={"data": chunk},
                     result_key_order=["project.id", "fingerprint"],
                 )
@@ -195,7 +199,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
             additional_query_column="examples()",
-            params={},
             snuba_params=snuba_params,
             query=data.get("query"),
         )
