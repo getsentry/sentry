@@ -6,9 +6,14 @@ from sentry import tagstore
 from sentry.eventstore.models import Event
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
-from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiTimeoutError,
+)
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
+
 from sentry_plugins.anonymizeip import anonymize_ip
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -185,7 +190,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def get_event_payload(self, event):
         payload = {
-            "time": int(event.datetime.strftime("%s")),
+            "time": int(event.datetime.timestamp()),
             "source": self.project_source,
             "index": self.project_index,
             "event": self.get_event_payload_properties(event),

@@ -28,6 +28,7 @@ from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
+    BoundedPositiveBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -37,14 +38,21 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    GroupCategory,
+    get_group_type_by_type_id,
+)
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
 from sentry.models.commit import Commit
-from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
+from sentry.models.grouphistory import (
+    record_group_history,
+    record_group_history_from_activity_type,
+)
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -553,7 +561,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
+    times_seen = BoundedPositiveBigIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)
@@ -562,7 +570,7 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
-    score = BoundedIntegerField(default=0)
+    score = BoundedPositiveBigIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
@@ -916,7 +924,7 @@ class Group(Model):
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+        return math.log(float(times_seen or 1)) * 600 + last_seen.timestamp()
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee
