@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -36,7 +35,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -685,13 +683,7 @@ const WidgetsContainer = styled('div')`
 `;
 
 function ProfilingContentWrapper(props: ProfilingContentProps) {
-  const api = useApi();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-  }, [api, organization.slug, selection]);
 
   if (organization.features.includes('continuous-profiling-compat')) {
     return <ProfilingContent {...props} />;
