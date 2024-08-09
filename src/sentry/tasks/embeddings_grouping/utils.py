@@ -28,7 +28,8 @@ from sentry.seer.similarity.grouping_records import (
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashMissingGroupError,
+    SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
@@ -328,9 +329,9 @@ def get_events_from_nodestore(
                     group_id=group_id,
                     project_id=project.id,
                     message=filter_null_from_string(event.title),
-                    exception_type=filter_null_from_string(exception_type)
-                    if exception_type
-                    else None,
+                    exception_type=(
+                        filter_null_from_string(exception_type) if exception_type else None
+                    ),
                     hash=primary_hash,
                 )
             )
@@ -494,9 +495,13 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
                         )
                     )
                 ]
-            # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
+            # TODO: if we get a `SimilarHashNotFoundError`, we need to delete the record from seer or this will always happen
             # we should not update the similarity data for this group cause we'd want to try again once we delete it
-            except (IncompleteSeerDataError, SimilarGroupNotFoundError):
+            except (
+                IncompleteSeerDataError,
+                SimilarHashNotFoundError,
+                SimilarHashMissingGroupError,
+            ):
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.invalid_parent_group",
                     extra={

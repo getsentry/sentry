@@ -4,11 +4,11 @@ import functools
 import itertools
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypeAlias
 
 from sentry import tsdb
-from sentry.digests.types import Notification, Record
+from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -19,7 +19,7 @@ from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Digest: TypeAlias = MutableMapping["Rule", MutableMapping["Group", list[Record]]]
+Digest: TypeAlias = dict["Rule", dict["Group", list[RecordWithRuleObjects]]]
 
 
 def split_key(
@@ -136,31 +136,25 @@ def rewrite_record(
     project: Project,
     groups: Mapping[int, Group],
     rules: Mapping[str, Rule],
-) -> Record | None:
+) -> RecordWithRuleObjects | None:
     event = record.value.event
 
     # Reattach the group to the event.
-    group = groups.get(event.group_id)
+    if event.group_id is None:
+        group = None
+    else:
+        group = groups.get(event.group_id)
     if group is not None:
         event.group = group
     else:
         logger.debug("%s could not be associated with a group.", record)
         return None
 
-    return Record(
-        record.key,
-        Notification(
-            event,
-            [_f for _f in [rules.get(id) for id in record.value.rules] if _f],
-            record.value.notification_uuid,
-        ),
-        record.timestamp,
-    )
+    rules = [_f for _f in [rules.get(id) for id in record.value.rules] if _f]
+    return record.with_rules(rules)
 
 
-def group_records(
-    groups: MutableMapping[str, Mapping[str, MutableSequence[Record]]], record: Record
-) -> MutableMapping[str, Mapping[str, MutableSequence[Record]]]:
+def group_records(groups: Digest, record: RecordWithRuleObjects) -> Digest:
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
@@ -172,9 +166,7 @@ def group_records(
     return groups
 
 
-def sort_group_contents(
-    rules: MutableMapping[str, Mapping[Group, Sequence[Record]]]
-) -> Mapping[str, Mapping[Group, Sequence[Record]]]:
+def sort_group_contents(rules: Digest) -> Digest:
     for key, groups in rules.items():
         rules[key] = dict(
             sorted(
@@ -187,7 +179,7 @@ def sort_group_contents(
     return rules
 
 
-def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
+def sort_rule_groups(rules: Digest) -> Digest:
     return dict(
         sorted(
             rules.items(),
