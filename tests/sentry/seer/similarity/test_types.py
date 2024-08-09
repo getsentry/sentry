@@ -101,7 +101,7 @@ class SeerSimilarIssueDataTest(TestCase):
 
             SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
 
-    def test_from_raw_nonexistent_group(self):
+    def test_from_raw_nonexistent_grouphash(self):
         with pytest.raises(SimilarHashNotFoundError):
             raw_similar_issue_data = {
                 "parent_hash": "not a real hash",
