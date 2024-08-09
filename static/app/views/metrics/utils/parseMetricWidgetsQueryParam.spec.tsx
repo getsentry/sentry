@@ -56,6 +56,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: true,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -119,6 +120,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: 'avg', order: 'desc'},
           isHidden: true,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
         {
           id: 1,
@@ -134,6 +136,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: 'sum', order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
         // Formulas should always be at the end
         {
@@ -145,6 +148,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           focusedSeries: [],
           isHidden: true,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -181,6 +185,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
         {
           id: 0,
@@ -191,6 +196,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -230,6 +236,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -276,6 +283,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -333,6 +341,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -374,6 +383,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           sort: {name: undefined, order: 'asc'},
           isHidden: false,
           overlays: [MetricChartOverlayType.SAMPLES, MetricChartOverlayType.RELEASES],
+          awaitingMetricIngestion: false,
         },
       ]
     );
@@ -395,6 +405,7 @@ describe('parseMetricWidgetsQueryParam', () => {
         sort: {name: 'avg' as const, order: 'desc' as const},
         isHidden: false,
         overlays: [MetricChartOverlayType.SAMPLES],
+        awaitingMetricIngestion: false,
       };
     }
 
@@ -455,6 +466,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           powerUserMode: true,
           sort: {name: 'avg', order: 'desc'},
           isHidden: false,
+          awaitingMetricIngestion: false,
           overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]
@@ -495,6 +507,7 @@ describe('parseMetricWidgetsQueryParam', () => {
           powerUserMode: true,
           sort: {name: 'avg', order: 'desc'},
           isHidden: false,
+          awaitingMetricIngestion: false,
           overlays: [MetricChartOverlayType.SAMPLES],
         },
       ]

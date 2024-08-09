@@ -28,6 +28,7 @@ import {useCreateMetricsExtractionRules} from 'sentry/views/settings/projectMetr
 
 interface Props {
   initialData?: Partial<FormData>;
+  onCreate?: (rule: MetricsExtractionRule) => void;
   projectId?: string | number;
 }
 
@@ -46,6 +47,7 @@ export function MetricsExtractionRuleCreateModal({
   CloseButton,
   initialData: initalDataProp = {},
   projectId: projectIdProp,
+  onCreate,
 }: Props & ModalRenderProps) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -137,6 +139,8 @@ export function MetricsExtractionRuleCreateModal({
             initialData={initialData}
             projectId={projectId}
             closeModal={closeModal}
+            // @ts-ignore
+            onCreate={onCreate}
           />
         ) : null}
       </Body>
@@ -148,9 +152,11 @@ function FormWrapper({
   closeModal,
   projectId,
   initialData,
+  onCreate,
 }: {
   closeModal: () => void;
   initialData: FormData;
+  onCreate: (rule: MetricsExtractionRule) => void;
   projectId: string | number;
 }) {
   const organization = useOrganization();
@@ -187,10 +193,11 @@ function FormWrapper({
           metricsExtractionRules: [extractionRule],
         },
         {
-          onSuccess: () => {
+          onSuccess: createdRules => {
             onSubmitSuccess(data);
             addSuccessMessage(t('Metric extraction rule created'));
             closeModal();
+            onCreate(createdRules[0]);
           },
           onError: error => {
             const message = error?.responseJSON?.detail
@@ -203,7 +210,7 @@ function FormWrapper({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, projectId, createExtractionRuleMutation]
+    [closeModal, projectId, onCreate, createExtractionRuleMutation]
   );
 
   return (

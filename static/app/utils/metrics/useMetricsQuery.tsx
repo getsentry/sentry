@@ -251,7 +251,7 @@ export function useMetricsQuery(
       staleTime: 0,
       refetchOnReconnect: enableRefetch,
       refetchOnWindowFocus: enableRefetch,
-      refetchInterval: false,
+      refetchInterval: enableRefetch ? 10000 : false,
       enabled: !isLoading,
     }
   );

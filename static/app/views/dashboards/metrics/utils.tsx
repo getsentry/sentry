@@ -2,7 +2,12 @@ import {useMemo} from 'react';
 
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+import type {
+  MetricAggregation,
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponseSeries,
+  MRI,
+} from 'sentry/types/metrics';
 import {
   getDefaultAggregation,
   isVirtualMetric,
@@ -335,4 +340,19 @@ export const formatAlias = (alias?: string) => {
 
 export const getVirtualAlias = (aggregation, spanAttribute) => {
   return `v|${aggregation}(${spanAttribute})`;
+};
+
+export const isEmptyQueryResponse = (data?: MetricsQueryApiResponse) => {
+  if (!data) {
+    return true;
+  }
+  return data.data.every(isEmptyQuerySeries);
+};
+
+export const isEmptyQuerySeries = (series?: MetricsQueryApiResponseSeries) => {
+  if (!series) {
+    return true;
+  }
+
+  return series.every(s => s.series.every(value => value === null));
 };

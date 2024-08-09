@@ -51,6 +51,7 @@ interface UseMetricSamplesOptions<F extends Field> {
   min?: number;
   mri?: MRI;
   query?: string;
+  refetchInterval?: number | false;
   sort?: string;
 }
 
@@ -71,6 +72,7 @@ export function useMetricsSamples<F extends Field>({
   referrer,
   query,
   sort,
+  refetchInterval = false,
 }: UseMetricSamplesOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -99,6 +101,7 @@ export function useMetricsSamples<F extends Field>({
     refetchOnWindowFocus: false,
     retry: false,
     enabled,
+    refetchInterval,
   });
 }
 

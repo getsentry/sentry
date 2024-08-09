@@ -22,6 +22,7 @@ import {
   isMetricsEquationWidget,
   isMetricsQueryWidget,
   MetricExpressionType,
+  type MetricsQuery,
   type MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -44,6 +45,7 @@ export type FocusAreaProps = {
 };
 
 interface MetricsContextValue {
+  addAwaitingMetricWidget: (data: MetricsQuery) => void;
   addWidget: (type?: MetricExpressionType) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusAreaProps;
@@ -71,6 +73,7 @@ interface MetricsContextValue {
 
 export const MetricsContext = createContext<MetricsContextValue>({
   addWidget: () => {},
+  addAwaitingMetricWidget: () => {},
   duplicateWidget: () => {},
   focusArea: {},
   hasCustomMetrics: false,
@@ -212,6 +215,25 @@ export function useMetricWidgets(
     [currentWidgetsRef, duplicateWidget, setWidgets]
   );
 
+  const addAwaitingMetricWidget = useCallback(
+    (data: MetricsQuery) => {
+      setWidgets(currentWidgets => {
+        const newWidgets = [...currentWidgets].map(w => ({...w, isHidden: true}));
+        return [
+          ...newWidgets,
+          {
+            ...emptyMetricsQueryWidget,
+            ...data,
+            awaitingMetricIngestion: true,
+            isHidden: false,
+          },
+        ];
+      });
+      updateQuery({statsPeriod: '1h', interval: '5m'});
+    },
+    [setWidgets, updateQuery]
+  );
+
   const removeWidget = useCallback(
     (index: number) => {
       setWidgets(currentWidgets => {
@@ -235,6 +257,7 @@ export function useMetricWidgets(
     removeWidget,
     duplicateWidget,
     setWidgets,
+    addAwaitingMetricWidget,
   };
 }
 
@@ -290,11 +313,18 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(
-      defaultMetricMeta,
-      defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
-    );
+  const {
+    widgets,
+    updateWidget,
+    addWidget,
+    addAwaitingMetricWidget,
+    removeWidget,
+    duplicateWidget,
+    setWidgets,
+  } = useMetricWidgets(
+    defaultMetricMeta,
+    defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
+  );
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
@@ -359,6 +389,14 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     [addWidget, handleSetSelectedWidgetIndex, widgets.length]
   );
 
+  const handleAddAwaitingMetricWidget = useCallback(
+    (data: MetricsQuery) => {
+      addAwaitingMetricWidget(data);
+      handleSetSelectedWidgetIndex(widgets.length);
+    },
+    [addAwaitingMetricWidget, handleSetSelectedWidgetIndex, widgets.length]
+  );
+
   const handleUpdateWidget = useCallback(
     (index: number, data: Partial<MetricsWidget>) => {
       updateWidget(index, data);
@@ -416,6 +454,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const contextValue = useMemo<MetricsContextValue>(
     () => ({
       addWidget: handleAddWidget,
+      addAwaitingMetricWidget: handleAddAwaitingMetricWidget,
       selectedWidgetIndex: isSelectionValid
         ? selectedWidgetIndex
         : widgets.findIndex(w => !w.isHidden),
@@ -441,6 +480,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     }),
     [
       handleAddWidget,
+      handleAddAwaitingMetricWidget,
       isSelectionValid,
       selectedWidgetIndex,
       widgets,

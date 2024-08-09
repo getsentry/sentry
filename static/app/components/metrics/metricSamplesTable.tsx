@@ -77,6 +77,7 @@ interface MetricsSamplesTableProps {
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
+  refetchInterval?: number | false;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
   >;
@@ -157,6 +158,7 @@ export function MetricSamplesTable({
   setMetricsSamples,
   sortKey = 'sort',
   hasPerformance = true,
+  refetchInterval,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
   const {resolveVirtualMRI} = useVirtualMetricsContext();
@@ -231,6 +233,7 @@ export function MetricSamplesTable({
     enabled,
     sort: sortQuery,
     limit: 20,
+    refetchInterval,
   });
 
   // propagate the metrics samples up as needed

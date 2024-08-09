@@ -17,6 +17,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {
@@ -37,9 +38,14 @@ import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetric
 interface Props {
   addCustomMetric: () => void;
   showAddMetricButton: boolean;
+  onAddMetric?: (rule: MetricsExtractionRule) => void;
 }
 
-export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({
+  showAddMetricButton,
+  addCustomMetric,
+  onAddMetric,
+}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const metricsNewInputs = hasMetricsNewInputs(organization);
@@ -147,7 +153,11 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => openExtractionRuleCreateModal({})}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                onCreate: onAddMetric,
+              })
+            }
             size="sm"
           >
             {t('Create Metric')}

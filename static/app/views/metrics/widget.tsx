@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
@@ -11,6 +11,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Flex} from 'sentry/components/container/flex';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -59,6 +60,10 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  isEmptyQueryResponse,
+  isEmptyQuerySeries,
+} from 'sentry/views/dashboards/metrics/utils';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
@@ -74,8 +79,10 @@ type MetricWidgetProps = {
   focusAreaProps: FocusAreaProps;
   onChange: (index: number, data: Partial<MetricsWidget>) => void;
   queries: MetricsQueryApiQueryParams[];
+  awaitingMetricIngestion?: boolean[];
   chartHeight?: number;
   context?: 'ddm' | 'dashboard';
+  endAwaitingMetricIngestion?: (index: number) => void;
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
@@ -143,6 +150,8 @@ export const MetricWidget = memo(
     metricsSamples,
     overlays,
     highlightedSampleId,
+    endAwaitingMetricIngestion,
+    awaitingMetricIngestion,
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
@@ -269,6 +278,8 @@ export const MetricWidget = memo(
                   tableSort={tableSort}
                   focusedSeries={focusedSeries}
                   overlays={overlays}
+                  endAwaitingMetricIngestion={endAwaitingMetricIngestion}
+                  awaitingMetricIngestion={awaitingMetricIngestion}
                 />
               </ErrorBoundary>
             ) : (
@@ -293,8 +304,10 @@ interface MetricWidgetBodyProps {
   focusAreaProps: FocusAreaProps;
   queries: MetricsQueryApiQueryParams[];
   widgetIndex: number;
+  awaitingMetricIngestion?: boolean[];
   chartGroup?: string;
   chartHeight?: number;
+  endAwaitingMetricIngestion?: (index: number) => void;
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricsWidget>) => void;
@@ -328,6 +341,8 @@ const MetricWidgetBody = memo(
     filters,
     queries,
     overlays,
+    endAwaitingMetricIngestion,
+    awaitingMetricIngestion,
   }: MetricWidgetBodyProps) => {
     const router = useRouter();
     const {interval} = useMetricsIntervalParam();
@@ -344,8 +359,16 @@ const MetricWidgetBody = memo(
       });
     }, [queries]);
 
+    const isAwaitingIngestion = useMemo(
+      () =>
+        queries.length > 1
+          ? awaitingMetricIngestion?.some(Boolean)
+          : awaitingMetricIngestion?.[widgetIndex],
+      [awaitingMetricIngestion, queries, widgetIndex]
+    );
+
     // Pause refetching if focus area is drawn
-    const enableRefetch = !focusAreaProps.selection;
+    const enableRefetch = isAwaitingIngestion && !focusAreaProps.selection;
     const {
       data: timeseriesData,
       isLoading,
@@ -377,6 +400,34 @@ const MetricWidgetBody = memo(
           })
         : [];
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
+
+    useEffect(() => {
+      if (!isAwaitingIngestion || isEmptyQueryResponse(timeseriesData)) {
+        return;
+      }
+      if (queries.length > 1) {
+        awaitingMetricIngestion?.forEach((_, i) => {
+          if (
+            awaitingMetricIngestion[i] &&
+            !isEmptyQuerySeries(timeseriesData!.data[i])
+          ) {
+            endAwaitingMetricIngestion?.(i);
+          }
+        });
+      } else if (
+        awaitingMetricIngestion?.[widgetIndex] &&
+        !isEmptyQuerySeries(timeseriesData!.data[0])
+      ) {
+        endAwaitingMetricIngestion?.(widgetIndex);
+      }
+    }, [
+      isAwaitingIngestion,
+      endAwaitingMetricIngestion,
+      awaitingMetricIngestion,
+      timeseriesData,
+      queries,
+      widgetIndex,
+    ]);
 
     const chartSamples = useMetricChartSamples({
       samples: samples?.data,
@@ -508,23 +559,63 @@ const MetricWidgetBody = memo(
       [onChange]
     );
 
+    function WidgetAlertPanel() {
+      if (isError) {
+        return (
+          <Alert type="error">
+            {(error?.responseJSON?.detail as string) ||
+              t('Error while fetching metrics data')}
+          </Alert>
+        );
+      }
+      if (limitedResults) {
+        return (
+          <LimitAlert type="warning" showIcon>
+            {tct(
+              'The queries in this chart generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
+              {numOfGroups: chartSeries.length}
+            )}
+          </LimitAlert>
+        );
+      }
+      if (isAwaitingIngestion && !isLoading) {
+        if (samples?.data?.length) {
+          return (
+            <LoadingAlert type="success">
+              <Flex justify="space-between" align="center">
+                {t('Great! We see some samples, metrics data will be here shortly...')}
+                <StyledLoadingIndicator mini />
+              </Flex>
+            </LoadingAlert>
+          );
+        }
+        return (
+          <LoadingAlert type="info">
+            <Flex justify="space-between" align="center">
+              {t(
+                'Now go ahead send some spans and hang tight, while we extract metrics...'
+              )}
+              <StyledLoadingIndicator mini />
+            </Flex>
+          </LoadingAlert>
+        );
+      }
+      return null;
+    }
+
     if (!chartSeries || !timeseriesData || isError) {
       return (
         <StyledMetricWidgetBody>
+          <WidgetAlertPanel />
           {isLoading && <LoadingIndicator />}
-          {isError && (
-            <Alert type="error">
-              {(error?.responseJSON?.detail as string) ||
-                t('Error while fetching metrics data')}
-            </Alert>
-          )}
         </StyledMetricWidgetBody>
       );
     }
 
-    if (timeseriesData.data.length === 0) {
+    if (isEmptyQueryResponse(timeseriesData) || isAwaitingIngestion) {
       return (
         <StyledMetricWidgetBody>
+          <WidgetAlertPanel />
           <EmptyMessage
             icon={<IconSearch size="xxl" />}
             title={t('No results')}
@@ -536,14 +627,7 @@ const MetricWidgetBody = memo(
 
     return (
       <StyledMetricWidgetBody>
-        {limitedResults && (
-          <LimitAlert type="warning" showIcon>
-            {tct(
-              'The queries in this chart generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
-              {numOfGroups: chartSeries.length}
-            )}
-          </LimitAlert>
-        )}
+        <WidgetAlertPanel />
         <TransparentLoadingMask visible={isLoading} />
         <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
           <MetricChart
@@ -704,6 +788,14 @@ const LimitAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
+const LoadingAlert = styled(Alert)`
+  padding: ${space(1)} ${space(2)};
+`;
+
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;

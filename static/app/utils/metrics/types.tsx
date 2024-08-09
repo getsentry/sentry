@@ -49,6 +49,7 @@ export interface BaseWidgetParams {
   id: number;
   isHidden: boolean;
   type: MetricExpressionType;
+  awaitingMetricIngestion?: boolean;
   focusedSeries?: FocusedMetricsSeries[];
   overlays?: MetricChartOverlayType[];
   sort?: SortState;
