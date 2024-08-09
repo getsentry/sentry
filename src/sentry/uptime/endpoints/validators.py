@@ -24,7 +24,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         help_text="Name of the uptime monitor",
     )
     owner = ActorField(
-        required=False,
+        required=True,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
