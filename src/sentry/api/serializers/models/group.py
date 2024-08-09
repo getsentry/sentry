@@ -707,16 +707,21 @@ class GroupSerializerBase(Serializer, ABC):
         if request and is_active_superuser(request) and request.user.id == user.id:
             return True
 
-        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
-        # because the user isn't an org member. Instead we can use the auth token and the installation
-        # it's associated with to find out what organization the token has access to.
-        if (
-            request
-            and getattr(request.user, "is_sentry_app", False)
-            and is_api_token_auth(request.auth)
-        ):
-            if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
-                return True
+        if request and hasattr(request, "auth") and is_api_token_auth(request.auth):
+            token = AuthenticatedToken.from_token(request.auth)
+
+            if getattr(request.user, "is_sentry_app", False):
+                # This code implies that if the token does not have org access we should
+                # continue execution. This is how it was when I found it. Is this correct?
+                # Should Sentry Apps always be organization scoped?
+                if token.token_has_org_access(organization_id):
+                    return True
+            else:
+                # We only evaluate organization access if an organization_id is present
+                # on the token. Otherwise we fall-through to the default authorization
+                # flow.
+                if token.organization_id:
+                    return token.token_has_org_access(organization_id)
 
         if (
             request

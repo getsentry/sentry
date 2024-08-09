@@ -82,6 +82,7 @@
     "sentry.querysubscription"
   ],
   "sentry.apiapplication": [
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apiauthorization": [
@@ -97,6 +98,7 @@
   ],
   "sentry.apitoken": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.artifactbundle": [

@@ -17,6 +17,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apigrant import ApiGrant
@@ -118,6 +119,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
+
+    # Tokens can be scoped to only access a single organization.
+    #
+    # Failure to restrict access by the scoping organization id could enable
+    # cross-organization access for untrusted third-party clients. The scoping
+    # organization key should only be unset for trusted clients.
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization",
+        null=True,
+        on_delete="CASCADE",
+    )
 
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 
@@ -354,6 +366,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         from sentry.models.integrations.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
+
+        if self.scoping_organization_id:
+            return self.scoping_organization_id
 
         try:
             installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
