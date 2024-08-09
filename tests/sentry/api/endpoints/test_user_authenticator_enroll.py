@@ -6,6 +6,7 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.auth.authenticators.sms import SmsInterface
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -135,6 +136,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("123123")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert isinstance(interface, SmsInterface)
         assert interface.phone_number == "1231234"
 
         assert_security_email_sent("mfa-added")
@@ -432,6 +434,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert validate_otp.call_args == mock.call("123123")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert isinstance(interface, SmsInterface)
         assert interface.phone_number == "1231234"
 
         self.assert_invite_accepted(resp, om.id)

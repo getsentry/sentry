@@ -51,11 +51,6 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
         interfaces are returned even if not enabled.
         """
 
-        def _sort(
-            x: list[AuthenticatorInterfaceOptMixinProtocol],
-        ) -> list[AuthenticatorInterfaceOptMixinProtocol]:
-            return sorted(x, key=lambda x: (x.type == 0, x.type))
-
         # Collect interfaces user is enrolled in
         ifaces = [
             x.interface
@@ -75,7 +70,7 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
                 if iface_cls.is_available:
                     ifaces.append(iface_cls())
 
-        return _sort(ifaces)
+        return sorted(ifaces, key=lambda interface: (interface.type == 0, interface.type))
 
     def auto_add_recovery_codes(
         self, user: User, force: bool = False
