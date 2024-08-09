@@ -6,7 +6,6 @@ from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
-from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -96,7 +95,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         check_global_views: bool = True,
         quantize_date_params: bool = True,
     ) -> tuple[SnubaParams, ParamsType]:
-        """This will eventually replace the get_snuba_params function"""
+        """Returns params to make snuba queries with"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
             if (
                 len(self.get_field_list(organization, request))
@@ -130,44 +129,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             # Return both for now
             return params, filter_params
-
-    def get_snuba_params(
-        self,
-        request: HttpRequest,
-        organization: Organization,
-        check_global_views: bool = True,
-        quantize_date_params: bool = True,
-    ) -> ParamsType:
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
-            if (
-                len(self.get_field_list(organization, request))
-                + len(self.get_equation_list(organization, request))
-                > MAX_FIELDS
-            ):
-                raise ParseError(
-                    detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-                )
-
-            params: ParamsType = self.get_filter_params(request, organization)
-            if quantize_date_params:
-                params = self.quantize_date_params(request, params)
-            params["user_id"] = request.user.id if request.user else None
-            params["team_id"] = self.get_team_ids(request, organization)
-
-            if check_global_views:
-                has_global_views = features.has(
-                    "organizations:global-views", organization, actor=request.user
-                )
-                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-                if (
-                    not has_global_views
-                    and len(params.get("project_id", [])) > 1
-                    and not fetching_replay_data
-                ):
-                    raise ParseError(detail="You cannot view events from multiple projects.")
-
-            return params
 
     def get_orderby(self, request: Request) -> Sequence[str] | None:
         sort = request.GET.getlist("sort")
@@ -430,11 +391,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [Sequence[str], str, dict[str, str], int, bool, timedelta | None], SnubaTSResult
+            [Sequence[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult
         ],
         top_events: int = 0,
         query_column: str = "count()",
-        params: ParamsType | None = None,
         snuba_params: SnubaParams | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
@@ -443,9 +403,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: str | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
-        if (params is None or len(params) == 0) and snuba_params is not None:
-            params = snuba_params.filter_params
-
         with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
@@ -459,10 +416,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if query is None:
                     query = request.GET.get("query")
-                if params is None:
+                if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
-                        params = self.get_snuba_params(
+                        snuba_params, _ = self.get_snuba_dataclass(
                             request, organization, check_global_views=False
                         )
                     except NoProjects:
@@ -471,7 +428,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 try:
                     rollup = get_rollup_from_request(
                         request,
-                        params["end"] - params["start"],
+                        snuba_params.date_range,
                         default_interval=None,
                         error=InvalidSearchQuery(),
                         top_events=top_events,
@@ -479,13 +436,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # If the user sends an invalid interval, use the default instead
                 except InvalidSearchQuery:
                     sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-                    date_range = params["end"] - params["start"]
+                    date_range = snuba_params.date_range
                     stats_period = parse_stats_period(get_interval_from_range(date_range, False))
                     rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
 
                 if comparison_delta is not None:
                     retention = quotas.get_event_retention(organization=organization)
-                    comparison_start = params["start"] - comparison_delta
+                    comparison_start = snuba_params.start_date - comparison_delta
                     if retention and comparison_start < timezone.now() - timedelta(days=retention):
                         raise ValidationError("Comparison period is outside your retention window")
 
@@ -508,7 +465,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
                 result = get_event_stats(
-                    query_columns, query, params, rollup, zerofill_results, comparison_delta
+                    query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
@@ -527,7 +484,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             organization,
                             serializer,
                             event_result,
-                            params,
+                            snuba_params,
                             columns,
                             query_columns,
                             allow_partial_buckets,
@@ -548,7 +505,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         results[key]["meta"] = self.handle_results_with_meta(
                             request,
                             organization,
-                            params.get("project_id", []),
+                            snuba_params.project_ids,
                             event_result.data,
                             True,
                             dataset=dataset,
@@ -561,7 +518,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     organization,
                     serializer,
                     result,
-                    params,
+                    snuba_params,
                     columns,
                     query_columns,
                     allow_partial_buckets,
@@ -584,7 +541,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 serialized_result["meta"] = self.handle_results_with_meta(
                     request,
                     organization,
-                    params.get("project_id", []),
+                    snuba_params,
                     result.data,
                     True,
                     dataset=dataset,
@@ -613,7 +570,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
-        params: dict[str, Any],
+        snuba_params: SnubaParams,
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
@@ -626,7 +583,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         meta = self.handle_results_with_meta(
             request,
             organization,
-            params.get("project_id", []),
+            snuba_params.project_ids,
             event_result.data,
             True,
             dataset=dataset,

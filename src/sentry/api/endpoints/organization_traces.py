@@ -267,7 +267,7 @@ class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
         def get_event_stats(
             _columns: Sequence[str],
             _query: str,
-            _params: dict[str, str],
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: timedelta | None,
@@ -288,6 +288,7 @@ class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
                     request,
                     organization,
                     get_event_stats,
+                    snuba_params=snuba_params,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill,
                     dataset=spans_indexed,

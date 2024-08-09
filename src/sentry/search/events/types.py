@@ -4,7 +4,7 @@ from collections import namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
@@ -118,6 +118,10 @@ class SnubaParams:
         if self.end is None:
             raise InvalidSearchQuery("end is required")
         return self.end
+
+    @property
+    def date_range(self) -> timedelta:
+        return self.end_date - self.start_date
 
     @property
     def environment_names(self) -> list[str]:

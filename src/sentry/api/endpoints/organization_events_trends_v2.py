@@ -348,7 +348,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params={},
                 snuba_params=snuba_params,
                 query=query,
             )
