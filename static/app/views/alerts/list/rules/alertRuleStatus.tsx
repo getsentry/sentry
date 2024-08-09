@@ -1,26 +1,27 @@
-import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {IconArrow, IconMute} from 'sentry/icons';
+import {IconArrow, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
-
-import type {MetricAlert} from '../../types';
-import {IncidentStatus} from '../../types';
+import {type CombinedMetricIssueAlerts, IncidentStatus} from 'sentry/views/alerts/types';
+import {isIssueAlert} from 'sentry/views/alerts/utils';
 
 interface Props {
-  rule: MetricAlert;
+  rule: CombinedMetricIssueAlerts;
 }
 
-export default function AlertRuleStatus({rule}: Props): ReactNode {
-  if (rule.snooze) {
+export default function AlertRuleStatus({rule}: Props) {
+  const activeIncident = hasActiveIncident(rule);
+
+  function renderSnoozeStatus(): React.ReactNode {
     return (
       <IssueAlertStatusWrapper>
         <IconMute size="sm" color="subText" />
@@ -29,44 +30,69 @@ export default function AlertRuleStatus({rule}: Props): ReactNode {
     );
   }
 
-  const isUnhealthy =
-    rule.latestIncident?.status !== undefined &&
-    [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
-      rule.latestIncident.status
-    );
-
-  let iconColor: ColorOrAlias = 'successText';
-  let iconDirection: 'up' | 'down' =
-    rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
-  let thresholdTypeText =
-    rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
-  if (isUnhealthy) {
-    iconColor =
-      rule.latestIncident?.status === IncidentStatus.CRITICAL
-        ? 'errorText'
-        : 'warningText';
-    // if unhealthy, swap icon direction
-    iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
-    thresholdTypeText =
-      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Above') : t('Below');
+  if (isIssueAlert(rule)) {
+    if (rule.status === 'disabled') {
+      return (
+        <IssueAlertStatusWrapper>
+          <IconNot size="sm" color="subText" />
+          {t('Disabled')}
+        </IssueAlertStatusWrapper>
+      );
+    }
+    if (rule.snooze) {
+      return renderSnoozeStatus();
+    }
+    return null;
   }
 
-  let threshold = rule.triggers.find(
+  if (rule.snooze) {
+    return renderSnoozeStatus();
+  }
+
+  const criticalTrigger = rule.triggers.find(
     ({label}) => label === AlertRuleTriggerType.CRITICAL
-  )?.alertThreshold;
-  if (isUnhealthy && rule.latestIncident?.status === IncidentStatus.WARNING) {
-    threshold = rule.triggers.find(
-      ({label}) => label === AlertRuleTriggerType.WARNING
-    )?.alertThreshold;
-  } else if (!isUnhealthy && rule.latestIncident && rule.resolveThreshold) {
-    threshold = rule.resolveThreshold;
+  );
+  const warningTrigger = rule.triggers.find(
+    ({label}) => label === AlertRuleTriggerType.WARNING
+  );
+  const resolvedTrigger = rule.resolveThreshold;
+
+  const trigger =
+    activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
+      ? criticalTrigger
+      : warningTrigger ?? criticalTrigger;
+
+  let iconColor: ColorOrAlias = 'successText';
+  let iconDirection: 'up' | 'down' | undefined;
+  let thresholdTypeText =
+    activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
+      ? t('Above')
+      : t('Below');
+
+  if (activeIncident) {
+    iconColor =
+      trigger?.label === AlertRuleTriggerType.CRITICAL
+        ? 'errorText'
+        : trigger?.label === AlertRuleTriggerType.WARNING
+          ? 'warningText'
+          : 'successText';
+    iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
+  } else {
+    // Use the Resolved threshold type, which is opposite of Critical
+    iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
+    thresholdTypeText =
+      rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
   }
 
   return (
     <FlexCenter>
       <IconArrow color={iconColor} direction={iconDirection} />
       <TriggerText>
-        {`${thresholdTypeText} ${threshold}`}
+        {`${thresholdTypeText} ${
+          rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
+            ? trigger?.alertThreshold?.toLocaleString()
+            : resolvedTrigger?.toLocaleString()
+        }`}
         {getThresholdUnits(
           rule.aggregate,
           rule.comparisonDelta
@@ -77,13 +103,6 @@ export default function AlertRuleStatus({rule}: Props): ReactNode {
     </FlexCenter>
   );
 }
-
-// TODO: see static/app/components/profiling/flex.tsx and utilize the FlexContainer styled component
-const FlexCenter = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
 
 const IssueAlertStatusWrapper = styled('div')`
   display: flex;
@@ -96,4 +115,10 @@ const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+`;
+
+// TODO: explore utilizing the FlexContainer from app/components/container/flex.tsx
+const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
 `;

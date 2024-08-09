@@ -48,8 +48,10 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -73,7 +75,9 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
+  onWidgetSplitDecision,
   chartGroup,
+  shouldResize,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -145,6 +149,7 @@ export function WidgetCardChartContainer({
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
                 chartGroup={chartGroup}
+                shouldResize={shouldResize}
               />
             </Fragment>
           );
@@ -162,6 +167,7 @@ export function WidgetCardChartContainer({
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
       dashboardFilters={dashboardFilters}
+      onWidgetSplitDecision={onWidgetSplitDecision}
     >
       {({
         tableResults,
@@ -196,6 +202,7 @@ export function WidgetCardChartContainer({
               chartZoomOptions={chartZoomOptions}
               timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
+              shouldResize={shouldResize}
             />
           </Fragment>
         );

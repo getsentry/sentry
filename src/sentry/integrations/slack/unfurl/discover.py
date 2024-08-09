@@ -14,13 +14,14 @@ from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.models.apikey import ApiKey
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -40,6 +41,12 @@ display_modes: Mapping[str, ChartType] = {
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
+}
+
+dataset_map: Mapping[str, str] = {
+    "discover": "discover",
+    "error-events": "errors",
+    "transaction-like": "transactions",
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
@@ -155,6 +162,13 @@ def unfurl_discover(
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
+        saved_query_dataset = dataset_map.get(saved_query.get("queryDataset"))
+        params.setlist(
+            "dataset",
+            params.getlist("dataset")
+            or (to_list(saved_query_dataset) if saved_query_dataset else []),
+        )
+
         fields = params.getlist("field") or to_list(saved_query.get("fields"))
         # Mimic Discover to pick the first aggregate as the yAxis option if
         # one isn't specified.
@@ -235,6 +249,7 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
+        params["referrer"] = Referrer.DISCOVER_SLACK_UNFURL.value
 
         try:
             resp = client.get(

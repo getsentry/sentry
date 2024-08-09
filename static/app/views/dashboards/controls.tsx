@@ -6,6 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
@@ -131,11 +132,18 @@ function Controls({
     );
   }
 
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
+            <FeedbackWidgetButton />
             <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"
@@ -190,7 +198,7 @@ function Controls({
                       trackAnalytics('dashboards_views.widget_library.opened', {
                         organization,
                       });
-                      onAddWidget(DataSet.EVENTS);
+                      onAddWidget(defaultDataset);
                     }}
                   >
                     {t('Add Widget')}

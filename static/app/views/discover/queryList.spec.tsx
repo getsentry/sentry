@@ -139,6 +139,68 @@ describe('Discover > QueryList', function () {
     );
   });
 
+  it('renders pre-built queries with dataset', async function () {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-view',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={organization}
+        savedQueries={[]}
+        renderPrebuilt
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      {router}
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'transactions',
+          query: '',
+          referrer: 'api.discover.homepage.prebuilt',
+          statsPeriod: '24h',
+          yAxis: 'count()',
+        }),
+      })
+    );
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'errors',
+          environment: [],
+          field: ['url', 'count()', 'count_unique(issue)'],
+          query: 'has:url',
+          referrer: 'api.discover.homepage.prebuilt',
+          statsPeriod: '24h',
+          topEvents: 5,
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: expect.objectContaining({queryDataset: 'error-events'}),
+    });
+  });
+
   it('passes dataset to the query if flag is enabled', async function () {
     const org = OrganizationFixture({
       features: [

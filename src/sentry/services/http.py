@@ -22,7 +22,7 @@ pyuwsgi.run()
 """
 
 
-def convert_options_to_env(options: dict[str, Any]) -> Generator[tuple[str, str], None, None]:
+def convert_options_to_env(options: dict[str, Any]) -> Generator[tuple[str, str]]:
     for k, v in options.items():
         if v is None:
             continue

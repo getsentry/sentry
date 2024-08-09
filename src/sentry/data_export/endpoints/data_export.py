@@ -14,6 +14,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
@@ -25,10 +26,11 @@ from ..processors.discover import DiscoverProcessor
 from ..tasks import assemble_download
 
 # To support more datasets we may need to change the QueryBuilder being used
-# for now only doing issuePlatform since the product is forcing our hand
 SUPPORTED_DATASETS = {
     "discover": Dataset.Discover,
     "issuePlatform": Dataset.IssuePlatform,
+    "transactions": Dataset.Transactions,
+    "errors": Dataset.Events,
 }
 
 
@@ -95,7 +97,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             query_info["end"] = end.isoformat()
             dataset = query_info.get("dataset", "discover")
             if dataset not in SUPPORTED_DATASETS:
-                raise serializers.ValidationError(f"{dataset} is not support for csv exports")
+                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
@@ -103,7 +105,11 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                builder = DiscoverQueryBuilder(
+                query_builder_cls = DiscoverQueryBuilder
+                if dataset == "errors":
+                    query_builder_cls = ErrorsQueryBuilder
+
+                builder = query_builder_cls(
                     SUPPORTED_DATASETS[dataset],
                     processor.params,
                     query=query_info["query"],
@@ -124,7 +130,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationDataExportPermission,)
 

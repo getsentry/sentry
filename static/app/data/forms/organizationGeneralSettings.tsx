@@ -63,7 +63,11 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Automatically Configure Uptime Alerts'),
         help: t('Detect most-used URLs for uptime monitoring.'),
-        visible: ({features}) => features.has('uptime-settings'),
+        // TOOD(epurkhiser): Currently there's no need for users to change this
+        // setting as it will just be confusing. In the future when
+        // autodetection is used for suggested URLs it will make more sense to
+        // for users to have the option to disable this.
+        visible: false,
       },
     ],
   },
@@ -74,7 +78,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'defaultRole',
         type: 'select',
-        required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
@@ -85,9 +88,14 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'openMembership',
         type: 'boolean',
-        required: true,
         label: t('Open Membership'),
         help: t('Allow organization members to freely join any team'),
+      },
+      {
+        name: 'allowMemberProjectCreation',
+        type: 'boolean',
+        label: t('Let Members Create Projects'),
+        help: t('Allow organization members to create and configure new projects.'),
       },
       {
         name: 'eventsMemberAdmin',

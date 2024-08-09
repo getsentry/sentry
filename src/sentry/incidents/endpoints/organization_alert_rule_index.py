@@ -6,6 +6,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,6 +42,9 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -49,8 +53,11 @@ from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeStatus,
+)
 from sentry.utils.cursors import Cursor, StringCursor
 
 
@@ -105,42 +112,43 @@ class AlertRuleIndexMixin(Endpoint):
             },
             data=data,
         )
-        if serializer.is_valid():
-            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
-            if get_slack_actions_with_async_lookups(organization, request.user, request.data):
-                # need to kick off an async job for Slack
-                client = RedisRuleStatus()
-                task_args = {
-                    "organization_id": organization.id,
-                    "uuid": client.uuid,
-                    "data": request.data,
-                    "user_id": request.user.id,
-                }
-                find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
-                return Response({"uuid": client.uuid}, status=202)
-            else:
-                alert_rule = serializer.save()
-                referrer = request.query_params.get("referrer")
-                session_id = request.query_params.get("sessionId")
-                duplicate_rule = request.query_params.get("duplicateRule")
-                wizard_v3 = request.query_params.get("wizardV3")
-                subscriptions = alert_rule.snuba_query.subscriptions.all()
-                for sub in subscriptions:
-                    alert_rule_created.send_robust(
-                        user=request.user,
-                        project=sub.project,
-                        rule_id=alert_rule.id,
-                        rule_type="metric",
-                        sender=self,
-                        referrer=referrer,
-                        session_id=session_id,
-                        is_api_token=request.auth is not None,
-                        duplicate_rule=duplicate_rule,
-                        wizard_v3=wizard_v3,
-                    )
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
+
+        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        if get_slack_actions_with_async_lookups(organization, request.user, request.data):
+            # need to kick off an async job for Slack
+            client = RedisRuleStatus()
+            task_args = {
+                "organization_id": organization.id,
+                "uuid": client.uuid,
+                "data": request.data,
+                "user_id": request.user.id,
+            }
+            find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+            return Response({"uuid": client.uuid}, status=202)
+        else:
+            alert_rule = serializer.save()
+            referrer = request.query_params.get("referrer")
+            session_id = request.query_params.get("sessionId")
+            duplicate_rule = request.query_params.get("duplicateRule")
+            wizard_v3 = request.query_params.get("wizardV3")
+            subscriptions = alert_rule.snuba_query.subscriptions.all()
+            for sub in subscriptions:
+                alert_rule_created.send_robust(
+                    user=request.user,
+                    project=sub.project,
+                    rule_id=alert_rule.id,
+                    rule_type="metric",
+                    sender=self,
+                    referrer=referrer,
+                    session_id=session_id,
+                    is_api_token=request.auth is not None,
+                    duplicate_rule=duplicate_rule,
+                    wizard_v3=wizard_v3,
+                )
+            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
 @region_silo_endpoint
@@ -196,7 +204,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = ProjectUptimeSubscription.objects.filter(project__in=projects)
+        uptime_rules = ProjectUptimeSubscription.objects.filter(
+            project__in=projects,
+            mode__in=(
+                ProjectUptimeSubscriptionMode.MANUAL,
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            ),
+        )
 
         if not features.has("organizations:uptime-rule-api", organization):
             uptime_rules = ProjectUptimeSubscription.objects.none()

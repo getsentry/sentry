@@ -15,12 +15,12 @@ from sentry.auth.services.auth import (
 )
 from sentry.auth.services.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import sso_enabled
@@ -187,6 +187,15 @@ class DatabaseBackedAuthService(AuthService):
         if current_provider is None:
             return
         current_provider.config = config
+        current_provider.save()
+
+    def update_provider(self, organization_id: int, auth_provider_id: int, provider: str) -> None:
+        current_provider = AuthProvider.objects.filter(
+            organization_id=organization_id, id=auth_provider_id
+        ).first()
+        if current_provider is None:
+            return
+        current_provider.provider = provider
         current_provider.save()
 
 

@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 
 from sentry import features
@@ -25,7 +26,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def has(
         self,
         feature: Feature,
-        actor: User | RpcUser,
+        actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
     ) -> bool:
         return True
@@ -81,10 +82,8 @@ class FeatureManagerTest(TestCase):
         manager.add("organizations:feature1", OrganizationFeature)
         manager.add("organizations:feature2", OrganizationFeature, api_expose=True)
         manager.add("organizations:feature3", OrganizationFeature, api_expose=False)
-        exposed = {"organizations:feature1", "organizations:feature2"}
-        hidden = {
-            "organizations:feature3",
-        }
+        exposed = {"organizations:feature2"}
+        hidden = {"organizations:feature1", "organizations:feature3"}
         assert set(manager.all(OrganizationFeature).keys()) == exposed | hidden
         assert (
             set(manager.all(feature_type=OrganizationFeature, api_expose_only=True).keys())
@@ -273,6 +272,17 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
+    def test_batch_has_error(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add("projects:feature", ProjectFeature)
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.batch_has.side_effect = Exception("something bad")
+        manager.add_entity_handler(handler)
+
+        ret = manager.batch_has(["auth:register"], actor=self.user)
+        assert ret is None
+
     def test_batch_has_no_entity(self):
         manager = features.FeatureManager()
         manager.add("auth:register")
@@ -335,7 +345,7 @@ class FeatureManagerTest(TestCase):
         manager.add("feat:3", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
         manager.add("feat:4", OrganizationFeature, True)
-        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
 
         assert "feat:1" not in manager.entity_features
         assert "feat:2" not in manager.entity_features

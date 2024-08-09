@@ -99,7 +99,7 @@ export function shouldForceRouteToOldView(
 
   return (
     organization.extraOptions?.traces.checkSpanExtractionDate &&
-    organization.extraOptions?.traces.spansExtractionDate <= usableTimestamp
+    organization.extraOptions?.traces.spansExtractionDate > usableTimestamp
   );
 }
 

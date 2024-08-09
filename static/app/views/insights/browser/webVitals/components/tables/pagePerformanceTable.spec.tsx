@@ -60,6 +60,7 @@ describe('PagePerformanceTable', function () {
         }),
       ],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -124,7 +125,7 @@ describe('PagePerformanceTable', function () {
     });
     render(<PagePerformanceTable />, {organization});
     await waitFor(() => {
-      expect(eventsMock).toHaveBeenCalledTimes(2);
+      expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
@@ -172,6 +173,6 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '0.18'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '783ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Meh 85'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '18.25'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0.01'})).toBeInTheDocument();
   });
 });

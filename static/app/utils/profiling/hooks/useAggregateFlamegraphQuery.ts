@@ -8,28 +8,56 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export interface AggregateFlamegraphQueryParameters {
-  query: string;
+interface BaseAggregateFlamegraphQueryParameters {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   environments?: PageFilters['environments'];
-  fingerprint?: string;
   projects?: PageFilters['projects'];
 }
+
+interface FunctionsAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  query: string;
+  dataSource?: 'functions';
+  fingerprint?: string;
+}
+
+interface TransactionsAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  query: string;
+  dataSource?: 'transactions';
+}
+
+interface ProfilesAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  dataSource: 'profiles';
+}
+
+export type AggregateFlamegraphQueryParameters =
+  | FunctionsAggregateFlamegraphQueryParameters
+  | TransactionsAggregateFlamegraphQueryParameters
+  | ProfilesAggregateFlamegraphQueryParameters;
 
 export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
   Profiling.Schema,
   RequestError
 >;
 
-export function useAggregateFlamegraphQuery({
-  datetime,
-  enabled,
-  environments,
-  projects,
-  query,
-  fingerprint,
-}: AggregateFlamegraphQueryParameters): UseAggregateFlamegraphQueryResult {
+export function useAggregateFlamegraphQuery(
+  props: AggregateFlamegraphQueryParameters
+): UseAggregateFlamegraphQueryResult {
+  const {dataSource, datetime, enabled, environments, projects} = props;
+
+  let fingerprint: string | undefined = undefined;
+  let query: string | undefined = undefined;
+
+  if (isDataSourceFunctions(props)) {
+    fingerprint = props.fingerprint;
+    query = props.query;
+  } else if (isDataSourceTransactions(props)) {
+    query = props.query;
+  }
+
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -39,13 +67,14 @@ export function useAggregateFlamegraphQuery({
         project: projects ?? selection.projects,
         environment: environments ?? selection.environments,
         ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        dataSource,
         fingerprint,
         query,
       },
     };
 
     return params;
-  }, [datetime, environments, projects, fingerprint, query, selection]);
+  }, [dataSource, datetime, environments, projects, fingerprint, query, selection]);
 
   return useApiQuery<Profiling.Schema>(
     [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
@@ -55,4 +84,22 @@ export function useAggregateFlamegraphQuery({
       enabled,
     }
   );
+}
+
+function isDataSourceProfiles(
+  props: AggregateFlamegraphQueryParameters
+): props is ProfilesAggregateFlamegraphQueryParameters {
+  return 'dataSource' in props && props.dataSource === 'profiles';
+}
+
+function isDataSourceFunctions(
+  props: AggregateFlamegraphQueryParameters
+): props is FunctionsAggregateFlamegraphQueryParameters {
+  return 'fingerprint' in props;
+}
+
+function isDataSourceTransactions(
+  props: AggregateFlamegraphQueryParameters
+): props is TransactionsAggregateFlamegraphQueryParameters {
+  return !isDataSourceProfiles(props) && !isDataSourceFunctions(props);
 }

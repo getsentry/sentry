@@ -20,10 +20,10 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
-from sentry.models.outbox import OutboxCategory
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
@@ -123,7 +123,7 @@ class TeamManager(BaseManager["Team"]):
 
         return results
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
     def post_delete(self, instance, **kwargs):

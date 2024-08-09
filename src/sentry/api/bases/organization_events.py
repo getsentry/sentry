@@ -90,7 +90,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return result
 
     def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self,
+        request: Request,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
     ) -> tuple[SnubaParams, ParamsType]:
         """This will eventually replace the get_snuba_params function"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
@@ -104,7 +108,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params: dict[str, Any] = self.get_filter_params(request, organization)
-            filter_params = self.quantize_date_params(request, filter_params)
+            if quantize_date_params:
+                filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
                 start=filter_params["start"],
                 end=filter_params["end"],
@@ -120,16 +125,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     "organizations:global-views", organization, actor=request.user
                 )
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-                if not any(
-                    [
-                        has_global_views,
-                        len(params.projects) <= 1,
-                        fetching_replay_data,
-                        # If a developer can view issues of a project they do not belong to
-                        # via open membership, we will also allow the endpoint to return events for it
-                        organization.flags.allow_joinleave,
-                    ]
-                ):
+                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             # Return both for now
@@ -439,6 +435,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events: int = 0,
         query_column: str = "count()",
         params: ParamsType | None = None,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
@@ -446,6 +443,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: str | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
+        if (params is None or len(params) == 0) and snuba_params is not None:
+            params = snuba_params.filter_params
+
         with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
@@ -471,7 +471,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 try:
                     rollup = get_rollup_from_request(
                         request,
-                        params,
+                        params["end"] - params["start"],
                         default_interval=None,
                         error=InvalidSearchQuery(),
                         top_events=top_events,

@@ -9,6 +9,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -40,8 +42,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
@@ -2400,7 +2400,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             collapse=["unhandled"],
-            searchId=view.id,
+            viewId=view.id,
             savedSearch=0,
         )
         assert response.status_code == 200
@@ -2459,8 +2459,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="!is:regressed is:unresolved"
         )  # (status=unresolved, substatus=(!regressed))
         response6 = get_query_response(
-            query="!is:until_escalating"
-        )  # (status=(!unresolved), substatus=(!until_escalating))
+            query="!is:archived_until_escalating"
+        )  # (status=(!unresolved), substatus=(!archived_until_escalating))
 
         assert (
             response0.status_code
@@ -2498,9 +2498,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response1 = get_query_response(query="is:escalating")
         response2 = get_query_response(query="is:new")
         response3 = get_query_response(query="is:regressed")
-        response4 = get_query_response(query="is:forever")
-        response5 = get_query_response(query="is:until_condition_met")
-        response6 = get_query_response(query="is:until_escalating")
+        response4 = get_query_response(query="is:archived_forever")
+        response5 = get_query_response(query="is:archived_until_condition_met")
+        response6 = get_query_response(query="is:archived_until_escalating")
         response7 = get_query_response(query="is:resolved")
         response8 = get_query_response(query="is:ignored")
         response9 = get_query_response(query="is:muted")
@@ -2550,7 +2550,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        # issue 2: events 90 minutes ago 1 minute ago
+        # issue 2: events 90 minutes ago and 1 minute ago
         time = datetime.now() - timedelta(minutes=90)
         event2 = self.store_event(
             data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
@@ -2562,6 +2562,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
 
+        sleep(1)
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort="new",
@@ -3008,13 +3009,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
 
-        for release, environment, expected_groups in (
+        for release_s, environment, expected_groups in (
             (release.version, "development", [event.group.id]),
             (release.version, "production", []),
         ):
             response = self.get_success_response(
                 sort="new",
-                query=f"first_release:{release}",
+                query=f"first_release:{release_s}",
                 environment=environment,
             )
             assert len(response.data) == len(expected_groups)
@@ -3158,13 +3159,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         np1_group_id = group_info.group.id if group_info else None
 
         # create an error issue
-        self.store_event(
+        error_event = self.store_event(
             data={
                 "fingerprint": ["error-issue"],
                 "event_id": "e" * 32,
             },
             project_id=self.project.id,
         )
+        error_group_id = error_event.group.id
 
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
@@ -3200,6 +3202,44 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert len(response.data) == 0
 
+        response = self.get_success_response(
+            sort="new",
+            query="issue.category:error",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:error",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:[performance,cron]",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues
         for i in range(30):
@@ -3215,7 +3255,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         sleep(1)
 
         # Request the first page with a limit of 10
-        response = self.get_success_response(limit=10)
+        response = self.get_success_response(limit=10, sort="new")
         assert response.status_code == 200
         assert len(response.data) == 10
         assert response.headers.get("X-Hits") == "30"

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import datetime
 import logging
-import re
 import sys
 import traceback
-from collections.abc import Generator, Mapping, MutableMapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
-from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
@@ -38,7 +36,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
@@ -271,25 +269,6 @@ def is_member_disabled_from_limit(
         return member.flags.member_limit__restricted
 
 
-def generate_organization_hostname(org_slug: str) -> str:
-    url_prefix_hostname: str = urlparse(options.get("system.url-prefix")).netloc
-    org_base_hostname_template: str = options.get("system.organization-base-hostname")
-    if not org_base_hostname_template:
-        return url_prefix_hostname
-    has_org_slug_placeholder = "{slug}" in org_base_hostname_template
-    if not has_org_slug_placeholder:
-        return url_prefix_hostname
-    org_hostname = org_base_hostname_template.replace("{slug}", org_slug)
-    return org_hostname
-
-
-def generate_organization_url(org_slug: str) -> str:
-    org_url_template: str = options.get("system.organization-url-template")
-    if not org_url_template:
-        return options.get("system.url-prefix")
-    return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
-
-
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
@@ -303,40 +282,6 @@ def generate_region_url(region_name: str | None = None) -> str:
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
-
-
-_path_patterns: list[tuple[re.Pattern[str], str]] = [
-    # /organizations/slug/section, but not /organizations/new
-    (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
-    # For /settings/:orgId/ -> /settings/organization/
-    (
-        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
-        "/settings/organization/",
-    ),
-    # Move /settings/:orgId/:section -> /settings/:section
-    # but not /settings/organization or /settings/projects which is a new URL
-    (
-        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
-        r"/settings/\1",
-    ),
-    (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
-    (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
-    (
-        re.compile(r"^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)"),
-        r"/getting-started/\1/\2",
-    ),
-]
-
-
-def customer_domain_path(path: str) -> str:
-    """
-    Server side companion to path normalizations found in withDomainRequired
-    """
-    for pattern, replacement in _path_patterns:
-        updated = pattern.sub(replacement, path)
-        if updated != path:
-            return updated
-    return path
 
 
 def method_dispatch(**dispatch_mapping):
@@ -394,7 +339,7 @@ def get_auth_api_token_type(auth: object) -> str | None:
 
 
 @contextmanager
-def handle_query_errors() -> Generator[None, None, None]:
+def handle_query_errors() -> Generator[None]:
     try:
         yield
     except InvalidSearchQuery as error:
@@ -468,7 +413,7 @@ def handle_query_errors() -> Generator[None, None, None]:
 
 def update_snuba_params_with_timestamp(
     request: HttpRequest,
-    params: MutableMapping[str, Any] | SnubaParams | ParamsType,
+    params: SnubaParams,
     timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
@@ -476,10 +421,7 @@ def update_snuba_params_with_timestamp(
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
-    if isinstance(params, SnubaParams):
-        has_dates = params.start is not None and params.end is not None
-    else:
-        has_dates = "start" in params and "end" in params
+    has_dates = params.start is not None and params.end is not None
     if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
         # While possible, the majority of traces shouldn't take more than a week
@@ -490,13 +432,6 @@ def update_snuba_params_with_timestamp(
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        if isinstance(params, SnubaParams):
-            # Typing gets mad that start is optional still but has_dates has checked it
-            assert params.start is not None
-            assert params.end is not None
 
-            params.start = max(params.start, example_start)
-            params.end = min(params.end, example_end)
-        else:
-            params["start"] = max(params["start"], example_start)
-            params["end"] = min(params["end"], example_end)
+        params.start = max(params.start_date, example_start)
+        params.end = min(params.end_date, example_end)

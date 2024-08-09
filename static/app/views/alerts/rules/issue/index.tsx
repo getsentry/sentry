@@ -69,6 +69,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
+import SetupMessagingIntegrationButton from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -322,14 +323,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      const hasHighPriorityIssueAlerts =
-        this.props.organization.features.includes('default-high-priority-alerts') ||
-        this.props.project.features.includes('high-priority-alerts');
-      const isValidPlatform =
-        this.props.project.platform?.startsWith('javascript') ||
-        this.props.project.platform?.startsWith('python');
-
-      if (hasHighPriorityIssueAlerts && isValidPlatform) {
+      if (this.props.organization.features.includes('priority-ga-features')) {
         this.handleChange('conditions', [
           {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
           {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
@@ -417,7 +411,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
 
-  refetchConfigs() {
+  refetchConfigs = () => {
     const {organization} = this.props;
     const {project} = this.state;
 
@@ -429,7 +423,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(() => {
         // No need to alert user if this fails, can use existing data
       });
-  }
+  };
 
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
@@ -1174,6 +1168,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
     const displayDuplicateError =
       detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
+    const hasMessagingIntegrationOnboarding = organization.features.includes(
+      'messaging-integration-onboarding'
+    );
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -1226,11 +1223,19 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               </SettingsContainer>
             </ContentIndent>
             <SetConditionsListItem>
-              <StepHeader>{t('Set conditions')}</StepHeader>
-              <SetupAlertIntegrationButton
-                projectSlug={project.slug}
-                organization={organization}
-              />
+              <StepHeader>{t('Set conditions')}</StepHeader>{' '}
+              {hasMessagingIntegrationOnboarding ? (
+                <SetupMessagingIntegrationButton
+                  projectSlug={project.slug}
+                  refetchConfigs={this.refetchConfigs}
+                />
+              ) : (
+                <SetupAlertIntegrationButton
+                  projectSlug={project.slug}
+                  organization={organization}
+                  refetchConfigs={this.refetchConfigs}
+                />
+              )}
             </SetConditionsListItem>
             <ContentIndent>
               <ConditionsPanel>
@@ -1432,6 +1437,28 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                               </StyledAlert>
                             )
                           }
+                          {...(hasMessagingIntegrationOnboarding && {
+                            additionalAction: {
+                              label: 'Notify integration\u{2026}',
+                              option: {
+                                label: 'Missing an integration? Click here to refresh',
+                                value: {
+                                  enabled: true,
+                                  id: 'refresh_configs',
+                                  label: 'Refresh Integration List',
+                                },
+                              },
+                              onClick: () => {
+                                trackAnalytics(
+                                  'onboarding.messaging_integration_steps_refreshed',
+                                  {
+                                    organization: this.props.organization,
+                                  }
+                                );
+                                this.refetchConfigs();
+                              },
+                            },
+                          })}
                         />
                         <TestButtonWrapper>
                           <Button

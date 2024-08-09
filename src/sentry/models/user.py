@@ -35,6 +35,8 @@ from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
@@ -43,7 +45,6 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.services.user import RpcUser
@@ -65,7 +66,7 @@ class UserManager(BaseManager["User"], DjangoUserManager["User"]):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         org_user_ids = OrganizationMemberMapping.objects.filter(
@@ -377,7 +378,7 @@ class User(Model, AbstractBaseUser):
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
         # the `IntegrityError`s.
-        user_related_models: tuple[type[Model], ...] = (
+        user_related_models = (
             Authenticator,
             Identity,
             UserAvatar,

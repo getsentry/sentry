@@ -12,7 +12,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
 
-import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
+import {DEFAULT_EVENT_VIEW, getTransactionViews} from './data';
 
 const FIELDS = [
   {
@@ -1291,16 +1291,15 @@ describe('Results', function () {
     });
 
     it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query'],
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
         statusCode: 200,
-        body: {...TRANSACTION_VIEWS[0], name: ''},
+        body: {...getTransactionViews(organization)[0], name: ''},
       });
-      const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query'],
-      });
-
       const {router} = initializeOrg({
         organization,
         router: {
@@ -1308,7 +1307,7 @@ describe('Results', function () {
             ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
-                TRANSACTION_VIEWS[0],
+                getTransactionViews(organization)[0],
                 LocationFixture()
               ).generateQueryStringObject(),
             },
@@ -1330,7 +1329,7 @@ describe('Results', function () {
         {router: router, organization}
       );
 
-      await screen.findAllByText(TRANSACTION_VIEWS[0].name);
+      await screen.findAllByText(getTransactionViews(organization)[0].name);
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
@@ -1543,10 +1542,11 @@ describe('Results', function () {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
-
-      expect(
-        screen.getByRole('button', {name: 'Dataset Transactions'})
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {name: 'Dataset Transactions'})
+        ).toBeInTheDocument();
+      });
 
       expect(
         screen.getByText(

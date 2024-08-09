@@ -28,8 +28,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.outboxes import ControlOutboxProducingModel
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 
@@ -191,7 +192,7 @@ class Authenticator(ControlOutboxProducingModel):
         if save:
             self.save()
 
-    def __repr__(self):
+    def __repr__(self) -> str:  # type: ignore[override]  # python/mypy#17562
         return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"
 
     @classmethod

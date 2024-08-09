@@ -62,12 +62,13 @@ import {
 } from 'sentry/views/performance/utils';
 
 import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
+import {DisplayType, WidgetType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
   getNumEquations,
   getWidgetInterval,
+  hasDatasetSelector,
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
@@ -632,7 +633,14 @@ function getEventsSeriesRequest(
       ...requestData.queryExtras,
       ...getQueryExtraForSplittingDiscover(widget, organization, true),
     };
-    return doOnDemandMetricsRequest(api, requestData);
+    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
+  }
+
+  if (organization.features.includes('performance-discover-dataset-selector')) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, false),
+    };
   }
 
   return doEventsRequest<true>(api, requestData);
@@ -640,7 +648,8 @@ function getEventsSeriesRequest(
 
 export async function doOnDemandMetricsRequest(
   api,
-  requestData
+  requestData,
+  widgetType
 ): Promise<
   [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
 > {
@@ -662,6 +671,15 @@ export async function doOnDemandMetricsRequest(
     });
 
     response[0] = {...response[0]};
+
+    if (
+      hasDatasetSelector(requestData.organization) &&
+      widgetType === WidgetType.DISCOVER
+    ) {
+      const meta = response[0].meta ?? {};
+      meta.discoverSplitDecision = 'transaction-like';
+      response[0] = {...response[0], ...{meta}};
+    }
 
     return [response[0], response[1], response[2]];
   } catch (err) {
@@ -687,20 +705,35 @@ export function filterAggregateParams(
   return true;
 }
 
-const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-widget-split-ui');
-};
-
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
   organization: Organization,
   useOnDemandMetrics: boolean
 ) => {
-  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+  // We want to send the dashboardWidgetId on the request if we're in the Widget
+  // Builder with the selector feature flag
+  const isEditing = location.pathname.endsWith('/edit/');
+  const hasDiscoverSelector = organization.features.includes(
+    'performance-discover-dataset-selector'
+  );
+
+  if (!hasDiscoverSelector) {
+    if (
+      !useOnDemandMetrics ||
+      !organization.features.includes('performance-discover-widget-split-ui')
+    ) {
+      return {};
+    }
+    if (widget.id) {
+      return {dashboardWidgetId: widget.id};
+    }
+
     return {};
   }
-  if (widget.id) {
+
+  if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};
   }
+
   return {};
 };

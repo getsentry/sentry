@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -39,8 +39,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {CreateAlertModal} from 'sentry/views/metrics/createAlertModal';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {openCreateAlertModal} from 'sentry/views/metrics/createAlertModal';
 import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type ContextMenuProps = {
@@ -59,10 +58,8 @@ export function MetricQueryContextMenu({
   const router = useRouter();
 
   const {removeWidget, duplicateWidget, widgets, updateWidget} = useMetricsContext();
-  const createAlert = useMemo(
-    () => getCreateAlert(organization, metricsQuery),
-    [metricsQuery, organization]
-  );
+  const createAlert = getCreateAlert(organization, metricsQuery);
+
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
@@ -91,10 +88,7 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled:
-          !createAlert ||
-          !hasMetricAlertFeature(organization) ||
-          isVirtualMetric(metricsQuery),
+        disabled: !createAlert || !hasMetricAlertFeature(organization),
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -146,7 +140,7 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
-        label: t('Metric Settings'),
+        label: t('Configure Metric'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
@@ -161,7 +155,10 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            const extractionRule = getExtractionRule(metricsQuery.mri);
+            const extractionRule = getExtractionRule(
+              metricsQuery.mri,
+              metricsQuery.condition!
+            );
             if (extractionRule) {
               openExtractionRuleEditModal({
                 metricExtractionRule: extractionRule,
@@ -223,25 +220,25 @@ export function MetricQueryContextMenu({
   );
 }
 
+function canCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  return (
+    organization.access.includes('alerts:write') &&
+    metricsQuery.mri &&
+    metricsQuery.aggregation &&
+    !isCustomMeasurement(metricsQuery)
+  );
+}
+
 export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
-  if (
-    !metricsQuery.mri ||
-    !metricsQuery.aggregation ||
-    isCustomMeasurement(metricsQuery) ||
-    !organization.access.includes('alerts:write')
-  ) {
+  if (!canCreateAlert(organization, metricsQuery)) {
     return undefined;
   }
   return function () {
-    return openModal(deps => (
-      <OrganizationContext.Provider value={organization}>
-        <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
-      </OrganizationContext.Provider>
-    ));
+    openCreateAlertModal({metricsQuery: metricsQuery, organization});
   };
 }
 
-export function useCreateDashboardWidget(
+function useCreateDashboardWidget(
   organization: Organization,
   metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType

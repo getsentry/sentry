@@ -26,6 +26,8 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-extraction.sample-rate",
     "relay.compute-metrics-summaries.sample-rate",
     "sentry-metrics.extrapolation.duplication-limit",
+    "relay.span-normalization.allowed_hosts",
+    "sentry-metrics.extrapolation.propagate-rates",
 ]
 
 

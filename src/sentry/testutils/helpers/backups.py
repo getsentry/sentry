@@ -41,6 +41,7 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
+from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
@@ -52,6 +53,9 @@ from sentry.incidents.models.incident import (
     TimeSeriesSnapshot,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -75,9 +79,6 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
@@ -610,12 +611,19 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             type=1,
         )
-        for group_model in {GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription}:
+        for group_model in (GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription):
             group_model.objects.create(
                 project=project,
                 group=group,
                 user_id=owner_id,
             )
+
+        # DataSecrecyWaiver
+        DataSecrecyWaiver.objects.create(
+            organization=org,
+            access_start=timezone.now(),
+            access_end=timezone.now() + timedelta(days=1),
+        )
 
         return org
 

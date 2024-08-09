@@ -1,7 +1,6 @@
 import type {RouteComponentProps} from 'react-router';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -100,18 +99,6 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
           title={t('Stack Trace Rules')}
           fields={[fields.groupingEnhancements]}
         />
-
-        <Feature features="set-grouping-config" organization={organization}>
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Change defaults')}
-            fields={[
-              fields.groupingConfig,
-              fields.secondaryGroupingConfig,
-              fields.secondaryGroupingExpiry,
-            ]}
-          />
-        </Feature>
       </Form>
     </SentryDocumentTitle>
   );

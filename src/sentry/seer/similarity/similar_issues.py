@@ -15,7 +15,8 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashMissingGroupError,
+    SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
@@ -24,11 +25,6 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
-
-# TODO: Keeping this at a 100% sample rate for now in order to get good signal as we're rolling out
-# and calls are still comparatively rare. Once traffic gets heavy enough, we should probably ramp
-# this down.
-SIMILARITY_REQUEST_METRIC_SAMPLE_RATE = 1.0
 
 
 seer_grouping_connection_pool = connection_from_url(
@@ -51,7 +47,7 @@ def get_similarity_data_from_seer(
 
     logger_extra = apply_key_filter(
         similar_issues_request,
-        keep_keys=["event_id", "project_id", "message", "hash", "referrer"],
+        keep_keys=["event_id", "project_id", "message", "hash", "referrer", "use_reranking"],
     )
     # We have to rename the key `message` because it conflicts with the `LogRecord` attribute of the
     # same name
@@ -93,7 +89,7 @@ def get_similarity_data_from_seer(
         )
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 **metric_tags,
                 "outcome": "empty_stacktrace",
@@ -119,7 +115,7 @@ def get_similarity_data_from_seer(
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         circuit_breaker.record_error()
@@ -141,7 +137,7 @@ def get_similarity_data_from_seer(
 
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 **metric_tags,
                 "outcome": "error",
@@ -171,7 +167,7 @@ def get_similarity_data_from_seer(
         )
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         return []
@@ -179,7 +175,7 @@ def get_similarity_data_from_seer(
     if not response_data:
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "no_similar_groups"},
         )
         return []
@@ -215,7 +211,7 @@ def get_similarity_data_from_seer(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
-        except SimilarGroupNotFoundError:
+        except SimilarHashNotFoundError:
             parent_hash = raw_similar_issue_data.get("parent_hash")
 
             # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
@@ -223,15 +219,34 @@ def get_similarity_data_from_seer(
             delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
 
             # As with the `IncompleteSeerDataError` above, this will mark the entire request as
-            # errored even if it's only one group that we can't find. The extent to which that's
+            # errored even if it's only one grouphash that we can't find. The extent to which that's
             # inaccurate will be quite small, though, as the vast majority of calls to this function
             # come from ingest (where we're only requesting one matching group, making "one's
             # missing" the same thing as "they're all missing"). We should also almost never land
             # here in any case, since deleting the group on the Sentry side should already have
             # triggered a request to Seer to delete the corresponding hashes.
-            metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
+            metric_tags.update({"outcome": "error", "error": "SimilarHashNotFoundError"})
             logger.warning(
-                "get_similarity_data_from_seer.parent_group_not_found",
+                "get_similarity_data_from_seer.parent_hash_not_found",
+                extra={
+                    "hash": request_hash,
+                    "parent_hash": parent_hash,
+                    "project_id": project_id,
+                },
+            )
+        except SimilarHashMissingGroupError:
+            parent_hash = raw_similar_issue_data.get("parent_hash")
+
+            # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
+            # which doesn't exist
+            delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+
+            # The same caveats apply here as with the `SimilarHashNotFoundError` above, except that
+            # landing here should be even rarer, in that it's theoretically impossible - but
+            # nonetheless has happened, when events have seemingly vanished mid-ingest.
+            metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
+            logger.warning(
+                "get_similarity_data_from_seer.parent_hash_missing_group",
                 extra={
                     "hash": request_hash,
                     "parent_hash": parent_hash,
@@ -241,7 +256,7 @@ def get_similarity_data_from_seer(
 
     metrics.incr(
         "seer.similar_issues_request",
-        sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags=metric_tags,
     )
     return sorted(
