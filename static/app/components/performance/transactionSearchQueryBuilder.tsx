@@ -1,6 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -10,6 +10,7 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -29,7 +30,9 @@ interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
   datetime?: PageFilters['datetime'];
+  disableLoadingTags?: boolean;
   onSearch?: (query: string, state: CallbackSearchState) => void;
+  placeholder?: string;
   projects?: PageFilters['projects'];
 }
 
@@ -38,12 +41,24 @@ export function TransactionSearchQueryBuilder({
   searchSource,
   datetime,
   onSearch,
+  placeholder,
   projects,
+  disableLoadingTags,
 }: TransactionSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const tags = useTags();
+
+  const placeholderText = useMemo(() => {
+    return placeholder ?? t('Search for events, users, tags, and more');
+  }, [placeholder]);
+
+  useEffect(() => {
+    if (!disableLoadingTags) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }, [api, organization.slug, selection, disableLoadingTags]);
 
   const filterTags = useMemo(() => {
     const measurements = getMeasurements();
@@ -109,6 +124,7 @@ export function TransactionSearchQueryBuilder({
 
   return (
     <SearchQueryBuilder
+      placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
       onSearch={onSearch}
