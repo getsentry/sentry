@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import omit from 'lodash/omit';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import {
   getDisabledOptions,
@@ -42,7 +42,7 @@ interface ComboBoxProps<Value extends string>
   disabled?: boolean;
   growingInput?: boolean;
   hasSearch?: boolean;
-  hiddenOptions?: Set<string>;
+  hiddenOptions?: Set<SelectKey>;
   isLoading?: boolean;
   loadingMessage?: string;
   /**
@@ -184,7 +184,11 @@ function ComboBox<Value extends string>({
         zIndex={theme.zIndex?.tooltip}
         visible={state.isOpen}
       >
-        <StyledOverlay ref={popoverRef} width={menuWidth}>
+        <StyledOverlay
+          ref={popoverRef}
+          width={menuWidth}
+          data-menu-has-footer={!!menuFooter}
+        >
           {isLoading && (
             <MenuHeader size={menuSize ?? size}>
               <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
@@ -195,7 +199,13 @@ function ComboBox<Value extends string>({
           )}
           {/* Listbox adds a separator if it is not the first item
             To avoid this, we wrap it into a div */}
-          <div>
+          <div
+            css={css`
+              display: flex;
+              min-height: 0;
+              flex-direction: column;
+            `}
+          >
             <ListBox
               {...listBoxProps}
               overlayIsOpen={state.isOpen}
@@ -284,7 +294,7 @@ function ControlledComboBox<Value extends string>({
   );
 
   const disabledKeys = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+    () => [...getDisabledOptions(items), ...hiddenOptions],
     [hiddenOptions, items]
   );
 

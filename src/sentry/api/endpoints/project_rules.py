@@ -25,6 +25,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -32,7 +33,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
-from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
 
 
@@ -281,10 +281,9 @@ def get_max_alerts(project, kind: Literal["slow", "fast"]) -> int:
 
         return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
 
-    has_grouped_processing = features.has("organizations:process-slow-alerts", project.organization)
     has_more_fast_alerts = features.has("organizations:more-fast-alerts", project.organization)
 
-    if has_grouped_processing and has_more_fast_alerts:
+    if has_more_fast_alerts:
         return settings.MAX_MORE_FAST_CONDITION_ISSUE_ALERTS
 
     return settings.MAX_FAST_CONDITION_ISSUE_ALERTS

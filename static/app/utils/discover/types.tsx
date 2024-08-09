@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export const TOP_N = 5;
 
@@ -22,6 +23,11 @@ export enum DiscoverDatasets {
   SPANS_METRICS = 'spansMetrics',
   TRANSACTIONS = 'transactions',
 }
+
+export const DiscoverDatasetsToDatasetMap = {
+  [DiscoverDatasets.ERRORS]: Dataset.ERRORS,
+  [DiscoverDatasets.TRANSACTIONS]: Dataset.TRANSACTIONS,
+};
 
 export enum SavedQueryDatasets {
   DISCOVER = 'discover',

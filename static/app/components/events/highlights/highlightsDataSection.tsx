@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,13 +16,13 @@ import {
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
+import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit, IconMegaphone} from 'sentry/icons';
@@ -33,10 +33,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
@@ -217,37 +219,14 @@ function HighlightsData({
   );
 }
 
-function HighlightsFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t(
-      'How can we make tags, context or highlights more useful to you?'
-    ),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <Button
-      ref={buttonRef}
-      aria-label={t('Give Feedback')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-    >
-      {t('Feedback')}
-    </Button>
-  );
-}
-
 export default function HighlightsDataSection({
   viewAllRef,
   event,
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
+  const openForm = useFeedbackForm();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const viewAllButton = viewAllRef ? (
     <Button
@@ -262,32 +241,54 @@ export default function HighlightsDataSection({
   ) : null;
 
   return (
-    <InterimSection
-      key="event-highlights"
-      type={FoldSectionKey.HIGHLIGHTS}
-      title={t('Event Highlights')}
-      help={tct(
-        'Promoted tags and context items saved for this project. [link:Learn more]',
-        {
-          link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
+    <Fragment>
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+      <InterimSection
+        key="event-highlights"
+        type={FoldSectionKey.HIGHLIGHTS}
+        title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
+        help={tct(
+          'Promoted tags and context items saved for this project. [link:Learn more]',
+          {
+            link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
+          }
+        )}
+        isHelpHoverable
+        data-test-id="event-highlights"
+        actions={
+          <ErrorBoundary mini>
+            <ButtonBar gap={1}>
+              {openForm && (
+                <Button
+                  aria-label={t('Give Feedback')}
+                  icon={<IconMegaphone />}
+                  size={'xs'}
+                  onClick={() =>
+                    openForm({
+                      messagePlaceholder: t(
+                        'How can we make tags, context or highlights more useful to you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'issue_details_highlights',
+                        ['feedback.owner']: 'issues',
+                      },
+                    })
+                  }
+                >
+                  {t('Feedback')}
+                </Button>
+              )}
+              {viewAllButton}
+              <EditHighlightsButton project={project} event={event} />
+            </ButtonBar>
+          </ErrorBoundary>
         }
-      )}
-      isHelpHoverable
-      data-test-id="event-highlights"
-      actions={
-        <ErrorBoundary mini>
-          <ButtonBar gap={1}>
-            <HighlightsFeedback />
-            {viewAllButton}
-            <EditHighlightsButton project={project} event={event} />
-          </ButtonBar>
+      >
+        <ErrorBoundary mini message={t('There was an error loading event highlights')}>
+          <HighlightsData event={event} project={project} />
         </ErrorBoundary>
-      }
-    >
-      <ErrorBoundary mini message={t('There was an error loading event highlights')}>
-        <HighlightsData event={event} project={project} />
-      </ErrorBoundary>
-    </InterimSection>
+      </InterimSection>
+    </Fragment>
   );
 }
 

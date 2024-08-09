@@ -1,5 +1,5 @@
 ---
-created: '2024-07-01T10:57:26.660720+00:00'
+created: '2024-08-06T16:58:28.527320+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -357,6 +357,13 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - email
+- model_name: sentry.datasecrecywaiver
+  ordinal: 1
+  sanitized_fields:
+  - access_end
+  - access_start
+  - date_added
+  - date_updated
 - model_name: sentry.dashboardtombstone
   ordinal: 1
   sanitized_fields:
@@ -593,30 +600,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields: []
 - model_name: sentry.projectoption
   ordinal: 4
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 5
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 6
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 7
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 8
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 9
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 10
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 11
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 12
   sanitized_fields: []
 - model_name: sentry.projectkey
   ordinal: 1

@@ -3,7 +3,6 @@ import {useContext, useState} from 'react';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd} from 'sentry/icons';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import {AnalyticsContext} from '../analyticsProvider';
@@ -52,8 +51,8 @@ export default function CustomOverride() {
           setIsActive(!isActive);
         }}
       />
-      <Button size="xs" type="submit" icon={<IconAdd />}>
-        Save
+      <Button size="xs" type="submit">
+        Add Override
       </Button>
     </form>
   );

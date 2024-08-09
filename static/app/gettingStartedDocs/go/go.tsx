@@ -52,7 +52,7 @@ import (
 
 func main() {
   err := sentry.Init(sentry.ClientOptions{
-    Dsn: "___PUBLIC_DSN___",${
+    Dsn: "${params.dsn}",${
       params.isPerformanceSelected
         ? `
     // Set TracesSampleRate to 1.0 to capture 100%

@@ -56,7 +56,7 @@ import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/in
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';

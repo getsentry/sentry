@@ -8,11 +8,10 @@ from typing import Any
 import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -22,10 +21,10 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -36,12 +35,12 @@ GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match.
 
 class Webhook:
     def __call__(
-        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
         raise NotImplementedError
 
     def get_repo(
-        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
         """
         Given a webhook payload, get the associated Repository record.
@@ -94,7 +93,7 @@ class MergeEventWebhook(Webhook):
     """
 
     def __call__(
-        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
@@ -158,7 +157,7 @@ class PushEventWebhook(Webhook):
     """
 
     def __call__(
-        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
@@ -206,9 +205,6 @@ class PushEventWebhook(Webhook):
                 pass
 
 
-handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
-
-
 class GitlabWebhookMixin:
     def _get_external_id(self, request, extra) -> tuple[str, str] | HttpResponse:
         token = "<unknown>"
@@ -248,16 +244,16 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     permission_classes = ()
     provider = "gitlab"
 
-    _handlers = handlers
+    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
@@ -271,11 +267,11 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        result = integration_service.organization_contexts(
+        org_contexts = integration_service.organization_contexts(
             provider=self.provider, external_id=external_id
         )
-        integration = result.integration
-        installs = result.organization_integrations
+        integration = org_contexts.integration
+        installs = org_contexts.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
