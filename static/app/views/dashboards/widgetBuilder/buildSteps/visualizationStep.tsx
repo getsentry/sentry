@@ -132,6 +132,7 @@ export function VisualizationStep({
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
         />
       </VisualizationWrapper>
     </StyledBuildStep>

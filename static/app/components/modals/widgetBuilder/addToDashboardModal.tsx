@@ -286,6 +286,7 @@ function AddToDashboardModal({
                   }
                   widget={widget}
                   showStoredAlert
+                  shouldResize={false}
                 />
               </MEPSettingProvider>
             )}
