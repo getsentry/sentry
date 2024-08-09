@@ -115,9 +115,19 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
             "on_demand_metric_specs", get_on_demand_metric_specs, project
         ) or ([], [])
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
-        span_attr_specs = (
-            build_safe_config("span_attribute_specs", _generate_span_attribute_specs, project) or []
-        )
+        if not options.get(
+            "metric_extraction.span_attribute_killswitch.enabled"
+        ) and project.id not in options.get(
+            "metric_extraction.span_attribute_specs.projects_denylist"
+        ):
+            # project id is not on denylist and global kill switch is not enabled
+            span_attr_specs = (
+                build_safe_config("span_attribute_specs", _generate_span_attribute_specs, project)
+                or []
+            )
+        else:
+            # global kill switch is enabled or project is on denylist
+            span_attr_specs = []
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
     with sentry_sdk.start_span(op="get_extrapolation_config"):
