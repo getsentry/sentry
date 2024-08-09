@@ -281,10 +281,9 @@ def get_max_alerts(project, kind: Literal["slow", "fast"]) -> int:
 
         return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
 
-    has_grouped_processing = features.has("organizations:process-slow-alerts", project.organization)
     has_more_fast_alerts = features.has("organizations:more-fast-alerts", project.organization)
 
-    if has_grouped_processing and has_more_fast_alerts:
+    if has_more_fast_alerts:
         return settings.MAX_MORE_FAST_CONDITION_ISSUE_ALERTS
 
     return settings.MAX_FAST_CONDITION_ISSUE_ALERTS

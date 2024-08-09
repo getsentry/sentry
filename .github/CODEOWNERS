@@ -15,7 +15,7 @@
 /src/sentry/eventstream/                                 @getsentry/owners-snuba
 /src/sentry/consumers/                                   @getsentry/ops @getsentry/owners-snuba
 /src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
-/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/performance
+/src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/visibility
 /src/sentry/utils/snql.py                                @getsentry/owners-snuba
 /src/sentry/utils/arroyo.py                              @getsentry/owners-snuba
 /src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
@@ -191,96 +191,112 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Endof Alerts & Notifications
 
 
-## Performance
-/src/sentry/api/endpoints/organization_tags.py                              @getsentry/performance
-/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/performance
+## Visibility
+/src/sentry/api/endpoints/organization_tags.py                              @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_vitals.py                     @getsentry/visibility
+/src/sentry/api/endpoints/organization_tagkey_values.py                     @getsentry/visibility
+/src/sentry/api/endpoints/organization_event_details.py                     @getsentry/visibility
+/src/sentry/api/endpoints/organization_events.py                            @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_facets.py                     @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_meta.py                       @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/visibility
+/src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/visibility
 
-/tests/snuba/api/endpoints/*                                                @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/performance
-/tests/sentry/spans/                                                        @getsentry/performance
-/static/app/components/events/viewHierarchy/*                               @getsentry/performance
+/tests/snuba/api/endpoints/*                                                @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_trends_v2.py            @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
-/src/sentry/api/serializers/snuba.py                                        @getsentry/performance
-/src/sentry/snuba/discover.py                                               @getsentry/performance
-/src/sentry/snuba/metrics_performance.py                                    @getsentry/performance
-/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/performance
+/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py     @getsentry/data
 
-/src/sentry/search/events/                                                  @getsentry/performance @getsentry/issues
-/tests/snuba/search/test_backend.py                                         @getsentry/performance
-/static/app/utils/discover/                                                 @getsentry/performance
-/static/app/components/charts/                                              @getsentry/performance
+/src/sentry/spans/                                                          @getsentry/visibility
+/tests/sentry/spans/                                                        @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_events_facets_performance.py       @getsentry/performance
-/src/sentry/api/endpoints/organization_events_spans_performance.py        @getsentry/performance
-/src/sentry/api/endpoints/organization_events_spans_histogram.py          @getsentry/performance
-/src/sentry/api/endpoints/organization_events_trace.py                    @getsentry/performance
-/src/sentry/api/endpoints/organization_events_trends.py                   @getsentry/performance
-/src/sentry/api/endpoints/organization_events_trends_v2.py                @getsentry/performance
-/src/sentry/api/endpoints/organization_events_vitals.py                   @getsentry/performance
-/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py   @getsentry/data
-/src/sentry/utils/performance_issues/                                     @getsentry/performance
-/src/sentry/spans/                                                        @getsentry/performance
+/src/sentry/api/serializers/snuba.py                                        @getsentry/visibility
 
-/static/app/views/traces/                                                 @getsentry/performance
+/src/sentry/snuba/discover.py                                               @getsentry/visibility
+/src/sentry/snuba/metrics_performance.py                                    @getsentry/visibility
+/src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/visibility
+
+/tests/snuba/search/test_backend.py                                         @getsentry/visibility
+
+/src/sentry/search/events/                                                  @getsentry/visibility @getsentry/issues
+
+/src/sentry/utils/performance_issues/                                       @getsentry/performance
+
+/static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
+
+/src/sentry/statistical_detectors                                           @getsentry/visibility @getsentry/profiling
+/tests/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
+
+/src/sentry/tasks/statistical_detectors.py                                @getsentry/visibility @getsentry/profiling
+/tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/visibility @getsentry/profiling
+
+/src/sentry/api/bases/organization_events.py                         @getsentry/visibility
+
+/src/sentry/api/endpoints/organization_dashboards.py                         @getsentry/dashboards
+/src/sentry/api/endpoints/organization_dashboard_details.py                  @getsentry/dashboards
+/src/sentry/api/endpoints/organization_dashboard_widget_details.py           @getsentry/dashboards
+
+tests/sentry/api/endpoints/test_organization_dashboards.py                   @getsentry/dashboards
+tests/sentry/api/endpoints/test_organization_dashboard_details.py            @getsentry/dashboards
+tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @getsentry/dashboards
+
+/src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
+/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/visibility
+/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
+
+/src/sentry/discover/                                                @getsentry/explore
+/tests/sentry/snuba/test_discover.py                                 @getsentry/explore
+
+/src/sentry/api/event_search.py                                      @getsentry/visibility
+/tests/sentry/api/test_event_search.py                               @getsentry/visibility
+
+/src/sentry/data_export/                                             @getsentry/visibility
+/tests/sentry/data_export/                                           @getsentry/visibility
+
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/visibility
+
+/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/visibility
+/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/visibility
+
+/src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
+/tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
+
+/static/app/views/explore/                                                @getsentry/explore
+/static/app/views/traces/                                                 @getsentry/explore
+/static/app/components/quickTrace/                                        @getsentry/explore
+
 /static/app/views/performance/                                            @getsentry/performance
+/static/app/components/performance/                                       @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
-/static/app/components/performance/                                       @getsentry/performance
-/static/app/components/quickTrace/                                        @getsentry/performance
+/static/app/components/events/viewHierarchy/*                             @getsentry/performance
 
-static/app/components/events/eventStatisticalDetector/                    @getsentry/performance @getsentry/profiling
-/src/sentry/statistical_detectors                                         @getsentry/performance @getsentry/profiling
-/src/sentry/tasks/statistical_detectors.py                                @getsentry/performance @getsentry/profiling
-/tests/sentry/statistical_detectors                                       @getsentry/performance @getsentry/profiling
-/tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/performance @getsentry/profiling
+/static/app/components/charts/                                            @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_dashboards.py                 @getsentry/performance
-/src/sentry/api/endpoints/organization_dashboard_details.py          @getsentry/performance
-/src/sentry/api/endpoints/organization_dashboard_widget_details.py   @getsentry/performance
-/src/sentry/api/bases/organization_events.py                         @getsentry/performance
-/src/sentry/api/endpoints/organization_event_details.py              @getsentry/performance
-/src/sentry/api/endpoints/organization_events.py                     @getsentry/performance
-/src/sentry/api/endpoints/organization_events_facets.py              @getsentry/performance
-/src/sentry/api/endpoints/organization_events_meta.py                @getsentry/performance
-/src/sentry/api/endpoints/organization_events_stats.py               @getsentry/performance
-/src/sentry/api/endpoints/organization_measurements_meta.py          @getsentry/performance
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/performance
-/src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/performance
-/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/performance
+/static/app/views/insights/                                               @getsentry/insights
 
-/src/sentry/discover/                                                @getsentry/performance
-/tests/sentry/snuba/test_discover.py                                 @getsentry/performance
+/static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/components/dashboards/                                        @getsentry/dashboards
 
-/src/sentry/api/event_search.py                                      @getsentry/performance
-/tests/sentry/api/test_event_search.py                               @getsentry/performance
-
-/src/sentry/data_export/                                             @getsentry/performance
-/tests/sentry/data_export/                                           @getsentry/performance
-
-/static/app/views/eventsV2/                                          @getsentry/performance
-/static/app/views/discover/                                          @getsentry/performance
-/static/app/views/dashboardsV2/                                      @getsentry/performance
-/static/app/components/dashboards/                                   @getsentry/performance
-
-/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/performance
-/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/performance
-/src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/performance
-/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/performance
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/performance
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/performance
-/src/sentry/api/endpoints/organization_traces.py                                    @getsentry/performance
-/tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/performance
-
-/static/app/views/insights/                                                         @getsentry/performance
-## Endof Performance
+/static/app/views/discover/                                               @getsentry/explore
+/static/app/utils/discover/                                               @getsentry/explore
+## Endof Visibility
 
 
 ## Profiling
