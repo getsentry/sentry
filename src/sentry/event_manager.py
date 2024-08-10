@@ -348,7 +348,7 @@ class ScoreClause(Func):
                 self.last_seen.timestamp(),
             )
         else:
-            sql = "log(times_seen) * 600 + last_seen::abstime::int"
+            sql = "log(times_seen) * 600 + date_part('epoch',date_trunc('second',last_seen))"
 
         return (sql, [])
 
