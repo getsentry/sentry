@@ -185,7 +185,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
     def get_event_payload(self, event):
         payload = {
-            "time": int(event.datetime.strftime("%s")),
+            "time": int(event.datetime.timestamp()),
             "source": self.project_source,
             "index": self.project_index,
             "event": self.get_event_payload_properties(event),

@@ -743,9 +743,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         if transaction_name:
             set_tag(data, "transaction", transaction_name)
 
-        job["received_timestamp"] = job["event"].data.get("received") or float(
-            job["event"].datetime.strftime("%s")
-        )
+        job["received_timestamp"] = job["event"].data.get("received") or job["event"].datetime.timestamp()
         job["groups"] = []
 
 

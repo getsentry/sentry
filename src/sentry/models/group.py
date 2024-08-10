@@ -916,7 +916,7 @@ class Group(Model):
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+        return math.log(float(times_seen or 1)) * 600 + last_seen.timestamp()
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee

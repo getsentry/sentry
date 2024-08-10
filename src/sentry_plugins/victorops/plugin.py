@@ -103,7 +103,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 entity_id=group.id,
                 entity_display_name=event.title,
                 state_message=self.build_description(event),
-                timestamp=int(event.datetime.strftime("%s")),
+                timestamp=int(event.datetime.timestamp()),
                 issue_url=group.get_absolute_url(),
                 issue_id=group.id,
                 project_id=group.project.id,

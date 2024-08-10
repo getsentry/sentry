@@ -115,7 +115,7 @@ def group_metadata_from_event_metadata(event):
 initial_fields = {
     "culprit": lambda event: _generate_culprit(event),
     "data": lambda event: {
-        "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
+        "last_received": event.data.get("received") or event.datetime.timestamp(),
         "type": event.data["type"],
         "metadata": group_metadata_from_event_metadata(event),
     },
