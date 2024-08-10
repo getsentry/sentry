@@ -105,21 +105,10 @@ class PendingBufferRouter:
             model_key=model_key, pending_buffer=pending_buffer, queue=queue
         )
 
-    def append(self, model_key: str, key: str):
+    def get_pending_buffer(self, model_key: str) -> PendingBuffer:
         if model_key in self.pending_buffer_router:
-            self.pending_buffer_router[model_key].pending_buffer.append(key)
-        else:
-            self.default_pending_buffer.append(key)
-
-    def full(self, model_key: str) -> bool:
-        if model_key in self.pending_buffer_router:
-            return self.pending_buffer_router[model_key].pending_buffer.full()
-        return self.default_pending_buffer.full()
-
-    def flush(self, model_key: str) -> list[str | None]:
-        if model_key in self.pending_buffer_router:
-            return self.pending_buffer_router[model_key].pending_buffer.flush()
-        return self.default_pending_buffer.flush()
+            return self.pending_buffer_router[model_key].pending_buffer
+        return self.default_pending_buffer
 
     def queue(self, model_key: str) -> str | None:
         if model_key in self.pending_buffer_router:
@@ -525,13 +514,12 @@ class RedisBuffer(Buffer):
 
                 for key in keys:
                     model_key = self._extract_model_from_key(key=key)
-                    pending_buffers_router.append(model_key=model_key, key=key)
-                    if pending_buffers_router.full(model_key=model_key):
+                    pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+                    pending_buffer.append(item=key)
+                    if pending_buffer.full():
                         process_incr_kwargs = _generate_process_incr_kwargs(model_key=model_key)
                         process_incr.apply_async(
-                            kwargs={
-                                "batch_keys": pending_buffers_router.flush(model_key=model_key)
-                            },
+                            kwargs={"batch_keys": pending_buffer.flush()},
                             headers={"sentry-propagate-traces": False},
                             **process_incr_kwargs,
                         )
@@ -549,17 +537,16 @@ class RedisBuffer(Buffer):
                         for keyb in keysb:
                             key = keyb.decode("utf-8")
                             model_key = self._extract_model_from_key(key=key)
-                            pending_buffers_router.append(model_key=model_key, key=key)
-                            if pending_buffers_router.full(model_key=model_key):
+                            pending_buffer = pending_buffers_router.get_pending_buffer(
+                                model_key=model_key
+                            )
+                            pending_buffer.append(item=key)
+                            if pending_buffer.full():
                                 process_incr_kwargs = _generate_process_incr_kwargs(
                                     model_key=model_key
                                 )
                                 process_incr.apply_async(
-                                    kwargs={
-                                        "batch_keys": pending_buffers_router.flush(
-                                            model_key=model_key
-                                        )
-                                    },
+                                    kwargs={"batch_keys": pending_buffer.flush()},
                                     headers={"sentry-propagate-traces": False},
                                     **process_incr_kwargs,
                                 )
