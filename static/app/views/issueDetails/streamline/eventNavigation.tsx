@@ -24,11 +24,11 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 

@@ -19,7 +19,7 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
-    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
 
 
 logger = logging.getLogger("sentry.outboxes")
@@ -46,7 +46,7 @@ class RegionOutboxProducingModel(Model):
     def prepare_outboxes(
         self, *, outbox_before_super: bool, flush: bool | None = None
     ) -> Generator[None]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         if flush is None:
             flush = self.default_flush
@@ -86,7 +86,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     """
 
     def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> list[_RM]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -115,7 +115,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     def bulk_update(
         self, objs: Iterable[_RM], fields: Sequence[str], *args: Any, **kwds: Any
     ) -> Any:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -132,7 +132,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_RM]) -> tuple[int, Mapping[str, int]]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -232,7 +232,7 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
@@ -270,7 +270,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     """
 
     def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> list[_CM]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -299,7 +299,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     def bulk_update(
         self, objs: Iterable[_CM], fields: Sequence[str], *args: Any, **kwds: Any
     ) -> Any:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -316,7 +316,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_CM]) -> tuple[int, Mapping[str, int]]:
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
@@ -437,8 +437,8 @@ class HasControlReplicationHandlers(Protocol):
 def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any) -> None:
     from django.conf import settings
 
-    from sentry.models.outbox import OutboxBase
-    from sentry.tasks.backfill_outboxes import backfill_outboxes_for
+    from sentry.hybridcloud.models.outbox import OutboxBase
+    from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 
     if not settings.SENTRY_SELF_HOSTED:
         return

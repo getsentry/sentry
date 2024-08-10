@@ -94,7 +94,11 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Button size="sm" icon={<IconEdit />} disabled>
+            <Button
+              size="sm"
+              icon={<IconEdit />}
+              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
+            >
               {t('Edit Rule')}
             </Button>
           </ButtonBar>
