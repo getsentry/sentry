@@ -97,20 +97,31 @@ class PendingBufferRouter:
     def __init__(self, incr_batch_size: int) -> None:
         self.incr_batch_size = incr_batch_size
         self.default_pending_buffer = PendingBuffer(self.incr_batch_size)
+        # map of model_key to PendingBufferValue
         self.pending_buffer_router: dict[str, PendingBufferValue] = dict()
 
-    def create_pending_buffer(self, model_key: str, queue: str):
+    def create_pending_buffer(self, model_key: str, queue: str) -> None:
+        """
+        Create a PendingBuffer for the given model_key and queue name.
+        We assume that there will be a dedicated queue for the given model associated with the model_key.
+        """
         pending_buffer = PendingBuffer(self.incr_batch_size)
         self.pending_buffer_router[model_key] = PendingBufferValue(
             model_key=model_key, pending_buffer=pending_buffer, queue=queue
         )
 
-    def get_pending_buffer(self, model_key: str) -> PendingBuffer:
-        if model_key in self.pending_buffer_router:
+    def get_pending_buffer(self, model_key: str | None) -> PendingBuffer:
+        """
+        Get the pending buffer assigned to the given model_key.
+        """
+        if model_key is not None and model_key in self.pending_buffer_router:
             return self.pending_buffer_router[model_key].pending_buffer
         return self.default_pending_buffer
 
     def queue(self, model_key: str) -> str | None:
+        """
+        Get the queue name for the given model_key.
+        """
         if model_key in self.pending_buffer_router:
             return self.pending_buffer_router[model_key].queue
         return None
@@ -127,6 +138,7 @@ class PendingBufferRouter:
 
 class RedisBufferRouter:
     def __init__(self) -> None:
+        # map of model_key (generated from _get_model_key function) to queue name
         self._routers: dict[str, str] = dict()
 
     def assign_queue(self, model: type[models.Model], queue: str) -> None:
@@ -144,6 +156,13 @@ class RedisBufferRouter:
         self._routers[key] = queue
 
     def create_pending_buffers_router(self, incr_batch_size: int) -> PendingBufferRouter:
+        """
+        We create a PendingBuffer (with buffer size incr_batch_size) for each model with an assigned queue.
+        In addition, we create a default PendingBuffer (with buffer size incr_batch_size) for models without an
+        assigned queue. The default PendingBuffer is implicitly assigned to the default queue of the process_incr task.
+
+        These PendingBuffers are wrapped in a PendingBufferRouter.
+        """
         pending_buffers_router = PendingBufferRouter(incr_batch_size=incr_batch_size)
         for model_key, queue in self._routers.items():
             pending_buffers_router.create_pending_buffer(model_key=model_key, queue=queue)
