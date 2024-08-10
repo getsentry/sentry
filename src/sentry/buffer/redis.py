@@ -148,6 +148,20 @@ class RedisBuffer(Buffer):
         ).hexdigest()
         return f"b:k:{model._meta}:{md5}"
 
+    def _extract_model_from_key(self, key: str) -> str | None:
+        """
+        Extracts the model metadata from a Redis key.
+        """
+        try:
+            parts = key.split(":")
+
+            if len(parts) != 4 or parts[0] != "b" or parts[1] != "k":
+                return None
+
+            return parts[2]
+        except Exception:
+            return None
+
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
