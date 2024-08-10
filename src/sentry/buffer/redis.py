@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import pickle
-import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -27,9 +26,6 @@ from sentry.utils.redis import (
     is_instance_redis_cluster,
     validate_dynamic_cluster,
 )
-
-_local_buffers = None
-_local_buffers_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
