@@ -77,7 +77,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         else:
             response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
         assert response.status_code == status_code
-        self.assertTemplateUsed(response, "sentry/integrations/slack/link-team-error.html")
+        self.assertTemplateUsed(response, "sentry/integrations/generic-error.html")
 
         return response
 
