@@ -127,6 +127,7 @@ export const Queries = memo(function Queries({
                 onQueryChange={onQueryChange}
                 query={query}
                 projects={selection.projects}
+                hasSymbols={showQuerySymbols}
               />
               <QueryContextMenu
                 canRemoveQuery={metricQueries.length > 1}
@@ -211,7 +212,9 @@ function WrappedQueryBuilder({
   onQueryChange,
   projects,
   query,
+  hasSymbols,
 }: {
+  hasSymbols: boolean;
   index: number;
   onQueryChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
   projects: number[];
@@ -229,6 +232,7 @@ function WrappedQueryBuilder({
       onChange={handleChange}
       metricsQuery={query}
       projects={projects}
+      hasSymbols={hasSymbols}
     />
   );
 }

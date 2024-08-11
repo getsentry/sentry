@@ -43,6 +43,7 @@ function CompactSelect<Value extends SelectKey>(
 
 function CompactSelect<Value extends SelectKey>({
   triggerProps,
+  className,
   ...props
 }: CompactSelectProps<Value>) {
   const theme = useTheme();
@@ -54,8 +55,11 @@ function CompactSelect<Value extends SelectKey>({
         className: 'tag-button',
       }}
       css={css`
+        width: 100%;
+
         .tag-button {
           border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} 0;
+          width: 100%;
         }
 
         @media (min-width: ${theme.breakpoints.small}) {
@@ -67,6 +71,7 @@ function CompactSelect<Value extends SelectKey>({
           }
         }
       `}
+      className={className}
     />
   );
 }
@@ -153,6 +158,9 @@ const FieldGroup = styled('div')`
 `;
 
 const Label = styled('span')`
+  width: 95px;
+  min-width: 95px;
+  white-space: nowrap;
   color: ${p => p.theme.purple300};
   background: ${p => p.theme.purple100};
   border: 1px solid ${p => p.theme.purple200};

@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -152,9 +153,10 @@ export function EquationInput({
   );
 
   return (
-    <Wrapper>
+    <Wrapper hasMetricsNewInputs={metricsNewInputs}>
       <StyledInput
         {...props}
+        hasMetricsNewInputs={metricsNewInputs}
         monospace
         hasError={showErrors && errors.length > 0}
         defaultValue={value}
@@ -171,8 +173,23 @@ export function EquationInput({
   );
 }
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
   position: relative;
+  ${p =>
+    p.hasMetricsNewInputs &&
+    css`
+      display: grid;
+      grid-template-columns: subgrid;
+
+      grid-column: 2/2;
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-column: 2/4;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column: 2/5;
+      }
+    `}
 `;
 
 const RendererOverlay = styled('div')`
@@ -192,7 +209,12 @@ const RendererOverlay = styled('div')`
   resize: none;
 `;
 
-const StyledInput = styled(Input)<{hasError: boolean}>`
+const StyledInput = styled(Input)<{hasError: boolean; hasMetricsNewInputs: boolean}>`
+  ${p =>
+    p.hasMetricsNewInputs &&
+    css`
+      grid-column: 1/-1;
+    `}
   caret-color: ${p => p.theme.subText};
   color: transparent;
   ${p =>

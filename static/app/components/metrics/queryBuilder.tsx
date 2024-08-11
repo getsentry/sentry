@@ -38,6 +38,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {QueryFieldGroup} from './queryFieldGroup';
 
 type QueryBuilderProps = {
+  hasSymbols: boolean;
   index: number;
   metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricsQuery>) => void;
@@ -49,6 +50,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   projects: projectIds,
   onChange,
   index,
+  hasSymbols,
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -244,36 +246,17 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
-  return (
-    <QueryBuilderWrapper metricsNewInputs={hasMetricsNewInputs(organization)}>
-      {hasMetricsNewInputs(organization) && (
-        <FlexGuideAnchor
-          target="metrics_selector"
-          position="bottom"
-          disabled={index !== 0}
-        >
-          <QueryFieldGroup>
-            <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
-            <MRISelect
-              onChange={handleMRIChange}
-              onTagClick={handleMetricTagClick}
-              onOpenMenu={handleOpenMetricsMenu}
-              isLoading={isMetaLoading}
-              metricsMeta={meta}
-              projects={projectIds}
-              value={metricsQuery.mri}
-            />
-          </QueryFieldGroup>
-        </FlexGuideAnchor>
-      )}
-      <FlexBlock>
-        {!hasMetricsNewInputs(organization) && (
-          <FlexBlock>
-            <GuideAnchor
-              target="metrics_selector"
-              position="bottom"
-              disabled={index !== 0}
-            >
+  if (hasMetricsNewInputs(organization)) {
+    return (
+      <QueryBuilderWrapper metricsNewInputs hasSymbols={hasSymbols}>
+        <Visualize>
+          <FullWidthGuideAnchor
+            target="metrics_selector"
+            position="bottom"
+            disabled={index !== 0}
+          >
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
               <MRISelect
                 onChange={handleMRIChange}
                 onTagClick={handleMetricTagClick}
@@ -283,44 +266,19 @@ export const QueryBuilder = memo(function QueryBuilder({
                 projects={projectIds}
                 value={metricsQuery.mri}
               />
-            </GuideAnchor>
-            {selectedMeta && isVirtualMetric(selectedMeta) ? (
-              <MetricQuerySelect
-                mri={metricsQuery.mri}
-                conditionId={metricsQuery.condition}
-                onChange={handleConditionChange}
-              />
-            ) : null}
-          </FlexBlock>
-        )}
-        <FlexBlock>
-          <GuideAnchor
+            </QueryFieldGroup>
+          </FullWidthGuideAnchor>
+        </Visualize>
+        <Aggregate>
+          <FullWidthGuideAnchor
             target="metrics_aggregate"
             position="bottom"
             disabled={index !== 0}
           >
-            {hasMetricsNewInputs(organization) ? (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Agg by')}</QueryFieldGroup.Label>
-                <QueryFieldGroup.CompactSelect
-                  size="md"
-                  options={
-                    metricAggregates.map(aggregation => ({
-                      label: aggregation,
-                      value: aggregation,
-                    })) ?? []
-                  }
-                  triggerLabel={metricsQuery.aggregation}
-                  disabled={!selectedMeta}
-                  value={metricsQuery.aggregation}
-                  onChange={handleOpChange}
-                  css={aggregationFieldCss}
-                />
-              </QueryFieldGroup>
-            ) : (
-              <CompactSelect
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label>{t('Agg by')}</QueryFieldGroup.Label>
+              <QueryFieldGroup.CompactSelect
                 size="md"
-                triggerProps={{prefix: t('Agg')}}
                 options={
                   metricAggregates.map(aggregation => ({
                     label: aggregation,
@@ -331,37 +289,31 @@ export const QueryBuilder = memo(function QueryBuilder({
                 disabled={!selectedMeta}
                 value={metricsQuery.aggregation}
                 onChange={handleOpChange}
-                css={aggregationFieldCss}
+                css={css`
+                  /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
+                  min-width: 128px;
+                  && {
+                    width: 100%;
+                  }
+                  & > button {
+                    width: 100%;
+                  }
+                `}
               />
-            )}
-          </GuideAnchor>
-          <GuideAnchor target="metrics_groupby" position="bottom" disabled={index !== 0}>
-            {hasMetricsNewInputs(organization) ? (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Group by')}</QueryFieldGroup.Label>
-                <QueryFieldGroup.CompactSelect
-                  multiple
-                  size="md"
-                  options={groupByOptions.map(tag => ({
-                    label: tag.key,
-                    value: tag.key,
-                    disabled: !tag.isQueryable,
-                    tooltip: !tag.isQueryable
-                      ? t(
-                          'You can not group by a tag that has not been seen in the selected time range'
-                        )
-                      : undefined,
-                  }))}
-                  disabled={!metricsQuery.mri || tagsIsLoading}
-                  value={metricsQuery.groupBy}
-                  onChange={handleGroupByChange}
-                />
-              </QueryFieldGroup>
-            ) : (
-              <CompactSelect
+            </QueryFieldGroup>
+          </FullWidthGuideAnchor>
+        </Aggregate>
+        <GroupBy>
+          <FullWidthGuideAnchor
+            target="metrics_groupby"
+            position="bottom"
+            disabled={index !== 0}
+          >
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label>{t('Group by')}</QueryFieldGroup.Label>
+              <QueryFieldGroup.CompactSelect
                 multiple
                 size="md"
-                triggerProps={{prefix: t('Group by')}}
                 options={groupByOptions.map(tag => ({
                   label: tag.key,
                   value: tag.key,
@@ -376,69 +328,156 @@ export const QueryBuilder = memo(function QueryBuilder({
                 value={metricsQuery.groupBy}
                 onChange={handleGroupByChange}
               />
+            </QueryFieldGroup>
+          </FullWidthGuideAnchor>
+        </GroupBy>
+        <FilterBy>
+          <FullWidthGuideAnchor
+            target="metrics_filterby"
+            position="bottom"
+            disabled={index !== 0}
+          >
+            {selectedMeta && isVirtualMetric(selectedMeta) ? (
+              <QueryFieldGroup>
+                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+                <MetricQuerySelect
+                  mri={metricsQuery.mri}
+                  conditionId={metricsQuery.condition}
+                  onChange={handleConditionChange}
+                />
+                <QueryFieldGroup.Label
+                  css={css`
+                    width: auto;
+                    min-width: auto;
+                  `}
+                >
+                  {t('And')}
+                </QueryFieldGroup.Label>
+                <SearchBar
+                  hasMetricsNewInputs
+                  mri={resolvedMRI}
+                  disabled={!metricsQuery.mri}
+                  onChange={handleQueryChange}
+                  query={metricsQuery.query}
+                  projectIds={projectIdStrings}
+                  blockedTags={
+                    selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
+                  }
+                />
+              </QueryFieldGroup>
+            ) : (
+              <QueryFieldGroup>
+                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+                <SearchBar
+                  hasMetricsNewInputs
+                  mri={resolvedMRI}
+                  disabled={!metricsQuery.mri}
+                  onChange={handleQueryChange}
+                  query={metricsQuery.query}
+                  projectIds={projectIdStrings}
+                  blockedTags={
+                    selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
+                  }
+                />
+              </QueryFieldGroup>
             )}
+          </FullWidthGuideAnchor>
+        </FilterBy>
+      </QueryBuilderWrapper>
+    );
+  }
+
+  return (
+    <QueryBuilderWrapper>
+      <FlexBlock>
+        <FlexBlock>
+          <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+            <MRISelect
+              onChange={handleMRIChange}
+              onTagClick={handleMetricTagClick}
+              onOpenMenu={handleOpenMetricsMenu}
+              isLoading={isMetaLoading}
+              metricsMeta={meta}
+              projects={projectIds}
+              value={metricsQuery.mri}
+            />
+          </GuideAnchor>
+          {selectedMeta && isVirtualMetric(selectedMeta) ? (
+            <MetricQuerySelect
+              mri={metricsQuery.mri}
+              conditionId={metricsQuery.condition}
+              onChange={handleConditionChange}
+            />
+          ) : null}
+        </FlexBlock>
+        <FlexBlock>
+          <GuideAnchor
+            target="metrics_aggregate"
+            position="bottom"
+            disabled={index !== 0}
+          >
+            <CompactSelect
+              size="md"
+              triggerProps={{prefix: t('Agg')}}
+              options={
+                metricAggregates.map(aggregation => ({
+                  label: aggregation,
+                  value: aggregation,
+                })) ?? []
+              }
+              triggerLabel={metricsQuery.aggregation}
+              disabled={!selectedMeta}
+              value={metricsQuery.aggregation}
+              onChange={handleOpChange}
+              css={css`
+                /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
+                min-width: 128px;
+                & > button {
+                  width: 100%;
+                }
+              `}
+            />
+          </GuideAnchor>
+          <GuideAnchor target="metrics_groupby" position="bottom" disabled={index !== 0}>
+            <CompactSelect
+              multiple
+              size="md"
+              triggerProps={{prefix: t('Group by')}}
+              options={groupByOptions.map(tag => ({
+                label: tag.key,
+                value: tag.key,
+                disabled: !tag.isQueryable,
+                tooltip: !tag.isQueryable
+                  ? t(
+                      'You can not group by a tag that has not been seen in the selected time range'
+                    )
+                  : undefined,
+              }))}
+              disabled={!metricsQuery.mri || tagsIsLoading}
+              value={metricsQuery.groupBy}
+              onChange={handleGroupByChange}
+            />
           </GuideAnchor>
         </FlexBlock>
       </FlexBlock>
-      {hasMetricsNewInputs(organization) ? (
-        <FlexGuideAnchor
-          target="metrics_filterby"
-          position="bottom"
-          disabled={index !== 0}
-        >
-          {selectedMeta && isVirtualMetric(selectedMeta) ? (
-            <QueryFieldGroup>
-              <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
-              <MetricQuerySelect
-                mri={metricsQuery.mri}
-                conditionId={metricsQuery.condition}
-                onChange={handleConditionChange}
-              />
-              <QueryFieldGroup.Label>{t('And')}</QueryFieldGroup.Label>
-              <SearchBar
-                mri={resolvedMRI}
-                disabled={!metricsQuery.mri}
-                onChange={handleQueryChange}
-                query={metricsQuery.query}
-                projectIds={projectIdStrings}
-                blockedTags={
-                  selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-                }
-              />
-            </QueryFieldGroup>
-          ) : (
-            <QueryFieldGroup>
-              <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
-              <SearchBar
-                mri={resolvedMRI}
-                disabled={!metricsQuery.mri}
-                onChange={handleQueryChange}
-                query={metricsQuery.query}
-                projectIds={projectIdStrings}
-                blockedTags={
-                  selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-                }
-              />
-            </QueryFieldGroup>
-          )}
-        </FlexGuideAnchor>
-      ) : (
-        <SearchBar
-          mri={resolvedMRI}
-          disabled={!metricsQuery.mri}
-          onChange={handleQueryChange}
-          query={metricsQuery.query}
-          projectIds={projectIdStrings}
-          blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
-        />
-      )}
+      <SearchBar
+        mri={resolvedMRI}
+        disabled={!metricsQuery.mri}
+        onChange={handleQueryChange}
+        query={metricsQuery.query}
+        projectIds={projectIdStrings}
+        blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
+      />
     </QueryBuilderWrapper>
   );
 });
 
-function SearchBar(props: MetricSearchBarProps) {
+function SearchBar({
+  hasMetricsNewInputs: metricsNewInputs = false,
+  ...props
+}: MetricSearchBarProps & {hasMetricsNewInputs?: boolean}) {
   return (
-    <SearchBarWrapper>
+    <SearchBarWrapper hasMetricsNewInputs={metricsNewInputs}>
       <MetricSearchBar {...props} />
     </SearchBarWrapper>
   );
@@ -456,15 +495,14 @@ function TagWarningIcon() {
   );
 }
 
-function FlexGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
+function FullWidthGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
   return (
     <ClassNames>
       {({css: classNamesCss}) => (
         <GuideAnchor
           {...props}
           containerClassName={classNamesCss`
-            display: flex;
-            flex-grow: 1;
+            width: 100%;
           `}
         />
       )}
@@ -476,20 +514,47 @@ const TooltipIconWrapper = styled('span')`
   margin-top: ${space(0.25)};
 `;
 
-const QueryBuilderWrapper = styled('div')<{metricsNewInputs: boolean}>`
+const QueryBuilderWrapper = styled('div')<{
+  hasSymbols?: boolean;
+  metricsNewInputs?: boolean;
+}>`
   display: flex;
   flex-grow: 1;
   gap: ${space(1)};
   flex-wrap: wrap;
+
   ${p =>
     p.metricsNewInputs &&
     css`
-      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
-        > *:first-child {
-          flex-grow: 0;
-        }
+      display: grid;
+      grid-template-columns: subgrid;
+      gap: ${space(1)};
+      align-items: flex-start;
+
+      grid-column: ${p.hasSymbols ? '2/2' : '1/1'};
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-column: ${p.hasSymbols ? '2/4' : '1/3'};
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column: ${p.hasSymbols ? '2/5' : '1/4'};
       }
     `}
+`;
+
+const Visualize = styled('div')`
+  grid-column: 1/-1;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-column: 1/1;
+  }
+`;
+
+const Aggregate = styled('div')``;
+const GroupBy = styled('div')``;
+const FilterBy = styled('div')`
+  grid-column: 1/-1;
 `;
 
 const FlexBlock = styled('div')`
@@ -498,15 +563,12 @@ const FlexBlock = styled('div')`
   flex-wrap: wrap;
 `;
 
-const SearchBarWrapper = styled('div')`
+const SearchBarWrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
   flex: 1;
   min-width: 200px;
-`;
-
-const aggregationFieldCss = css`
-  /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
-  min-width: 128px;
-  & > button {
-    width: 100%;
-  }
+  ${p =>
+    p.hasMetricsNewInputs &&
+    css`
+      width: 100%;
+    `}
 `;
