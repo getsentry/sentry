@@ -257,7 +257,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
+              <Label>{t('Visualize')}</Label>
               <MRISelect
                 onChange={handleMRIChange}
                 onTagClick={handleMetricTagClick}
@@ -277,7 +277,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label>{t('Agg by')}</QueryFieldGroup.Label>
+              <Label>{t('Agg by')}</Label>
               <QueryFieldGroup.CompactSelect
                 size="md"
                 options={
@@ -311,7 +311,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label>{t('Group by')}</QueryFieldGroup.Label>
+              <Label>{t('Group by')}</Label>
               <QueryFieldGroup.CompactSelect
                 multiple
                 size="md"
@@ -340,21 +340,14 @@ export const QueryBuilder = memo(function QueryBuilder({
           >
             {selectedMeta && isVirtualMetric(selectedMeta) ? (
               <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+                <Label>{t('Where')}</Label>
                 <MetricQuerySelect
                   mri={metricsQuery.mri}
                   conditionId={metricsQuery.condition}
                   onChange={handleConditionChange}
                 />
 
-                <QueryFieldGroup.Label
-                  css={css`
-                    width: auto;
-                    min-width: auto;
-                  `}
-                >
-                  {t('And')}
-                </QueryFieldGroup.Label>
+                <Label width="auto">{t('And')}</Label>
                 <SearchBar
                   hasMetricsNewInputs
                   mri={resolvedMRI}
@@ -369,7 +362,7 @@ export const QueryBuilder = memo(function QueryBuilder({
               </QueryFieldGroup>
             ) : (
               <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+                <Label>{t('Where')}</Label>
                 <SearchBar
                   hasMetricsNewInputs
                   mri={resolvedMRI}
@@ -563,6 +556,17 @@ const FilterBy = styled('div')<{hasSymbols: boolean}>`
   grid-column: 1/-1;
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-column: ${p => (p.hasSymbols ? '6/6' : '5/5')};
+  }
+`;
+
+const Label = styled(QueryFieldGroup.Label)<{width?: string}>`
+  width: ${p => p.width ?? '95px'};
+  min-width: ${p => p.width ?? '95px'};
+  white-space: nowrap;
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    width: auto;
+    min-width: auto;
   }
 `;
 

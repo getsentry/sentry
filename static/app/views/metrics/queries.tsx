@@ -288,12 +288,14 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <EquationInput
-        availableVariables={availableVariables}
-        value={widget.formula}
-        onChange={formula => handleChange({formula})}
-        metricsNewInputs={metricsNewInputs}
-      />
+      <EquationWrapper hasMetricsNewInput={hasMetricsNewInput}>
+        <EquationInput
+          availableVariables={availableVariables}
+          value={widget.formula}
+          onChange={formula => handleChange({formula})}
+          metricsNewInputs={metricsNewInputs}
+        />
+      </EquationWrapper>
       <MetricFormulaContextMenu
         widgetIndex={index}
         formulaWidget={widget}
@@ -403,6 +405,28 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
         grid-template-columns: ${p.showQuerySymbols
           ? 'min-content max-content max-content max-content 1fr max-content'
           : 'max-content max-content max-content 1fr max-content'};
+      }
+    `}
+`;
+
+const EquationWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      grid-template-columns: subgrid;
+
+      grid-column-start: 2;
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-column-end: 4;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column-end: 5;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column-end: 6;
       }
     `}
 `;

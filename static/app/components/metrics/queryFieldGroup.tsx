@@ -158,9 +158,6 @@ const FieldGroup = styled('div')`
 `;
 
 const Label = styled('span')`
-  width: 95px;
-  min-width: 95px;
-  white-space: nowrap;
   color: ${p => p.theme.purple300};
   background: ${p => p.theme.purple100};
   border: 1px solid ${p => p.theme.purple200};
@@ -177,11 +174,6 @@ const Label = styled('span')`
     :first-child {
       border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
     }
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    width: auto;
-    min-width: auto;
   }
 `;
 

@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -153,7 +152,7 @@ export function EquationInput({
   );
 
   return (
-    <Wrapper hasMetricsNewInputs={metricsNewInputs}>
+    <Wrapper>
       <StyledInput
         {...props}
         monospace
@@ -172,27 +171,8 @@ export function EquationInput({
   );
 }
 
-const Wrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
+const Wrapper = styled('div')`
   position: relative;
-  ${p =>
-    p.hasMetricsNewInputs &&
-    css`
-      grid-template-columns: subgrid;
-
-      grid-column-start: 2;
-
-      @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-column-end: 4;
-      }
-
-      @media (min-width: ${p.theme.breakpoints.large}) {
-        grid-column-end: 5;
-      }
-
-      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
-        grid-column-end: 6;
-      }
-    `}
 `;
 
 const RendererOverlay = styled('div')`
