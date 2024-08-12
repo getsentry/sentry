@@ -91,9 +91,7 @@ function fetchIssues(
   // note: backend supports a maximum number of characters for message (seems to vary).
   // so, we query the first 200 characters of `message`, then filter for exact `message`
   // matches in application code
-  if (message) {
-    query += ` message:"${message?.slice(0, 200).replaceAll('"', '\\"')}"`;
-  }
+  query += ` message:"${message?.slice(0, 200).replaceAll('"', '\\"')}"`;
 
   const {isLoading, data: maybeMatchingIssues} = useApiQuery<Group[]>(
     [
