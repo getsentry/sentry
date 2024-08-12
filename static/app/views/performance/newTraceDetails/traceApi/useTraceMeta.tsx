@@ -184,7 +184,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
         performance_issues: 0,
         projects: 1,
         transactions: 1,
-        transactiontoSpanChildrenCount: {'1': 0},
+        transactiontoSpanChildrenCount: {},
       },
       isLoading: false,
       errors: [],
