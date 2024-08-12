@@ -35,7 +35,7 @@ import App from "./App.svelte";
 import * as Sentry from "@sentry/svelte";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isPerformanceSelected
       ? `
