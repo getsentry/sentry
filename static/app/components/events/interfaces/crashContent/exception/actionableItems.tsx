@@ -35,7 +35,7 @@ import {
 import type {ActionableItemsResponse} from './useActionableItems';
 import {useActionableItems} from './useActionableItems';
 
-interface ErrorMessage {
+export interface ErrorMessage {
   desc: React.ReactNode;
   title: string;
   data?: {
@@ -59,7 +59,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(
+export function getErrorMessage(
   error: ActionableItemErrors | EventErrorData,
   meta?: Record<string, any>
 ): Array<ErrorMessage> {
