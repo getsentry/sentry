@@ -209,6 +209,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const handleConditionChange = useCallback(
     (conditionId: number) => {
+      trackAnalytics('ddm.widget.condition', {organization});
       const newAggregates = getAggregations(metricsQuery.mri, conditionId);
 
       const changes: Partial<MetricsQuery> = {
@@ -223,7 +224,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 
       onChange(changes);
     },
-    [getAggregations, metricsQuery.aggregation, metricsQuery.mri, onChange]
+    [getAggregations, metricsQuery.aggregation, metricsQuery.mri, onChange, organization]
   );
 
   const handleMetricTagClick = useCallback(

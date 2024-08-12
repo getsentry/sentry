@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import ANY, call, patch
 
 import pytest
+from django.db.utils import OperationalError
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
@@ -446,10 +447,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             assert group_id in group_ids_results
 
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries")
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries", side_effect=RateLimitExceeded
+    )
     def test_get_data_from_snuba_exception(self, mock_bulk_snuba_queries, mock_logger):
-        mock_bulk_snuba_queries.side_effect = RateLimitExceeded
-
         group_ids_last_seen = {
             group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
         }
@@ -811,17 +812,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @patch("time.sleep", return_value=None)
-    @patch("sentry.nodestore.backend.get_multi")
-    @patch("sentry.tasks.embeddings_grouping.utils.lookup_event")
+    @patch(
+        "sentry.nodestore.backend.get_multi",
+        side_effect=ServiceUnavailable(message="Service Unavailable"),
+    )
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils.lookup_event",
+        side_effect=ServiceUnavailable(message="Service Unavailable"),
+    )
     def test_backfill_seer_grouping_records_failure(
         self, mock_lookup_event, mock_get_multi, mock_sleep
     ):
         """
         Test that the group metadata isn't updated on a failure.
         """
-        mock_lookup_event.side_effect = ServiceUnavailable(message="Service Unavailable")
-        mock_get_multi.side_effect = ServiceUnavailable(message="Service Unavailable")
-
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
 
@@ -1724,3 +1728,27 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils._make_postgres_call", side_effect=OperationalError
+    )
+    def test_backfill_seer_grouping_records_postgres_exception(
+        self, mock_make_postgres_call, mock_logger
+    ):
+        """
+        Test log after postgres query retries with decreased batch size
+        """
+        batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+        with pytest.raises(Exception), TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        mock_logger.info.assert_called_with(
+            "tasks.backfill_seer_grouping_records.postgres_query_retry",
+            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
+        )
+        mock_logger.exception.assert_called_with(
+            "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
+            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
+        )

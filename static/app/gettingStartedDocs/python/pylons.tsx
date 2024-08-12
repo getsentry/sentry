@@ -16,7 +16,7 @@ application = Sentry(application, config)`;
 
 const getConfigurationSnippet = (params: Params) => `
 [sentry]
-dsn=${params.dsn}
+dsn=${params.dsn.public}
 include_paths=my.package,my.other.package,
 exclude_paths=my.package.crud`;
 

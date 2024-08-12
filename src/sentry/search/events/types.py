@@ -128,6 +128,14 @@ class SnubaParams:
         )
 
     @property
+    def environment_ids(self) -> list[int]:
+        return (
+            [env.id for env in self.environments if env is not None and env.id is not None]
+            if self.environments
+            else []
+        )
+
+    @property
     def project_ids(self) -> list[int]:
         # proj.id can be None if the project no longer exists
         return sorted([proj.id for proj in self.projects if proj.id is not None])
@@ -203,6 +211,7 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
+    insights_metrics_override_metric_layer: bool = False
 
 
 @dataclass(frozen=True)

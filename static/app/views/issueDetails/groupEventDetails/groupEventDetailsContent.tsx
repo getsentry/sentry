@@ -13,6 +13,7 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -30,6 +31,7 @@ import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreensho
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -59,18 +61,17 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
-import {EventFilter} from 'sentry/views/issueDetails/streamline/eventFilter';
-import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {FoldSectionKey, Section} from 'sentry/views/issueDetails/streamline/foldSection';
+import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
-type GroupEventDetailsContentProps = {
+export type GroupEventDetailsContentProps = {
   group: Group;
   project: Project;
   event?: Event;
@@ -109,7 +110,7 @@ function GroupEventEntry({
   );
 }
 
-function DefaultGroupEventDetailsContent({
+export function DefaultGroupEventDetailsContent({
   group,
   event,
   project,
@@ -151,17 +152,21 @@ function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
-      {hasActionableItems && (
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
+      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        <TraceTimeLineOrRelatedIssue event={event} />
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
+        {!hasStreamlinedUI && <TraceDataSection event={event} />}
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
@@ -257,7 +262,7 @@ function DefaultGroupEventDetailsContent({
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={FoldSectionKey.THREADS}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.THREADS}
         {...eventEntryProps}
       />
@@ -355,6 +360,9 @@ function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {hasStreamlinedUI && (
+        <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
@@ -458,7 +466,6 @@ export default function GroupEventDetailsContent({
   project,
 }: GroupEventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const navRef = useRef<HTMLDivElement>(null);
 
   if (!event) {
     return (
@@ -491,19 +498,7 @@ export default function GroupEventDetailsContent({
     }
     default: {
       return hasStreamlinedUI ? (
-        <Fragment>
-          <EventFilter />
-          <GroupContent navHeight={navRef?.current?.offsetHeight}>
-            <FloatingEventNavigation event={event} group={group} ref={navRef} />
-            <GroupContentPadding>
-              <DefaultGroupEventDetailsContent
-                group={group}
-                event={event}
-                project={project}
-              />
-            </GroupContentPadding>
-          </GroupContent>
-        </Fragment>
+        <EventDetails event={event} group={group} project={project} />
       ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
       );
@@ -525,26 +520,4 @@ const StyledDataSection = styled(DataSection)`
   &:empty {
     display: none;
   }
-`;
-
-const FloatingEventNavigation = styled(EventNavigation)`
-  position: sticky;
-  top: 0;
-  background: ${p => p.theme.background};
-  z-index: 100;
-  border-radius: 6px 6px 0 0;
-`;
-
-const GroupContent = styled('div')<{navHeight?: number}>`
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-  & ${Section} {
-    scroll-margin-top: ${p => p.navHeight ?? 0}px;
-  }
-`;
-
-const GroupContentPadding = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
 `;

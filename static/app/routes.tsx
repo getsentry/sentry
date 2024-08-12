@@ -1230,6 +1230,17 @@ function buildRoutes() {
             />
           </Route>
         </Route>
+        <Route path="uptime-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
         <Route
           path="wizard/"
           component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
@@ -1705,7 +1716,9 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (

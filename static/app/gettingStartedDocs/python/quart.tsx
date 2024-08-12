@@ -20,7 +20,7 @@ from sentry_sdk.integrations.quart import QuartIntegration
 from quart import Quart
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[QuartIntegration()],${
       params.isPerformanceSelected
         ? `
