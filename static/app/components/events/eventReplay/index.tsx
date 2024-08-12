@@ -37,11 +37,15 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     }
   }, [upsellProjectId, setProjectId, canShowUpsell]);
 
+  if (!issueTypeConfig.replays.enabled) {
+    return null;
+  }
+
   if (replayId) {
     return <ReplayClipSection event={event} replayId={replayId} group={group} />;
   }
 
-  if (canShowUpsell && !hasSentOneReplay && issueTypeConfig.replays.enabled) {
+  if (canShowUpsell && !hasSentOneReplay) {
     return (
       <ErrorBoundary mini>
         <LazyLoad
