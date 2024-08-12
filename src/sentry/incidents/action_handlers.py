@@ -16,6 +16,7 @@ from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -351,7 +352,9 @@ def generate_incident_trigger_email_context(
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
     subscription = incident.subscription
-
+    alert_link_params = {
+        "referrer": "metric_alert_email",
+    }
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
     # we can simplify this to be the below statement
@@ -364,13 +367,19 @@ def generate_incident_trigger_email_context(
     elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
-    threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
-    if threshold is None:
-        # Setting this to trigger threshold because in the case of a resolve if no resolve
-        # threshold is specified this will be None. Since we add a comparison sign to the
-        # string it makes sense to set this to the trigger alert threshold if no threshold is
-        # specified
-        threshold = trigger.alert_threshold
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+        threshold_prefix_string = alert_rule.detection_type.title()
+        threshold = f"({alert_rule.sensitivity} sensitivity)"
+        alert_link_params["type"] = "anomaly_detection"
+    else:
+        threshold_prefix_string = ">" if show_greater_than_string else "<"
+        threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
+        if threshold is None:
+            # Setting this to trigger threshold because in the case of a resolve if no resolve
+            # threshold is specified this will be None. Since we add a comparison sign to the
+            # string it makes sense to set this to the trigger alert threshold if no threshold is
+            # specified
+            threshold = trigger.alert_threshold
 
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
@@ -394,9 +403,6 @@ def generate_incident_trigger_email_context(
             tz = options[0].value
 
     organization = incident.organization
-    alert_link_params = {
-        "referrer": "metric_alert_email",
-    }
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
@@ -428,7 +434,7 @@ def generate_incident_trigger_email_context(
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
-        "threshold_direction_string": ">" if show_greater_than_string else "<",
+        "threshold_prefix_string": threshold_prefix_string,
         "status": INCIDENT_STATUS[incident_status],
         "status_key": INCIDENT_STATUS[incident_status].lower(),
         "is_critical": incident_status == IncidentStatus.CRITICAL,
