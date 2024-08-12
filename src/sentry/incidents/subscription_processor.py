@@ -563,6 +563,7 @@ class SubscriptionProcessor:
                             potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                            metrics.incr("anomaly_detection_alert.fire")
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
                             )
@@ -576,6 +577,7 @@ class SubscriptionProcessor:
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
+                            metrics.incr("anomaly_detection_alert.resolve")
                             metrics.incr(
                                 "incidents.alert_rules.threshold", tags={"type": "resolve"}
                             )
