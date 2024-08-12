@@ -122,6 +122,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
+        self._is_spans_metrics_query_cache: bool | None = None
+        self._is_unsupported_metrics_layer_query_cache: bool | None = None
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -377,15 +379,18 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if not self.use_metrics_layer:
             super().validate_aggregate_arguments()
 
-    # This property is used to determine if a query is using at least one of the fields in the spans namespace.
     @property
     def is_spans_metrics_query(self) -> bool:
+        """This property is used to determine if a query is using at least one of the fields in the spans namespace."""
+        if self._is_spans_metrics_query_cache is not None:
+            return self._is_spans_metrics_query_cache
         if self.query is not None:
             tags = parse_query(
                 self.params.projects, self.query, self.params.user, self.params.environments
             )["tags"]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
+                    self._is_spans_metrics_query_cache = True
                     return True
         for column in self.selected_columns:
             # Not using parse_function since it checks against function_converter
@@ -393,17 +398,24 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             match = fields.is_function(column)
             func = match.group("function") if match else None
             if func in constants.SPANS_METRICS_FUNCTIONS:
+                self._is_spans_metrics_query_cache = True
                 return True
             argument = match.group("columns") if match else None
             if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+                self._is_spans_metrics_query_cache = True
                 return True
+        self._is_spans_metrics_query_cache = False
         return False
 
-    # Some fields and functions cannot be translated to metrics layer queries.
-    # This property is used to determine if a query is using at least one of these fields or functions, and if so, we must not use the metrics layer.
     @property
     def is_unsupported_metrics_layer_query(self) -> bool:
+        """Some fields and functions cannot be translated to metrics layer queries.
+        This property is used to determine if a query is using at least one of these fields or functions, and if so, we must not use the metrics layer.
+        """
+        if self._is_unsupported_metrics_layer_query_cache is not None:
+            return self._is_unsupported_metrics_layer_query_cache
         if self.is_spans_metrics_query:
+            self._is_unsupported_metrics_layer_query_cache = True
             return True
         for column in self.selected_columns:
             # Not using parse_function since it checks against function_converter
@@ -411,7 +423,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             match = fields.is_function(column)
             func = match.group("function") if match else None
             if func in constants.METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS:
+                self._is_unsupported_metrics_layer_query_cache = True
                 return True
+        self._is_unsupported_metrics_layer_query_cache = False
         return False
 
     @property
