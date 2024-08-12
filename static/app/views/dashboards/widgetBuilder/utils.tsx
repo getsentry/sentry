@@ -467,9 +467,15 @@ export function getFieldOptionFormat(
   return null;
 }
 
-// Adds the incompatible functions (i.e. functions that aren't already
-// in the field options) to the field options. This updates fieldOptions
-// in place and returns the keys that were added for extra validation/filtering
+/**
+ * Adds the incompatible functions (i.e. functions that aren't already
+ * in the field options) to the field options. This updates fieldOptions
+ * in place and returns the keys that were added for extra validation/filtering
+ *
+ * The function depends on the consistent structure of field definition for
+ * functions where the first element is the function name and the second
+ * element is the first argument to the function, which is a field/tag.
+ */
 export function addIncompatibleFunctions(
   fields: QueryFieldValue[],
   fieldOptions: Record<string, SelectValue<FieldValue>>
