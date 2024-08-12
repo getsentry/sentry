@@ -13,7 +13,11 @@ import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {
+  useSpanFieldCustomTags,
+  useSpanFieldSupportedTags,
+} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface SpanSearchQueryBuilderProps {
   initialQuery: string;
@@ -41,6 +45,10 @@ export function SpanSearchQueryBuilder({
     return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
+  const customTags = useSpanFieldCustomTags({
+    projects: projects ?? selection.projects,
+  });
+
   const supportedTags = useSpanFieldSupportedTags({
     projects: projects ?? selection.projects,
   });
@@ -50,8 +58,15 @@ export function SpanSearchQueryBuilder({
   }, [supportedTags]);
 
   const filterKeySections = useMemo(() => {
-    return [];
-  }, []);
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(customTags),
+      },
+    ];
+  }, [customTags]);
 
   const getSpanFilterTagValues = useCallback(
     async (tag: Tag, queryString: string) => {
