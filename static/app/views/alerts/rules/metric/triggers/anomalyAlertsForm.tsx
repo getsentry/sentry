@@ -43,7 +43,7 @@ class AnomalyAlertFormItem extends PureComponent<Props> {
   };
 
   render() {
-    const {fieldHelp, fieldLabel, sensitivity, onSensitivityChange: __} = this.props;
+    const {fieldHelp, fieldLabel, sensitivity} = this.props;
 
     return (
       <StyledField label={fieldLabel} help={fieldHelp} required>
