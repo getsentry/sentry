@@ -12,6 +12,7 @@ interface BaseAggregateFlamegraphQueryParameters {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   environments?: PageFilters['environments'];
+  metrics?: true;
   projects?: PageFilters['projects'];
 }
 
@@ -46,7 +47,7 @@ export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
 export function useAggregateFlamegraphQuery(
   props: AggregateFlamegraphQueryParameters
 ): UseAggregateFlamegraphQueryResult {
-  const {dataSource, datetime, enabled, environments, projects} = props;
+  const {dataSource, metrics, datetime, enabled, environments, projects} = props;
 
   let fingerprint: string | undefined = undefined;
   let query: string | undefined = undefined;
@@ -69,12 +70,26 @@ export function useAggregateFlamegraphQuery(
         ...normalizeDateTimeParams(datetime ?? selection.datetime),
         dataSource,
         fingerprint,
+        expand: metrics ? 'metrics' : undefined,
         query,
       },
     };
 
+    if (metrics) {
+      params.query.expand = 'metrics';
+    }
+
     return params;
-  }, [dataSource, datetime, environments, projects, fingerprint, query, selection]);
+  }, [
+    dataSource,
+    datetime,
+    environments,
+    projects,
+    fingerprint,
+    query,
+    metrics,
+    selection,
+  ]);
 
   return useApiQuery<Profiling.Schema>(
     [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],

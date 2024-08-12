@@ -32,6 +32,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -442,6 +443,11 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
     },
     [location]
   );
+
+  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+    dataSource: 'profiles',
+    metrics: true,
+  });
 
   return (
     <Layout.Main fullWidth>

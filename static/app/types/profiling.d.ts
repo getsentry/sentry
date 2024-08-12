@@ -217,6 +217,20 @@ declare namespace Profiling {
     scriptId?: number;
   };
 
+  type FunctionMetric = {
+    avg: number;
+    count: number;
+    examples: {}[];
+    fingerprint: number;
+    in_app: boolean;
+    name: string;
+    p75: number;
+    p95: number;
+    p99: number;
+    package: string;
+    sum: number;
+  };
+
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
@@ -286,5 +300,6 @@ declare namespace Profiling {
       profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;
+    metrics?: FunctionMetric[];
   }
 }
