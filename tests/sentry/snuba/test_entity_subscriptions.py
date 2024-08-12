@@ -629,11 +629,11 @@ class EntitySubscriptionTestCase(TestCase):
                 ("count()", "span.description:abc", False),
                 ("performance_score(measurements.score.lcp)", "", False),
                 ("http_response_rate(3)", "", False),
+                ("avg(span.self_time)", "", False),
                 # TODO: The following functions are not supported in the discover metrics dataset yet.
                 # Uncomment these as we port them over.
                 # ("spm()", "", False),
                 # ("cache_miss_rate()", "", False),
-                # ("avg(span.self_time)", "", False),
             ]
             for aggregate, query, use_metrics_layer in cases:
                 entity_subscription = get_entity_subscription(

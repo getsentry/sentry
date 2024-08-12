@@ -114,7 +114,8 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -783,6 +784,12 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "spm",
+                    snql_distribution=self._resolve_spm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
@@ -1999,6 +2006,14 @@ class MetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         return self._resolve_rate(60, args, alias, extra_condition)
 
+    def _resolve_spm(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
+    ) -> SelectType:
+        return self._resolve_rate(60, args, alias, extra_condition, "span.self_time")
+
     def _resolve_eps(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -2013,12 +2028,13 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
+        metric: str | None = "transaction.duration",
     ) -> SelectType:
         base_condition = Function(
             "equals",
             [
                 Column("metric_id"),
-                self.resolve_metric("transaction.duration"),
+                self.resolve_metric(metric),
             ],
         )
         if extra_condition:
