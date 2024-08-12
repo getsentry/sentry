@@ -21,11 +21,6 @@ Job = MutableMapping[str, Any]
 # Used to migrate projects that have no activity via getsentry scripts
 CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
 
-# We want to test the new optimized transition code with projects that are on
-# deprecated configs before making it the default code path.
-# Remove this once we have switched to the optimized code path.
-DO_NOT_UPGRADE_YET = ("legacy:2019-03-12", "newstyle:2019-10-29", "newstyle:2019-05-08")
-
 
 # Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
 def update_grouping_config_if_permitted(project: Project) -> None:
@@ -37,10 +32,6 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
     new_config = DEFAULT_GROUPING_CONFIG
 
     if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
-        return
-
-    # Remove this code once we have transitioned to the optimized code path
-    if current_config in DO_NOT_UPGRADE_YET:
         return
 
     # Because the way the auto grouping upgrading happening is racy, we want to
