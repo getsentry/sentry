@@ -12,8 +12,8 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getFieldOptionFormat} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {appendFieldIfUnknown, QueryField} from 'sentry/views/discover/table/queryField';
+import {addIncompatibleFunctions} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {AddButton} from './addButton';
@@ -88,9 +88,9 @@ export function YAxisSelector({
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
       aggregates.length === 3);
 
-  const injectedFunctions = new Set();
+  let injectedFunctions: Set<string> = new Set();
 
-  let fieldOptions = datasetConfig.getTableFieldOptions(
+  const fieldOptions = datasetConfig.getTableFieldOptions(
     organization,
     tags,
     customMeasurements
@@ -105,39 +105,7 @@ export function YAxisSelector({
     widgetType &&
     [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widgetType)
   ) {
-    aggregates.forEach(field => {
-      // Inject functions that aren't compatible with the current dataset
-      if (field.kind === 'function') {
-        const functionName = field.alias || field.function[0];
-        if (!(`function:${functionName}` in fieldOptions)) {
-          const formattedField = getFieldOptionFormat(field);
-          if (formattedField) {
-            const [key, value] = formattedField;
-            fieldOptions[key] = value;
-
-            // Store the injected function key so we can ensure the aggregate is visible
-            injectedFunctions.add(key);
-
-            // If the function needs to be injected, inject the parameter as a tag
-            // as well if it isn't already an option
-            if (
-              field.function[1] &&
-              !fieldOptions[`field:${field.function[1]}`] &&
-              !fieldOptions[`tag:${field.function[1]}`]
-            ) {
-              fieldOptions = appendFieldIfUnknown(fieldOptions, {
-                kind: FieldValueKind.TAG,
-                meta: {
-                  dataType: 'string',
-                  name: field.function[1],
-                  unknown: true,
-                },
-              });
-            }
-          }
-        }
-      }
-    });
+    injectedFunctions = addIncompatibleFunctions(aggregates, fieldOptions);
   }
 
   return (

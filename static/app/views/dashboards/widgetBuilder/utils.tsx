@@ -2,6 +2,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
+import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
@@ -21,7 +22,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {
+  appendFieldIfUnknown,
+  type FieldValueOption,
+} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -461,4 +465,49 @@ export function getFieldOptionFormat(
     ];
   }
   return null;
+}
+
+// Adds the incompatible functions (i.e. functions that aren't already
+// in the field options) to the field options. This updates fieldOptions
+// in place and returns the keys that were added for extra validation/filtering
+export function addIncompatibleFunctions(
+  fields: QueryFieldValue[],
+  fieldOptions: Record<string, SelectValue<FieldValue>>
+): Set<string> {
+  const injectedFieldKeys: Set<string> = new Set();
+
+  fields.forEach(field => {
+    // Inject functions that aren't compatible with the current dataset
+    if (field.kind === 'function') {
+      const functionName = field.alias || field.function[0];
+      if (!(`function:${functionName}` in fieldOptions)) {
+        const formattedField = getFieldOptionFormat(field);
+        if (formattedField) {
+          const [key, value] = formattedField;
+          fieldOptions[key] = value;
+
+          injectedFieldKeys.add(key);
+
+          // If the function needs to be injected, inject the parameter as a tag
+          // as well if it isn't already an option
+          if (
+            field.function[1] &&
+            !fieldOptions[`field:${field.function[1]}`] &&
+            !fieldOptions[`tag:${field.function[1]}`]
+          ) {
+            fieldOptions = appendFieldIfUnknown(fieldOptions, {
+              kind: FieldValueKind.TAG,
+              meta: {
+                dataType: 'string',
+                name: field.function[1],
+                unknown: true,
+              },
+            });
+          }
+        }
+      }
+    }
+  });
+
+  return injectedFieldKeys;
 }
