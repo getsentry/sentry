@@ -40,6 +40,7 @@ def get_similarity_data_from_seer(
     Request similar issues data from seer and normalize the results. Returns similar groups
     sorted in order of descending similarity.
     """
+    event_id = similar_issues_request["event_id"]
     project_id = similar_issues_request["project_id"]
     request_hash = similar_issues_request["hash"]
     referrer = similar_issues_request.get("referrer")
@@ -232,6 +233,7 @@ def get_similarity_data_from_seer(
                     "hash": request_hash,
                     "parent_hash": parent_hash,
                     "project_id": project_id,
+                    "event_id": event_id,
                 },
             )
         except SimilarHashMissingGroupError:
@@ -251,6 +253,7 @@ def get_similarity_data_from_seer(
                     "hash": request_hash,
                     "parent_hash": parent_hash,
                     "project_id": project_id,
+                    "event_id": event_id,
                 },
             )
 
