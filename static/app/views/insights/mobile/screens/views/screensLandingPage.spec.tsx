@@ -6,16 +6,18 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
 describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
     features: ['insights-addon-modules', 'insights-mobile-screens-module'],
   });
-  const project = ProjectFixture();
+  const project = ProjectFixture({platform: 'react-native'});
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
@@ -46,6 +48,12 @@ describe('Screens Landing Page', function () {
     },
   });
 
+  jest.mocked(useCrossPlatformProject).mockReturnValue({
+    project: project,
+    selectedPlatform: 'Android',
+    isProjectCrossPlatform: true,
+  });
+
   describe('Top Section', function () {
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -62,12 +70,17 @@ describe('Screens Landing Page', function () {
       jest.clearAllMocks();
     });
 
+    it('shows the platform selector for hybrid sdks', async function () {
+      render(<ScreensLandingPage />, {organization});
+      expect(await screen.findByLabelText('Android')).toBeInTheDocument();
+    });
+
     it('renders all vital cards', async function () {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/screens',
+        pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
         query: {
           project: project.id,
         },

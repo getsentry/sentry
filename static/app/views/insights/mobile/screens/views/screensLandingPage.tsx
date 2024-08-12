@@ -39,8 +39,15 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
+import {
+  getColdAppStartPerformance,
+  getDefaultMetricPerformance,
+  getWarmAppStartPerformance,
+  type MetricValue,
+  STATUS_UNKNOWN,
+  type VitalItem,
+} from 'sentry/views/insights/mobile/screens/utils';
 import {ModuleName} from 'sentry/views/insights/types';
-import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 export function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_SCREENS;
@@ -66,125 +73,49 @@ export function ScreensLandingPage() {
       description: t('Average Cold App Start duration'),
       field: 'avg(measurements.app_start_cold)',
       dataset: DiscoverDatasets.METRICS,
-      getStatus: (metric: MetricValue) => {
-        let description = '';
-        let status = PerformanceScore.NONE;
-
-        if (typeof metric.value === 'number' && metric.unit) {
-          const durationMs = metric.value * DURATION_UNITS[metric.unit];
-
-          // TODO should be platform dependant
-          if (durationMs > 5000) {
-            status = PerformanceScore.BAD;
-            description = VitalState.POOR;
-          } else if (durationMs > 3000) {
-            status = PerformanceScore.NEEDS_IMPROVEMENT;
-            description = VitalState.MEH;
-          } else if (durationMs > 0) {
-            status = PerformanceScore.GOOD;
-            description = VitalState.GOOD;
-          }
-        }
-        return {
-          score: status,
-          description: description,
-        };
-      },
+      getStatus: getColdAppStartPerformance,
     },
     {
       title: t('Warm App Start'),
       description: t('Average Warm App Start duration'),
       field: 'avg(measurements.app_start_warm)',
       dataset: DiscoverDatasets.METRICS,
-      getStatus: (metric: MetricValue) => {
-        let description = '';
-        let status = PerformanceScore.NONE;
-
-        if (typeof metric.value === 'number' && metric.unit) {
-          const durationMs = metric.value * DURATION_UNITS[metric.unit];
-
-          // TODO should be platform dependant
-          if (durationMs > 2000) {
-            status = PerformanceScore.BAD;
-            description = VitalState.POOR;
-          } else if (durationMs > 1000) {
-            status = PerformanceScore.NEEDS_IMPROVEMENT;
-            description = VitalState.MEH;
-          } else if (durationMs > 0) {
-            status = PerformanceScore.GOOD;
-            description = VitalState.GOOD;
-          }
-        }
-        return {
-          score: status,
-          description: description,
-        };
-      },
+      getStatus: getWarmAppStartPerformance,
     },
     {
       title: t('Slow Frames'),
       description: t('Average number of slow frames'),
       field: `avg(mobile.slow_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      getStatus: (_: MetricValue) => {
-        // TODO define thresholds
-        return {
-          score: PerformanceScore.NONE,
-          description: '',
-        };
-      },
+      getStatus: getDefaultMetricPerformance,
     },
     {
       title: t('Frozen Frames'),
       description: t('Average number of frozen frames'),
       field: `avg(mobile.frozen_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      getStatus: (_: MetricValue) => {
-        // TODO define thresholds
-        return {
-          score: PerformanceScore.NONE,
-          description: '',
-        };
-      },
+      getStatus: getDefaultMetricPerformance,
     },
     {
       title: t('Frame Delay'),
       description: t('Average frame delay'),
       field: `avg(mobile.frames_delay)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      getStatus: (_: MetricValue) => {
-        // TODO define thresholds
-        return {
-          score: PerformanceScore.NONE,
-          description: '',
-        };
-      },
+      getStatus: getDefaultMetricPerformance,
     },
     {
       title: t('TTID'),
       description: t('Average time to intial display.'),
       field: `avg(measurements.time_to_initial_display)`,
       dataset: DiscoverDatasets.METRICS,
-      getStatus: (_: MetricValue) => {
-        // TODO define thresholds
-        return {
-          score: PerformanceScore.NONE,
-          description: '',
-        };
-      },
+      getStatus: getDefaultMetricPerformance,
     },
     {
       title: t('TTFD'),
       description: t('Average time to full display.'),
       field: `avg(measurements.time_to_full_display)`,
       dataset: DiscoverDatasets.METRICS,
-      getStatus: (_: MetricValue) => {
-        // TODO define thresholds
-        return {
-          score: PerformanceScore.NONE,
-          description: '',
-        };
-      },
+      getStatus: getDefaultMetricPerformance,
     },
   ];
 
@@ -357,43 +288,6 @@ export function ScreensLandingPage() {
     </ModulePageProviders>
   );
 }
-
-type MetricValue = {
-  // the field type if defined, e.g. duration
-  type: string | undefined;
-
-  // the unit of the value, e.g. milliseconds
-  unit: string | undefined;
-
-  // the actual value
-  value: string | number | undefined;
-};
-
-// maps to PERFORMANCE_SCORE_COLORS keys
-enum PerformanceScore {
-  GOOD = 'good',
-  NEEDS_IMPROVEMENT = 'needsImprovement',
-  BAD = 'bad',
-  NONE = 'none',
-}
-
-type VitalStatus = {
-  description: string | undefined;
-  score: PerformanceScore;
-};
-
-const STATUS_UNKNOWN: VitalStatus = {
-  description: undefined,
-  score: PerformanceScore.NONE,
-};
-
-type VitalItem = {
-  dataset: DiscoverDatasets;
-  description: string;
-  field: string;
-  getStatus: (value: MetricValue) => VitalStatus;
-  title: string;
-};
 
 const Container = styled('div')`
   margin-bottom: ${space(1)};
