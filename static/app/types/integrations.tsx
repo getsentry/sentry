@@ -482,7 +482,8 @@ export type PluginNoProject = {
   firstPartyAlternative?: string;
   issue?: {
     issue_id: string;
-    label: string;
+    // TODO(TS): Label can be an object, unknown shape
+    label: string | any;
     url: string;
   };
   resourceLinks?: Array<{title: string; url: string}>;
