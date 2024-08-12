@@ -10,8 +10,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import InputField from 'sentry/components/forms/fields/inputField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
+import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -1336,7 +1336,7 @@ function WidgetBuilder({
 
 export default withPageFilters(withTags(WidgetBuilder));
 
-const TitleInput = styled(InputField)`
+const TitleInput = styled(TextField)`
   padding: 0 ${space(2)} 0 0;
 `;
 
