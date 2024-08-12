@@ -10,9 +10,9 @@ import {
   useFetchProguardMappingFiles,
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import KeyValueData from 'sentry/components/keyValueData';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,8 +31,33 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
+export default function EventErrorCard({
+  title,
+  data,
+}: {
+  data: {key: string; subject: any; value: any}[];
+  title: string;
+}) {
+  const contentItems = data.map(datum => {
+    return {item: datum};
+  });
+  return (
+    <KeyValueData.Card
+      contentItems={contentItems}
+      title={
+        <Title>
+          {title}
+          <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
+            Learn More
+          </ExternalLink>
+        </Title>
+      }
+    />
+  );
+}
+
 function EventErrorDescription({error}: {error: ErrorMessage}) {
-  const {title, desc, data: errorData} = error;
+  const {title, data: errorData} = error;
 
   const cleanedData = useMemo(
     () => {
@@ -76,13 +101,7 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
     [errorData]
   );
 
-  return (
-    <div>
-      <Title>{title}</Title>
-      {desc && <Description>{desc}</Description>}
-      <KeyValueList data={cleanedData} isContextData />
-    </div>
-  );
+  return <EventErrorCard title={title} data={cleanedData} />;
 }
 
 export function EventActionableItems({event, project, isShare}: Props) {
@@ -118,18 +137,17 @@ export function EventActionableItems({event, project, isShare}: Props) {
       title={t('Event Processing Errors')}
       type={FoldSectionKey.PROCESSING_ERROR}
     >
-      {errors.map((error, idx) => {
-        return <EventErrorDescription key={idx} error={error} />;
-      })}
+      <KeyValueData.Container>
+        {errors.map((error, idx) => {
+          return <EventErrorDescription key={idx} error={error} />;
+        })}
+      </KeyValueData.Container>
     </InterimSection>
   );
 }
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
-`;
-
-const Description = styled('div')`
-  margin-top: ${space(0.5)};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
