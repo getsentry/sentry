@@ -16,7 +16,6 @@ interface Props {
 }
 
 /**
- * Hook to fetch external issues for a group
  * Aggregates external issues from integrations, plugins, and sentry apps
  */
 export default function useGroupExternalIssues({
