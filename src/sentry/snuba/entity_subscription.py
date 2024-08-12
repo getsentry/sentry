@@ -314,6 +314,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+                insights_metrics_override_metric_layer=True,
             ),
         )
 

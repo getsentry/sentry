@@ -6,11 +6,11 @@ from django.test import override_settings
 
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.superuser import COOKIE_NAME
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 

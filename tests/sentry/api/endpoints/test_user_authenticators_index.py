@@ -1,9 +1,9 @@
 from django.urls import reverse
 
-from sentry.models.authenticator import Authenticator
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 
 
 @control_silo_test
