@@ -50,10 +50,7 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
         content: '';
         display: block;
         position: absolute;
-        top: -1px;
-        left: -1px;
-        right: -1px;
-        bottom: -1px;
+        inset: -1px;
         border: 1px solid ${p.theme.purple300};
         pointer-events: none;
       }
