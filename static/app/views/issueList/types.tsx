@@ -16,8 +16,12 @@ export type IssueUpdateData =
   | GroupStatusResolution;
 
 export type GroupSearchView = {
+  id: string;
   name: string;
   query: string;
   querySort: IssueSortOptions;
-  id?: string;
 };
+
+export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
+  id?: string;
+}
