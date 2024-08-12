@@ -1747,7 +1747,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
     # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
@@ -1931,6 +1931,17 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
+    # Temporary log to debug events seeming to disappear after being sent to Seer
+    if event.data.get("seer_similarity"):
+        logger.info(
+            "seer.similarity.pre_create_group",
+            extra={
+                "event_id": event.event_id,
+                "hash": event.get_primary_hash(),
+                "project": project.id,
+            },
+        )
+
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
@@ -2003,6 +2014,18 @@ def _create_group(
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
+
+    # Temporary log to debug events seeming to disappear after being sent to Seer
+    if event.data.get("seer_similarity"):
+        logger.info(
+            "seer.similarity.post_create_group",
+            extra={
+                "event_id": event.event_id,
+                "hash": event.get_primary_hash(),
+                "project": project.id,
+                "group_id": group.id,
+            },
+        )
 
     return group
 

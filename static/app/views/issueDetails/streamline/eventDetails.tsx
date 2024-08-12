@@ -1,6 +1,8 @@
 import {createContext, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CommitRow} from 'sentry/components/commitRow';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
@@ -39,6 +41,12 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={eventDetails}>
+      <SuspectCommits
+        project={project}
+        eventId={event.id}
+        group={group}
+        commitRow={CommitRow}
+      />
       <FilterContainer>
         <EnvironmentPageFilter />
         <SearchFilter
