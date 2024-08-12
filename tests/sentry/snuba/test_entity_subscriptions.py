@@ -619,6 +619,7 @@ class EntitySubscriptionTestCase(TestCase):
         ]
 
     def test_get_entity_subscription_for_insights_queries(self) -> None:
+        indexer.record(use_case_id=UseCaseID.SPANS, org_id=self.organization.id, string="cache.hit")
         with Feature("organizations:custom-metrics"):
             cases = [
                 ("count()", "", True),
@@ -643,7 +644,14 @@ class EntitySubscriptionTestCase(TestCase):
                     time_window=3600,
                     extra_fields={"org_id": self.organization.id},
                 )
-                builder = entity_subscription.build_query_builder(query, [self.project.id], None)
+                builder = entity_subscription.build_query_builder(
+                    query,
+                    [self.project.id],
+                    None,
+                    {
+                        "organization_id": self.organization.id,
+                    },
+                )
                 assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
 
