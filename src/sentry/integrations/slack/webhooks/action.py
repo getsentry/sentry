@@ -321,11 +321,9 @@ class SlackActionEndpoint(Endpoint):
         initial_option_text: str,
         initial_option_value: str,
         callback_id: str,
-        metadata: str | None = None,
+        metadata: str,
     ) -> View:
         formatted_options = self.build_format_options(options)
-        if not metadata:
-            metadata = callback_id
 
         return View(
             type="modal",
@@ -395,8 +393,9 @@ class SlackActionEndpoint(Endpoint):
         callback_id = orjson.dumps(callback_id_dict).decode()
 
         # only add tags to metadata
-        callback_id_dict["tags"] = list(slack_request.get_tags())
-        metadata = orjson.dumps(callback_id_dict).decode()
+        metadata_dict = callback_id_dict.copy()
+        metadata_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(metadata_dict).decode()
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
         modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
@@ -442,8 +441,9 @@ class SlackActionEndpoint(Endpoint):
         callback_id = orjson.dumps(callback_id_dict).decode()
 
         # only add tags to metadata
-        callback_id_dict["tags"] = list(slack_request.get_tags())
-        metadata = orjson.dumps(callback_id_dict).decode()
+        metadata_dict = callback_id_dict.copy()
+        metadata_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(metadata_dict).decode()
 
         modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
