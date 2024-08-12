@@ -12,7 +12,7 @@ interface FieldDescriptionProps extends Pick<FieldGroupProps, 'inline'> {
    * for screen-readers since this element is used as the `aria-describedby` of
    * the control input componnt.
    */
-  hidden?: boolean;
+  displayNone?: boolean;
 }
 
 const inlineStyle = (p: FieldDescriptionProps) =>
@@ -28,7 +28,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
 
 const FieldDescription = styled('label')<FieldDescriptionProps>`
   font-weight: ${p => p.theme.fontWeightNormal};
-  display: ${p => (p.hidden ? 'none' : 'inline')};
+  display: ${p => (p.displayNone ? 'none' : 'inline')};
   margin-bottom: 0;
 
   ${inlineStyle};
