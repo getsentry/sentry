@@ -9,20 +9,20 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {
+  GroupSearchView,
+  GroupSearchViewResponse,
+} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewsVariables = {
   groupSearchViews: GroupSearchView[];
   orgSlug: string;
 };
 
-// The PUT groupsearchviews endpoint updates the views AND returns the updated views
-type UpdateGroupSearchViewResponse = GroupSearchView[];
-
 export const useUpdateGroupSearchViews = (
   options: Omit<
     UseMutationOptions<
-      UpdateGroupSearchViewResponse,
+      GroupSearchViewResponse[],
       RequestError,
       UpdateGroupSearchViewsVariables
     >,
@@ -33,7 +33,7 @@ export const useUpdateGroupSearchViews = (
   const queryClient = useQueryClient();
 
   return useMutation<
-    UpdateGroupSearchViewResponse,
+    GroupSearchViewResponse[],
     RequestError,
     UpdateGroupSearchViewsVariables
   >({
@@ -44,7 +44,7 @@ export const useUpdateGroupSearchViews = (
         data,
       }),
     onSuccess: (groupSearchViews, parameters, context) => {
-      setApiQueryData<GroupSearchView[]>(
+      setApiQueryData<GroupSearchViewResponse[]>(
         queryClient,
         makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
         groupSearchViews // Update the cache with the new groupSearchViews

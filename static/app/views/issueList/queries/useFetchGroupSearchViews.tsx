@@ -1,12 +1,10 @@
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {GroupSearchViewResponse} from 'sentry/views/issueList/types';
 
 type FetchGroupSearchViewsParameters = {
   orgSlug: string;
 };
-
-type FetchGroupSearchViewsResponse = GroupSearchView[];
 
 export const makeFetchGroupSearchViewsKey = ({
   orgSlug,
@@ -15,13 +13,10 @@ export const makeFetchGroupSearchViewsKey = ({
 
 export const useFetchGroupSearchViews = (
   {orgSlug}: FetchGroupSearchViewsParameters,
-  options: Partial<UseApiQueryOptions<FetchGroupSearchViewsResponse>> = {}
+  options: Partial<UseApiQueryOptions<GroupSearchViewResponse[]>> = {}
 ) => {
-  return useApiQuery<FetchGroupSearchViewsResponse>(
-    makeFetchGroupSearchViewsKey({orgSlug}),
-    {
-      staleTime: Infinity,
-      ...options,
-    }
-  );
+  return useApiQuery<GroupSearchViewResponse[]>(makeFetchGroupSearchViewsKey({orgSlug}), {
+    staleTime: Infinity,
+    ...options,
+  });
 };
