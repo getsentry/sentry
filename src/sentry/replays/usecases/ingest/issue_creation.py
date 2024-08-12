@@ -161,7 +161,7 @@ def _make_clicked_element(node):
             if key == "id":
                 element += f"#{value}"
             elif key == "class":
-                element = element + ".".join(value.split(" "))
+                element = element + ".".join(value.strip().split(" "))
             elif key == "role":
                 element += f'[role="{value}"]'
             elif key == "alt":
