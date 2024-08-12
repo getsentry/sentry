@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
@@ -11,7 +10,6 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import KeyValueData from 'sentry/components/keyValueData';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -41,19 +39,7 @@ export default function EventErrorCard({
   const contentItems = data.map(datum => {
     return {item: datum};
   });
-  return (
-    <KeyValueData.Card
-      contentItems={contentItems}
-      title={
-        <Title>
-          {title}
-          <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
-            Learn More
-          </ExternalLink>
-        </Title>
-      }
-    />
-  );
+  return <KeyValueData.Card contentItems={contentItems} title={<div>{title}</div>} />;
 }
 
 function EventErrorDescription({error}: {error: ErrorMessage}) {
@@ -145,9 +131,3 @@ export function EventActionableItems({event, project, isShare}: Props) {
     </InterimSection>
   );
 }
-
-const Title = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
