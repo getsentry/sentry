@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
@@ -23,7 +23,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS = [
   FeedbackFieldKey.BROWSER_VERSION,

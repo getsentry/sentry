@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
@@ -19,7 +19,6 @@ import {
 import useFetchDatasetTags from 'sentry/utils/replays/hooks/useFetchDatasetTags';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,

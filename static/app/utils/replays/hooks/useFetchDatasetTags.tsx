@@ -1,9 +1,8 @@
 import {useMemo} from 'react';
 
-import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {type Dataset, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Organization, TagCollection} from 'sentry/types';
 import {FieldKind} from 'sentry/utils/fields';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 type UseFetchDatasetTagsParams = {
   dataset: Dataset;

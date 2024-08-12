@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -24,7 +24,6 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
