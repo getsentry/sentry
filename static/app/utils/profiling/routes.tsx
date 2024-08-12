@@ -1,12 +1,15 @@
-import { dropUndefinedKeys } from '@sentry/utils';
-import type { Location, LocationDescriptor, Path } from 'history';
+import {dropUndefinedKeys} from '@sentry/utils';
+import type {Location, LocationDescriptor, Path} from 'history';
 
-import type { Organization } from 'sentry/types/organization';
-import type { Trace } from 'sentry/types/profiling/core';
-import type { Project } from 'sentry/types/project';
-import { isContinuousProfileReference, isTransactionProfileReference } from 'sentry/utils/profiling/guards/profile';
+import type {Organization} from 'sentry/types/organization';
+import type {Trace} from 'sentry/types/profiling/core';
+import type {Project} from 'sentry/types/project';
+import {
+  isContinuousProfileReference,
+  isTransactionProfileReference,
+} from 'sentry/utils/profiling/guards/profile';
 
-export function generateProfilingRoute({ orgSlug }: { orgSlug: Organization['slug'] }): Path {
+export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
   return `/organizations/${orgSlug}/profiling/`;
 }
 
@@ -67,7 +70,7 @@ export function generateProfileDifferentialFlamegraphRouteWithQuery({
   transaction: string;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileDifferentialFlamegraphRoute({ orgSlug, projectSlug });
+  const pathname = generateProfileDifferentialFlamegraphRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
@@ -98,7 +101,7 @@ export function generateProfilingRouteWithQuery({
   orgSlug: Organization['slug'];
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfilingRoute({ orgSlug });
+  const pathname = generateProfilingRoute({orgSlug});
   return {
     pathname,
     query: {
@@ -118,7 +121,7 @@ export function generateProfileSummaryRouteWithQuery({
   transaction: string;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileSummaryRoute({ orgSlug, projectSlug });
+  const pathname = generateProfileSummaryRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
@@ -159,15 +162,16 @@ export function generateContinuousProfileFlamechartRouteWithQuery({
   start,
   end,
   query,
-  frameName, framePackage,
+  frameName,
+  framePackage,
 }: {
+  end: string;
+  orgSlug: Organization['slug'];
+  profilerId: string;
+  projectSlug: Project['slug'];
+  start: string;
   frameName?: string;
   framePackage?: string | undefined;
-  orgSlug: Organization['slug'];
-  profilerId: string
-  start: string,
-  end: string,
-  projectSlug: Project['slug'];
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateContinuousProfileFlamechartRoute({
@@ -226,7 +230,7 @@ export function generateProfileRouteFromProfileReference({
   frameName: string;
   framePackage: string | undefined;
   orgSlug: Organization['slug'];
-  projectSlug: Project['slug'] | undefined;
+  projectSlug: Project['slug'];
   reference: Profiling.ProfileReference;
   query?: Location['query'];
 }): LocationDescriptor {
@@ -242,16 +246,19 @@ export function generateProfileRouteFromProfileReference({
   }
 
   if (isContinuousProfileReference(reference) && !!reference.project_id) {
-
     return generateContinuousProfileFlamechartRouteWithQuery({
-      orgSlug
+      orgSlug,
       projectSlug,
       profilerId: reference.profiler_id,
       frameName,
       framePackage,
       start: new Date(reference.start_ts).toISOString(),
       end: new Date(reference.finish_ts).toISOString(),
-      query: dropUndefinedKeys({ ...query, spanId: reference.transaction_id, tid: reference.thread_id as unknown as string }),
+      query: dropUndefinedKeys({
+        ...query,
+        spanId: reference.transaction_id,
+        tid: reference.thread_id as unknown as string,
+      }),
     });
   }
 
@@ -260,9 +267,7 @@ export function generateProfileRouteFromProfileReference({
       orgSlug,
       projectSlug,
       profileId: reference.profile_id,
-      query: dropUndefinedKeys(
-        { ...query, frameName, framePackage }
-      ),
+      query: dropUndefinedKeys({...query, frameName, framePackage}),
     });
   }
 
