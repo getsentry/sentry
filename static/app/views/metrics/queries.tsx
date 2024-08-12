@@ -398,6 +398,12 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
           ? 'min-content 1fr max-content max-content max-content'
           : '1fr max-content max-content max-content'};
       }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-template-columns: ${p.showQuerySymbols
+          ? 'min-content max-content max-content max-content 1fr max-content'
+          : 'max-content max-content max-content 1fr max-content'};
+      }
     `}
 `;
 

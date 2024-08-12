@@ -179,7 +179,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         css={css`
           width: auto;
           & > button {
-            height: 100%;
+            min-height: 100%;
           }
         `}
       />

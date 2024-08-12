@@ -331,7 +331,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             </QueryFieldGroup>
           </FullWidthGuideAnchor>
         </GroupBy>
-        <FilterBy>
+        <FilterBy hasSymbols={hasSymbols}>
           <FullWidthGuideAnchor
             target="metrics_filterby"
             position="bottom"
@@ -540,6 +540,10 @@ const QueryBuilderWrapper = styled('div')<{
       @media (min-width: ${p.theme.breakpoints.large}) {
         grid-column: ${p.hasSymbols ? '2/5' : '1/4'};
       }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column: ${p.hasSymbols ? '2/6' : '1/5'};
+      }
     `}
 `;
 
@@ -553,8 +557,11 @@ const Visualize = styled('div')`
 
 const Aggregate = styled('div')``;
 const GroupBy = styled('div')``;
-const FilterBy = styled('div')`
+const FilterBy = styled('div')<{hasSymbols: boolean}>`
   grid-column: 1/-1;
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    grid-column: ${p => (p.hasSymbols ? '5/5' : '4/4')};
+  }
 `;
 
 const FlexBlock = styled('div')`

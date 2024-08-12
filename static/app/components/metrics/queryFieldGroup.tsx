@@ -178,6 +178,11 @@ const Label = styled('span')`
       border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
     }
   }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    width: auto;
+    min-width: auto;
+  }
 `;
 
 const DebouncedInput = styled(_DebouncedInput)`
