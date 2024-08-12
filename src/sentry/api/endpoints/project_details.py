@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -50,10 +50,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
-from sentry.tasks.delete_seer_grouping_records import (
-    EA_ROLLOUT_PERCENTAGE,
-    call_seer_delete_project_grouping_records,
-)
+from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 
 logger = logging.getLogger(__name__)
 
@@ -985,7 +982,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             # Tell seer to delete all the project's grouping records
             if features.has("projects:similarity-embeddings-grouping", project) or (
                 project.get_option("sentry:similarity_backfill_completed")
-                and randint(1, 100) <= EA_ROLLOUT_PERCENTAGE
+                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
             ):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 

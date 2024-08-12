@@ -62,7 +62,7 @@ def call_delete_seer_grouping_records_by_hash(
             features.has("projects:similarity-embeddings-grouping", project)
             or (
                 project.get_option("sentry:similarity_backfill_completed")
-                and randint(1, 100) <= EA_ROLLOUT_PERCENTAGE
+                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
             )
         )
         and not killswitch_enabled(project.id)
