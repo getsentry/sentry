@@ -21,7 +21,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
-from sentry.shared_integrations.response.text import TextApiResponse
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -321,17 +320,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        try:
-            project_id = repo.config["project_id"]
-            encoded_path = quote(path, safe="")
+        project_id = repo.config["project_id"]
+        encoded_path = quote(path, safe="")
 
-            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-            return self.head_cached(request_path, params={"ref": version})
-        except ApiError as e:
-            # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code in (404, 400):
-                return TextApiResponse(status_code=e.code, text=e.text)
-            raise
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
+
+        # Gitlab can return 404 or 400 if the file doesn't exist
+        return self.head_cached(request_path, params={"ref": version})
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False

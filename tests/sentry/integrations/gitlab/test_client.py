@@ -183,9 +183,8 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
-        resp = self.gitlab_client.check_file(self.repo, path, ref)
-        assert responses.calls[0].response.status_code == 404
-        assert resp.status_code == 404
+        with pytest.raises(ApiError):
+            self.gitlab_client.check_file(self.repo, path, ref)
 
     @responses.activate
     def test_get_stacktrace_link(self):
