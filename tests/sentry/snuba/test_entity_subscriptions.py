@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -630,11 +631,9 @@ class EntitySubscriptionTestCase(TestCase):
                 ("count()", "span.description:abc", False),
                 ("performance_score(measurements.score.lcp)", "", False),
                 ("cache_miss_rate()", "", False),
-                # TODO: The following functions are not supported in the discover metrics dataset yet.
-                # Uncomment these as we port them over.
-                # ("spm()", "", False),
-                # ("http_response_rate()", "", False),
-                # ("avg(span.self_time)", "", False),
+                ("http_response_rate(3)", "", False),
+                ("avg(span.self_time)", "", False),
+                ("spm()", "", False),
             ]
             for aggregate, query, use_metrics_layer in cases:
                 entity_subscription = get_entity_subscription(
@@ -650,6 +649,8 @@ class EntitySubscriptionTestCase(TestCase):
                     None,
                     {
                         "organization_id": self.organization.id,
+                        "start": datetime(2024, 1, 1),
+                        "end": datetime(2024, 1, 2),
                     },
                 )
                 assert isinstance(builder, AlertMetricsQueryBuilder)

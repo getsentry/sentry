@@ -114,7 +114,8 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -787,6 +788,12 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="rate",
                 ),
                 fields.MetricsFunction(
+                    "spm",
+                    snql_distribution=self._resolve_spm,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
                     "eps",
                     snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
@@ -939,6 +946,30 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: function_aliases.resolve_division(
                         self._resolve_cache_miss_count(args),
                         self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_response_rate",
+                    required_args=[
+                        fields.SnQLStringArg("code"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_http_response_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
                         alias,
                     ),
                     default_result_type="percentage",
@@ -1993,6 +2024,14 @@ class MetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         return self._resolve_rate(60, args, alias, extra_condition)
 
+    def _resolve_spm(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
+    ) -> SelectType:
+        return self._resolve_rate(60, args, alias, extra_condition, "span.self_time")
+
     def _resolve_eps(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -2007,12 +2046,13 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
+        metric: str | None = "transaction.duration",
     ) -> SelectType:
         base_condition = Function(
             "equals",
             [
                 Column("metric_id"),
-                self.resolve_metric("transaction.duration"),
+                self.resolve_metric(metric),
             ],
         )
         if extra_condition:
@@ -2110,5 +2150,30 @@ class MetricsDatasetConfig(DatasetConfig):
                     list(status for status in statuses if status is not None),
                 ],
             ),
+            alias,
+        )
+
+    def _resolve_http_response_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "startsWith",
+            [
+                self.builder.column("span.status_code"),
+                args["code"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
             alias,
         )

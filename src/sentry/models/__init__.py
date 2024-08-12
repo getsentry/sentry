@@ -1,3 +1,4 @@
+from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
 
 from .activity import *  # NOQA
@@ -10,7 +11,6 @@ from .apitoken import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
-from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
 from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA

@@ -447,10 +447,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             assert group_id in group_ids_results
 
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries")
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries", side_effect=RateLimitExceeded
+    )
     def test_get_data_from_snuba_exception(self, mock_bulk_snuba_queries, mock_logger):
-        mock_bulk_snuba_queries.side_effect = RateLimitExceeded
-
         group_ids_last_seen = {
             group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
         }
@@ -812,17 +812,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @patch("time.sleep", return_value=None)
-    @patch("sentry.nodestore.backend.get_multi")
-    @patch("sentry.tasks.embeddings_grouping.utils.lookup_event")
+    @patch(
+        "sentry.nodestore.backend.get_multi",
+        side_effect=ServiceUnavailable(message="Service Unavailable"),
+    )
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils.lookup_event",
+        side_effect=ServiceUnavailable(message="Service Unavailable"),
+    )
     def test_backfill_seer_grouping_records_failure(
         self, mock_lookup_event, mock_get_multi, mock_sleep
     ):
         """
         Test that the group metadata isn't updated on a failure.
         """
-        mock_lookup_event.side_effect = ServiceUnavailable(message="Service Unavailable")
-        mock_get_multi.side_effect = ServiceUnavailable(message="Service Unavailable")
-
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
 

@@ -3495,6 +3495,105 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "metrics"
         assert meta["fields"]["cache_miss_rate()"] == "percentage"
 
+    def test_http_response_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "200"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "301"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "404"},
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "503"},
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "501"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(200)",  # By exact code
+                    "http_response_rate(3)",  # By code class
+                    "http_response_rate(4)",
+                    "http_response_rate(5)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(200)"] == 0.2
+        assert data[0]["http_response_rate(3)"] == 0.2
+        assert data[0]["http_response_rate(4)"] == 0.2
+        assert data[0]["http_response_rate(5)"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["http_response_rate(200)"] == "percentage"
+
+    def test_avg_span_self_time(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(span.self_time)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(span.self_time)"] == 3.2
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3987,3 +4086,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_cache_miss_rate(self):
         super().test_cache_miss_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_response_rate(self):
+        super().test_http_response_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_span_self_time(self):
+        super().test_avg_span_self_time()
