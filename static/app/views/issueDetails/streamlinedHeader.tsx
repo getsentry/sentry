@@ -1,7 +1,6 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -10,8 +9,10 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -94,7 +95,7 @@ export default function StreamlinedGroupHeader({
   }, [group, activeUser.id]);
 
   return (
-    <Layout.Header>
+    <Header>
       <div>
         <Breadcrumbs
           crumbs={[
@@ -120,12 +121,33 @@ export default function StreamlinedGroupHeader({
             level={group.level}
             showUnhandled={group.isUnhandled}
           />
-          <Divider />
-          <div>{t('First Seen in')}</div>
-          <Version version={firstRelease?.version || ''} projectId={project.id} />
-          <Divider />
-          <div>{t('Last Seen in')}</div>
-          <Version version={lastRelease?.version || ''} projectId={project.id} />
+          {firstRelease && lastRelease && (
+            <Fragment>
+              <Divider />
+              <ReleaseWrapper>
+                {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={project.slug}
+                  releaseVersion={firstRelease.version}
+                >
+                  <Version version={firstRelease.version} projectId={project.id} />
+                </VersionHoverCard>
+                {firstRelease.id === lastRelease.id ? null : (
+                  <Fragment>
+                    -
+                    <VersionHoverCard
+                      organization={organization}
+                      projectSlug={project.slug}
+                      releaseVersion={lastRelease.version}
+                    >
+                      <Version version={lastRelease.version} projectId={project.id} />
+                    </VersionHoverCard>
+                  </Fragment>
+                )}
+              </ReleaseWrapper>
+            </Fragment>
+          )}
         </MessageWrapper>
         <StyledBreak />
         <InfoWrapper isResolved={group.status === 'resolved'}>
@@ -152,32 +174,20 @@ export default function StreamlinedGroupHeader({
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}
-                <div>
-                  <StyledAvatarList
-                    users={userParticipants}
-                    teams={teamParticipants}
-                    avatarSize={18}
-                    maxVisibleAvatars={2}
-                    typeAvatars="participants"
-                  />
-                </div>
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
               </Wrapper>
             )}
             {displayUsers.length > 0 && (
               <Wrapper>
                 {t('Viewers')}
-                <StyledAvatarList
-                  users={displayUsers}
-                  avatarSize={18}
-                  maxVisibleAvatars={2}
-                />
+                <ParticipantList users={displayUsers} />
               </Wrapper>
             )}
           </PriorityWorkflowWrapper>
         </InfoWrapper>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
-    </Layout.Header>
+    </Header>
   );
 }
 
@@ -226,7 +236,7 @@ const InfoWrapper = styled('div')<{isResolved: boolean}>`
   background-color: ${p =>
     p.isResolved
       ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))0'
-      : p.theme.backgroundSecondary};
+      : p.theme.background};
   color: ${p => p.theme.gray300};
 `;
 
@@ -241,7 +251,17 @@ const Wrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  justify-content: flex-end;
-  padding-left: ${space(0.75)};
+const ReleaseWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  a {
+    color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+`;
+
+const Header = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
 `;

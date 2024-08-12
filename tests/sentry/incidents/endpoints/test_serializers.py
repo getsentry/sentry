@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.core.exceptions import ValidationError
 from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -29,7 +28,6 @@ from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
     QUERY_TYPE_VALID_DATASETS,
     STRING_TO_ACTION_TARGET_TYPE,
-    STRING_TO_ACTION_TYPE,
     AlertRuleSerializer,
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
@@ -692,7 +690,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
             assert serializer.is_valid()
             with pytest.raises(
-                ValidationError,
+                serializers.ValidationError,
                 match="Percentage-based alerts require a comparison delta",
             ):
                 serializer.save()
@@ -930,9 +928,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         }
 
     def test_type(self):
-        invalid_values = [
-            "Invalid type, valid values are [%s]" % ", ".join(STRING_TO_ACTION_TYPE.keys())
-        ]
+        valid_slugs = AlertRuleTriggerAction.get_all_slugs()
+        invalid_values = [f"Invalid type, valid values are {valid_slugs!r}"]
         self.run_fail_validation_test({"type": 50}, {"type": invalid_values})
 
     def test_target_type(self):

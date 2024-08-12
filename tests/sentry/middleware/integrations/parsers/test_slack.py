@@ -10,11 +10,12 @@ from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.utils.auth import _encode_data
+from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
@@ -90,7 +91,7 @@ class SlackRequestParserTest(TestCase):
         # Retrieve the correct integration
         path = reverse(
             "sentry-integration-slack-link-identity",
-            kwargs={"signed_params": sign(integration_id=self.integration.id)},
+            kwargs={"signed_params": sign(salt=SALT, integration_id=self.integration.id)},
         )
         request = self.factory.post(path)
         parser = SlackRequestParser(request, self.get_response)

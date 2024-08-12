@@ -66,6 +66,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
@@ -255,6 +256,8 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -1183,6 +1186,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
         DataExportDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-data-export-details",
+    ),
+    # Data Secrecy
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
+        WaiveDataSecrecyEndpoint.as_view(),
+        name="sentry-api-0-data-secrecy",
     ),
     # Incidents
     re_path(
@@ -2708,10 +2717,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionNamesCluster.as_view(),
         name="sentry-api-0-organization-project-cluster-transaction-names",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.project_api_urls"),
-    ),
     # Tombstone
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tombstones/$",
@@ -2808,6 +2813,17 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",
         ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
         name="sentry-api-0-project-autofix-codebase-index-create",
+    ),
+    # Uptime
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/$",
+        ProjectUptimeAlertDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
+        ProjectUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-index",
     ),
 ]
 

@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -141,7 +140,6 @@ function GroupReplaysTableInner({
     <ReplayContextProvider
       analyticsContext="replay_tab"
       isFetching={fetching}
-      prefsStrategy={StaticReplayPreferences}
       replay={replay}
       autoStart
     >

@@ -13,7 +13,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -22,7 +22,7 @@ import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   transaction: string;
   end?: string;
   start?: string;

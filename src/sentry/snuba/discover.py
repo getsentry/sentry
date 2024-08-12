@@ -39,6 +39,7 @@ from sentry.search.events.types import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
@@ -205,6 +206,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -277,7 +279,9 @@ def query(
     if extra_columns is not None:
         builder.columns.extend(extra_columns)
 
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -298,6 +302,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -369,7 +374,7 @@ def timeseries_query(
             query_list.append(comparison_builder)
 
         query_results = bulk_snuba_queries(
-            [query.get_snql_query() for query in query_list], referrer
+            [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
@@ -470,6 +475,7 @@ def top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
+    query_source: QuerySource | None = None,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -516,6 +522,7 @@ def top_events_timeseries(
                 include_equation_fields=True,
                 skip_tag_resolution=True,
                 dataset=dataset,
+                query_source=query_source,
             )
 
     top_events_builder = TopEventsQueryBuilder(
@@ -548,9 +555,10 @@ def top_events_timeseries(
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
+            query_source=query_source,
         )
     else:
-        result = top_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
         other_result = {"data": []}
     if (
         not allow_empty
@@ -643,16 +651,18 @@ def get_facets(
     per_page - The number of records to fetch.
     cursor - The number of records to skip.
     """
-    sample = len(params["project_id"]) > 2
-    fetch_projects = len(params["project_id"]) > 1
 
     if len(params) == 0 and snuba_params is not None:
         params = snuba_params.filter_params
+
+    sample = len(params["project_id"]) > 2
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
@@ -698,6 +708,7 @@ def get_facets(
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", "project_id"],
                 orderby=["-count()"],
@@ -736,6 +747,7 @@ def get_facets(
             tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", tag],
                 orderby=["-count()"],
@@ -757,6 +769,7 @@ def get_facets(
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=(query if query is not None else "")
                 + f" tags_key:[{','.join(aggregate_tags)}]",
                 selected_columns=["count()", "tags_key", "tags_value"],

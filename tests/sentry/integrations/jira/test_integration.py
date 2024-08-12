@@ -10,6 +10,7 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.integrations.jira.views import SALT
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -1091,7 +1092,7 @@ class JiraInstallationTest(IntegrationTestCase):
     def assert_setup_flow(self):
         self.login_as(self.user)
         signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
-        params = {"signed_params": sign(**signed_data)}
+        params = {"signed_params": sign(salt=SALT, **signed_data)}
         resp = self.client.get(self.configure_path, params)
         assert resp.status_code == 302
         integration = Integration.objects.get(external_id="my-external-id")

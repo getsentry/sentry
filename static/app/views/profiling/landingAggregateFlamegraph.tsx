@@ -33,7 +33,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
-    sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
+    sorting: 'left heavy' satisfies FlamegraphState['preferences']['sorting'],
   },
 };
 
@@ -133,7 +133,7 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    query: '',
+    dataSource: 'profiles',
   });
 
   const [visualization, setVisualization] = useLocalStorageState<

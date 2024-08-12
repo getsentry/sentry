@@ -17,7 +17,10 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -89,8 +92,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isProfilingSelected
       ? `
-      // Profiling
-      profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
+        // Profiling
+        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;
@@ -141,6 +144,7 @@ const getNextStep = (
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,
@@ -166,9 +170,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ),
       configurations: getSetupConfiguration(params),
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
       ...params,
@@ -279,6 +280,9 @@ function getSetupConfiguration(params: Params) {
 
           ${getSiblingSuffix(siblingOption)}`,
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
   ];
 
   return configuration;

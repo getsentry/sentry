@@ -46,10 +46,11 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, load_grouping_config
+from sentry.grouping.api import load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
@@ -67,7 +68,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.integrations import Integration
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -991,43 +991,52 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
-        enhancement = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_config_string(
             """
             function:in_app_function +app
             function:not_in_app_function -app
-            """,
-        )
+            """
+        ).dumps()
 
-        manager = EventManager(
-            make_event(
-                platform="native",
-                exception={
-                    "values": [
-                        {
-                            "type": "Hello",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": "not_in_app_function",
-                                    },
-                                    {
-                                        "function": "in_app_function",
-                                    },
-                                ]
-                            },
-                        }
-                    ]
-                },
-            )
-        )
-        manager.normalize()
-        manager.get_data()["grouping_config"] = {
-            "enhancements": enhancement.dumps(),
-            "id": "legacy:2019-03-12",
+        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
+        # to update the test every time we change the default), but there's something about the
+        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
+        # We'll have to figure this out before we can delete the config.
+        grouping_config = {
+            "id": "mobile:2021-02-12",
+            "enhancements": enhancements_str,
         }
-        event1 = manager.save(self.project.id)
-        assert event1.transaction is None
-        assert event1.culprit == "in_app_function"
+
+        with patch(
+            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            return_value=grouping_config,
+        ):
+            manager = EventManager(
+                make_event(
+                    platform="native",
+                    exception={
+                        "values": [
+                            {
+                                "type": "Hello",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "not_in_app_function",
+                                        },
+                                        {
+                                            "function": "in_app_function",
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                )
+            )
+            manager.normalize()
+            event1 = manager.save(self.project.id)
+            assert event1.transaction is None
+            assert event1.culprit == "in_app_function"
 
     def test_inferred_culprit_from_empty_stacktrace(self) -> None:
         manager = EventManager(make_event(stacktrace={"frames": []}))
@@ -1232,6 +1241,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.project.id: 1}
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
 
@@ -1249,6 +1259,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id_2)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
         assert euser.name == "jane"
@@ -1271,6 +1282,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.ip_address is None
 
@@ -1282,6 +1294,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.username == "foô"
 
@@ -2046,72 +2059,81 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancement = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_config_string(
             """
             function:foo category=bar
             function:foo2 category=bar
             category:bar -app
-            """,
-        )
+            """
+        ).dumps()
 
-        event_params = make_event(
-            platform="native",
-            exception={
-                "values": [
-                    {
-                        "type": "Hello",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "foo",
-                                    "in_app": True,
-                                },
-                                {"function": "bar"},
-                            ]
-                        },
-                    }
-                ]
-            },
-        )
-
-        manager = EventManager(event_params)
-        manager.normalize()
-        manager.get_data()["grouping_config"] = {
-            "enhancements": enhancement.dumps(),
+        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
+        # to update the test every time we change the default), but there's something about the
+        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
+        # We'll have to figure this out before we can delete the config.
+        grouping_config = {
             "id": "mobile:2021-02-12",
+            "enhancements": enhancements_str,
         }
-        event1 = manager.save(self.project.id)
-        assert event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
 
-        event_params = make_event(
-            platform="native",
-            exception={
-                "values": [
-                    {
-                        "type": "Hello",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "foo2",
-                                    "in_app": True,
-                                },
-                                {"function": "bar"},
-                            ]
-                        },
-                    }
-                ]
-            },
-        )
+        with patch(
+            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            return_value=grouping_config,
+        ):
+            event_params = make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "foo",
+                                        "in_app": True,
+                                    },
+                                    {"function": "bar"},
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
 
-        manager = EventManager(event_params)
-        manager.normalize()
-        manager.get_data()["grouping_config"] = {
-            "enhancements": enhancement.dumps(),
-            "id": "mobile:2021-02-12",
-        }
-        event2 = manager.save(self.project.id)
-        assert event2.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
-        assert event1.group_id == event2.group_id
+            manager = EventManager(event_params)
+            manager.normalize()
+            event1 = manager.save(self.project.id)
+            assert (
+                event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
+            )
+
+            event_params = make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "foo2",
+                                        "in_app": True,
+                                    },
+                                    {"function": "bar"},
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+
+            manager = EventManager(event_params)
+            manager.normalize()
+            event2 = manager.save(self.project.id)
+            assert (
+                event2.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
+            )
+            assert event1.group_id == event2.group_id
 
     def test_category_match_group(self) -> None:
         """
@@ -2120,54 +2142,64 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancement = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_config_string(
             """
             function:foo category=foo_like
             category:foo_like -group
-            """,
-        )
+            """
+        ).dumps()
 
-        event_params = make_event(
-            platform="native",
-            exception={
-                "values": [
-                    {
-                        "type": "Hello",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "foo",
-                                },
-                                {
-                                    "function": "bar",
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        )
-
-        manager = EventManager(event_params)
-        manager.normalize()
-
-        grouping_config: GroupingConfig = {
-            "enhancements": enhancement.dumps(),
+        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
+        # to update the test every time we change the default), but there's something about the
+        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
+        # We'll have to figure this out before we can delete the config.
+        grouping_config = {
             "id": "mobile:2021-02-12",
+            "enhancements": enhancements_str,
         }
 
-        manager.get_data()["grouping_config"] = grouping_config
-        event1 = manager.save(self.project.id)
+        with patch(
+            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            return_value=grouping_config,
+        ):
+            event_params = make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "foo",
+                                    },
+                                    {
+                                        "function": "bar",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
 
-        event2 = Event(event1.project_id, event1.event_id, data=event1.data)
+            manager = EventManager(event_params)
+            manager.normalize()
 
-        assert (
-            event1.get_hashes().hashes
-            == event2.get_hashes(load_grouping_config(grouping_config)).hashes
-        )
+            event1 = manager.save(self.project.id)
+            event2 = Event(event1.project_id, event1.event_id, data=event1.data)
+
+            assert (
+                event1.get_hashes().hashes
+                == event2.get_hashes(load_grouping_config(grouping_config)).hashes
+            )
 
     def test_write_none_tree_labels(self) -> None:
         """Write tree labels even if None"""
+        # This suffers from the same "has to be mobile" situation as other tests, but here it
+        # doesn't matter, because this test will go away along with hierarchical grouping and the
+        # mobile config
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
 
         event_params = make_event(
             platform="native",
@@ -2192,15 +2224,17 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         manager = EventManager(event_params)
         manager.normalize()
-
-        manager.get_data()["grouping_config"] = {
-            "id": "mobile:2021-02-12",
-        }
         event = manager.save(self.project.id)
 
         assert event.data["hierarchical_tree_labels"] == [None]
 
     def test_synthetic_exception_detection(self) -> None:
+        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
+        # to update the test every time we change the default), but there's something about the
+        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
+        # We'll have to figure this out before we can delete the config.
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+
         manager = EventManager(
             make_event(
                 message="foo",
@@ -2218,10 +2252,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             project=self.project,
         )
         manager.normalize()
-
-        manager.get_data()["grouping_config"] = {
-            "id": "mobile:2021-02-12",
-        }
         event = manager.save(self.project.id)
 
         mechanism = event.interfaces["exception"].values[0].mechanism

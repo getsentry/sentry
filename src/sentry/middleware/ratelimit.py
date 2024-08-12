@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Callable
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
@@ -69,9 +70,10 @@ class RatelimitMiddleware:
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
-                request.rate_limit_key = get_rate_limit_key(
-                    view_func, request, rate_limit_group, rate_limit_config
-                )
+                with sentry_sdk.start_span(op="ratelimit.get_rate_limit_key"):
+                    request.rate_limit_key = get_rate_limit_key(
+                        view_func, request, rate_limit_group, rate_limit_config
+                    )
                 if request.rate_limit_key is None:
                     return None
 
@@ -86,9 +88,11 @@ class RatelimitMiddleware:
                 if rate_limit is None:
                     return None
 
-                request.rate_limit_metadata = above_rate_limit_check(
-                    request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
-                )
+                with sentry_sdk.start_span(op="ratelimit.above_rate_limit_check"):
+                    request.rate_limit_metadata = above_rate_limit_check(
+                        request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
+                    )
+
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
                     request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
@@ -115,6 +119,7 @@ class RatelimitMiddleware:
                         ),
                         status=429,
                     )
+                    assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]
                     )

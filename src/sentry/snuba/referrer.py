@@ -454,6 +454,8 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_STARFISH_MOBILE_SCREENS_METRICS = "api.starfish.mobile-screens-metrics"
+    API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE = "api.starfish.mobile-screens-screen-table"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
@@ -599,6 +601,7 @@ class Referrer(Enum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"
     )

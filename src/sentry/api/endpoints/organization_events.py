@@ -43,6 +43,9 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+# TODO: Adjust this once we make a decision in the DACI for global views restriction
+# Do not add more referrers to this list as it is a temporary solution
+GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -108,6 +111,8 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_METRICS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE.value,
     Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
@@ -315,8 +320,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
+        referrer = request.GET.get("referrer")
+
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(
+                request,
+                organization,
+                # This is only temporary until we come to a decision on global views
+                # checking for referrer for an allowlist is a brittle check since referrer
+                # can easily be set by the caller
+                check_global_views=not (
+                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
+                ),
+            )
         except NoProjects:
             return Response(
                 {
@@ -330,8 +346,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         except InvalidParams as err:
             raise ParseError(err)
-
-        referrer = request.GET.get("referrer")
 
         batch_features = self.get_features(organization, request)
 
