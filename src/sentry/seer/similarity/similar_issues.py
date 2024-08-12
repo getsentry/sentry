@@ -55,29 +55,6 @@ def get_similarity_data_from_seer(
         "get_seer_similar_issues.request",
         extra=logger_extra,
     )
-    # TODO: This is temporary, to debug Seer being sent empty stacktraces (which will happen for
-    # ingest requests if the filter in `event_content_is_seer_eligible` for existence of frames
-    # isn't enough, or if the similar issues tab ever sends an empty stacktrace). If we want this
-    # check to become permanent, we should move it elsewhere.
-    if not similar_issues_request["stacktrace"]:
-        logger.warning(
-            "get_seer_similar_issues.empty_stacktrace",
-            extra={
-                "event_id": similar_issues_request["event_id"],
-                "project_id": project_id,
-                "hash": request_hash,
-                "referrer": similar_issues_request.get("referrer"),
-            },
-        )
-        metrics.incr(
-            "seer.similar_issues_request",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={
-                **metric_tags,
-                "outcome": "empty_stacktrace",
-            },
-        )
-        return []
 
     circuit_breaker = CircuitBreaker(
         SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
