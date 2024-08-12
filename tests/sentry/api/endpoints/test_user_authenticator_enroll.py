@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -58,7 +59,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("1234")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
-        assert interface
+        assert isinstance(interface, TotpInterface)
+        assert interface.authenticator, "should have authenticator"
         assert interface.secret == "secret12"
         assert interface.config == {"secret": "secret12"}
 
@@ -76,6 +78,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("5678")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
+        assert isinstance(interface, TotpInterface)
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 

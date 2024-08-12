@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from django.core.cache import cache
 from django.http import HttpRequest
@@ -33,8 +33,8 @@ class ActivationMessageResult(ActivationResult):
         self.type = type
         self.message = message
 
-    def __str__(self):
-        return self.message
+    def __str__(self) -> str:
+        return str(self.message)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.message}>"
@@ -58,7 +58,7 @@ class NewEnrollmentDisallowed(Exception):
     pass
 
 
-class AuthenticatorInterface(Protocol):
+class AuthenticatorInterface:
     type = -1
     interface_id: str
     name: str | _StrPromise
@@ -140,7 +140,7 @@ class AuthenticatorInterface(Protocol):
         """This method is invoked if a new config is required."""
         return {}
 
-    def activate(self, request: HttpRequest) -> None:
+    def activate(self, request: HttpRequest) -> ActivationResult | None:
         """If an authenticator overrides this then the method is called
         when the dialog for authentication is brought up.  The returned string
         is then rendered in the UI.

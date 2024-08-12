@@ -270,6 +270,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
+        assert interface.authenticator, "should have authenticator"
         response = self.get_success_response(self.user.id, interface.authenticator.id)
         old_codes = response.data["codes"]
         old_created_at = response.data["createdAt"]

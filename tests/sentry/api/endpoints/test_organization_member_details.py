@@ -1000,6 +1000,8 @@ class ResetOrganizationMember2faTest(APITestCase):
         # cannot regenerate recovery codes
         recovery = RecoveryCodeInterface()
         recovery.enroll(self.user)
+        assert recovery.authenticator, "authenticator should exist"
+
         path = reverse(
             "sentry-api-0-user-authenticator-details",
             args=[self.member.id, recovery.authenticator.id],

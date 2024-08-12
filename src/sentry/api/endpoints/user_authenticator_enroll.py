@@ -151,10 +151,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         response["form"] = get_serializer_field_metadata(serializer_map[interface_id]())
 
         # U2fInterface has no 'secret' attribute
-        try:
+        if hasattr(interface, "secret"):
             response["secret"] = interface.secret
-        except AttributeError:
-            pass
 
         if interface_id == "totp":
             assert isinstance(
@@ -232,10 +230,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             else:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
+        if hasattr(interface, "secret"):
             interface.secret = request.data["secret"]
-        except KeyError:
-            pass
 
         context = {}
         # Need to update interface with phone number before validating OTP
