@@ -43,39 +43,42 @@ export function useIntegrationExternalIssues({
     return acc;
   }, new Map<string, GroupIntegration[]>());
 
-  const integrationItems: IntegrationResult['integrations'] = [];
-  const linkedIssues: IntegrationResult['linkedIssues'] = [];
+  const results: IntegrationResult = {integrations: [], linkedIssues: [], isLoading};
 
   for (const [providerKey, configurations] of activeIntegrationsByProvider.entries()) {
     const displayIcon = getIntegrationIcon(providerKey, 'sm');
     // Integrations can have multiple configurations, create an action for each configuration
-    const actions = configurations.map<ExternalIssueAction>(config => ({
-      name: config.name,
-      nameSubText: config.domainName ?? undefined,
-      disabled: config.status === 'disabled',
-      onClick: () => {
-        doOpenExternalIssueModal({
-          group,
-          integration: config,
-          onChange: refetchIntegrations,
-          organization,
-        });
-      },
-    }));
+    const actions = configurations
+      .filter(config => config.externalIssues.length === 0)
+      .map<ExternalIssueAction>(config => ({
+        name: config.name,
+        nameSubText: config.domainName ?? undefined,
+        disabled: config.status === 'disabled',
+        onClick: () => {
+          doOpenExternalIssueModal({
+            group,
+            integration: config,
+            onChange: refetchIntegrations,
+            organization,
+          });
+        },
+      }));
 
-    // Roll up all configurations into a single integration item
-    integrationItems.push({
-      displayName: getIntegrationDisplayName(providerKey),
-      key: providerKey,
-      displayIcon,
-      actions,
-    });
+    if (actions.length > 0) {
+      // Roll up all configurations into a single integration item
+      results.integrations.push({
+        displayName: getIntegrationDisplayName(providerKey),
+        key: providerKey,
+        displayIcon,
+        actions,
+      });
+    }
 
     // If any configuration has an external issue linked, display it
-    linkedIssues.push(
+    results.linkedIssues.push(
       ...configurations
         .filter(config => config.externalIssues.length > 0)
-        .map<(typeof linkedIssues)[number]>(config => ({
+        .map<IntegrationResult['linkedIssues'][number]>(config => ({
           key: config.externalIssues[0].id,
           displayName: config.externalIssues[0].key,
           displayIcon,
@@ -102,5 +105,5 @@ export function useIntegrationExternalIssues({
     );
   }
 
-  return {integrations: integrationItems, linkedIssues, isLoading};
+  return results;
 }

@@ -51,9 +51,9 @@ export function useSentryAppExternalIssues({
     if (externalIssue) {
       result.linkedIssues.push({
         key: externalIssue.id,
-        displayName,
+        displayName: `${displayName} Issue`,
         url: externalIssue.webUrl,
-        title: externalIssue.issueId,
+        title: externalIssue.displayName,
         displayIcon: <SentryAppComponentIcon sentryAppComponent={component} size={14} />,
         onUnlink: () => {
           deleteExternalIssue(api, group.id, externalIssue.id)

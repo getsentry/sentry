@@ -280,12 +280,12 @@ export default function GroupSidebar({
           currentRelease={currentRelease}
         />
       )}
-      {event && (
+      {!hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {renderPluginIssue()}
+      {!hasStreamlinedUI && renderPluginIssue()}
       {issueTypeConfig.tags.enabled && (
         <TagFacets
           environments={environments}
