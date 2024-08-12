@@ -234,7 +234,7 @@ function SidebarItem({
             onClick={handleItemClick}
           >
             <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-            <SidebarItemWrapper collapsed={isInCollapsedState}>
+            <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
               {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
               {!isInCollapsedState && !isTop && (
                 <SidebarItemLabel
@@ -273,6 +273,7 @@ function SidebarItem({
                   {badge}
                 </SidebarItemBadge>
               )}
+              {hasNewNav && <div>foobar</div>}
               {trailingItems}
             </SidebarItemWrapper>
           </StyledSidebarItem>
@@ -371,6 +372,7 @@ const StyledSidebarItem = styled(Link, {
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
+  margin: ${space(1)} 0;
 
   &:before {
     display: block;
@@ -424,10 +426,11 @@ const StyledSidebarItem = styled(Link, {
   ${getActiveStyle};
 `;
 
-const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
+const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
+  ${p => p.hasNewNav && 'flex-direction: column;'}
   width: 100%;
 
   ${p => !p.collapsed && `padding-right: ${space(1)};`}

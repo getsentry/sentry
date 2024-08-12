@@ -119,11 +119,25 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  // const hasNewNav = useMemo(() => {
+  //   return organization?.features.includes('organizations:navigation-sidebar-v2');
+  // }, [organization]);
+  const hasNewNav = true;
+  const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const hasPanel = !!activePanel;
+  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
+  const sidebarItemProps = {
+    orientation,
+    collapsed,
+    hasPanel,
+    organization,
+    hasNewNav,
+  };
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -176,21 +190,18 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const hasPanel = !!activePanel;
-  const hasOrganization = !!organization;
-  // const hasNewNav = organization?.features.includes(
-  //   'organizations:navigation-sidebar-v2'
-  // );
-  const hasNewNav = true;
-  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
+  // Add sidebar hasNewNav classname to body
+  useEffect(() => {
+    const bcl = document.body.classList;
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-    hasNewNav,
-  };
+    if (hasNewNav) {
+      bcl.add('hasNewNav');
+    } else {
+      bcl.remove('hasNewNav');
+    }
+
+    return () => bcl.remove('hasNewNav');
+  }, [hasNewNav]);
 
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
@@ -616,12 +627,14 @@ function Sidebar() {
   return (
     <SidebarWrapper
       aria-label={t('Primary Navigation')}
-      collapsed={hasNewNav || collapsed}
+      collapsed={collapsed}
+      hasNewNav={hasNewNav}
     >
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
+            noMargin={hasNewNav}
           >
             <SidebarDropdown
               orientation={orientation}
@@ -636,19 +649,19 @@ function Sidebar() {
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection>
+                <SidebarSection noMargin={hasNewNav}>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection>
+                    <SidebarSection noMargin={hasNewNav}>
                       {explore}
                       {insights}
                     </SidebarSection>
 
-                    <SidebarSection>
+                    <SidebarSection noMargin={hasNewNav}>
                       {performance}
                       {feedback}
                       {monitors}
@@ -661,7 +674,7 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection>
+                    <SidebarSection noMargin={hasNewNav}>
                       {alerts}
                       {discover2}
                       {dashboards}
@@ -671,7 +684,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                <SidebarSection>
+                <SidebarSection noMargin={hasNewNav}>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -722,7 +735,7 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection>
+            <SidebarSection noMargin={hasNewNav}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
                   orientation,
@@ -757,7 +770,7 @@ function Sidebar() {
             </SidebarSection>
 
             {!horizontal && !hasNewNav && (
-              <SidebarSection>
+              <SidebarSection noMargin={hasNewNav}>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"
@@ -786,12 +799,19 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
+export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
+  width: ${p =>
+    p.theme.sidebar[
+      p.hasNewNav
+        ? 'semiCollapsedWidth'
+        : p.collapsed
+          ? 'collapsedWidth'
+          : 'expandedWidth'
+    ]};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -819,6 +839,7 @@ const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
+  align-items: center;
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
