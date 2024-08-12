@@ -4,7 +4,7 @@ import html
 import re
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
@@ -320,11 +320,8 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler = cast(
-    Handler,
-    Handler(
-        fn=unfurl_discover,
-        matcher=[discover_link_regex, customer_domain_discover_link_regex],
-        arg_mapper=map_discover_query_args,
-    ),
+discover_handler = Handler(
+    fn=unfurl_discover,
+    matcher=[discover_link_regex, customer_domain_discover_link_regex],
+    arg_mapper=map_discover_query_args,
 )

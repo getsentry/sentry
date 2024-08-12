@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Callable, Mapping
 from re import Pattern
-from typing import Any, NamedTuple, Optional, Protocol
+from typing import Any, NamedTuple, Optional, Protocol, cast
 
 from django.http.request import HttpRequest
 
@@ -54,15 +54,14 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     return type_coercer
 
 
-from sentry.integrations.slack.unfurl.issues import handler as issues_handler
-from sentry.integrations.slack.unfurl.metric_alerts import handler as metric_alert_handler
-
-from .discover import handler as discover_handler
+from sentry.integrations.slack.unfurl.discover import discover_handler
+from sentry.integrations.slack.unfurl.issues import issues_handler
+from sentry.integrations.slack.unfurl.metric_alerts import metric_alert_handler
 
 link_handlers: dict[LinkType, Handler] = {
-    LinkType.DISCOVER: discover_handler,
-    LinkType.METRIC_ALERT: metric_alert_handler,
-    LinkType.ISSUES: issues_handler,
+    LinkType.DISCOVER: cast(Handler, discover_handler),
+    LinkType.METRIC_ALERT: cast(Handler, metric_alert_handler),
+    LinkType.ISSUES: cast(Handler, issues_handler),
 }
 
 
