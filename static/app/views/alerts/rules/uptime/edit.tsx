@@ -148,7 +148,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
             stacked
           />
         </FormRow>
-        <AlertListItem>{t('Add name and owner')}</AlertListItem>
+        <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <FormRow>
           <TextField
             name="name"
