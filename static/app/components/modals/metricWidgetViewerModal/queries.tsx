@@ -579,7 +579,6 @@ const ExpressionsWrapper = styled('div')<{
   hasMetricsNewInput: boolean;
   showQuerySymbols: boolean;
 }>`
-  padding-bottom: ${space(1)};
   ${p =>
     p.hasMetricsNewInput &&
     css`
@@ -630,7 +629,7 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
   gap: ${space(2)};
-  padding-bottom: ${space(2)};
+  padding: ${space(2)} 0;
 
   ${p =>
     p.addQuerySymbolSpacing &&
