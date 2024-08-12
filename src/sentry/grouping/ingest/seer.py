@@ -206,8 +206,9 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
+    seer_results_json = [asdict(result) for result in seer_results]
     similar_issues_metadata = {
-        "results": [asdict(result) for result in seer_results],
+        "results": seer_results_json,
         "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
     }
     parent_grouphash = (
@@ -224,7 +225,7 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": seer_results,
+            "results": seer_results_json,
             "grouphash_returned": bool(parent_grouphash),
         },
     )

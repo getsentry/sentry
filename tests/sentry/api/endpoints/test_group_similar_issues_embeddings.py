@@ -427,6 +427,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "hash": NonNone(self.event.get_primary_hash()),
                 "parent_hash": "not a real hash",
                 "project_id": self.project.id,
+                "event_id": self.event.event_id,
             },
         )
         mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
@@ -482,6 +483,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "hash": NonNone(self.event.get_primary_hash()),
                 "parent_hash": "dogs are great",
                 "project_id": self.project.id,
+                "event_id": self.event.event_id,
             },
         )
 
