@@ -181,7 +181,6 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             user=request.user,
             default_rules=result.get("default_rules", True),
             sender=self,
-            access=request.access,
         )
         self.create_audit_entry(
             request=request,

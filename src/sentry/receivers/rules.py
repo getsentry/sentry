@@ -1,5 +1,4 @@
 from sentry import features
-from sentry.auth.access import Access
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
@@ -48,14 +47,9 @@ def has_high_priority_issue_alerts(project: Project) -> bool:
     return features.has("organizations:priority-ga-features", project.organization)
 
 
-def create_default_rules(
-    project: Project, default_rules=True, RuleModel=Rule, access=Access, **kwargs
-):
+def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, **kwargs):
     if not default_rules:
         return
-
-    if features.has("organizations:default-metric-alerts-new-projects", project.organization):
-        pass
 
     if has_high_priority_issue_alerts(project):
         rule_data = DEFAULT_RULE_DATA_NEW
