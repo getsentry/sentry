@@ -491,8 +491,20 @@ function ExpressionAliasForm({
     >
       {hasMetricsNewInputs(organization) ? (
         <QueryFieldGroup>
-          <Label>As</Label>
-          <FlexBlock>
+          <QueryFieldGroup.Label
+            css={css`
+              width: 95px;
+              min-width: 95px;
+              white-space: nowrap;
+            `}
+          >
+            As
+          </QueryFieldGroup.Label>
+          <div
+            css={css`
+              display: flex;
+            `}
+          >
             <QueryFieldGroup.DebouncedInput
               type="text"
               value={formatAlias(expression.alias)}
@@ -504,7 +516,7 @@ function ExpressionAliasForm({
               title={t('Clear Alias')}
               onClick={() => onChange(undefined)}
             />
-          </FlexBlock>
+          </div>
         </QueryFieldGroup>
       ) : (
         <Fragment>
@@ -682,14 +694,4 @@ const StyledButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: none;
-`;
-
-const Label = styled(QueryFieldGroup.Label)`
-  width: 95px;
-  min-width: 95px;
-  white-space: nowrap;
-`;
-
-const FlexBlock = styled('div')`
-  display: flex;
 `;
