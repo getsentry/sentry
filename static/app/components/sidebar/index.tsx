@@ -383,19 +383,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const exploreView = hasOrganization && (
-    <Feature features="visibility-explore-view">
-      <SidebarItem
-        {...sidebarItemProps}
-        label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/explore/`}
-        id="explore"
-        icon={<SubitemDot collapsed />}
-        isAlpha
-      />
-    </Feature>
-  );
-
   const traces = hasOrganization && (
     <Feature features="performance-trace-explorer">
       <SidebarItem
@@ -612,7 +599,6 @@ function Sidebar() {
       id="explore"
       exact={!shouldAccordionFloat}
     >
-      {exploreView}
       {traces}
       {metrics}
       {profiling}

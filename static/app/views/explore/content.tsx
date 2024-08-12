@@ -20,7 +20,7 @@ interface ExploreContentProps {
   location: Location;
 }
 
-export default function ExploreContent({}: ExploreContentProps) {
+export function ExploreContent({}: ExploreContentProps) {
   const organization = useOrganization();
   return (
     <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>

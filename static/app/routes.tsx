@@ -1724,22 +1724,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const exploreRoutes = (
-    <Route
-      path="/explore/"
-      component={make(() => import('sentry/views/explore'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/explore/content'))} />
-    </Route>
-  );
-
   const tracesRoutes = (
     <Route
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
@@ -2136,7 +2128,6 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {exploreRoutes}
       {tracesRoutes}
       {insightsRoutes}
       {llmMonitoringRedirects}
