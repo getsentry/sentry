@@ -137,7 +137,6 @@ class PluginActions extends Component<Props, State> {
     const {project, group, organization, plugin} = this.props;
 
     openPluginActionModal({
-      issue: this.state.issue!,
       project,
       group,
       organization,
