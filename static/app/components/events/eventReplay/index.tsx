@@ -29,7 +29,6 @@ export default function EventReplay({event, group, projectSlug}: Props) {
   });
 
   const {setParamValue: setProjectId} = useUrlParams('project');
-  const issueTypeConfig = getConfigForIssueType(group!, group?.project!);
 
   useEffect(() => {
     if (canShowUpsell) {
@@ -37,8 +36,11 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     }
   }, [upsellProjectId, setProjectId, canShowUpsell]);
 
-  if (!issueTypeConfig.replays.enabled) {
-    return null;
+  if (group) {
+    const issueTypeConfig = getConfigForIssueType(group!, group?.project!);
+    if (!issueTypeConfig.replays.enabled) {
+      return null;
+    }
   }
 
   if (replayId) {
