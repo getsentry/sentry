@@ -12,11 +12,12 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.project import Project
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone

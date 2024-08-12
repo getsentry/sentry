@@ -1,4 +1,5 @@
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
