@@ -62,24 +62,32 @@ export function usePluginExternalIssues({
           {
             name: plugin.shortName,
             onClick: () => {
-              openPluginActionModal({
-                plugin,
-                group,
-                project,
-                organization,
-                onModalClose: (data?: any) => {
-                  const updatedPlugin: any = {
-                    ...plugin,
-                    // Remove issue from plugin
-                    issue:
-                      data?.id && data?.link
-                        ? {issue_id: data.id, url: data.link, label: data.label}
-                        : null,
-                  };
-                  plugins.load(updatedPlugin, () => {
-                    addSuccessMessage(t('Successfully linked issue.'));
-                  });
-                },
+              plugins.load(plugin, () => {
+                openPluginActionModal({
+                  plugin,
+                  group,
+                  project,
+                  organization,
+                  // Is passed to both modal onClose and onSuccess which is a bit goofy
+                  onModalClose: (data?: any | string) => {
+                    // String could be one of 'close-button', 'backdrop-click', 'escape-key'
+                    if (!data || typeof data === 'string') {
+                      return;
+                    }
+
+                    const updatedPlugin: any = {
+                      ...plugin,
+                      // Remove issue from plugin
+                      issue:
+                        data?.id && data?.link
+                          ? {issue_id: data.id, url: data.link, label: data.label}
+                          : null,
+                    };
+                    plugins.load(updatedPlugin, () => {
+                      addSuccessMessage(t('Successfully linked issue.'));
+                    });
+                  },
+                });
               });
             },
           },
