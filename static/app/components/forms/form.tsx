@@ -80,6 +80,34 @@ export interface FormProps
   submitPriority?: ButtonProps['priority'];
 }
 
+function getSubmitButtonTitle(form: FormModel) {
+  if (form.isFormIncomplete) {
+    return t('Required fields must be filled out');
+  }
+
+  if (form.isError) {
+    const errors = form.getErrors();
+    const hasRequiredFieldError = [...errors].some(
+      ([_field, message]) => message === fieldIsRequiredMessage
+    );
+
+    if (hasRequiredFieldError) {
+      const allRequiredFieldErrors = [...errors].every(
+        ([_field, message]) => message === fieldIsRequiredMessage
+      );
+
+      if (allRequiredFieldErrors) {
+        return t('Required fields must be filled out');
+      }
+
+      return t('Required fields must be filled out and inputs must be valid');
+    }
+
+    return t('Fields must contain valid inputs');
+  }
+  return undefined;
+}
+
 function Form({
   'data-test-id': dataTestId,
   allowUndo,
@@ -198,34 +226,6 @@ function Form({
       skipPreventDefault,
     ]
   );
-
-  const getSubmitButtonTitle = useCallback((props: FormModel) => {
-    if (props.isFormIncomplete) {
-      return t('Required fields must be filled out');
-    }
-
-    if (props.isError) {
-      const errors = props.getErrors();
-      const hasRequiredFieldError = [...errors].some(
-        ([_field, message]) => message === fieldIsRequiredMessage
-      );
-
-      if (hasRequiredFieldError) {
-        const allRequiredFieldErrors = [...errors].every(
-          ([_field, message]) => message === fieldIsRequiredMessage
-        );
-
-        if (allRequiredFieldErrors) {
-          return t('Required fields must be filled out');
-        }
-
-        return t('Required fields must be filled out and inputs must be valid');
-      }
-
-      return t('Fields must contain valid inputs');
-    }
-    return undefined;
-  }, []);
 
   const shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
