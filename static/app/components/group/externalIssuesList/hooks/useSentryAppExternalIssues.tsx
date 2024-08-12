@@ -47,10 +47,11 @@ export function useSentryAppExternalIssues({
     const externalIssue = externalIssues.find(
       i => i.serviceType === component.sentryApp.slug
     );
+    const displayName = component.sentryApp.name;
     if (externalIssue) {
       result.linkedIssues.push({
         key: externalIssue.id,
-        displayName: externalIssue.displayName,
+        displayName,
         url: externalIssue.webUrl,
         title: externalIssue.issueId,
         displayIcon: <SentryAppComponentIcon sentryAppComponent={component} size={14} />,
@@ -67,9 +68,11 @@ export function useSentryAppExternalIssues({
       });
     } else {
       result.integrations.push({
-        displayName: component.sentryApp.name,
         key: component.sentryApp.slug,
+        displayName,
         displayIcon: <SentryAppComponentIcon sentryAppComponent={component} size={14} />,
+        disabled: Boolean(component.error),
+        disabledText: t('Unable to connect to %s', displayName),
         actions: [
           {
             name: 'Create Issue',

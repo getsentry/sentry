@@ -2,6 +2,7 @@ interface BaseIssueAction {
   displayName: string;
   key: string;
   disabled?: boolean;
+  disabledText?: string;
   displayIcon?: React.ReactNode;
 }
 
@@ -28,6 +29,11 @@ export interface ExternalIssueAction {
   onClick: () => void;
   disabled?: boolean;
   disabledText?: string;
+  /**
+   * Optional subtext to display in the dropdown
+   * Helps differentiate between actions with the same name
+   */
+  nameSubText?: string;
 }
 
 /**

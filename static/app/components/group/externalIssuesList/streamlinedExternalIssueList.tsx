@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import useStreamLinedExternalIssueData from 'sentry/components/group/externalIssuesList/useStreamlinedExternalIssueData';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -12,6 +11,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+
+import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
 interface StreamlinedExternalIssueListProps {
   event: Event;
@@ -90,6 +91,10 @@ export function StreamlinedExternalIssueList({
                     <ErrorBoundary key={integration.key} mini>
                       <IssueActionButton
                         {...sharedButtonProps}
+                        disabled={integration.disabled}
+                        title={
+                          integration.disabled ? integration.disabledText : undefined
+                        }
                         onClick={integration.actions[0].onClick}
                       />
                     </ErrorBoundary>
@@ -106,6 +111,7 @@ export function StreamlinedExternalIssueList({
                         key: action.name,
                         label: action.name,
                         onAction: action.onClick,
+                        disabled: integration.disabled,
                       }))}
                     />
                   </ErrorBoundary>

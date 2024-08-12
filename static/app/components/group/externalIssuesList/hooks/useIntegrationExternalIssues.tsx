@@ -51,6 +51,7 @@ export function useIntegrationExternalIssues({
     // Integrations can have multiple configurations, create an action for each configuration
     const actions = configurations.map<ExternalIssueAction>(config => ({
       name: config.name,
+      nameSubText: config.domainName ?? undefined,
       disabled: config.status === 'disabled',
       onClick: () => {
         doOpenExternalIssueModal({
