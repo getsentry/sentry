@@ -113,10 +113,6 @@ const ComboBox = styled(_ComboBox)`
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    max-width: min(500px, 100%);
-  }
 `;
 
 const searchCss = (theme: Theme) => css`

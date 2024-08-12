@@ -1,4 +1,6 @@
+import type React from 'react';
 import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -104,92 +106,110 @@ export const Queries = memo(function Queries({
   );
 
   return (
-    <ExpressionsWrapper>
-      {metricQueries.map((query, index) => (
-        <ExpressionWrapper key={query.id}>
-          {showQuerySymbols && (
-            <QueryToggle
-              isHidden={query.isHidden}
-              onChange={isHidden => onQueryChange({isHidden}, index)}
-              disabled={
-                (!query.isHidden && visibleExpressions.length === 1) ||
-                displayType === DisplayType.BIG_NUMBER
-              }
-              disabledReason={t('Big Number widgets support only one visible metric')}
-              queryId={query.id}
-              type={MetricExpressionType.QUERY}
-            />
-          )}
-          <ExpressionFormWrapper>
-            <ExpressionFormRowWrapper>
-              <WrappedQueryBuilder
-                index={index}
-                onQueryChange={onQueryChange}
-                query={query}
-                projects={selection.projects}
-                hasSymbols={showQuerySymbols}
+    <Fragment>
+      <ExpressionsWrapper
+        hasMetricsNewInput={metricsNewInputs}
+        showQuerySymbols={showQuerySymbols}
+      >
+        {metricQueries.map((query, index) => (
+          <ExpressionWrapper key={query.id} hasMetricsNewInput={metricsNewInputs}>
+            {showQuerySymbols && (
+              <QueryToggle
+                isHidden={query.isHidden}
+                onChange={isHidden => onQueryChange({isHidden}, index)}
+                disabled={
+                  (!query.isHidden && visibleExpressions.length === 1) ||
+                  displayType === DisplayType.BIG_NUMBER
+                }
+                disabledReason={t('Big Number widgets support only one visible metric')}
+                queryId={query.id}
+                type={MetricExpressionType.QUERY}
               />
-              <QueryContextMenu
-                canRemoveQuery={metricQueries.length > 1}
-                removeQuery={removeQuery}
-                addQuery={addQuery}
-                editAlias={handleEditQueryAlias}
-                queryIndex={index}
-                metricsQuery={query}
-              />
-            </ExpressionFormRowWrapper>
-            {query.alias !== undefined && (
-              <ExpressionFormRowWrapper>
-                <ExpressionAliasForm
-                  expression={query}
-                  onChange={alias => onQueryChange({alias}, index)}
-                  hasContextMenu
+            )}
+            <ExpressionFormWrapper hasMetricsNewInput={metricsNewInputs}>
+              <ExpressionFormRowWrapper hasMetricsNewInput={metricsNewInputs}>
+                <WrappedQueryBuilder
+                  index={index}
+                  onQueryChange={onQueryChange}
+                  query={query}
+                  projects={selection.projects}
+                  hasSymbols={showQuerySymbols}
+                  alias={
+                    metricsNewInputs &&
+                    query.alias !== undefined && (
+                      <ExpressionFormRowWrapper hasMetricsNewInput={metricsNewInputs}>
+                        <ExpressionAliasForm
+                          expression={query}
+                          onChange={alias => onQueryChange({alias}, index)}
+                          hasContextMenu
+                          hasMetricsNewInput
+                        />
+                      </ExpressionFormRowWrapper>
+                    )
+                  }
+                />
+                <QueryContextMenu
+                  canRemoveQuery={metricQueries.length > 1}
+                  removeQuery={removeQuery}
+                  addQuery={addQuery}
+                  editAlias={handleEditQueryAlias}
+                  queryIndex={index}
+                  metricsQuery={query}
                 />
               </ExpressionFormRowWrapper>
-            )}
-          </ExpressionFormWrapper>
-        </ExpressionWrapper>
-      ))}
-      {metricEquations.map((equation, index) => (
-        <ExpressionWrapper key={equation.id}>
-          {showQuerySymbols && (
-            <QueryToggle
-              isHidden={equation.isHidden}
-              onChange={isHidden => onEquationChange({isHidden}, index)}
-              disabled={
-                (!equation.isHidden && visibleExpressions.length === 1) ||
-                displayType === DisplayType.BIG_NUMBER
-              }
-              disabledReason={t('Big Number widgets support only one visible metric')}
-              queryId={equation.id}
-              type={MetricExpressionType.EQUATION}
-            />
-          )}
-          <ExpressionFormWrapper>
-            <ExpressionFormRowWrapper>
-              <EquationInputWrapper>
-                <EquationInput
-                  onChange={formula => onEquationChange({formula}, index)}
-                  value={equation.formula}
-                  availableVariables={availableVariables}
-                  metricsNewInputs={metricsNewInputs}
-                />
-              </EquationInputWrapper>
-              {equation.alias !== undefined && (
-                <ExpressionAliasForm
-                  expression={equation}
-                  onChange={alias => onEquationChange({alias}, index)}
-                />
+              {!metricsNewInputs && query.alias !== undefined && (
+                <ExpressionFormRowWrapper hasMetricsNewInput={metricsNewInputs}>
+                  <ExpressionAliasForm
+                    expression={query}
+                    onChange={alias => onQueryChange({alias}, index)}
+                    hasContextMenu
+                  />
+                </ExpressionFormRowWrapper>
               )}
-              <EquationContextMenu
-                removeEquation={removeEquation}
-                editAlias={handleEditEquationAlias}
-                equationIndex={index}
+            </ExpressionFormWrapper>
+          </ExpressionWrapper>
+        ))}
+        {metricEquations.map((equation, index) => (
+          <ExpressionWrapper key={equation.id} hasMetricsNewInput={metricsNewInputs}>
+            {showQuerySymbols && (
+              <QueryToggle
+                isHidden={equation.isHidden}
+                onChange={isHidden => onEquationChange({isHidden}, index)}
+                disabled={
+                  (!equation.isHidden && visibleExpressions.length === 1) ||
+                  displayType === DisplayType.BIG_NUMBER
+                }
+                disabledReason={t('Big Number widgets support only one visible metric')}
+                queryId={equation.id}
+                type={MetricExpressionType.EQUATION}
               />
-            </ExpressionFormRowWrapper>
-          </ExpressionFormWrapper>
-        </ExpressionWrapper>
-      ))}
+            )}
+            <ExpressionFormWrapper hasMetricsNewInput={metricsNewInputs}>
+              <ExpressionFormRowWrapper hasMetricsNewInput={metricsNewInputs}>
+                <EquationInputWrapper hasMetricsNewInput={metricsNewInputs}>
+                  <EquationInput
+                    onChange={formula => onEquationChange({formula}, index)}
+                    value={equation.formula}
+                    availableVariables={availableVariables}
+                    metricsNewInputs={metricsNewInputs}
+                  />
+                </EquationInputWrapper>
+                {equation.alias !== undefined && (
+                  <ExpressionAliasForm
+                    expression={equation}
+                    onChange={alias => onEquationChange({alias}, index)}
+                  />
+                )}
+                <EquationContextMenu
+                  removeEquation={removeEquation}
+                  editAlias={handleEditEquationAlias}
+                  equationIndex={index}
+                />
+              </ExpressionFormRowWrapper>
+            </ExpressionFormWrapper>
+          </ExpressionWrapper>
+        ))}
+      </ExpressionsWrapper>
       <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
         <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
           {t('Add metric')}
@@ -200,7 +220,7 @@ export const Queries = memo(function Queries({
           </Button>
         )}
       </ButtonBar>
-    </ExpressionsWrapper>
+    </Fragment>
   );
 });
 
@@ -213,12 +233,14 @@ function WrappedQueryBuilder({
   projects,
   query,
   hasSymbols,
+  alias,
 }: {
   hasSymbols: boolean;
   index: number;
   onQueryChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
   projects: number[];
   query: DashboardMetricsQuery;
+  alias?: React.ReactNode;
 }) {
   const handleChange = useCallback(
     (data: Partial<DashboardMetricsQuery>) => {
@@ -233,6 +255,8 @@ function WrappedQueryBuilder({
       metricsQuery={query}
       projects={projects}
       hasSymbols={hasSymbols}
+      alias={alias}
+      isModal
     />
   );
 }
@@ -451,15 +475,20 @@ function ExpressionAliasForm({
   expression,
   onChange,
   hasContextMenu,
+  hasMetricsNewInput,
 }: {
   expression: DashboardMetricsExpression;
   onChange: (alias: string | undefined) => void;
   hasContextMenu?: boolean;
+  hasMetricsNewInput?: boolean;
 }) {
   const organization = useOrganization();
 
   return (
-    <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
+    <ExpressionAliasWrapper
+      hasOwnRow={hasContextMenu}
+      hasMetricsNewInput={hasMetricsNewInput}
+    >
       {hasMetricsNewInputs(organization) ? (
         <QueryFieldGroup>
           <QueryFieldGroup.Label>As</QueryFieldGroup.Label>
@@ -532,27 +561,59 @@ export function DebouncedInput({
   );
 }
 
-const ExpressionsWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+const ExpressionsWrapper = styled('div')<{
+  hasMetricsNewInput: boolean;
+  showQuerySymbols: boolean;
+}>`
+  padding-bottom: ${space(1)};
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      display: grid;
+      gap: ${space(1)};
+      grid-template-columns: ${p.showQuerySymbols
+        ? 'min-content 1fr max-content'
+        : '1fr max-content'};
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-template-columns: ${p.showQuerySymbols
+          ? 'min-content 1fr 1fr max-content'
+          : '1fr 1fr max-content'};
+      }
+    `}
 `;
 
-const ExpressionWrapper = styled('div')`
+const ExpressionWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      display: contents;
+    `}
 `;
 
-const ExpressionFormWrapper = styled('div')`
+const ExpressionFormWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-
   gap: ${space(1)};
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      display: contents;
+    `}
 `;
 
-const ExpressionFormRowWrapper = styled('div')`
+const ExpressionFormRowWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   gap: ${space(1)};
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      display: contents;
+    `}
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
@@ -566,6 +627,7 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
   gap: ${space(2)};
+  padding-bottom: ${space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
@@ -575,7 +637,10 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   `}
 `;
 
-const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
+const ExpressionAliasWrapper = styled('div')<{
+  hasMetricsNewInput?: boolean;
+  hasOwnRow?: boolean;
+}>`
   display: flex;
   flex-basis: 50%;
   align-items: center;
@@ -584,6 +649,13 @@ const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
   /* Add padding for the context menu */
   ${p => p.hasOwnRow && `padding-right: 56px;`}
   ${p => p.hasOwnRow && `flex-grow: 1;`}
+
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      padding: 0;
+      grid-column: 1/-1;
+    `}
 `;
 
 const StyledLabel = styled('div')`
@@ -598,8 +670,27 @@ const StyledLabel = styled('div')`
   border-right: none;
 `;
 
-const EquationInputWrapper = styled('div')`
+const EquationInputWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   width: 100%;
+  ${p =>
+    p.hasMetricsNewInput &&
+    css`
+      grid-template-columns: subgrid;
+
+      grid-column-start: 2;
+
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        grid-column-end: 4;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column-end: 5;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column-end: 6;
+      }
+    `}
 `;
 
 const StyledDebouncedInput = styled(DebouncedInput)`

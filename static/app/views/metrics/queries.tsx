@@ -288,14 +288,14 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <EquationWrapper hasMetricsNewInput={hasMetricsNewInput}>
+      <EquationInputWrapper hasMetricsNewInput={hasMetricsNewInput}>
         <EquationInput
           availableVariables={availableVariables}
           value={widget.formula}
           onChange={formula => handleChange({formula})}
           metricsNewInputs={metricsNewInputs}
         />
-      </EquationWrapper>
+      </EquationInputWrapper>
       <MetricFormulaContextMenu
         widgetIndex={index}
         formulaWidget={widget}
@@ -384,7 +384,6 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
     css`
       display: grid;
       gap: ${space(1)};
-
       grid-template-columns: ${p.showQuerySymbols
         ? 'min-content 1fr max-content'
         : '1fr max-content'};
@@ -409,7 +408,7 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
     `}
 `;
 
-const EquationWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
+const EquationInputWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   ${p =>
     p.hasMetricsNewInput &&
     css`

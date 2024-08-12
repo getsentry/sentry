@@ -43,6 +43,8 @@ type QueryBuilderProps = {
   metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricsQuery>) => void;
   projects: number[];
+  alias?: React.ReactNode;
+  isModal?: boolean;
 };
 
 export const QueryBuilder = memo(function QueryBuilder({
@@ -51,6 +53,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   onChange,
   index,
   hasSymbols,
+  alias,
+  isModal,
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -249,8 +253,8 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   if (hasMetricsNewInputs(organization)) {
     return (
-      <QueryBuilderWrapper metricsNewInputs hasSymbols={hasSymbols}>
-        <Visualize>
+      <QueryBuilderWrapper metricsNewInputs hasSymbols={hasSymbols} isModal={isModal}>
+        <Visualize isModal={isModal}>
           <FullWidthGuideAnchor
             target="metrics_selector"
             position="bottom"
@@ -266,6 +270,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                 metricsMeta={meta}
                 projects={projectIds}
                 value={metricsQuery.mri}
+                isModal={isModal}
               />
             </QueryFieldGroup>
           </FullWidthGuideAnchor>
@@ -332,7 +337,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             </QueryFieldGroup>
           </FullWidthGuideAnchor>
         </GroupBy>
-        <FilterBy hasSymbols={hasSymbols}>
+        <FilterBy hasSymbols={hasSymbols} isModal={isModal}>
           <FullWidthGuideAnchor
             target="metrics_filterby"
             position="bottom"
@@ -378,6 +383,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             )}
           </FullWidthGuideAnchor>
         </FilterBy>
+        {alias}
       </QueryBuilderWrapper>
     );
   }
@@ -511,6 +517,7 @@ const TooltipIconWrapper = styled('span')`
 
 const QueryBuilderWrapper = styled('div')<{
   hasSymbols?: boolean;
+  isModal?: boolean;
   metricsNewInputs?: boolean;
 }>`
   display: flex;
@@ -531,32 +538,42 @@ const QueryBuilderWrapper = styled('div')<{
         grid-column-end: ${p.hasSymbols ? '4' : '3'};
       }
 
-      @media (min-width: ${p.theme.breakpoints.large}) {
-        grid-column-end: ${p.hasSymbols ? '5' : '4'};
-      }
-
-      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
-        grid-column-end: ${p.hasSymbols ? '6' : '5'};
-      }
+      ${!p.isModal &&
+      css`
+        @media (min-width: ${p.theme.breakpoints.large}) {
+          grid-column-end: ${p.hasSymbols ? '5' : '4'};
+        }
+        @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+          grid-column-end: ${p.hasSymbols ? '6' : '5'};
+        }
+      `}
     `}
 `;
 
-const Visualize = styled('div')`
+const Visualize = styled('div')<{isModal?: boolean}>`
   grid-column: 1/-1;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-column: 1/1;
-  }
+  ${p =>
+    !p.isModal &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        grid-column: 1/1;
+      }
+    `}
 `;
 
 const Aggregate = styled('div')``;
 
 const GroupBy = styled('div')``;
 
-const FilterBy = styled('div')<{hasSymbols: boolean}>`
+const FilterBy = styled('div')<{hasSymbols: boolean; isModal?: boolean}>`
   grid-column: 1/-1;
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-column: ${p => (p.hasSymbols ? '6/6' : '5/5')};
-  }
+  ${p =>
+    !p.isModal &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column: ${p.hasSymbols ? '6/6' : '5/5'};
+      }
+    `}
 `;
 
 const Label = styled(QueryFieldGroup.Label)<{width?: string}>`
