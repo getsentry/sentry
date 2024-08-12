@@ -74,10 +74,10 @@ const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_filters',
   label: 'Transaction',
   children: [
-    SpanIndexedField.TRANSACTION_ID,
     SpanIndexedField.TRANSACTION_METHOD,
     SpanIndexedField.TRANSACTION_OP,
     SpanIndexedField.TRANSACTION,
+    SpanIndexedField.TRANSACTION_ID,
   ],
 };
 
@@ -102,21 +102,21 @@ const SPAN_FILTERS: FilterKeySection = {
   value: 'span_filters',
   label: 'Span',
   children: [
-    SpanIndexedField.SPAN_MODULE,
+    SpanIndexedField.SPAN_OP,
     SpanIndexedField.SPAN_DURATION,
     SpanIndexedField.SPAN_SELF_TIME,
-    SpanIndexedField.SPAN_OP,
     SpanIndexedField.SPAN_DESCRIPTION,
     SpanIndexedField.SPAN_STATUS,
     SpanIndexedField.SPAN_ACTION,
     SpanIndexedField.SPAN_DOMAIN,
+    SpanIndexedField.SPAN_MODULE,
   ],
 };
 
 export const SPANS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  RELEASE_FILTERS,
-  TRANSACTION_FILTERS,
-  SDK_FILTERS,
-  USER_FILTERS,
   SPAN_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_FILTERS,
+  RELEASE_FILTERS,
+  SDK_FILTERS,
 ];
