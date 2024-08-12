@@ -36,10 +36,6 @@ class FileBlameInfo(SourceLineInfo):
 
 
 class CommitContextIntegration(ABC):
-    # whether or not integration has the ability to search through Repositories
-    # dynamically given a search query
-    repo_search = False
-
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
@@ -77,4 +73,5 @@ class CommitContextClient(ABC):
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:
+        """Get the blame for a list of files. This method should include custom metrics for the specific integration implementation."""
         raise NotImplementedError
