@@ -725,12 +725,6 @@ urlpatterns += [
         react_page_view,
         name="insights",
     ),
-    # Explore
-    re_path(
-        r"^explore/",
-        react_page_view,
-        name="explore",
-    ),
     # Traces
     re_path(
         r"^traces/",
