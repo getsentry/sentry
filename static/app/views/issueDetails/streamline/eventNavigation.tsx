@@ -127,7 +127,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
       projectSlug: group.project.slug,
     });
 
-    const hasEventError = actionableItems?.errors[0];
+    const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
 
     const getSelectedOption = () => {
       switch (params.eventId) {
