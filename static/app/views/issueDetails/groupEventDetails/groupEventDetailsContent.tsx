@@ -8,12 +8,12 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
-import {EventActionableItems} from 'sentry/components/events/eventActionableItems';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -357,7 +357,9 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      <EventActionableItems event={event} project={project} isShare={false} />
+      {hasStreamlinedUI && (
+        <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
