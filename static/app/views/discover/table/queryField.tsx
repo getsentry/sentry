@@ -389,7 +389,6 @@ class QueryField extends Component<Props> {
                     value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
-                  // This is blocking my parameter from appearing
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };

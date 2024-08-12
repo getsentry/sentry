@@ -422,9 +422,9 @@ export function getIsTimeseriesChart(displayType: DisplayType) {
 
 // Handle adding functions to the field options
 // Field and equations are already compatible
-export function getFieldOptionFormat(field: QueryFieldValue): [string, FieldValueOption] {
-  // TODO: handle 'calculated fields' ??
-
+export function getFieldOptionFormat(
+  field: QueryFieldValue
+): [string, FieldValueOption] | null {
   if (field.kind === 'function') {
     // Show the ellipsis if there are parameters that actually have values
     const ellipsis =
@@ -460,5 +460,5 @@ export function getFieldOptionFormat(field: QueryFieldValue): [string, FieldValu
       },
     ];
   }
-  return ['a', {} as any]; // TODO: Remove this
+  return null;
 }

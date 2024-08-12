@@ -105,27 +105,30 @@ export function YAxisSelector({
       if (field.kind === 'function') {
         const functionName = field.alias || field.function[0];
         if (!(`function:${functionName}` in fieldOptions)) {
-          const [key, value] = getFieldOptionFormat(field);
-          fieldOptions[key] = value;
+          const formattedField = getFieldOptionFormat(field);
+          if (formattedField) {
+            const [key, value] = formattedField;
+            fieldOptions[key] = value;
 
-          // Store the injected function key so we can ensure the aggregate is visible
-          injectedFunctions.add(key);
+            // Store the injected function key so we can ensure the aggregate is visible
+            injectedFunctions.add(key);
 
-          // If the function needs to be injected, inject the parameter as a tag
-          // as well if it isn't already an option
-          if (
-            field.function[1] &&
-            !fieldOptions[`field:${field.function[1]}`] &&
-            !fieldOptions[`tag:${field.function[1]}`]
-          ) {
-            fieldOptions = appendFieldIfUnknown(fieldOptions, {
-              kind: FieldValueKind.TAG,
-              meta: {
-                dataType: 'string',
-                name: field.function[1],
-                unknown: true,
-              },
-            });
+            // If the function needs to be injected, inject the parameter as a tag
+            // as well if it isn't already an option
+            if (
+              field.function[1] &&
+              !fieldOptions[`field:${field.function[1]}`] &&
+              !fieldOptions[`tag:${field.function[1]}`]
+            ) {
+              fieldOptions = appendFieldIfUnknown(fieldOptions, {
+                kind: FieldValueKind.TAG,
+                meta: {
+                  dataType: 'string',
+                  name: field.function[1],
+                  unknown: true,
+                },
+              });
+            }
           }
         }
       }
