@@ -55,7 +55,8 @@ export function ColumnsStep({
     explodedFields.forEach(field => {
       // Inject functions that aren't compatible with the current dataset
       if (field.kind === 'function') {
-        if (!(`function:${field.alias}` in fieldOptions)) {
+        const functionName = field.alias || field.function[0];
+        if (!(`function:${functionName}` in fieldOptions)) {
           const [key, value] = getFieldOptionFormat(field);
           fieldOptions[key] = value;
 

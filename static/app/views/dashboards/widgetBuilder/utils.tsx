@@ -422,7 +422,7 @@ export function getIsTimeseriesChart(displayType: DisplayType) {
 
 // Handle adding functions to the field options
 // Field and equations are already compatible
-export function getFieldOptionFormat(field: QueryFieldValue) {
+export function getFieldOptionFormat(field: QueryFieldValue): [string, FieldValueOption] {
   // TODO: handle 'calculated fields' ??
 
   if (field.kind === 'function') {
@@ -438,7 +438,7 @@ export function getFieldOptionFormat(field: QueryFieldValue) {
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {
-            name: field.alias,
+            name: functionName,
             parameters: AGGREGATIONS[field.function[0]].parameters.map(param => ({
               ...param,
               columnTypes: props => {
