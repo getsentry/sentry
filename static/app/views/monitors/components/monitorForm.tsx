@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -257,7 +258,7 @@ function MonitorForm({
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
         <InputGroup>
-          <StyledTextField
+          <TextField
             name="name"
             aria-label={t('Name')}
             placeholder={t('My Cron Job')}
@@ -266,7 +267,7 @@ function MonitorForm({
             inline={false}
           />
           {monitor && (
-            <StyledTextField
+            <TextField
               name="slug"
               aria-label={t('Slug')}
               help={tct(
@@ -280,7 +281,7 @@ function MonitorForm({
               transformInput={slugify}
             />
           )}
-          <StyledSentryProjectSelectorField
+          <SentryProjectSelectorField
             name="project"
             aria-label={t('Project')}
             groupProjects={project =>
@@ -314,7 +315,7 @@ function MonitorForm({
               )}
             </StyledAlert>
           )}
-          <StyledSelectField
+          <SelectField
             name="config.scheduleType"
             aria-label={t('Schedule Type')}
             options={SCHEDULE_OPTIONS}
@@ -338,7 +339,7 @@ function MonitorForm({
               if (scheduleType === 'crontab') {
                 return (
                   <MultiColumnInput columns="1fr 2fr">
-                    <StyledTextField
+                    <TextField
                       name="config.schedule"
                       aria-label={t('Crontab Schedule')}
                       placeholder="* * * * *"
@@ -348,7 +349,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                    <StyledSelectField
+                    <SelectField
                       name="config.timezone"
                       aria-label={t('Timezone')}
                       defaultValue="UTC"
@@ -365,7 +366,7 @@ function MonitorForm({
                 return (
                   <MultiColumnInput columns="auto 1fr 2fr">
                     <LabelText>{t('Every')}</LabelText>
-                    <StyledNumberField
+                    <NumberField
                       name="config.schedule.frequency"
                       aria-label={t('Interval Frequency')}
                       placeholder="e.g. 1"
@@ -375,7 +376,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                    <StyledSelectField
+                    <SelectField
                       name="config.schedule.interval"
                       aria-label={t('Interval Type')}
                       options={getScheduleIntervals(
@@ -542,26 +543,13 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
+  ${FieldWrapper} {
+    padding: 0;
+  }
 `;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
-`;
-
-const StyledNumberField = styled(NumberField)`
-  padding: 0;
-`;
-
-const StyledSelectField = styled(SelectField)`
-  padding: 0;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding: 0;
-`;
-
-const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
-  padding: 0;
 `;
 
 const StyledListItem = styled(ListItem)`
