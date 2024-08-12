@@ -67,7 +67,7 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: `
 ###> sentry/sentry-symfony ###
-SENTRY_DSN="${params.dsn}"
+SENTRY_DSN="${params.dsn.public}"
 ###< sentry/sentry-symfony ###
           `,
         },

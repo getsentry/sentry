@@ -27,7 +27,6 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_BASE_URL,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 type ModuleNameStrings = `${ModuleName}`;

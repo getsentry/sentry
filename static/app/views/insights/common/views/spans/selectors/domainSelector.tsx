@@ -21,12 +21,12 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 type Props = {
+  moduleName: ModuleName;
   additionalQuery?: string[];
   emptyOptionLocation?: 'top' | 'bottom';
-  moduleName?: ModuleName;
   spanCategory?: string;
   value?: string;
 };
@@ -37,7 +37,7 @@ interface DomainData {
 
 export function DomainSelector({
   value = '',
-  moduleName = ModuleName.ALL,
+  moduleName,
   spanCategory,
   additionalQuery = [],
   emptyOptionLocation = 'bottom',
@@ -168,7 +168,6 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   ai: t('Domain'),
   'mobile-ui': t('Domain'),
   'mobile-screens': t('Domain'),
-  '': t('Domain'),
 };
 
 function getEventView(

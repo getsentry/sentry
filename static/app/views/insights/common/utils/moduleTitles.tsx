@@ -24,5 +24,4 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_SCREENS]: MOBILE_VITALS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };

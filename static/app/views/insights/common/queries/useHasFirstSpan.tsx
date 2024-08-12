@@ -4,7 +4,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const excludedModuleNames = [
-  ModuleName.ALL,
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
   ModuleName.MOBILE_SCREENS,
