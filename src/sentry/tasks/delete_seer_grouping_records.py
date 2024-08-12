@@ -1,4 +1,5 @@
 import logging
+from random import randint
 from typing import Any
 
 from sentry import features, options
@@ -13,6 +14,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
+EA_ROLLOUT_PERCENTAGE = 20
 
 
 @instrumented_task(
@@ -56,7 +58,13 @@ def call_delete_seer_grouping_records_by_hash(
         project = group.project if group else None
     if (
         project
-        and features.has("projects:similarity-embeddings-grouping", project)
+        and (
+            features.has("projects:similarity-embeddings-grouping", project)
+            or (
+                project.get_option("sentry:similarity_backfill_completed")
+                and randint(1, 100) <= EA_ROLLOUT_PERCENTAGE
+            )
+        )
         and not killswitch_enabled(project.id)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):

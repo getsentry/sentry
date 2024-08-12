@@ -2,6 +2,7 @@ import logging
 import math
 import time
 from datetime import timedelta
+from random import randint
 from uuid import uuid4
 
 import orjson
@@ -49,7 +50,10 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
-from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tasks.delete_seer_grouping_records import (
+    EA_ROLLOUT_PERCENTAGE,
+    call_seer_delete_project_grouping_records,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -979,7 +983,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-grouping", project):
+            if features.has("projects:similarity-embeddings-grouping", project) or (
+                project.get_option("sentry:similarity_backfill_completed")
+                and randint(1, 100) <= EA_ROLLOUT_PERCENTAGE
+            ):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
