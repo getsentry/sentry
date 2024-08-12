@@ -37,7 +37,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
   }, [upsellProjectId, setProjectId, canShowUpsell]);
 
   if (group) {
-    const issueTypeConfig = getConfigForIssueType(group!, group?.project!);
+    const issueTypeConfig = getConfigForIssueType(group, group?.project);
     if (!issueTypeConfig.replays.enabled) {
       return null;
     }
