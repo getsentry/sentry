@@ -198,19 +198,7 @@ function SummaryContent({
         {
           key: 'alert',
           makeAction: () => ({
-            Button: () => (
-              <Tooltip
-                title={t(
-                  'Based on your search criteria and sample rate, the events available may be limited.'
-                )}
-              >
-                <StyledIconWarning
-                  data-test-id="search-metrics-fallback-warning"
-                  size="sm"
-                  color="warningText"
-                />
-              </Tooltip>
-            ),
+            Button: () => <MetricsWarningIcon />,
             menuItem: {
               key: 'alert',
             },
@@ -224,19 +212,7 @@ function SummaryContent({
 
   const generateTrailingItems = useCallback(() => {
     if (!canUseTransactionMetricsData(organization, mepDataContext)) {
-      return (
-        <Tooltip
-          title={t(
-            'Based on your search criteria and sample rate, the events available may be limited.'
-          )}
-        >
-          <StyledIconWarning
-            data-test-id="search-metrics-fallback-warning"
-            size="sm"
-            color="warningText"
-          />
-        </Tooltip>
-      );
+      return <MetricsWarningIcon />;
     }
 
     return null;
@@ -608,6 +584,22 @@ function getTransactionsListSort(
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selected: selectedSort, options: sortOptions};
+}
+
+function MetricsWarningIcon() {
+  return (
+    <Tooltip
+      title={t(
+        'Based on your search criteria and sample rate, the events available may be limited.'
+      )}
+    >
+      <StyledIconWarning
+        data-test-id="search-metrics-fallback-warning"
+        size="sm"
+        color="warningText"
+      />
+    </Tooltip>
+  );
 }
 
 const FilterActions = styled('div')`
