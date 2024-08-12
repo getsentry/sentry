@@ -11,7 +11,6 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.ingest.config import DO_NOT_UPGRADE_YET
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -165,19 +164,6 @@ class EventManagerGroupingTest(TestCase):
             int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
         )
         assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
-
-    def test_does_not_update_project_in_exclude_list(self):
-        # It does not update the config because it is listed in DO_NOT_UPGRADE_YET
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
-        assert LEGACY_CONFIG in DO_NOT_UPGRADE_YET
-        save_new_event({"message": "foo"}, self.project)
-        assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
-
-        # It updates the config because it is not listed in DO_NOT_UPGRADE_YET
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        assert "mobile:2021-02-12" not in DO_NOT_UPGRADE_YET
-        save_new_event({"message": "foo"}, self.project)
-        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
 
 class PlaceholderTitleTest(TestCase):
