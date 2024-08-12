@@ -8,16 +8,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {VitalScreens} from 'sentry/views/insights/mobile/vitals/components/vitalScreens';
+import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('VitalScreens', () => {
+describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules', 'insights-mobile-vitals-module'],
+    features: ['insights-addon-modules'],
   });
   const project = ProjectFixture();
 
@@ -25,7 +25,7 @@ describe('VitalScreens', () => {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/vitals',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
     query: {
       project: project.id,
     },
@@ -63,7 +63,7 @@ describe('VitalScreens', () => {
   });
 
   it('renders search bar and table', async () => {
-    render(<VitalScreens />, {organization});
+    render(<ScreensOverview />, {organization});
 
     expect(await screen.findByPlaceholderText('Search for Screen')).toBeInTheDocument();
     expect(await screen.findByRole('table')).toBeInTheDocument();

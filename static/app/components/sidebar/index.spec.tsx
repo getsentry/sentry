@@ -396,12 +396,12 @@ describe('Sidebar', function () {
       });
     });
 
-    it('mobile vitals module hides all other mobile modules', async function () {
+    it('mobile screens module hides all other mobile modules', async function () {
       localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
       renderSidebarWithFeatures([
         'insights-entry-points',
         'starfish-mobile-ui-module',
-        'insights-mobile-vitals-module',
+        'insights-mobile-screens-module',
       ]);
 
       await waitFor(function () {
@@ -412,7 +412,7 @@ describe('Sidebar', function () {
         expect(screen.queryByText(title)).not.toBeInTheDocument();
       });
 
-      expect(screen.queryByText(/Mobile Vitals/)).toBeInTheDocument();
+      expect(screen.getByText(/Mobile Screens/)).toBeInTheDocument();
     });
 
     it('should not render floating accordion when expanded', async () => {

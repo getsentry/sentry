@@ -167,7 +167,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   other: t('Domain'),
   ai: t('Domain'),
   'mobile-ui': t('Domain'),
-  'mobile-vitals': t('Domain'),
+  'mobile-screens': t('Domain'),
   '': t('Domain'),
 };
 

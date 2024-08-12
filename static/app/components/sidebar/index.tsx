@@ -305,12 +305,12 @@ function Sidebar() {
     </Feature>
   );
 
-  // the mobile vitals module is meant to be as a replacement for screen load, app start, and mobile ui
-  // so if mobile vitals is enabled, we should not show the other mobile modules
-  const hasMobileVitalsModule =
-    hasOrganization && organization.features.includes('insights-mobile-vitals-module');
+  // the mobile screens module is meant to be as a replacement for screen load, app start, and mobile ui
+  // so if mobile screens is enabled, we should not show the other mobile modules
+  const hasMobileScreensModule =
+    hasOrganization && organization.features.includes('insights-mobile-screens-module');
 
-  const screenLoads = hasOrganization && !hasMobileVitalsModule && (
+  const screenLoads = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="screen_load"
       features="insights-entry-points"
@@ -326,7 +326,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const appStarts = hasOrganization && !hasMobileVitalsModule && (
+  const appStarts = hasOrganization && !hasMobileScreensModule && (
     <Feature key="app_start" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
@@ -338,7 +338,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const mobileUI = hasOrganization && !hasMobileVitalsModule && (
+  const mobileUI = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="mobile-ui"
       features={['insights-entry-points', 'starfish-mobile-ui-module']}
@@ -355,19 +355,18 @@ function Sidebar() {
     </Feature>
   );
 
-  const mobileVitals = hasOrganization && hasMobileVitalsModule && (
+  const mobileScreens = hasOrganization && hasMobileScreensModule && (
     <Feature
-      key="mobile-vitals"
-      features={['insights-entry-points', 'insights-mobile-vitals-module']}
+      key="mobile-screens"
+      features={['insights-entry-points']}
       organization={organization}
     >
       <SidebarItem
         {...sidebarItemProps}
-        label={MODULE_TITLES['mobile-vitals']}
-        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-vitals')}/`}
-        id="performance-mobile-vitals"
+        label={MODULE_TITLES['mobile-screens']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-screens')}/`}
+        id="performance-mobile-screens"
         icon={<SubitemDot collapsed />}
-        isAlpha
       />
     </Feature>
   );
@@ -586,7 +585,7 @@ function Sidebar() {
         {caches}
         {queues}
         {mobileUI}
-        {mobileVitals}
+        {mobileScreens}
         {llmMonitoring}
       </SidebarAccordion>
     </Feature>

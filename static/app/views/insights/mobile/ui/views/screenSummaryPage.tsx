@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -79,7 +80,7 @@ export function ScreenSummaryContent() {
   } = location.query;
 
   return (
-    <div>
+    <Fragment>
       <HeaderContainer>
         <ToolRibbon>
           <PageFilterBar condensed>
@@ -123,7 +124,7 @@ export function ScreenSummaryContent() {
           }}
         />
       )}
-    </div>
+    </Fragment>
   );
 }
 

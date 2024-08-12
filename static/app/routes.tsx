@@ -1573,16 +1573,16 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_VITALS]}/`}>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/insights/mobile/vitals/views/vitalsLandingPage')
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
           )}
         />
         <Route
-          path="screens/"
+          path="details/"
           component={make(
-            () => import('sentry/views/insights/mobile/vitals/views/vitalsScreenPage')
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
           )}
         />
       </Route>

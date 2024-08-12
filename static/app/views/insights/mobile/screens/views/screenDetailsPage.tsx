@@ -37,13 +37,13 @@ type Tab = {
   feature?: string | undefined;
 };
 
-export function VitalsScreenPage() {
+export function ScreenDetailsPage() {
   const location: Location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const {transaction: transactionName} = location.query;
-  const moduleName = ModuleName.MOBILE_VITALS;
+  const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = [
     ...useModuleBreadcrumbs(moduleName),
     {
@@ -98,7 +98,7 @@ export function VitalsScreenPage() {
 
   return (
     <PageFiltersContainer>
-      <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
+      <SentryDocumentTitle title={t('Mobile Screens')} orgSlug={organization.slug} />
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
@@ -140,4 +140,4 @@ export function VitalsScreenPage() {
   );
 }
 
-export default VitalsScreenPage;
+export default ScreenDetailsPage;

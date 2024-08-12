@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -109,7 +109,7 @@ export function ScreenSummaryContentPage() {
   }, [location, appStartType]);
 
   return (
-    <div>
+    <Fragment>
       <HeaderContainer>
         <ToolRibbon>
           <PageFilterBar condensed>
@@ -207,7 +207,7 @@ export function ScreenSummaryContentPage() {
           }}
         />
       )}
-    </div>
+    </Fragment>
   );
 }
 

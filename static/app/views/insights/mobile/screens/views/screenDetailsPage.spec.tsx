@@ -6,16 +6,16 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {VitalsScreenPage} from 'sentry/views/insights/mobile/vitals/views/vitalsScreenPage';
+import {ScreenDetailsPage} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('Vitals Screen Page', function () {
+describe('ScreenDetailsPage', function () {
   const organization = OrganizationFixture({
     features: [
       'insights-addon-modules',
-      'insights-mobile-vitals-module',
+      'insights-mobile-screens-module',
       'starfish-mobile-ui-module',
     ],
   });
@@ -25,7 +25,7 @@ describe('Vitals Screen Page', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/vitals/screens',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
     query: {
       project: project.id,
       transaction: 'HomeActivity',
@@ -76,7 +76,7 @@ describe('Vitals Screen Page', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/vitals',
+        pathname: '/organizations/org-slug/performance/mobile/mobile-screens/details',
         query: {
           project: project.id,
         },
@@ -84,7 +84,7 @@ describe('Vitals Screen Page', function () {
         state: undefined,
       } as Location);
 
-      render(<VitalsScreenPage />, {organization});
+      render(<ScreenDetailsPage />, {organization});
 
       const tabs: string[] = ['App Start', 'Screen Load', 'Screen Rendering'];
 

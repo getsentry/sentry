@@ -6,14 +6,14 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {VitalsLandingPage} from 'sentry/views/insights/mobile/vitals/views/vitalsLandingPage';
+import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('Vitals Landing Page', function () {
+describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules', 'insights-mobile-vitals-module'],
+    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
   });
   const project = ProjectFixture();
 
@@ -21,7 +21,7 @@ describe('Vitals Landing Page', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/vitals',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
     query: {
       project: project.id,
     },
@@ -67,7 +67,7 @@ describe('Vitals Landing Page', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/vitals',
+        pathname: '/organizations/org-slug/performance/mobile/screens',
         query: {
           project: project.id,
         },
@@ -140,7 +140,7 @@ describe('Vitals Landing Page', function () {
         match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
       });
 
-      render(<VitalsLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization});
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
@@ -157,7 +157,7 @@ describe('Vitals Landing Page', function () {
         {header: 'Frame Delay', value: '7'},
       ];
 
-      const topSection = screen.getByTestId('mobile-vitals-top-metrics');
+      const topSection = screen.getByTestId('mobile-screens-top-metrics');
 
       for (const card of cards) {
         expect(within(topSection).getByText(card.header)).toBeInTheDocument();

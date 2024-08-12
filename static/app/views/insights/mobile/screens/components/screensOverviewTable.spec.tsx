@@ -8,16 +8,16 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import VitalsScreensTable from 'sentry/views/insights/mobile/vitals/components/vitalsScreensTable';
+import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
 jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('VitalsScreensTable', () => {
+describe('ScreensOverviewTable', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules', 'insights-mobile-vitals-module'],
+    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
   });
   const project = ProjectFixture();
 
@@ -25,7 +25,7 @@ describe('VitalsScreensTable', () => {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/performance/mobile/vitals',
+    pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
     query: {
       project: project.id,
     },
@@ -61,7 +61,6 @@ describe('VitalsScreensTable', () => {
         transaction: 'Screen 01',
         'avg(mobile.slow_frames)': 12,
         'avg(mobile.frozen_frames)': 23,
-        'avg(mobile.frames_delay)': 34,
         'count()': 45,
       },
     ],
@@ -73,7 +72,7 @@ describe('VitalsScreensTable', () => {
   it('renders columns', async () => {
     render(
       <ThemeAndStyleProvider>
-        <VitalsScreensTable
+        <ScreensOverviewTable
           data={mockData}
           eventView={mockEventView}
           isLoading={false}
@@ -86,16 +85,12 @@ describe('VitalsScreensTable', () => {
     expect(await screen.findByText('Screen')).toBeInTheDocument();
     expect(await screen.findByText('Slow Frames')).toBeInTheDocument();
     expect(await screen.findByText('Frozen Frames')).toBeInTheDocument();
-    expect(await screen.findByText('Frame Delay')).toBeInTheDocument();
 
-    // content
     expect(await screen.findByText('Screen 01')).toBeInTheDocument();
     // slow frames
     expect(await screen.findByText('12')).toBeInTheDocument();
     // frozen frames
     expect(await screen.findByText('23')).toBeInTheDocument();
-    // frames delay
-    expect(await screen.findByText('34.00s')).toBeInTheDocument();
     // count
     expect(await screen.findByText('45')).toBeInTheDocument();
   });

@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import VitalCard from 'sentry/views/insights/mobile/vitals/components/vitalCard';
+import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
 
 describe('VitalCard', function () {
   const mockProps = {

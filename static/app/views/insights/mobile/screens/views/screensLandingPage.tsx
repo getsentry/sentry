@@ -31,18 +31,19 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
-import VitalCard from 'sentry/views/insights/mobile/vitals/components/vitalCard';
-import {VitalScreens} from 'sentry/views/insights/mobile/vitals/components/vitalScreens';
+import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
+import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
+import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
-} from 'sentry/views/insights/mobile/vitals/settings';
+} from 'sentry/views/insights/mobile/screens/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
-export function VitalsLandingPage() {
-  const moduleName = ModuleName.MOBILE_VITALS;
+export function ScreensLandingPage() {
+  const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
   const organization = useOrganization();
@@ -220,7 +221,7 @@ export function VitalsLandingPage() {
     location,
     orgSlug: organization.slug,
     limit: 25,
-    referrer: 'api.starfish.mobile-vitals-table',
+    referrer: Referrer.SCREENS_METRICS,
   });
 
   const spanMetricsQuery: NewQuery = {
@@ -242,7 +243,7 @@ export function VitalsLandingPage() {
     location,
     orgSlug: organization.slug,
     limit: 25,
-    referrer: 'api.starfish.mobile-vitals-table',
+    referrer: Referrer.SCREENS_METRICS,
   });
 
   const metricValueFor = (item: VitalItem): MetricValue | undefined => {
@@ -290,8 +291,8 @@ export function VitalsLandingPage() {
 
   return (
     <ModulePageProviders
-      moduleName="mobile-vitals"
-      features={['insights-addon-modules', 'insights-mobile-vitals-module']}
+      moduleName="mobile-screens"
+      features={['insights-addon-modules']}
     >
       <Layout.Page>
         <PageAlertProvider>
@@ -326,7 +327,7 @@ export function VitalsLandingPage() {
               <PageAlert />
               <ErrorBoundary mini>
                 <Container>
-                  <Flex data-test-id="mobile-vitals-top-metrics">
+                  <Flex data-test-id="mobile-screens-top-metrics">
                     {vitalItems.map(item => {
                       const metricValue = metricValueFor(item);
                       const status =
@@ -346,7 +347,7 @@ export function VitalsLandingPage() {
                       );
                     })}
                   </Flex>
-                  <VitalScreens />
+                  <ScreensOverview />
                 </Container>
               </ErrorBoundary>
             </Layout.Main>
@@ -409,4 +410,4 @@ const Flex = styled('div')<{gap?: number}>`
   margin-bottom: ${space(1)};
 `;
 
-export default VitalsLandingPage;
+export default ScreensLandingPage;

@@ -7,11 +7,11 @@ import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {TOP_SCREENS} from 'sentry/views/insights/mobile/constants';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -21,8 +21,8 @@ type Props = {
   pageLinks: string | undefined;
 };
 
-function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
-  const moduleURL = useModuleURL('mobile-vitals');
+function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
+  const moduleURL = useModuleURL('mobile-screens');
   const location = useLocation();
 
   const columnNameMap = {
@@ -30,32 +30,33 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     [`count()`]: t('Screen Loads'),
     [`avg(mobile.slow_frames)`]: t('Slow Frames'),
     [`avg(mobile.frozen_frames)`]: t('Frozen Frames'),
-    [`avg(mobile.frames_delay)`]: t('Frame Delay'),
+    [`avg(measurements.time_to_initial_display)`]: t('TTID'),
+    [`avg(measurements.time_to_full_display)`]: t('TTFD'),
+    ['avg(measurements.app_start_warm)']: t('Warm Start'),
+    ['avg(measurements.app_start_cold)']: t('Cold Start'),
   };
 
   function renderBodyCell(column, row): React.ReactNode | null {
     if (!data) {
       return null;
     }
-
-    const index = data.data.indexOf(row);
-
     const field = String(column.key);
 
     if (field === 'transaction') {
+      const link = normalizeUrl(
+        `${moduleURL}/details/?${qs.stringify({
+          ...location.query,
+          project: row['project.id'],
+          transaction: row.transaction,
+        })}`
+      );
       return (
         <Fragment>
-          <TopResultsIndicator count={TOP_SCREENS} index={index} />
-          <Link
-            to={`${moduleURL}/screens/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-            })}`}
-            style={{display: `block`, width: `100%`}}
-          >
-            {row.transaction}
-          </Link>
+          <OverflowEllipsisTextContainer>
+            <Link to={link} style={{display: `block`, width: `100%`}}>
+              {row.transaction}
+            </Link>
+          </OverflowEllipsisTextContainer>
         </Fragment>
       );
     }
@@ -88,7 +89,10 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         'transaction',
         `avg(mobile.slow_frames)`,
         `avg(mobile.frozen_frames)`,
-        `avg(mobile.frames_delay)`,
+        `avg(measurements.time_to_initial_display)`,
+        `avg(measurements.time_to_full_display)`,
+        'avg(measurements.app_start_cold)',
+        'avg(measurements.app_start_warm)',
         `count()`,
       ]}
       defaultSort={[
@@ -103,4 +107,4 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   );
 }
 
-export default VitalsScreensTable;
+export default ScreensOverviewTable;

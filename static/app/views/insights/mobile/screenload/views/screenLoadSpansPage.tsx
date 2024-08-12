@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -111,7 +112,7 @@ export function ScreenLoadSpansContent() {
   } = location.query;
 
   return (
-    <div>
+    <Fragment>
       <HeaderContainer>
         <ToolRibbon>
           <FilterContainer>
@@ -219,7 +220,7 @@ export function ScreenLoadSpansContent() {
           />
         )}
       </ErrorBoundary>
-    </div>
+    </Fragment>
   );
 }
 
