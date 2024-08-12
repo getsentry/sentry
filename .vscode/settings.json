@@ -102,9 +102,7 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
-  "python.testing.pytestArgs": [
-    "tests"
-  ],
+  "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
   "prettier.configPath": "package.json"
 }
