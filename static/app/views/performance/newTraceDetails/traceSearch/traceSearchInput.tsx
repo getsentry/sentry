@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {
   SearchQueryBuilerContext,
-  SearchQueryBuilerContextValue,
+  type SearchQueryBuilerContextValue,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
   useHandleSearch,
