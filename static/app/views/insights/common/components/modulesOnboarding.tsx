@@ -300,7 +300,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile vitscreensals is not released yet
+  // Mobile Screens is not released yet
   'mobile-screens': {
     heading: t('Mobile Screens'),
     description: t('Explore mobile app metrics.'),
