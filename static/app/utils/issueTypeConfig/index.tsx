@@ -54,7 +54,6 @@ const BASE_CONFIG: IssueTypeConfig = {
 const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
-  [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,

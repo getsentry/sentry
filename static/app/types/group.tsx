@@ -63,7 +63,6 @@ export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
   CRON = 'cron',
-  PROFILE = 'profile',
   REPLAY = 'replay',
   UPTIME = 'uptime',
 }
