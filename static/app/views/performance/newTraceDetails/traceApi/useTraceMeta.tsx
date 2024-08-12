@@ -104,6 +104,8 @@ async function fetchTraceMetaInBatches(
           acc.projects = Math.max(acc.projects, projects);
           acc.transactions += transactions;
 
+          // Turn the transaction_child_count_map array into a map of transaction id to child count
+          // for more efficient lookups.
           transaction_child_count_map.forEach(({'transaction.id': id, count}) => {
             acc.transactiontoSpanChildrenCount[id] = count;
           });

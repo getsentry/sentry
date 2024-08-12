@@ -360,7 +360,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    if (props.trace) {
+    if (props.trace && props.metaResults.data) {
       const trace = TraceTree.FromTrace(
         props.trace,
         props.metaResults,
