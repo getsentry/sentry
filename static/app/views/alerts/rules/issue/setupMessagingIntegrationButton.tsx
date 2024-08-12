@@ -19,11 +19,15 @@ interface ProjectWithAlertIntegrationInfo extends Project {
   hasAlertIntegrationInstalled: boolean;
 }
 
+export enum MessagingIntegrationAnalyticsView {
+  ALERT_RULE_CREATION = 'alert_rule_creation',
+}
+
 type Props = {
   projectSlug: string;
   refetchConfigs: () => void;
   analyticsParams?: {
-    view: `alert_rule_creation`;
+    view: MessagingIntegrationAnalyticsView;
   };
 };
 
