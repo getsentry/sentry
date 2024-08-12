@@ -367,6 +367,7 @@ def generate_incident_trigger_email_context(
     elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
+    threshold: None | str | float = None
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
         threshold_prefix_string = alert_rule.detection_type.title()
         threshold = f"({alert_rule.sensitivity} sensitivity)"
