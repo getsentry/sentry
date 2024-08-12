@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -16,6 +16,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -518,6 +519,13 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
+function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> {
+  const table: Record<number, Project> = {};
+  for (const project of projects) {
+    table[project.id] = project;
+  }
+  return table;
+}
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
@@ -527,6 +535,7 @@ function ProfileIdsSubMenu(props: {
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  const {projects} = useProjects();
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -541,6 +550,10 @@ function ProfileIdsSubMenu(props: {
     ],
   });
 
+  const projectLookupTable = useMemo(
+    () => makeProjectIdLookupTable(projects),
+    [projects]
+  );
   const setIsOpen: typeof _setIsOpen = useCallback(
     nextState => {
       _setIsOpen(nextState);
@@ -599,11 +612,18 @@ function ProfileIdsSubMenu(props: {
               {props.profileIds.map((profileId, i) => {
                 const to = generateProfileRouteFromProfileReference({
                   orgSlug: props.organizationSlug,
-                  projectSlug: props.projectSlug,
+                  projectSlug:
+                    typeof profileId !== 'string' && 'project_id' in profileId
+                      ? projectLookupTable[profileId.project_id]?.slug
+                      : undefined,
                   reference: profileId,
                   frameName: props.frameName,
                   framePackage: props.framePackage,
                 });
+
+                if (!to) {
+                  return null;
+                }
 
                 return (
                   <ProfilingContextMenuItemButton

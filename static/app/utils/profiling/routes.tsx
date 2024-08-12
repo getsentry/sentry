@@ -230,11 +230,13 @@ export function generateProfileRouteFromProfileReference({
   frameName: string;
   framePackage: string | undefined;
   orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
+  projectSlug: Project['slug'] | undefined;
   reference: Profiling.ProfileReference;
   query?: Location['query'];
-}): LocationDescriptor {
-  if (typeof reference === 'string' && !!projectSlug) {
+}): LocationDescriptor | null {
+  if (!projectSlug) return null;
+
+  if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithHighlightFrame({
       orgSlug: orgSlug,
       projectSlug: projectSlug,
@@ -245,15 +247,15 @@ export function generateProfileRouteFromProfileReference({
     });
   }
 
-  if (isContinuousProfileReference(reference) && !!reference.project_id) {
+  if (isContinuousProfileReference(reference)) {
     return generateContinuousProfileFlamechartRouteWithQuery({
       orgSlug,
       projectSlug,
       profilerId: reference.profiler_id,
       frameName,
       framePackage,
-      start: new Date(reference.start_ts).toISOString(),
-      end: new Date(reference.finish_ts).toISOString(),
+      start: new Date(reference.start * 1e3).toISOString(),
+      end: new Date(reference.end * 1e3).toISOString(),
       query: dropUndefinedKeys({
         ...query,
         spanId: reference.transaction_id,

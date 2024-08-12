@@ -163,6 +163,7 @@ declare namespace Profiling {
     weights: number[];
     samples: number[][];
     samples_profiles?: number[][];
+    samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
   }
@@ -238,9 +239,10 @@ declare namespace Profiling {
     project_id: number;
     profiler_id: string;
     transaction_id: string | undefined;
-    start_ts: number;
-    finish_ts: number;
-    thread_id: number;
+    start: number;
+    chunk_id: string;
+    end: number;
+    thread_id: string;
   };
 
   type ProfileReference =
