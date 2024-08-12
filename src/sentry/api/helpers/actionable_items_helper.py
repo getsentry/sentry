@@ -1,14 +1,12 @@
-from sentry.models.actionableitemsissues import ActionableItemsIssues
 from sentry.models.eventerror import EventError
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class ActionPriority:
-    HIGHEST = 1
-    HIGH = 2
-    MEDIUM = 3
-    LOW = 4
-    UNKNOWN = 5
+    HIGH = 1
+    MEDIUM = 2
+    LOW = 3
+    UNKNOWN = 4
 
 
 sourcemap_sdks = [
@@ -58,9 +56,6 @@ priority_ranking = {
     SourceMapProcessingIssue.PARTIAL_MATCH: ActionPriority.HIGH,
     SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND: ActionPriority.HIGH,
     SourceMapProcessingIssue.URL_NOT_VALID: ActionPriority.HIGH,
-    # Highest Priority
-    ActionableItemsIssues.REPLAY_NOT_SETUP: ActionPriority.HIGHEST,
-    ActionableItemsIssues.MISSING_GIT_INTEGRATION: ActionPriority.HIGHEST,
 }
 
 errors_to_hide = [
