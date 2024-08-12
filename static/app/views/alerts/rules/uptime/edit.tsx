@@ -15,6 +15,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -110,6 +111,11 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
         </Confirm>
       }
     >
+      <Alert type="info" showIcon icon={<IconLab />}>
+        {t(
+          'Uptime Monitoring is currently in Early Access. More configuration will be available in the future'
+        )}
+      </Alert>
       <List symbol="colored-numeric">
         <AlertListItem>{t('Select an environment and project')}</AlertListItem>
         <FormRow>
