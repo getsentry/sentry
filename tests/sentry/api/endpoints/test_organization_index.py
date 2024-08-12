@@ -7,7 +7,6 @@ from unittest.mock import patch
 from django.test import override_settings
 
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models.authenticator import Authenticator
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -19,6 +18,7 @@ from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.users.models.authenticator import Authenticator
 
 
 class OrganizationIndexTest(APITestCase):

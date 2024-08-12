@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
-from sentry.models.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 
 
 @control_silo_endpoint

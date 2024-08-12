@@ -12,8 +12,8 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models.authenticator import Authenticator
 from sentry.silo.base import control_silo_function
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr

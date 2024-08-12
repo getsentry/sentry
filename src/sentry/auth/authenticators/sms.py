@@ -12,7 +12,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 
-from .base import ActivationMessageResult, AuthenticatorInterface, OtpMixin
+from .base import ActivationMessageResult, OtpMixin
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -28,7 +28,7 @@ class SMSRateLimitExceeded(Exception):
         self.remote_ip = remote_ip
 
 
-class SmsInterface(OtpMixin, AuthenticatorInterface):
+class SmsInterface(OtpMixin):
     """This interface sends OTP codes via text messages to the user."""
 
     type = 2

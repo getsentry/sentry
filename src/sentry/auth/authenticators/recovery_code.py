@@ -46,6 +46,8 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         if not self.is_enrolled():
             raise RuntimeError("Interface is not enrolled")
         self.config.update(self.generate_new_config())
+
+        assert self.authenticator, "Cannot regenerate codes without self.authenticator"
         self.authenticator.reset_fields(save=False)
         if save:
             self.authenticator.save()
