@@ -76,7 +76,6 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
@@ -91,7 +90,6 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
@@ -106,7 +104,6 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
@@ -121,5 +118,4 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_MODULE_DOC_LINK,
   [ModuleName.MOBILE_UI]: MODULE_MODULE_DOC_LINK,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
