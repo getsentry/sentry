@@ -143,6 +143,7 @@ const FieldGroup = styled('div')`
 
   > *:nth-child(even) {
     margin-left: -1px;
+    width: calc(100% + 1px);
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

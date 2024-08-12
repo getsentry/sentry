@@ -491,18 +491,20 @@ function ExpressionAliasForm({
     >
       {hasMetricsNewInputs(organization) ? (
         <QueryFieldGroup>
-          <QueryFieldGroup.Label>As</QueryFieldGroup.Label>
-          <QueryFieldGroup.DebouncedInput
-            type="text"
-            value={formatAlias(expression.alias)}
-            onChange={e => onChange(e.target.value)}
-            placeholder={t('Add alias')}
-          />
-          <QueryFieldGroup.DeleteButton
-            disabled={isVirtualExpression(expression)}
-            title={t('Clear Alias')}
-            onClick={() => onChange(undefined)}
-          />
+          <Label>As</Label>
+          <FlexBlock>
+            <QueryFieldGroup.DebouncedInput
+              type="text"
+              value={formatAlias(expression.alias)}
+              onChange={e => onChange(e.target.value)}
+              placeholder={t('Add alias')}
+            />
+            <QueryFieldGroup.DeleteButton
+              disabled={isVirtualExpression(expression)}
+              title={t('Clear Alias')}
+              onClick={() => onChange(undefined)}
+            />
+          </FlexBlock>
         </QueryFieldGroup>
       ) : (
         <Fragment>
@@ -587,11 +589,7 @@ const ExpressionWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
-  ${p =>
-    p.hasMetricsNewInput &&
-    css`
-      display: contents;
-    `}
+  ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
 const ExpressionFormWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
@@ -599,26 +597,19 @@ const ExpressionFormWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   flex-grow: 1;
   flex-direction: column;
   gap: ${space(1)};
-  ${p =>
-    p.hasMetricsNewInput &&
-    css`
-      display: contents;
-    `}
+  ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
 const ExpressionFormRowWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   gap: ${space(1)};
-  ${p =>
-    p.hasMetricsNewInput &&
-    css`
-      display: contents;
-    `}
+  ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
   ${p => p.isClickable && `cursor: pointer;`}
 `;
+
 const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
   ${p => p.isClickable && `cursor: pointer;`}
 `;
@@ -675,20 +666,9 @@ const EquationInputWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   ${p =>
     p.hasMetricsNewInput &&
     css`
-      grid-template-columns: subgrid;
-
       grid-column-start: 2;
-
       @media (min-width: ${p.theme.breakpoints.small}) {
         grid-column-end: 4;
-      }
-
-      @media (min-width: ${p.theme.breakpoints.large}) {
-        grid-column-end: 5;
-      }
-
-      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
-        grid-column-end: 6;
       }
     `}
 `;
@@ -702,4 +682,14 @@ const StyledButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: none;
+`;
+
+const Label = styled(QueryFieldGroup.Label)`
+  width: 95px;
+  min-width: 95px;
+  white-space: nowrap;
+`;
+
+const FlexBlock = styled('div')`
+  display: flex;
 `;
