@@ -462,9 +462,7 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
     attributesEntries.length
       ? attributesEntries
           .map(([attr, val]) =>
-            componentName && attr === 'data-sentry-component'
-              ? ''
-              : `[${attr.trim()}="${val.trim()}"]`
+            componentName && attr === 'data-sentry-component' ? '' : `[${attr}="${val}"]`
           )
           .join('')
       : ''
