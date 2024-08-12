@@ -610,20 +610,22 @@ function ProfileIdsSubMenu(props: {
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
               {props.profileIds.map((profileId, i) => {
+                const projectSlug =
+                  typeof profileId !== 'string' && 'project_id' in profileId
+                    ? projectLookupTable[profileId.project_id]?.slug ?? props.projectSlug
+                    : props.projectSlug;
+
+                if (!projectSlug) {
+                  return null;
+                }
+
                 const to = generateProfileRouteFromProfileReference({
                   orgSlug: props.organizationSlug,
-                  projectSlug:
-                    typeof profileId !== 'string' && 'project_id' in profileId
-                      ? projectLookupTable[profileId.project_id]?.slug
-                      : undefined,
+                  projectSlug,
                   reference: profileId,
                   frameName: props.frameName,
                   framePackage: props.framePackage,
                 });
-
-                if (!to) {
-                  return null;
-                }
 
                 return (
                   <ProfilingContextMenuItemButton

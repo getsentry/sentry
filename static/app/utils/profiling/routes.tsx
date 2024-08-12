@@ -230,12 +230,10 @@ export function generateProfileRouteFromProfileReference({
   frameName: string;
   framePackage: string | undefined;
   orgSlug: Organization['slug'];
-  projectSlug: Project['slug'] | undefined;
+  projectSlug: Project['slug'];
   reference: Profiling.ProfileReference;
   query?: Location['query'];
-}): LocationDescriptor | null {
-  if (!projectSlug) return null;
-
+}): LocationDescriptor {
   if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithHighlightFrame({
       orgSlug: orgSlug,
@@ -258,6 +256,8 @@ export function generateProfileRouteFromProfileReference({
       end: new Date(reference.end * 1e3).toISOString(),
       query: dropUndefinedKeys({
         ...query,
+        frameName,
+        framePackage,
         spanId: reference.transaction_id,
         tid: reference.thread_id as unknown as string,
       }),

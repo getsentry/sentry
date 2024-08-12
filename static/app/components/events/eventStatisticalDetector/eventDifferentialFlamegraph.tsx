@@ -214,6 +214,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         );
       }
 
+      // Regression issues do not work with continuous profiles
       return '';
     },
     [organization.slug, props.project]
