@@ -37,7 +37,7 @@ interface FilterValueProps extends SearchQueryTokenProps {
   onActiveChange: (active: boolean) => void;
 }
 
-function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
 
   switch (token.value.type) {
@@ -63,7 +63,7 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr>or</FilterValueOr>
+                <FilterValueOr> or </FilterValueOr>
               ) : null}
             </Fragment>
           ))}

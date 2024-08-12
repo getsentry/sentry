@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -652,6 +653,21 @@ export default storyBook(SearchQueryBuilder, story => {
         searchSource="storybook"
         disabled
       />
+    );
+  });
+
+  story('FormattedQuery', () => {
+    return (
+      <Fragment>
+        <p>
+          If you just need to render a formatted query outside of the search bar,{' '}
+          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+        </p>
+        <FormattedQuery
+          query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
+          filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
     );
   });
 
