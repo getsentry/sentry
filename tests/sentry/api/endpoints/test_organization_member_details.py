@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -21,6 +20,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.authenticator import Authenticator
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -1000,6 +1000,8 @@ class ResetOrganizationMember2faTest(APITestCase):
         # cannot regenerate recovery codes
         recovery = RecoveryCodeInterface()
         recovery.enroll(self.user)
+        assert recovery.authenticator, "authenticator should exist"
+
         path = reverse(
             "sentry-api-0-user-authenticator-details",
             args=[self.member.id, recovery.authenticator.id],

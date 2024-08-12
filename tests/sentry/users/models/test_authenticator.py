@@ -4,9 +4,9 @@ from fido2.utils import sha256
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
-from sentry.models.authenticator import Authenticator, AuthenticatorConfig
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator, AuthenticatorConfig
 
 
 @control_silo_test
