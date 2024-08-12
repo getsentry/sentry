@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
@@ -85,7 +85,7 @@ class RepositoryIntegration(IntegrationInstallation, ABC):
         """
         raise NotImplementedError
 
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """
         Get all repositories which are in our database but no longer exist as far as
         the external service is concerned.
@@ -117,7 +117,7 @@ class RepositoryIntegration(IntegrationInstallation, ABC):
                 REPOSITORY_INTEGRATION_CHECK_FILE_METRIC.format(result="success"),
                 tags={"integration": self.integration_name},
             )
-            if response is None:
+            if not response:
                 return None
         except IdentityNotValid:
             return None
@@ -199,9 +199,7 @@ class RepositoryIntegration(IntegrationInstallation, ABC):
 
 class RepositoryClient(ABC):
     @abstractmethod
-    def check_file(
-        self, repo: Repository, path: str, version: str | None
-    ) -> BaseApiResponseX | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         """Check if the file exists. Currently used for stacktrace linking and CODEOWNERS."""
         raise NotImplementedError
 

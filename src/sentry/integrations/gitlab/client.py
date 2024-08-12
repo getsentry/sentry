@@ -68,8 +68,6 @@ class GitLabSetupApiClient(IntegrationProxyClient):
 
 
 class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
-    integration_name = "gitlab"
-
     def __init__(self, installation: GitlabIntegration):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
@@ -77,6 +75,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
+        self.integration_name = "gitlab"
+
         super().__init__(
             integration_id=installation.model.id,
             org_integration_id=org_integration_id,
@@ -313,9 +313,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(
-        self, repo: Repository, path: str, version: str | None
-    ) -> BaseApiResponseX | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
@@ -330,7 +328,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             return self.head_cached(request_path, params={"ref": version})
         except ApiError as e:
             # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code != 400:
+            if e.code not in (404, 400):
                 raise
             return None
 

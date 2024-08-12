@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
@@ -149,7 +149,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssueSync):
             )
         return data
 
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         repos = repository_service.get_repositories(
             organization_id=self.organization_id, providers=["visualstudio"]
         )

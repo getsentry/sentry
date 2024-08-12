@@ -172,9 +172,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
         return self.zip_commit_data(repo, commits)
 
-    def check_file(
-        self, repo: Repository, path: str, version: str | None
-    ) -> BaseApiResponseX | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.head_cached(
             path=BitbucketAPIPath.source.format(
                 repo=repo.name,

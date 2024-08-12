@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qsl
 
@@ -248,7 +248,7 @@ class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubI
             for i in response.get("items", [])
         ]
 
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
