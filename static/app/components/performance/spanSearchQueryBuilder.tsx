@@ -41,7 +41,9 @@ export function SpanSearchQueryBuilder({
     return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
-  const supportedTags = useSpanFieldSupportedTags({projects: selection.projects});
+  const supportedTags = useSpanFieldSupportedTags({
+    projects: projects ?? selection.projects,
+  });
 
   const filterTags: TagCollection = useMemo(() => {
     return {...supportedTags};
