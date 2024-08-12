@@ -31,8 +31,8 @@ function useMetrics(
   selectedPlatform: string | undefined,
   selection: PageFilters,
   location: Location,
-  sortedBy: string,
-  isPrimary: boolean,
+  sortedBy: string | undefined,
+  enabled: boolean,
   screens: string[]
 ) {
   const {query: locationQuery} = location;
@@ -48,7 +48,6 @@ function useMetrics(
   let queryString = query.formatString();
 
   if (screens.length > 0) {
-    // if we order by a field
     const screenFilter = `transaction:[${screens.map(name => `"${name}"`).join()}]`;
     queryString = queryString + ' ' + screenFilter;
   }
@@ -61,7 +60,7 @@ function useMetrics(
     version: 2,
     projects: selection.projects,
   };
-  if (isPrimary) {
+  if (sortedBy) {
     newQuery.orderby = sortedBy;
   }
   const tableEventView = EventView.fromNewQueryWithLocation(newQuery, location);
@@ -70,7 +69,7 @@ function useMetrics(
     eventView: tableEventView,
     ...useTableQuery({
       eventView: tableEventView,
-      enabled: isPrimary || screens.length > 0,
+      enabled: enabled,
       referrer: Referrer.SCREENS_SCREEN_TABLE,
     }),
   };
@@ -142,8 +141,8 @@ export function ScreensOverview() {
     isProjectCrossPlatform ? selectedPlatform : undefined,
     selection,
     location,
-    sortedBy,
-    false,
+    undefined,
+    visibleScreens.length > 0,
     visibleScreens
   );
 
