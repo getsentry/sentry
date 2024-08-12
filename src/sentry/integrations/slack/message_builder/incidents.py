@@ -30,7 +30,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         notification_uuid: str | None = None,
     ) -> None:
         """
-        Builds an incident attachment for slack unfurling.
+        Builds an incident attachment when a metric alert fires or is resolved.
 
         :param incident: The `Incident` for which to build the attachment.
         :param [metric_value]: The value of the metric that triggered this alert to
@@ -46,6 +46,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.action = action
 
     def build(self) -> SlackBody:
+        alert_rule = self.action.alert_rule_trigger.alert_rule
         data = incident_attachment_info(
             self.incident,
             self.new_status,
@@ -56,7 +57,6 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         blocks = [
             self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
         ]
-        alert_rule = self.action.alert_rule_trigger.alert_rule
 
         if (
             alert_rule.description
