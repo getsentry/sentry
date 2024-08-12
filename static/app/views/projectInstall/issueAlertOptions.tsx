@@ -177,29 +177,23 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       </CustomizeAlert>,
     ];
 
+    const default_label = this.shouldUseNewDefaultSetting()
+      ? t('Alert me on high priority issues')
+      : t('Alert me on every new issue');
+
     const options: [string, React.ReactNode][] = [
+      [RuleAction.DEFAULT_ALERT.toString(), default_label],
+      ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
-
-    if (this.props.organization.features.includes('default-metric-alerts-new-projects')) {
-      options.unshift([RuleAction.DEFAULT_ALERT.toString(), t('Alert me on issues')]);
-    } else {
-      options.unshift(
-        [RuleAction.DEFAULT_ALERT.toString(), this.getDefaultLabel()],
-        ...(hasProperlyLoadedConditions ? [customizedAlertOption] : [])
-      );
-    }
-
     return options.map(([choiceValue, node]) => [
       choiceValue,
       <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
     ]);
   }
 
-  getDefaultLabel(): string {
-    return this.props.organization.features.includes('priority-ga-features')
-      ? t('Alert me on high priority issues')
-      : t('Alert me on every new issue');
+  shouldUseNewDefaultSetting(): boolean {
+    return this.props.organization.features.includes('priority-ga-features');
   }
 
   getUpdatedData(): RequestDataFragment {
