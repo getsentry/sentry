@@ -445,8 +445,8 @@ const ProcessingErrorButton = styled(Button)`
 
   :hover {
     color: ${p => p.theme.red300};
-    }
-`
+  }
+`;
 
 const StyledButtonBar = styled(ButtonBar)`
   overflow-x: auto;
