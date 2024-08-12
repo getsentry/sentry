@@ -27,7 +27,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
-from sentry.utils.sentry_apps.hook_manager import create_or_update_service_hooks_for_installation
+from sentry.utils.sentry_apps.service_hook_manager import (
+    create_or_update_service_hooks_for_installation,
+)
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
