@@ -33,7 +33,7 @@ export default function useFetchDatasetTags({
   isLoading: boolean;
   tags: TagCollection;
 } {
-  const issuePlatformTagsQuery = useFetchOrganizationTags(
+  const query = useFetchOrganizationTags(
     {
       orgSlug: org.slug,
       projectIds: projectIds.map(String),
@@ -47,15 +47,15 @@ export default function useFetchDatasetTags({
   );
 
   const tags: TagCollection = useMemo(() => {
-    return (issuePlatformTagsQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+    return (query.data ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
     }, {});
-  }, [issuePlatformTagsQuery]);
+  }, [query]);
 
   return {
     tags: tags,
-    isLoading: issuePlatformTagsQuery.isLoading,
-    isError: issuePlatformTagsQuery.isError,
+    isLoading: query.isLoading,
+    isError: query.isError,
   };
 }
