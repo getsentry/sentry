@@ -362,7 +362,7 @@ function SummaryContent({
           onSearch={handleSearch}
           searchSource="transaction_summary"
           disableLoadingTags // already loaded by the parent component
-          filterKeyMenuWidth={480}
+          filterKeyMenuWidth={420}
         />
       );
     }
