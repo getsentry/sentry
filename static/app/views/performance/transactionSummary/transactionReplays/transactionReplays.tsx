@@ -11,6 +11,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -84,6 +85,7 @@ function generateEventView({
     name: `Replay events within a transaction`,
     version: 2,
     fields,
+    range: decodeScalar(location.query.statsPeriod),
     query: `event.type:transaction transaction:"${transactionName}" !replayId:""`,
     projects: [Number(location.query.project)],
   });
