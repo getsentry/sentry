@@ -272,7 +272,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert response.data["detail"] == "Cannot update permissions on a published integration."
 
-    def test_add_service_hooks_and_update_scope(self):
+    def test_service_hooks_and_update_scope(self):
         # first install the app on two organizations
         org1 = self.create_organization(name="Org1")
         org2 = self.create_organization(name="Org2")
