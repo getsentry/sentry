@@ -4,7 +4,7 @@ import type {Project} from 'sentry/types/project';
 
 import useIssueTrackingFilter from '../useIssueTrackingFilter';
 
-import type {IntegrationResult} from './types';
+import type {GroupIntegrationIssueResult} from './types';
 import {useIntegrationExternalIssues} from './useIntegrationExternalIssues';
 import {usePluginExternalIssues} from './usePluginExternalIssues';
 import {useSentryAppExternalIssues} from './useSentryAppExternalIssues';
@@ -23,7 +23,7 @@ export default function useGroupExternalIssues({
   group,
   event,
   project,
-}: Props): IntegrationResult {
+}: Props): GroupIntegrationIssueResult {
   const issueTrackingFilter = useIssueTrackingFilter();
 
   const {

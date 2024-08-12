@@ -11,7 +11,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import type {ExternalIssueAction, IntegrationResult} from './types';
+import type {ExternalIssueAction, GroupIntegrationIssueResult} from './types';
 
 interface IntegrationExternalIssueOptions {
   group: Group;
@@ -19,7 +19,7 @@ interface IntegrationExternalIssueOptions {
 
 export function useIntegrationExternalIssues({
   group,
-}: IntegrationExternalIssueOptions): IntegrationResult {
+}: IntegrationExternalIssueOptions): GroupIntegrationIssueResult {
   const api = useApi();
   const organization = useOrganization();
   const {
@@ -43,7 +43,11 @@ export function useIntegrationExternalIssues({
     return acc;
   }, new Map<string, GroupIntegration[]>());
 
-  const results: IntegrationResult = {integrations: [], linkedIssues: [], isLoading};
+  const results: GroupIntegrationIssueResult = {
+    integrations: [],
+    linkedIssues: [],
+    isLoading,
+  };
 
   for (const [providerKey, configurations] of activeIntegrationsByProvider.entries()) {
     const displayIcon = getIntegrationIcon(providerKey, 'sm');
@@ -78,7 +82,7 @@ export function useIntegrationExternalIssues({
     results.linkedIssues.push(
       ...configurations
         .filter(config => config.externalIssues.length > 0)
-        .map<IntegrationResult['linkedIssues'][number]>(config => ({
+        .map<GroupIntegrationIssueResult['linkedIssues'][number]>(config => ({
           key: config.externalIssues[0].id,
           displayName: config.externalIssues[0].key,
           displayIcon,
@@ -88,18 +92,21 @@ export function useIntegrationExternalIssues({
             // Currently we do not support a case where there is multiple external issues.
             // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
             const issue = config.externalIssues[0];
-            const endpoint = `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/?externalIssue=${issue.id}`;
 
-            api.request(endpoint, {
-              method: 'DELETE',
-              success: () => {
-                addSuccessMessage(t('Successfully unlinked issue.'));
-                refetchIntegrations();
-              },
-              error: () => {
-                addErrorMessage(t('Unable to unlink issue.'));
-              },
-            });
+            api.request(
+              `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/`,
+              {
+                method: 'DELETE',
+                query: {externalIssue: issue.id},
+                success: () => {
+                  addSuccessMessage(t('Successfully unlinked issue.'));
+                  refetchIntegrations();
+                },
+                error: () => {
+                  addErrorMessage(t('Unable to unlink issue.'));
+                },
+              }
+            );
           },
         }))
     );

@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
-import type {IntegrationResult} from 'sentry/components/group/externalIssuesList/hooks/types';
+import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {doOpenSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueActions';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
@@ -19,7 +19,7 @@ export function useSentryAppExternalIssues({
 }: {
   event: Event;
   group: Group;
-}): IntegrationResult {
+}): GroupIntegrationIssueResult {
   const api = useApi();
   const organization = useOrganization();
   const {
@@ -33,7 +33,11 @@ export function useSentryAppExternalIssues({
   const sentryAppComponents = useSentryAppComponentsStore({componentType: 'issue-link'});
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
 
-  const result: IntegrationResult = {integrations: [], linkedIssues: [], isLoading};
+  const result: GroupIntegrationIssueResult = {
+    integrations: [],
+    linkedIssues: [],
+    isLoading,
+  };
 
   for (const component of sentryAppComponents) {
     const installation = sentryAppInstallations.find(
@@ -48,13 +52,16 @@ export function useSentryAppExternalIssues({
       i => i.serviceType === component.sentryApp.slug
     );
     const displayName = component.sentryApp.name;
+    const displayIcon = (
+      <SentryAppComponentIcon sentryAppComponent={component} size={14} />
+    );
     if (externalIssue) {
       result.linkedIssues.push({
         key: externalIssue.id,
         displayName: `${displayName} Issue`,
         url: externalIssue.webUrl,
         title: externalIssue.displayName,
-        displayIcon: <SentryAppComponentIcon sentryAppComponent={component} size={14} />,
+        displayIcon,
         onUnlink: () => {
           deleteExternalIssue(api, group.id, externalIssue.id)
             .then(_data => {
@@ -70,7 +77,7 @@ export function useSentryAppExternalIssues({
       result.integrations.push({
         key: component.sentryApp.slug,
         displayName,
-        displayIcon: <SentryAppComponentIcon sentryAppComponent={component} size={14} />,
+        displayIcon,
         disabled: Boolean(component.error),
         disabledText: t('Unable to connect to %s', displayName),
         actions: [

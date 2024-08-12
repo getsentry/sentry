@@ -51,7 +51,8 @@ describe('StreamlinedExternalIssueList', () => {
       ],
     });
     const unlinkMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/1/?externalIssue=321`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/1/`,
+      query: {externalIssue: '321'},
       method: 'DELETE',
     });
 

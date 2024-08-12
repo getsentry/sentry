@@ -8,7 +8,7 @@ import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import type {IntegrationResult} from './types';
+import type {GroupIntegrationIssueResult} from './types';
 
 export function usePluginExternalIssues({
   group,
@@ -16,19 +16,18 @@ export function usePluginExternalIssues({
 }: {
   group: Group;
   project: Project;
-}): IntegrationResult {
+}): GroupIntegrationIssueResult {
   const api = useApi();
   const organization = useOrganization();
 
-  const linkedIssues: IntegrationResult['linkedIssues'] = [];
-  const integrations: IntegrationResult['integrations'] = [];
+  const result: GroupIntegrationIssueResult = {integrations: [], linkedIssues: []};
 
   const combinedPlugins = [...group.pluginIssues, ...group.pluginActions];
   for (const plugin of combinedPlugins) {
     const displayIcon = getIntegrationIcon(plugin.id, 'sm');
     const displayName = plugin.name || plugin.title;
     if (plugin.issue) {
-      linkedIssues.push({
+      result.linkedIssues.push({
         key: plugin.id,
         displayName: `${displayName} Issue`,
         displayIcon,
@@ -55,7 +54,7 @@ export function usePluginExternalIssues({
         },
       });
     } else {
-      integrations.push({
+      result.integrations.push({
         key: plugin.id,
         displayName,
         displayIcon,
@@ -89,5 +88,5 @@ export function usePluginExternalIssues({
     }
   }
 
-  return {integrations, linkedIssues};
+  return result;
 }

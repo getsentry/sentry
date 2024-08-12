@@ -46,9 +46,8 @@ interface ExternalIssueIntegration extends BaseIssueAction {
 
 /**
  * Each integration type will have a set of integrations and linked issues
- * eg - Sentry Apps, Integrations, Plugins each have a set of integrations and linked issues
  */
-export interface IntegrationResult {
+export interface GroupIntegrationIssueResult {
   integrations: ExternalIssueIntegration[];
   linkedIssues: LinkedIssue[];
   isLoading?: boolean;
