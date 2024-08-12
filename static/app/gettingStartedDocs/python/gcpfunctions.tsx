@@ -22,7 +22,7 @@ import sentry_sdk
 from sentry_sdk.integrations.gcp import GcpIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[GcpIntegration()],${
       params.isPerformanceSelected
         ? `
@@ -46,7 +46,7 @@ def http_function_entrypoint(request):
 
 const getTimeoutWarningSnippet = (params: Params) => `
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[
         GcpIntegration(timeout_warning=True),
     ],

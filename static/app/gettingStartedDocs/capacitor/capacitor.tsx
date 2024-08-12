@@ -114,7 +114,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
       : siblingOption === SiblingOption.VUE3
         ? 'app,'
         : ''
-  }dsn: "${params.dsn}",
+  }dsn: "${params.dsn.public}",
    integrations: [
     ${getIntegrations(params, siblingOption)}
    ],

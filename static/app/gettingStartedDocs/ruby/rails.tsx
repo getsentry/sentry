@@ -25,7 +25,7 @@ const generatorSnippet = 'bin/rails generate sentry';
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'
+  config.dsn = '${params.dsn.public}'
   config.breadcrumbs_logger = [:active_support_logger, :http_logger]${
     params.isPerformanceSelected
       ? `
@@ -173,7 +173,7 @@ const crashReportOnboarding: OnboardingConfig = {
               code: `<% sentry_id = request.env["sentry.error_event_id"] %>
 <% if sentry_id.present? %>
 <script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
 </script>
 <% end %>`,

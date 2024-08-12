@@ -12,7 +12,6 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -34,7 +33,6 @@ export function FeedbackOnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
       dsn,
       organization,
       platformKey,
@@ -62,7 +60,6 @@ export function FeedbackOnboardingLayout({
       steps: [...doc.install(docParams), ...doc.configure(docParams)],
     };
   }, [
-    cdn,
     docsConfig,
     dsn,
     isLoadingRegistry,

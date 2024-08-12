@@ -217,7 +217,7 @@ interface ProfilingOnboardingContentProps {
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
-  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+  const {isLoading, isError, dsn, docs, refetch} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
     projSlug: props.projectSlug,
     platform: props.platform,
@@ -259,7 +259,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   }
 
   const docParams: DocsParams<any> = {
-    cdn,
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,

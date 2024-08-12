@@ -17,7 +17,7 @@ const getConfigureSnippet = (params: Params) => `
 
 int main(void) {
   sentry_options_t *options = sentry_options_new();
-  sentry_options_set_dsn(options, "${params.dsn}");
+  sentry_options_set_dsn(options, "${params.dsn.public}");
   // This is also the default-path. For further information and recommendations:
   // https://docs.sentry.io/platforms/native/configuration/options/#database-path
   sentry_options_set_database_path(options, ".sentry-native");

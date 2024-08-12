@@ -34,7 +34,7 @@ const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/gatsby";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isPerformanceSelected
       ? `

@@ -57,7 +57,7 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
           // Add the following line:
           webBuilder.UseSentry(o =>
           {
-              o.Dsn = "${params.dsn}";
+              o.Dsn = "${params.dsn.public}";
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;${
                 params.isPerformanceSelected

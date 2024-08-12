@@ -197,7 +197,7 @@ function getSdkSetupSnippet(params: Params) {
   import { AppModule } from "./app/app.module";
 
   Sentry.init({
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     integrations: [${
       params.isPerformanceSelected
         ? `

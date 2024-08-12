@@ -19,7 +19,7 @@ from chalice import Chalice
 from sentry_sdk.integrations.chalice import ChaliceIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[ChaliceIntegration()],${
       params.isPerformanceSelected
         ? `

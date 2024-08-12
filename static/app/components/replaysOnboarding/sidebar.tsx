@@ -218,7 +218,6 @@ function OnboardingContent({
   const {
     docs,
     dsn,
-    cdn,
     isLoading: isProjKeysLoading,
   } = useLoadGettingStarted({
     platform:
@@ -378,7 +377,6 @@ function OnboardingContent({
       <ReplayOnboardingLayout
         docsConfig={docs}
         dsn={dsn}
-        cdn={cdn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
         projectId={currentProject.id}

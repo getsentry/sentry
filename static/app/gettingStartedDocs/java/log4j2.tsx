@@ -111,7 +111,7 @@ const getConsoleAppenderSnippet = (params: Params) => `
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
         <Sentry name="Sentry"
-                dsn=${params.dsn}>
+                dsn=${params.dsn.public}>
     </Appenders>
     <Loggers>
         <Root level="info">
@@ -125,7 +125,7 @@ const getLogLevelSnippet = (params: Params) => `
 <!-- Setting minimumBreadcrumbLevel modifies the default minimum level to add breadcrumbs from INFO to DEBUG  -->
 <!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->
 <Sentry name="Sentry"
-        dsn="${params.dsn}"
+        dsn="${params.dsn.public}"
         minimumBreadcrumbLevel="DEBUG"
         minimumEventLevel="WARN"
 />`;

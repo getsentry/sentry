@@ -27,14 +27,14 @@ sentry = { version = "${getPackageVersion(
 )}", features = ["UNSTABLE_metrics"] }`;
 
 const getConfigureSnippet = (params: Params) => `
-let _guard = sentry::init(("${params.dsn}", sentry::ClientOptions {
+let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
   release: sentry::release_name!(),
   ..Default::default()
 }));`;
 
 const getVerifySnippet = (params: Params) => `
 fn main() {
-  let _guard = sentry::init(("${params.dsn}", sentry::ClientOptions {
+  let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
     release: sentry::release_name!(),
     ..Default::default()
   }));

@@ -17,7 +17,7 @@ from sentry_sdk.integrations.pymongo import PyMongoIntegration
 
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[
         PyMongoIntegration(),
     ],

@@ -16,7 +16,7 @@ import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations:[
         sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),
     ],${

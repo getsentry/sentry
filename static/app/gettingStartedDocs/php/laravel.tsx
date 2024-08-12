@@ -39,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })->create();`;
 
 const getConfigureSnippet = (params: Params) =>
-  `SENTRY_LARAVEL_DSN=${params.dsn}${
+  `SENTRY_LARAVEL_DSN=${params.dsn.public}${
     params.isPerformanceSelected
       ? `
 # Specify a fixed sample rate
@@ -121,7 +121,7 @@ const onboarding: OnboardingConfig = {
         {
           description: t('Configure the Sentry DSN with this command:'),
           language: 'shell',
-          code: `php artisan sentry:publish --dsn=${params.dsn}`,
+          code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
           description: tct(
@@ -285,7 +285,7 @@ const crashReportOnboarding: OnboardingConfig = {
   @if(app()->bound('sentry') && app('sentry')->getLastEventId())
   <div class="subtitle">Error ID: {{ app('sentry')->getLastEventId() }}</div>
   <script>
-    Sentry.init({ dsn: '${params.dsn}' });
+    Sentry.init({ dsn: '${params.dsn.public}' });
     Sentry.showReportDialog({
       eventId: '{{ app('sentry')->getLastEventId() }}'
     });

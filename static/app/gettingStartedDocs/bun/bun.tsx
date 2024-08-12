@@ -30,7 +30,7 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/bun";
 
 Sentry.init({
-  dsn: "${params.dsn}",${
+  dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   // Performance Monitoring
@@ -47,7 +47,7 @@ const getVerifySnippet = () => `try {
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,

@@ -49,14 +49,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     loadGettingStarted.isError ||
     loadGettingStarted.isLoading ||
     !loadGettingStarted.docs ||
-    !loadGettingStarted.cdn ||
     !loadGettingStarted.dsn
   ) {
     return null;
   }
 
   const docParams: DocsParams<any> = {
-    cdn: loadGettingStarted.cdn,
     dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,

@@ -37,7 +37,7 @@ import config from "./config/environment";
 import * as Sentry from "@sentry/ember";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isReplaySelected
       ? `

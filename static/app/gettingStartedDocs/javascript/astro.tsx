@@ -31,7 +31,7 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn}",${
+      dsn: "${params.dsn.public}",${
         params.isPerformanceSelected
           ? ''
           : `
@@ -253,7 +253,7 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn}",
+      dsn: "${params.dsn.public}",
       replaysSessionSampleRate: 0.2, // defaults to 0.1
       replaysOnErrorSampleRate: 1.0, // defaults to 1.0
     }),
@@ -280,7 +280,7 @@ export default defineConfig({
                 importStatement: `// This file overrides \`astro.config.mjs\` for the browser-side.
 // SDK options from \`astro.config.mjs\` will not apply.
 import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -337,7 +337,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

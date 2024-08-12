@@ -18,7 +18,7 @@ const getConfigureSnippet = (params: Params) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'${
+  config.dsn = '${params.dsn.public}'${
     params.isPerformanceSelected
       ? `
 

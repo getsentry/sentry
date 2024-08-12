@@ -64,7 +64,7 @@ public static MauiApp CreateMauiApp()
     // Add this section anywhere on the builder:
     .UseSentry(options => {
       // The DSN is the only required setting.
-      options.Dsn = "${params.dsn}";
+      options.Dsn = "${params.dsn.public}";
 
       // Use debug mode if you want to see what the SDK is doing.
       // Debug messages are written to stdout with Console.Writeline,

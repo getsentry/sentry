@@ -28,7 +28,7 @@ export function SdkDocumentation({
   configType,
   organization,
 }: SdkDocumentationProps) {
-  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+  const {isLoading, isError, dsn, docs, refetch} = useLoadGettingStarted({
     orgSlug: organization.slug,
     projSlug: projectSlug,
     platform,
@@ -73,7 +73,6 @@ export function SdkDocumentation({
     <OnboardingLayout
       docsConfig={docs}
       dsn={dsn}
-      cdn={cdn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}

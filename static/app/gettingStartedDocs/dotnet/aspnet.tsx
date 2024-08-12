@@ -54,7 +54,7 @@ public class MvcApplication : HttpApplication
         _sentry = SentrySdk.Init(o =>
         {
             o.AddAspNet();
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
@@ -202,7 +202,7 @@ const crashReportOnboarding: OnboardingConfig = {
               language: 'html',
               code: `@if (SentrySdk.LastEventId != SentryId.Empty) {
   <script>
-    Sentry.init({ dsn: "${params.dsn}" });
+    Sentry.init({ dsn: "${params.dsn.public}" });
     Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
   </script>
 }`,

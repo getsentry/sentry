@@ -64,7 +64,7 @@ func application(_ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
     SentrySDK.start { options in
-        options.dsn = "${params.dsn}"
+        options.dsn = "${params.dsn.public}"
         options.debug = true // Enabling debug when first installing is always helpful${
           params.isPerformanceSelected
             ? `
@@ -94,7 +94,7 @@ import Sentry
 struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
-            options.dsn = "${params.dsn}"
+            options.dsn = "${params.dsn.public}"
             options.debug = true // Enabling debug when first installing is always helpful${
               params.isPerformanceSelected
                 ? `
@@ -159,7 +159,7 @@ const getConfigureMetricsSnippetSwift = (params: Params) => `
 import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "${params.dsn}"
+    options.dsn = "${params.dsn.public}"
 
     options.enableMetrics = true
 }`;
@@ -168,7 +168,7 @@ const getConfigureMetricsSnippetObjC = (params: Params) => `
 @import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
-    options.Dsn = @"${params.dsn}";
+    options.Dsn = @"${params.dsn.public}";
 
     options.enableMetrics = YES;
 }];`;

@@ -19,7 +19,7 @@ type Params = DocsParams;
 const getConfigureSnippet = (params: Params) => `
 onDeviceReady: function() {
   var Sentry = cordova.require('sentry-cordova.Sentry');
-  Sentry.init({ dsn: '${params.dsn}' });
+  Sentry.init({ dsn: '${params.dsn.public}' });
 }`;
 
 const onboarding: OnboardingConfig = {

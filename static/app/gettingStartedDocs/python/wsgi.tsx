@@ -22,7 +22,7 @@ from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 from my_wsgi_app import app
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
