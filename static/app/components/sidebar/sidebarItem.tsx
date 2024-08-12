@@ -158,6 +158,7 @@ function SidebarItem({
   const isActiveRouter =
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
+  // TODO: floating accordion should be transformed into secondary panel
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
   const hasLink = Boolean(to);
 
@@ -232,8 +233,17 @@ function SidebarItem({
             className={className}
             aria-current={isActive ? 'page' : undefined}
             onClick={handleItemClick}
+            hasNewNav={hasNewNav}
           >
-            <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+            {hasNewNav ? (
+              <StyledInteractionStateLayer
+                isPressed={isActive}
+                color="white"
+                higherOpacity
+              />
+            ) : (
+              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+            )}
             <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
               {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
               {!isInCollapsedState && !isTop && (
@@ -273,7 +283,12 @@ function SidebarItem({
                   {badge}
                 </SidebarItemBadge>
               )}
-              {hasNewNav && <div>foobar</div>}
+              {!isInFloatingAccordion && hasNewNav && (
+                <LabelHook id={id}>
+                  <TruncatedLabel>{label}</TruncatedLabel>
+                  {additionalContent ?? badges}
+                </LabelHook>
+              )}
               {trailingItems}
             </SidebarItemWrapper>
           </StyledSidebarItem>
@@ -330,6 +345,7 @@ const getActiveStyle = ({
   isInFloatingAccordion,
 }: {
   active?: string;
+  hasNewNav?: boolean;
   isInFloatingAccordion?: boolean;
   theme?: Theme;
 }) => {
@@ -368,24 +384,32 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : '30px')};
+  height: ${p => (p.isInFloatingAccordion ? '35px' : '40px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-  margin: ${space(1)} 0;
-
-  &:before {
-    display: block;
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: calc(-${space(2)} - 1px);
-    bottom: 6px;
-    width: 5px;
-    border-radius: 0 3px 3px 0;
-    background-color: transparent;
-    transition: 0.15s background-color linear;
-  }
+  margin: ${p => (p.hasNewNav ? space(2) : space(1))} 0;
+  ${p => {
+    if (!p.hasNewNav) {
+      return css`
+        &:before {
+          display: block;
+          content: '';
+          position: absolute;
+          top: 4px;
+          left: calc(-${space(2)} - 1px);
+          bottom: 6px;
+          width: 5px;
+          border-radius: 0 3px 3px 0;
+          background-color: transparent;
+          transition: 0.15s background-color linear;
+          height: 100%;
+          align-self: center;
+        }
+      `;
+    }
+    return '';
+  }}
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     &:before {
@@ -508,4 +532,9 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
   position: absolute;
   top: 2px;
   right: 2px;
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  height: ${16 * 2 + 40}px;
+  width: 70px;
 `;
