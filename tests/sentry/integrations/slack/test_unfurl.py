@@ -7,13 +7,14 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from sentry.charts.types import ChartType
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
@@ -926,8 +927,10 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_without_project_ids(self, mock_generate_chart, _):
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
+    def test_unfurl_discover_without_project_ids(
+        self, mock_generate_chart, mock_get_event_stats_data
+    ):
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -955,6 +958,10 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
+
+        assert len(mock_get_event_stats_data.mock_calls) == 1
+        dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
+        assert dataset == errors
 
     # patched return value determined by reading events stats output
     @patch(
@@ -1130,6 +1137,59 @@ class UnfurlTest(TestCase):
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_saved_query_with_dataset(self, mock_generate_chart, mock_get_event_stats_data):
+        query = {
+            "fields": ["title", "event.type", "project", "user.display", "timestamp"],
+            "query": "",
+            "yAxis": "count()",
+            "interval": "10m",
+            "statsPeriod": "24h",
+        }
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="Test query",
+            query=query,
+            version=2,
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+        saved_query.set_projects([self.project.id])
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert len(mock_get_event_stats_data.mock_calls) == 1
+        dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
+        assert dataset == transactions
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
         return_value={
             "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
             "end": 1652903400,
@@ -1138,7 +1198,7 @@ class UnfurlTest(TestCase):
         },
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_homepage(self, mock_generate_chart, _):
+    def test_unfurl_discover_homepage(self, mock_generate_chart, mock_get_event_stats_data):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/homepage/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1162,3 +1222,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
+
+        assert len(mock_get_event_stats_data.mock_calls) == 1
+        dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
+        assert dataset == discover

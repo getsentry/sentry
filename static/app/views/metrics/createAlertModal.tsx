@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -18,17 +18,29 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {
   getFieldFromMetricsQuery as getAlertAggregate,
   getMetricsInterval,
+  isVirtualMetric,
 } from 'sentry/utils/metrics';
-import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
-import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {
+  formatMRI,
+  formatMRIField,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {
+  useVirtualMetricsContext,
+  VirtualMetricsContextProvider,
+} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,18 +59,6 @@ import {getChartTimeseries} from 'sentry/views/metrics/widget';
 interface FormState {
   environment: string | null;
   project: string | null;
-}
-
-function getInitialFormState(selection: PageFilters): FormState {
-  const project =
-    selection.projects.length === 1 ? selection.projects[0].toString() : null;
-  const environment =
-    selection.environments.length === 1 && project ? selection.environments[0] : null;
-
-  return {
-    project,
-    environment,
-  };
 }
 
 function getAlertPeriod({period, start, end}: PageFilters['datetime']) {
@@ -115,18 +115,41 @@ export function getAlertInterval(
   return toInterval(TimeWindow.ONE_HOUR);
 }
 
-interface Props extends ModalRenderProps {
+interface Props {
   metricsQuery: MetricsQuery;
+  organization: Organization;
 }
 
-export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
+export function CreateAlertModal({
+  Header,
+  Body,
+  Footer,
+  metricsQuery,
+}: Props & ModalRenderProps) {
   const router = useRouter();
   const organization = useOrganization();
+  const {resolveVirtualMRI, getExtractionRule} = useVirtualMetricsContext();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const [formState, setFormState] = useState<FormState>(() =>
-    getInitialFormState(selection)
-  );
+  const [formState, setFormState] = useState<FormState>(() => {
+    let project =
+      selection.projects.length === 1 ? selection.projects[0].toString() : null;
+
+    if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
+      const rule = getExtractionRule(metricsQuery.mri, metricsQuery.condition);
+      if (rule) {
+        project = rule.projectId.toString();
+      }
+    }
+
+    const environment =
+      selection.environments.length === 1 && project ? selection.environments[0] : null;
+
+    return {
+      project,
+      environment,
+    };
+  });
 
   const selectedProject = projects.find(p => p.id === formState.project);
   const isFormValid = formState.project !== null;
@@ -140,17 +163,35 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, selection.datetime, alertPeriod]
   );
 
+  const resolvedQuery = useMemo(() => {
+    if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
+      return resolveVirtualMRI(
+        metricsQuery.mri,
+        metricsQuery.condition,
+        metricsQuery.aggregation
+      );
+    }
+
+    return metricsQuery;
+  }, [metricsQuery, resolveVirtualMRI]);
+
   const alertChartQuery = useMemo(
     () => ({
-      mri: metricsQuery.mri,
-      aggregation: metricsQuery.aggregation,
+      mri: resolvedQuery.mri,
+      aggregation: resolvedQuery.aggregation,
       query: metricsQuery.query,
       name: 'query',
     }),
-    [metricsQuery.mri, metricsQuery.aggregation, metricsQuery.query]
+    [resolvedQuery.mri, resolvedQuery.aggregation, metricsQuery.query]
   );
 
-  const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
+  const aggregate = useMemo(
+    () => getAlertAggregate({...metricsQuery, ...resolvedQuery}),
+    [metricsQuery, resolvedQuery]
+  );
+  const formattedAggregate = isExtractedCustomMetric(metricsQuery)
+    ? `${metricsQuery.aggregation}(${formatMRI(metricsQuery.mri)})`
+    : formatMRIField(aggregate);
 
   const {data, isLoading, refetch, isError} = useMetricsQuery(
     [alertChartQuery],
@@ -248,14 +289,13 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     selectedProject,
   ]);
 
-  const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
-  const operation = metricsQuery.aggregation;
+  const unit = chartSeries?.[0]?.unit ?? 'none';
   const chartOptions = useMemo(() => {
     const bucketSize =
       (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);
 
     const formatters = {
-      valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+      valueFormatter: value => formatMetricUsingUnit(value, unit),
       isGroupedByDate: true,
       bucketSize,
       showTimeInTooltip: true,
@@ -270,11 +310,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       },
       yAxis: {
         axisLabel: {
-          formatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+          formatter: value => formatMetricUsingUnit(value, unit),
         },
       },
     };
-  }, [chartSeries, operation, unit]);
+  }, [chartSeries, unit]);
 
   return (
     <Fragment>
@@ -323,7 +363,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                 <Tooltip
                   title={
                     <Fragment>
-                      <Filters>{formatMRIField(aggregate)}</Filters>
+                      <Filters>{formattedAggregate}</Filters>
                       {metricsQuery.query}
                     </Fragment>
                   }
@@ -337,7 +377,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                   showOnlyOnOverflow
                 >
                   <QueryFilters>
-                    <Filters>{formatMRIField(aggregate)}</Filters>
+                    <Filters>{formattedAggregate}</Filters>
                     {metricsQuery.query}
                   </QueryFilters>
                 </Tooltip>
@@ -404,3 +444,15 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-top: 58px;
   margin-bottom: 78px;
 `;
+
+export function openCreateAlertModal(props: Props) {
+  openModal(deps => {
+    return hasCustomMetricsExtractionRules(props.organization) ? (
+      <VirtualMetricsContextProvider>
+        <CreateAlertModal {...props} {...deps} />
+      </VirtualMetricsContextProvider>
+    ) : (
+      <CreateAlertModal {...props} {...deps} />
+    );
+  });
+}

@@ -18,13 +18,12 @@ class PipelineProvider(abc.ABC):
     def __init__(self) -> None:
         self.config: dict[str, Any] = {}
 
-    @property
-    @abc.abstractmethod
-    def key(self) -> str:
-        """
-        A unique identifier (e.g. 'slack'). Used to lookup sibling classes and
-        the `key` used when creating Integration objects.
-        """
+    # abstract
+    """
+    A unique identifier (e.g. 'slack'). Used to lookup sibling classes and
+    the `key` used when creating Integration objects.
+    """
+    key: str
 
     @property
     @abc.abstractmethod

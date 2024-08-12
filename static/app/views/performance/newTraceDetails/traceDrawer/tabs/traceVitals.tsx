@@ -45,7 +45,7 @@ export function TraceVitals(props: TraceVitalsProps) {
                 </Tooltip>
                 <div>
                   <div>{t('transaction')}</div>
-                  <TraceDrawerComponents.TitleOp> {op}</TraceDrawerComponents.TitleOp>
+                  <TraceDrawerComponents.TitleOp text={op} />
                 </div>
               </TraceDrawerComponents.Title>
             </TraceDrawerComponents.HeaderContainer>

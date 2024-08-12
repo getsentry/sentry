@@ -8,9 +8,10 @@ from django.db import models, router, transaction
 
 from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.types.region import find_regions_for_user
 
-from ...types.region import find_regions_for_user
-from ..outbox import ControlOutboxBase, OutboxCategory
 from . import ControlAvatarBase
 
 
@@ -63,7 +64,7 @@ class UserAvatar(ControlAvatarBase):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
-        from sentry.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),

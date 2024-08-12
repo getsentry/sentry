@@ -2400,7 +2400,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             collapse=["unhandled"],
-            searchId=view.id,
+            viewId=view.id,
             savedSearch=0,
         )
         assert response.status_code == 200
@@ -2459,8 +2459,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="!is:regressed is:unresolved"
         )  # (status=unresolved, substatus=(!regressed))
         response6 = get_query_response(
-            query="!is:until_escalating"
-        )  # (status=(!unresolved), substatus=(!until_escalating))
+            query="!is:archived_until_escalating"
+        )  # (status=(!unresolved), substatus=(!archived_until_escalating))
 
         assert (
             response0.status_code
@@ -2498,9 +2498,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response1 = get_query_response(query="is:escalating")
         response2 = get_query_response(query="is:new")
         response3 = get_query_response(query="is:regressed")
-        response4 = get_query_response(query="is:forever")
-        response5 = get_query_response(query="is:until_condition_met")
-        response6 = get_query_response(query="is:until_escalating")
+        response4 = get_query_response(query="is:archived_forever")
+        response5 = get_query_response(query="is:archived_until_condition_met")
+        response6 = get_query_response(query="is:archived_until_escalating")
         response7 = get_query_response(query="is:resolved")
         response8 = get_query_response(query="is:ignored")
         response9 = get_query_response(query="is:muted")
@@ -2550,7 +2550,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        # issue 2: events 90 minutes ago 1 minute ago
+        # issue 2: events 90 minutes ago and 1 minute ago
         time = datetime.now() - timedelta(minutes=90)
         event2 = self.store_event(
             data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
@@ -2562,6 +2562,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
 
+        sleep(1)
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort="new",
@@ -3254,7 +3255,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         sleep(1)
 
         # Request the first page with a limit of 10
-        response = self.get_success_response(limit=10)
+        response = self.get_success_response(limit=10, sort="new")
         assert response.status_code == 200
         assert len(response.data) == 10
         assert response.headers.get("X-Hits") == "30"

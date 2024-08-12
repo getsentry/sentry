@@ -8,10 +8,11 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -28,25 +29,10 @@ DO_NOT_UPGRADE_YET = ("legacy:2019-03-12", "newstyle:2019-10-29", "newstyle:2019
 
 # Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_permitted
 def _auto_update_grouping(project: Project) -> None:
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_permitted(project, "script")
 
 
-def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
-    """
-    Determine whether an auto-upate happened within the last `tolerance` seconds.
-
-    We can use this test to compensate for the delay between config getting updated and Relay
-    picking up the change.
-    """
-    project_transition_expiry = project.get_option("sentry:secondary_grouping_expiry") or 0
-    last_config_update = project_transition_expiry - settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-    now = int(time.time())
-    time_since_update = now - last_config_update
-
-    return time_since_update < 60
-
-
-def update_grouping_config_if_permitted(project: Project) -> None:
+def update_grouping_config_if_permitted(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
@@ -93,6 +79,11 @@ def update_grouping_config_if_permitted(project: Project) -> None:
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={**changes, **project.get_audit_log_data()},
+        )
+        metrics.incr(
+            "grouping.config_updated",
+            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            tags={"current_config": current_config, "source": source},
         )
 
 

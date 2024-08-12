@@ -1,11 +1,4 @@
 __all__ = (
-    "DocIntegration",
-    "ExternalActor",
-    "ExternalIssue",
-    "Integration",
-    "IntegrationFeature",
-    "OrganizationIntegration",
-    "RepositoryProjectPathConfig",
     "SentryApp",
     "SentryAppComponent",
     "SentryAppInstallation",
@@ -13,13 +6,6 @@ __all__ = (
     "SentryAppInstallationToken",
 )
 
-from sentry.integrations.models.doc_integration import DocIntegration
-from sentry.integrations.models.external_actor import ExternalActor
-from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.integration_feature import IntegrationFeature
-from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 
 # REQUIRED for migrations to run.
 from sentry.integrations.types import ExternalProviders  # NOQA

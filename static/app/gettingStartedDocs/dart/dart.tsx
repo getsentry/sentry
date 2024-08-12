@@ -26,7 +26,7 @@ import 'package:sentry/sentry.dart';
 
 Future<void> main() async {
   await Sentry.init((options) {
-    options.dsn = '${params.dsn}';
+    options.dsn = '${params.dsn.public}';
     // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // We recommend adjusting this value in production.
     options.tracesSampleRate = 1.0;
@@ -81,7 +81,7 @@ import 'package:sentry/sentry.dart';
 
 Future<void> main() async {
  await Sentry.init((options) {
-   options.dsn = '${params.dsn}';
+   options.dsn = '${params.dsn.public}';
    options.enableMetrics = true;
  },
 );`;
