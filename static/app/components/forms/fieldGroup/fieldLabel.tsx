@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 import type {FieldGroupProps} from './types';
 
-type FieldLabelProps = Pick<FieldGroupProps, 'disabled'>;
+interface FieldLabelProps extends Pick<FieldGroupProps, 'disabled'> {}
 
 const shouldForwardProp = p => p !== 'disabled' && isPropValid(p);
 
