@@ -9,7 +9,6 @@ from sentry.conf.server import (
     SEER_SIMILAR_ISSUES_URL,
     SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
 )
-from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
@@ -56,46 +55,6 @@ def get_similarity_data_from_seer(
         "get_seer_similar_issues.request",
         extra=logger_extra,
     )
-    # TODO: This is temporary, to debug Seer being called on existing hashes during ingest
-    if similar_issues_request.get("referrer") == "ingest":
-        existing_grouphash = GroupHash.objects.filter(
-            hash=request_hash, project_id=project_id
-        ).first()
-        if existing_grouphash and existing_grouphash.group_id:
-            logger.warning(
-                "get_seer_similar_issues.hash_exists",
-                extra={
-                    "event_id": similar_issues_request["event_id"],
-                    "project_id": project_id,
-                    "hash": request_hash,
-                    "grouphash_id": existing_grouphash.id,
-                    "group_id": existing_grouphash.group_id,
-                    "referrer": similar_issues_request.get("referrer"),
-                },
-            )
-    # TODO: This is temporary, to debug Seer being sent empty stacktraces (which will happen for
-    # ingest requests if the filter in `event_content_is_seer_eligible` for existence of frames
-    # isn't enough, or if the similar issues tab ever sends an empty stacktrace). If we want this
-    # check to become permanent, we should move it elsewhere.
-    if not similar_issues_request["stacktrace"]:
-        logger.warning(
-            "get_seer_similar_issues.empty_stacktrace",
-            extra={
-                "event_id": similar_issues_request["event_id"],
-                "project_id": project_id,
-                "hash": request_hash,
-                "referrer": similar_issues_request.get("referrer"),
-            },
-        )
-        metrics.incr(
-            "seer.similar_issues_request",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={
-                **metric_tags,
-                "outcome": "empty_stacktrace",
-            },
-        )
-        return []
 
     circuit_breaker = CircuitBreaker(
         SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,

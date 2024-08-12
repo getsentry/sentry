@@ -3,11 +3,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
-const excludedModuleNames = [
-  ModuleName.ALL,
-  ModuleName.OTHER,
-  ModuleName.MOBILE_UI,
-] as const;
+const excludedModuleNames = [ModuleName.OTHER, ModuleName.MOBILE_UI] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
 

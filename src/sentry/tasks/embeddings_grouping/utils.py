@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Q
+from django.db.utils import OperationalError
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
@@ -119,6 +120,46 @@ def initialize_backfill(
     return project, last_processed_group_id, last_processed_project_index_ret
 
 
+def _make_postgres_call(group_id_filter: Q, project_id: int, batch_size: int):
+    groups_to_backfill_batch_raw = (
+        Group.objects.filter(
+            group_id_filter,
+            project_id=project_id,
+            type=ErrorGroupType.type_id,
+            times_seen__gt=1,
+        )
+        .values_list("id", "data", "status", "last_seen")
+        .order_by("-id")[:batch_size]
+    )
+    return groups_to_backfill_batch_raw
+
+
+def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_size: int):
+    """
+    Try making postgres query. If it has an operational error, retry with a decreased batch size.
+    """
+    try:
+        groups_to_backfill_batch_raw = _make_postgres_call(group_id_filter, project_id, batch_size)
+    except OperationalError:
+        batch_size = batch_size // 2
+        try:
+            logger.info(
+                "tasks.backfill_seer_grouping_records.postgres_query_retry",
+                extra={"project_id": project_id, "batch_size": batch_size},
+            )
+            groups_to_backfill_batch_raw = _make_postgres_call(
+                group_id_filter, project_id, batch_size
+            )
+        except OperationalError:
+            logger.exception(
+                "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
+                extra={"project_id": project_id, "batch_size": batch_size},
+            )
+            raise
+
+    return (groups_to_backfill_batch_raw, batch_size)
+
+
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(
     project, last_processed_group_id, batch_size, enable_ingestion: bool = False
@@ -127,17 +168,11 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    groups_to_backfill_batch_raw = (
-        Group.objects.filter(
-            group_id_filter,
-            project_id=project.id,
-            type=ErrorGroupType.type_id,
-            times_seen__gt=1,
-        )
-        .values_list("id", "data", "status", "last_seen")
-        .order_by("-id")[:batch_size]
+    (groups_to_backfill_batch_raw, batch_size) = _make_postgres_call_with_retry(
+        group_id_filter, project.id, batch_size
     )
-    total_groups_to_backfill_length = len(groups_to_backfill_batch_raw)
+
+    total_groups_to_backfill_length = groups_to_backfill_batch_raw.count()
     batch_end_group_id = (
         groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
         if total_groups_to_backfill_length
@@ -157,7 +192,7 @@ def get_current_batch_groups_from_postgres(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": len(groups_to_backfill_batch),
+            "batch_len": total_groups_to_backfill_length,
             "last_processed_group_id": batch_end_group_id,
         },
     )
