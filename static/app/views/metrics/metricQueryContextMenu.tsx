@@ -161,6 +161,8 @@ export function MetricQueryContextMenu({
             );
             if (extractionRule) {
               openExtractionRuleEditModal({
+                organization,
+                source: 'ddm.configure-metric',
                 metricExtractionRule: extractionRule,
                 onSubmitSuccess: data => {
                   // Keep the unit of the MRI in sync with the unit of the extraction rule

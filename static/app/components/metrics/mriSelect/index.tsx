@@ -349,7 +349,10 @@ export const MRISelect = memo(function MRISelect({
                     priority="primary"
                     onClick={() => {
                       closeOverlay();
-                      openExtractionRuleCreateModal({});
+                      openExtractionRuleCreateModal({
+                        organization,
+                        source: 'ddm.metric-select.create-metric',
+                      });
                     }}
                     size="xs"
                   >
