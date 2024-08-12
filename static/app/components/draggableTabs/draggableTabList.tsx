@@ -30,7 +30,6 @@ function BaseDraggableTabList({
   outerWrapStyles,
   onReorder,
   onAddView,
-  showTempTab = false,
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
@@ -72,7 +71,7 @@ function BaseDraggableTabList({
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
+  }, [state.selectedItem, state.selectedKey, props.children]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
@@ -136,7 +135,7 @@ function BaseDraggableTabList({
           </MotionWrapper>
           <TabDivider layout />
           <MotionWrapper layout>
-            {showTempTab && tempTab && (
+            {tempTab && (
               <Tab
                 key={tempTab.key}
                 item={tempTab}
@@ -173,12 +172,7 @@ export interface DraggableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabList({
-  items,
-  onAddView,
-  showTempTab,
-  ...props
-}: DraggableTabListProps) {
+export function DraggableTabList({items, onAddView, ...props}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -199,7 +193,6 @@ export function DraggableTabList({
     <BaseDraggableTabList
       items={parsedItems}
       onAddView={onAddView}
-      showTempTab={showTempTab}
       disabledKeys={disabledKeys}
       {...props}
     >

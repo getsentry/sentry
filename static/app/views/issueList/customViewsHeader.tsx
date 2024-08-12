@@ -9,7 +9,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {
   DraggableTabBar,
@@ -19,7 +19,7 @@ import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpd
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-import type {IssueSortOptions, QueryCounts} from './utils';
+import {IssueSortOptions, type QueryCounts} from './utils';
 
 type CustomViewsIssueListHeaderProps = {
   organization: Organization;
@@ -31,13 +31,10 @@ type CustomViewsIssueListHeaderProps = {
 
 type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
-  query: string;
   queryCounts: QueryCounts;
   router: InjectedRouter;
   setBorderStyle: (borderStyle: 'dashed' | 'solid') => void;
-  sort: IssueSortOptions;
   views: GroupSearchView[];
-  defaultView?: string;
 };
 
 function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps) {
@@ -50,25 +47,7 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
     orgSlug: props.organization.slug,
   });
 
-  const {
-    cursor: _cursor,
-    page: _page,
-    ...queryParams
-  } = props.router?.location?.query ?? {};
-
-  let defaultView: string | undefined = undefined;
-  if (queryParams.viewId) {
-    defaultView = queryParams.viewId;
-  } else if (queryParams.query) {
-    defaultView = 'temporary-tab';
-  }
-
-  const query = queryParams.query ?? props.initalView?.query;
-  const sort = queryParams.sort ?? props.initalView?.querySort;
-
-  const [borderStyle, setBorderStyle] = useState<'dashed' | 'solid'>(
-    defaultView === 'temporary-tab' ? 'dashed' : 'solid'
-  );
+  const [borderStyle, setBorderStyle] = useState<'dashed' | 'solid'>('solid');
 
   return (
     <Layout.Header noActionWrap borderStyle={borderStyle}>
@@ -88,14 +67,11 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
       {groupSearchViews ? (
         <CustomViewsIssueListHeaderTabsContent
           {...props}
-          query={query}
-          sort={sort}
           views={groupSearchViews}
           setBorderStyle={setBorderStyle}
-          defaultView={defaultView}
         />
       ) : (
-        <div style={{height: 38}} />
+        <div style={{height: 33}} />
       )}
     </Layout.Header>
   );
@@ -103,65 +79,56 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
 
 function CustomViewsIssueListHeaderTabsContent({
   organization,
-  query,
   queryCounts,
   router,
   setBorderStyle,
-  sort,
   views,
-  defaultView,
 }: CustomViewsIssueListHeaderTabsContentProps) {
   // Remove cursor and page when switching tabs
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
-  const sortParam = queryParams.sort ?? sort;
+  const navigate = useNavigate();
+
+  // TODO: Replace this with useLocation
+  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
 
   const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+    ({id, name, query: viewQuery, querySort: viewQuerySort}): Tab => {
       return {
-        id: id ?? undefined,
-        key: `view-${index}`,
+        id: id,
+        key: id,
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
         queryCount: queryCounts[viewQuery]?.count ?? undefined,
-        to: normalizeUrl({
-          query: {
-            ...queryParams,
-            query: viewQuery,
-            sort: viewQuerySort,
-            ...(id ? {viewId: id} : {}),
-          },
-          pathname: `/organizations/${organization.slug}/issues/`,
-        }),
       };
     }
   );
 
-  let initialTabKey = viewsToTabs[0].key;
-  if (defaultView === 'temporary-tab') {
-    initialTabKey = 'temporary-tab';
-  } else if (defaultView) {
-    initialTabKey =
-      viewsToTabs.find(tab => tab.id === defaultView)?.key ?? viewsToTabs[0].key;
-  }
-
   const [draggableTabs, setDraggableTabs] = useState<Tab[]>(viewsToTabs);
-  const [selectedTabKey, setSelectedTabKey] = useState<string>(initialTabKey);
+
+  const {query, sort, viewId} = queryParams;
+  const getInitialTabKey = () => {
+    if (!query && !sort && !viewId) {
+      return draggableTabs[0].key;
+    }
+    if (viewId && draggableTabs.find(tab => tab.id === viewId)) {
+      return draggableTabs.find(tab => tab.id === viewId)!.key;
+    }
+    if (query) {
+      return 'temporary-tab';
+    }
+    return draggableTabs[0].key;
+  };
+
+  // TODO: infer selected tab key state from URL params
+  const [selectedTabKey, setSelectedTabKey] = useState<string>(getInitialTabKey());
   const [tempTab, setTempTab] = useState<Tab | undefined>(
-    initialTabKey === 'temporary-tab'
+    getInitialTabKey() === 'temporary-tab' && query
       ? {
+          id: 'temporary-tab',
           key: 'temporary-tab',
-          label: 'Unsaved',
-          query,
-          querySort: sortParam,
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-              query,
-              sort: sortParam,
-            },
-            pathname: `/organizations/${organization.slug}/issues/`,
-          }),
+          label: t('Unsaved'),
+          query: query,
+          querySort: sort ?? IssueSortOptions.DATE,
         }
       : undefined
   );
@@ -173,29 +140,59 @@ function CustomViewsIssueListHeaderTabsContent({
       updateViews({
         orgSlug: organization.slug,
         groupSearchViews: newTabs.map(tab => ({
-          id: tab.id,
+          // Do not send over an ID if it's a temporary id
+          ...(tab.id[0] !== '_' ? {id: tab.id} : {}),
           name: tab.label,
           query: tab.query,
           querySort: tab.querySort,
         })),
       });
     }
-  }, 1000);
+  }, 500);
 
-  // Update URL with view's query, sort, and id(?) upon initial render. Ideally
-  // we can remove this after overview.tsx gets overhauled.
   useEffect(() => {
-    router.replace(
-      normalizeUrl({
+    // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
+    if (!query && !sort && !viewId) {
+      navigate({
         query: {
           ...queryParams,
-          query: query,
-          sort: sort,
-          ...(draggableTabs[0]?.id ? {viewId: draggableTabs[0].id} : {}),
+          query: draggableTabs[0].query,
+          sort: draggableTabs[0].querySort,
+          viewId: draggableTabs[0].id,
         },
         pathname: `/organizations/${organization.slug}/issues/`,
-      })
-    );
+      });
+      return;
+    }
+    // if a viewId is present, check if it exists in the existing views.
+    if (viewId) {
+      const selectedTab = draggableTabs.find(tab => tab.id === viewId);
+      if (
+        selectedTab &&
+        (query !== selectedTab!.query || sort !== selectedTab!.querySort)
+      ) {
+        // if a viewId exists but the query and sort are not what we expected, set them as unsaved changes
+        setDraggableTabs(
+          draggableTabs.map(tab =>
+            tab.key === selectedTab!.key
+              ? {
+                  ...tab,
+                  unsavedChanges: [query, sort],
+                }
+              : tab
+          )
+        );
+      } else if (!selectedTab) {
+        // if a viewId does not existing, remove it from the query
+        navigate({
+          query: {
+            ...queryParams,
+            viewId: undefined,
+          },
+          pathname: `/organizations/${organization.slug}/issues/`,
+        });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,24 +200,24 @@ function CustomViewsIssueListHeaderTabsContent({
   useEffect(() => {
     setDraggableTabs(
       draggableTabs.map(tab => {
-        if (!tab.id) {
+        if (tab.id[0] === '_') {
+          // Temp viewIds are prefixed with '_'
           views.forEach(view => {
             if (
+              view.id &&
               tab.query === view.query &&
               tab.querySort === view.querySort &&
               tab.label === view.name
             ) {
               tab.id = view.id;
-              tab.to = normalizeUrl({
-                query: {
-                  ...queryParams,
-                  query: view.query,
-                  sort: view.querySort,
-                  viewId: view.id,
-                },
-                pathname: `/organizations/${organization.slug}/issues`,
-              });
             }
+          });
+          navigate({
+            query: {
+              ...queryParams,
+              viewId: tab.id,
+            },
+            pathname: `/organizations/${organization.slug}/issues/`,
           });
         }
         return tab;
@@ -241,44 +238,27 @@ function CustomViewsIssueListHeaderTabsContent({
   // Updates the tab's hasSavedChanges state
   useEffect(() => {
     const currentTab = draggableTabs?.find(tab => tab.key === selectedTabKey);
-    if (
-      currentTab &&
-      (query !== currentTab.query || sortParam !== currentTab.querySort)
-    ) {
-      // console.log(currentTab.query, query, currentTab.querySort, sortParam);
+    if (currentTab && (query !== currentTab.query || sort !== currentTab.querySort)) {
       setDraggableTabs(
         draggableTabs?.map(tab => {
-          if (tab.key === selectedTabKey) {
-            tab.unsavedChanges = [query, sortParam];
-            tab.to = normalizeUrl({
-              query: {
-                ...queryParams,
-                query,
-                sort: sortParam,
-                ...(tab.id ? {viewId: tab.id} : {}),
-              },
-              pathname: `/organizations/${organization.slug}/issues/`,
-            });
-          }
-          return tab;
+          return tab.key === selectedTabKey
+            ? {...tab, unsavedChanges: [query, sort]}
+            : tab;
         })
       );
     } else if (
       currentTab &&
       query === currentTab.query &&
-      sortParam === currentTab.querySort
+      sort === currentTab.querySort
     ) {
       setDraggableTabs(
         draggableTabs?.map(tab => {
-          if (tab.key === selectedTabKey) {
-            tab.unsavedChanges = undefined;
-          }
-          return tab;
+          return tab.key === selectedTabKey ? {...tab, unsavedChanges: undefined} : tab;
         })
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, sortParam]);
+  }, [query, sort]);
 
   // Loads query counts when they are available
   useEffect(() => {
@@ -293,126 +273,24 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryCounts]);
 
-  const onAddView = () => {
-    const newKey = `view-${draggableTabs.length}`;
-    const currentTab = draggableTabs.find(tab => tab.key === selectedTabKey);
-    if (currentTab) {
-      const newTabQuery = currentTab.unsavedChanges
-        ? currentTab.unsavedChanges[0]
-        : currentTab.query;
-      const newTabSort = currentTab.unsavedChanges
-        ? currentTab.unsavedChanges[1]
-        : currentTab.querySort;
-      const newDraggableTabs = [
-        ...draggableTabs,
-        {
-          key: newKey,
-          label: 'New View',
-          query: newTabQuery,
-          querySort: newTabSort,
-          queryCount: queryCounts[query]?.count ?? 0,
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-              query: newTabQuery,
-              sort: newTabSort,
-              ...(currentTab.id ? {viewId: currentTab.id} : {}),
-            },
-            pathname: `/organizations/${organization.slug}/issues/`,
-          }),
-        },
-      ];
-      debounceUpdateViews(newDraggableTabs);
-      setDraggableTabs(newDraggableTabs);
-      setSelectedTabKey(newKey);
-    }
-  };
-
-  const onDiscardChanges = () => {
-    if (draggableTabs) {
-      const originalTab = draggableTabs.find(tab => tab.key === selectedTabKey);
-      if (originalTab?.to) {
-        originalTab.unsavedChanges = undefined;
-        originalTab.to = normalizeUrl({
-          query: {
-            ...queryParams,
-            query: originalTab.query,
-            sort: originalTab.querySort,
-            ...(originalTab.id ? {viewId: originalTab.id} : {}),
-          },
-          pathname: `/organizations/${organization.slug}/issues/`,
-        });
-        router.push(originalTab.to);
-      }
-    }
-  };
-
-  const onSaveChanges = () => {
-    const newDraggableTabs = draggableTabs.map(tab => {
-      if (tab.key === selectedTabKey) {
-        tab.query = tab.unsavedChanges?.[0] ?? query;
-        tab.querySort = tab.unsavedChanges?.[1] ?? sortParam;
-        tab.unsavedChanges = undefined;
-      }
-      return tab;
-    });
-    debounceUpdateViews(newDraggableTabs);
-    setDraggableTabs(newDraggableTabs);
-  };
-
-  const onSaveTempView = () => {
-    if (tempTab) {
-      const newKey = `view-${draggableTabs.length}`;
-      const newDraggableTabs = [
-        ...draggableTabs,
-        {
-          key: newKey,
-          label: 'New View',
-          query: tempTab.query,
-          querySort: tempTab.querySort,
-          queryCount: queryCounts[query]?.count ?? 0,
-          to: normalizeUrl({
-            query: {
-              ...queryParams,
-              query: tempTab.query,
-              sort: tempTab.querySort,
-            },
-            pathname: `/organizations/${organization.slug}/issues/`,
-          }),
-        },
-      ];
-      debounceUpdateViews(newDraggableTabs);
-      setDraggableTabs(newDraggableTabs);
-      setSelectedTabKey(newKey);
-    }
-    setTempTab(undefined);
-  };
-
-  const onDiscardTempView = () => {
-    setTempTab(undefined);
-    if (draggableTabs?.[0].to) {
-      setSelectedTabKey(draggableTabs[0].key);
-      router.push(draggableTabs[0].to);
-    }
-  };
-
   return (
     <StyledDraggableTabBar
       selectedTabKey={selectedTabKey}
       setSelectedTabKey={setSelectedTabKey}
       tabs={draggableTabs}
       setTabs={setDraggableTabs}
-      showTempTab={tempTab !== undefined}
       tempTab={tempTab}
+      setTempTab={setTempTab}
+      orgSlug={organization.slug}
       onReorder={debounceUpdateViews}
-      onAddView={onAddView}
+      onAddView={debounceUpdateViews}
       onDelete={debounceUpdateViews}
-      onDiscard={onDiscardChanges}
       onDuplicate={debounceUpdateViews}
       onTabRenamed={newTabs => debounceUpdateViews(newTabs)}
-      onSave={onSaveChanges}
-      onDiscardTempView={onDiscardTempView}
-      onSaveTempView={onSaveTempView}
+      onSave={debounceUpdateViews}
+      onSaveTempView={debounceUpdateViews}
+      setBorderStyle={setBorderStyle}
+      router={router}
     />
   );
 }
