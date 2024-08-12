@@ -60,9 +60,19 @@ from sentry.integrations.slack.unfurl.metric_alerts import handler as metric_ale
 from .discover import handler as discover_handler
 
 link_handlers: dict[LinkType, Handler] = {
-    LinkType.DISCOVER: discover_handler,
-    LinkType.METRIC_ALERT: metric_alert_handler,
-    LinkType.ISSUES: issues_handler,
+    LinkType.DISCOVER: Handler(
+        matcher=discover_handler.matcher,
+        arg_mapper=discover_handler.arg_mapper,
+        fn=discover_handler.fn,
+    ),
+    LinkType.METRIC_ALERT: Handler(
+        matcher=metric_alert_handler.matcher,
+        arg_mapper=metric_alert_handler.arg_mapper,
+        fn=metric_alert_handler.fn,
+    ),
+    LinkType.ISSUES: Handler(
+        matcher=issues_handler.matcher, arg_mapper=issues_handler.arg_mapper, fn=issues_handler.fn
+    ),
 }
 
 
