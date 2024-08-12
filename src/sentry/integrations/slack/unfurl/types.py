@@ -54,11 +54,12 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     return type_coercer
 
 
-from .discover import handler as discover_handler
-from .issues import handler as issues_handler
-from .metric_alerts import handler as metric_alert_handler
+from sentry.integrations.slack.unfurl.issues import handler as issues_handler
+from sentry.integrations.slack.unfurl.metric_alerts import handler as metric_alert_handler
 
-link_handlers = {
+from .discover import handler as discover_handler
+
+link_handlers: dict[LinkType, Handler] = {
     LinkType.DISCOVER: discover_handler,
     LinkType.METRIC_ALERT: metric_alert_handler,
     LinkType.ISSUES: issues_handler,

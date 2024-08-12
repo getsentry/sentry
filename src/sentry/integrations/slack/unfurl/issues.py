@@ -24,6 +24,7 @@ map_issue_args = make_type_coercer(
         "event_id": str,
     }
 )
+from typing import cast
 
 
 def unfurl_issues(
@@ -79,8 +80,11 @@ customer_domain_issue_link_regex = re.compile(
     r"^https?\://(?#url_prefix)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
 )
 
-handler = Handler(
-    fn=unfurl_issues,
-    matcher=[issue_link_regex, customer_domain_issue_link_regex],
-    arg_mapper=map_issue_args,
+handler = cast(
+    Handler,
+    Handler(
+        fn=unfurl_issues,
+        matcher=[issue_link_regex, customer_domain_issue_link_regex],
+        arg_mapper=map_issue_args,
+    ),
 )

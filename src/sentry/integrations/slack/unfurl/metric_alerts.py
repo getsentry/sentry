@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -154,8 +154,11 @@ customer_domain_metric_alerts_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
 )
 
-handler = Handler(
-    fn=unfurl_metric_alerts,
-    matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
-    arg_mapper=map_metric_alert_query_args,
+handler = cast(
+    Handler,
+    Handler(
+        fn=unfurl_metric_alerts,
+        matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
+        arg_mapper=map_metric_alert_query_args,
+    ),
 )
