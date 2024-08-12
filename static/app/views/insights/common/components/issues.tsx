@@ -114,8 +114,13 @@ function fetchIssues(
     ],
     {
       staleTime: 2 * 60 * 1000,
+      enabled: !!message,
     }
   );
+
+  if (!message) {
+    return {isLoading: false, issues: []};
+  }
 
   // the api response contains issues that match the first 200 characters of the message. now,
   // filter by the issues that match the exact message the user is searching for

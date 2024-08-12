@@ -260,7 +260,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                       'performance_slow_db_query',
                       'performance_n_plus_one_db_queries',
                     ]}
-                    message={indexedSpansByGroupId[0]['span.description']}
+                    message={indexedSpansByGroupId[0]?.['span.description']}
                   />
                 </ModuleLayout.Full>
               )}
