@@ -14,7 +14,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
-EA_ROLLOUT_PERCENTAGE = 20
 
 
 @instrumented_task(
