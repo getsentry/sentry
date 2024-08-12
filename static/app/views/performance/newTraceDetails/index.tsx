@@ -504,6 +504,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
       behavior: 'track result' | 'persist'
     ) => {
+      console.log('searched with', query);
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
@@ -967,7 +968,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         organization={organization}
       />
       <TraceToolbar>
-        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceSearchInput onTraceSearch={onTraceSearch} />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}

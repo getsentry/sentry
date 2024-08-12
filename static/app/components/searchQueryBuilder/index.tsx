@@ -249,7 +249,7 @@ export function SearchQueryBuilder({
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
-            <TokenizedQueryGrid label={label} />
+            <TokenizedQueryGrid label={label} actionBarWidth={width} />
           )}
           {size !== 'small' && <ActionButtons />}
         </Wrapper>

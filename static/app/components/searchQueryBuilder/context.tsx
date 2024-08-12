@@ -9,7 +9,7 @@ import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
-interface ContextData {
+export interface SearchQueryBuilerContextValue {
   disabled: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   filterKeyMenuWidth: number;
@@ -32,7 +32,7 @@ export function useSearchQueryBuilder() {
   return useContext(SearchQueryBuilerContext);
 }
 
-export const SearchQueryBuilerContext = createContext<ContextData>({
+export const SearchQueryBuilerContext = createContext<SearchQueryBuilerContextValue>({
   query: '',
   focusOverride: null,
   filterKeys: {},

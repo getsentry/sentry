@@ -1,39 +1,37 @@
 import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {placeholder} from 'lodash/partial';
 
+import {inputStyles} from 'sentry/components/input';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {
+  SearchQueryBuilerContext,
+  SearchQueryBuilerContextValue,
+} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useHandleSearch,
+  UseHandleSearchProps,
+} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
-import {
-  parseQueryBuilderValue,
-  queryIsValid,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
-import Wrapper from 'sentry/views/relocation/components/wrapper';
-import ActionButtons from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow/actionButtons';
 
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
 
@@ -217,7 +215,7 @@ function LegacyTraceSearchInput(props: TraceSearchInputProps) {
         type="text"
         name="query"
         autoComplete="off"
-        placeholder={t('Search in trace')}
+        placeholder={t('Search in trace...')}
         defaultValue={inputProps.traceState.search.query ?? ''}
         onChange={inputProps.onChange}
         onKeyDown={inputProps.onKeyDown}
@@ -270,101 +268,86 @@ function LegacyTraceSearchInput(props: TraceSearchInputProps) {
 }
 
 function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
+  const searchSource = 'trace-view';
+  const traceState = useTraceState();
   const inputProps = useTraceSearchInput(props);
+
+  const traceStateRef = useRef(traceState);
+  traceStateRef.current = traceState;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+
   const {state, dispatch} = useQueryBuilderState({
-    initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
-    disabled,
+    initialQuery: inputProps.traceState.search.query ?? '',
+    getFieldDefinition,
+    disabled: false,
   });
+
+  const onTraceSearch = useCallback(
+    (query: string): void => {
+      props.onTraceSearch(
+        query,
+        traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node,
+        'track result'
+      );
+    },
+    [props]
+  );
 
   const parsedQuery = useMemo(
     () =>
-      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
-        disallowFreeText,
-        disallowLogicalOperators,
-        disallowUnsupportedFilters,
-        disallowWildcard,
-        filterKeys,
-        invalidMessages,
+      parseQueryBuilderValue(state.query, getFieldDefinition, {
+        disallowFreeText: false,
+        disallowLogicalOperators: false,
+        disallowUnsupportedFilters: false,
+        disallowWildcard: false,
+        filterKeys: {},
+        invalidMessages: {},
       }),
-    [
-      state.query,
-      fieldDefinitionGetter,
-      disallowFreeText,
-      disallowLogicalOperators,
-      disallowUnsupportedFilters,
-      disallowWildcard,
-      filterKeys,
-      invalidMessages,
-    ]
+    [state.query]
   );
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    recentSearches,
+    recentSearches: undefined,
     searchSource,
-    onSearch,
+    onSearch: onTraceSearch,
   });
-  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
-  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
-  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
-  const contextValue = useMemo(() => {
+  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
+
+  const contextValue = useMemo((): SearchQueryBuilerContextValue => {
     return {
       ...state,
-      disabled,
+      disabled: false,
       parsedQuery,
-      filterKeySections: filterKeySections ?? [],
-      filterKeyMenuWidth,
-      filterKeys,
-      getTagValues,
-      getFieldDefinition: fieldDefinitionGetter,
+      filterKeySections: [],
+      filterKeyMenuWidth: 0,
+      getTagValues: () => Promise.resolve([]),
+      filterKeys: {},
+      getFieldDefinition,
       dispatch,
-      onSearch,
       wrapperRef,
       handleSearch,
-      placeholder,
-      recentSearches,
+      placeholder: t('Search in trace...'),
+      recentSearches: undefined,
       searchSource,
-      size,
+      size: 'normal',
     };
-  }, [
-    state,
-    disabled,
-    parsedQuery,
-    filterKeySections,
-    filterKeyMenuWidth,
-    filterKeys,
-    getTagValues,
-    fieldDefinitionGetter,
-    dispatch,
-    onSearch,
-    handleSearch,
-    placeholder,
-    recentSearches,
-    searchSource,
-    size,
-  ]);
-
+  }, [dispatch, parsedQuery, handleSearch, state]);
+  useLayoutEffect(() => {
+    onTraceSearch(state.query);
+  }, [state.query]);
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Wrapper
-          className={className}
-          onBlur={() =>
-            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-          }
-          ref={wrapperRef}
-          aria-disabled={disabled}
-        >
-          {size !== 'small' && <PositionedSearchIcon size="sm" />}
-          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
-            <PlainTextQueryInput label={label} />
+        <Wrapper size="sm" ref={wrapperRef}>
+          <PositionedSearchIcon size="sm" />
+          {parsedQuery ? (
+            <TokenizedQueryGrid actionBarWidth={actionBarWidth} />
           ) : (
-            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+            <PlainTextQueryInput />
           )}
         </Wrapper>
       </PanelProvider>
@@ -374,13 +357,39 @@ function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
 
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const organization = useOrganization();
-  return organization.features.includes('@TODO') ? (
+
+  return true ? (
     <TraceViewSearchQueryBuilderInput {...props} />
   ) : (
     <LegacyTraceSearchInput {...props} />
   );
 }
 
+// Query builder styles
+const Wrapper = styled('div')`
+  ${inputStyles}
+  min-height: 38px;
+  padding: 0;
+  height: auto;
+  width: 100%;
+  position: relative;
+  font-size: ${p => p.theme.fontSizeMedium};
+  cursor: text;
+
+  :focus-within {
+    border: 1px solid ${p => p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+  }
+`;
+const PositionedSearchIcon = styled(IconSearch)`
+  color: ${p => p.theme.subText};
+  position: absolute;
+  left: ${space(1.5)};
+  top: ${space(0.75)};
+  height: 22px;
+`;
+
+// Old input styled
 const InvisiblePlaceholder = styled('div')`
   pointer-events: none;
   visibility: hidden;
