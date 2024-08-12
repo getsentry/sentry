@@ -14,7 +14,7 @@ from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
 def get_started_at(timestamp: datetime) -> str:
-    return "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+    return "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
         timestamp.timestamp(), "{date_pretty}", "{time}"
     )
 
@@ -54,8 +54,12 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             self.notification_uuid,
             referrer="metric_alert_slack",
         )
+        incident_text = f"{data['text']}\n{get_started_at(data['ts'])}"
+        if features.has("organizations:anomaly-detection-alerts", self.incident.organization):
+            incident_text += f"\nThreshold: {alert_rule.detection_type.title()}"
+
         blocks = [
-            self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
+            self.get_markdown_block(text=incident_text),
         ]
 
         if (

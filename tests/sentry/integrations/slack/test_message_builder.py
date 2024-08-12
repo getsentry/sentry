@@ -854,7 +854,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -898,7 +898,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -936,7 +936,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1004,7 +1004,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1044,7 +1044,7 @@ class BuildIncidentAttachmentTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1084,7 +1084,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1134,7 +1134,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         detection_type = alert_rule.detection_type
@@ -1150,14 +1150,13 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={detection_type}"
         )
-
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"0 events in the last 30 minutes\n Threshold: {detection_type.title()}\n{timestamp}",
+                        "text": f"0 events in the last 30 minutes\n{timestamp}\nThreshold: {detection_type.title()}",
                     },
                 },
             ],
