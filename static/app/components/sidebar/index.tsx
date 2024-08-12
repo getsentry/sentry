@@ -68,6 +68,10 @@ import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
+function truncateString(str: string, len: number = 5) {
+  return str.length > len ? `${str.slice(0, len)}.` : str;
+}
+
 function activatePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.activatePanel(panel);
 }
@@ -123,11 +127,13 @@ function Sidebar() {
   //   return organization?.features.includes('organizations:navigation-sidebar-v2');
   // }, [organization]);
   const hasNewNav = true;
+  // const hasNewNav = false;
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  // Panel determines whether to highlight
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
@@ -434,7 +440,11 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance">
+            {hasNewNav ? truncateString(t('Performance'), 7) : t('Performance')}
+          </GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
       />
@@ -538,7 +548,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={t('Dashboards')}
+        label={hasNewNav ? truncateString(t('Dashboards'), 4) : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -608,6 +618,8 @@ function Sidebar() {
     </Feature>
   );
 
+  // Sidebar accordion includes a secondary list of nav items
+  // TODO: replace with a secondary panel
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
