@@ -7,6 +7,7 @@ import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
+import AnomalyAlertFormItem from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
@@ -39,8 +40,9 @@ type Props = {
   projects: Project[];
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
 
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
+  sensitivity: UnsavedMetricRule['sensitivity'];
 
+  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
   isMigration?: boolean;
@@ -110,6 +112,7 @@ class Triggers extends Component<Props> {
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
+      sensitivity,
     } = this.props;
 
     // Note we only support 2 triggers max
@@ -118,7 +121,18 @@ class Triggers extends Component<Props> {
         <Panel>
           <PanelBody>
             {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
-              <div>{'This is where the anomaly detection alert field choices go'}</div>
+              <AnomalyAlertFormItem
+                disabled={disabled}
+                sensitivity={sensitivity}
+                fieldHelp={
+                  <div>
+                    {
+                      'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
+                    }
+                  </div>
+                }
+                fieldLabel={<div>{'Sensitivity'}</div>}
+              />
             ) : (
               <TriggerForm
                 disabled={disabled}
