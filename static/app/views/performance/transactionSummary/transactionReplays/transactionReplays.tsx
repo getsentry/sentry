@@ -36,12 +36,7 @@ function TransactionReplays() {
 
   return (
     <PageLayout
-      location={{
-        ...location,
-        query: {
-          ...location.query,
-        },
-      }}
+      location={location}
       organization={organization}
       projects={projects}
       tab={Tab.REPLAYS}

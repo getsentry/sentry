@@ -50,7 +50,7 @@ export default function useReplaysFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource, location]);
+  }, [api, organization.slug, group.id, dataSource, location.query]);
 
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {
