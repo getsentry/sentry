@@ -226,6 +226,7 @@ class BaseEventTest(APITestCase):
             }
             payload["response_urls"] = []
             payload["view"] = view
+            payload["type"] = type
 
         elif type == "block_actions":
             payload["container"] = {
@@ -251,6 +252,7 @@ class BaseEventTest(APITestCase):
             }
             payload["response_url"] = self.response_url
             payload["actions"] = action_data or []
+            payload["type"] = type
 
         if data:
             payload.update(data)

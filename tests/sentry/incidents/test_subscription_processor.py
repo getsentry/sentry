@@ -51,13 +51,14 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.types import AnomalyType
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
@@ -214,10 +215,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
-    @cached_property
-    def rule(self):
+    def create_rule_trigger_and_action(self, projects: list[Project]):
         rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
+            projects=projects,
             name="some rule",
             query="",
             aggregate="count()",
@@ -240,6 +240,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             str(self.user.id),
         )
         return rule
+
+    @cached_property
+    def rule(self):
+        return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
 
     @cached_property
     def activated_rule(self):
@@ -374,14 +378,47 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
+        """
+        Test that when an alert rule has been removed
+        the related QuerySubscription is also removed
+        """
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        subscription_id = self.sub.id
+        snuba_query = self.sub.snuba_query
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.tasks():
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
-        # TODO: Check subscription is deleted once we start doing that
+        assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+        assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
+        # we still have a subscription for self.other_project so we don't delete the snubaquery
+
+    def test_removed_alert_rule_one_project(self):
+        """
+        Test that if an alert rule that only has one project is removed
+        the related QuerySubscription and SnubaQuery rows are cleaned up
+        during processing when we detect that the rule is missing
+        """
+        project = self.create_project()
+        rule = self.create_rule_trigger_and_action(projects=[project])
+        subscription = rule.snuba_query.subscriptions.filter(project=project).get()
+        message = self.build_subscription_update(subscription)
+        rule.delete()
+        subscription_id = subscription.id
+        snuba_query = subscription.snuba_query
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.tasks():
+            SubscriptionProcessor(subscription).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.no_alert_rule_for_subscription"
+        )
+        assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
     def test_removed_project(self):
         message = self.build_subscription_update(self.sub)
@@ -1954,15 +1991,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+    def _register_slack_handler(self) -> None:
+        from sentry.integrations.slack.spec import SlackMessagingSpec
+
+        factory = SlackMessagingSpec().get_incident_handler_factory()
+        AlertRuleTriggerAction.register_factory(factory)
+
     def test_slack_multiple_triggers_critical_before_warning(self):
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
         the warning update is not swallowed and an alert is triggered as a warning alert granted
         the count is above the warning trigger threshold
         """
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
 
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
@@ -1977,13 +2017,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -2029,10 +2063,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_slack_metric_alert_chart(self, mock_generate_chart):
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
-
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
             self.project.organization,
@@ -2046,13 +2076,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -2108,9 +2132,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         the warning update is not swallowed and an alert is triggered as a warning alert granted
         the count is above the warning trigger threshold
         """
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
 
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
@@ -2125,13 +2146,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
