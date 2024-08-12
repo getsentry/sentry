@@ -18,7 +18,7 @@ const getSdkSetupSnippet = (params: Params) => `from sanic import Sanic
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
 )
 `;
 

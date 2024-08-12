@@ -19,6 +19,7 @@ import {
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   hasCustomMetricsExtractionRules,
   hasMetricsNewInputs,
@@ -79,7 +80,7 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   for (const metric of metrics) {
     const parsedMri = parseMRI(metric.mri);
     // Include the use case to avoid warning of conflicts between different use cases
-    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
+    const metricName = `${parsedMri.type}_${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);
@@ -117,6 +118,7 @@ const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
   ignoreLocation: true,
   includeScore: false,
   includeMatches: false,
+  minMatchCharLength: 1,
 };
 
 function useFilteredMRIs(
@@ -168,6 +170,14 @@ export const MRISelect = memo(function MRISelect({
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
+
+  // If the mri is not in the list of metrics, set it to the default metric
+  const selectedMeta = metricsMeta.find(metric => metric.mri === value);
+  useEffect(() => {
+    if (!selectedMeta) {
+      onChange(emptyMetricsQueryWidget.mri);
+    }
+  }, [onChange, selectedMeta]);
 
   const handleFilterOption = useCallback(
     (option: ComboBoxOption<MRI>) => {
@@ -339,7 +349,10 @@ export const MRISelect = memo(function MRISelect({
                     priority="primary"
                     onClick={() => {
                       closeOverlay();
-                      openExtractionRuleCreateModal({});
+                      openExtractionRuleCreateModal({
+                        organization,
+                        source: 'ddm.metric-select.create-metric',
+                      });
                     }}
                     size="xs"
                   >

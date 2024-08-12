@@ -493,6 +493,8 @@ class IndexerBatch:
                         option = list(aggregation_options.items())[0][0]
                         assert option is not None
                         new_payload_v2["aggregation_option"] = option.value
+                    if sampling_weight := old_payload_value.get("sampling_weight"):
+                        new_payload_v2["sampling_weight"] = sampling_weight
 
                     new_payload_value = new_payload_v2
 

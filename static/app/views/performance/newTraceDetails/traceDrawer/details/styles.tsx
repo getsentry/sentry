@@ -4,7 +4,11 @@ import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from 'sentry/components/dropdownMenu';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -39,6 +43,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
@@ -67,14 +72,14 @@ const FlexBox = styled('div')`
 
 const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
-  flex-wrap: wrap;
   justify-content: end;
   width: 100%;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
-  width: 50%;
+  flex-grow: 1;
+  overflow: hidden;
   > span {
     min-width: 30px;
   }
@@ -88,11 +93,34 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
+function TitleOp({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={
+        <Fragment>
+          {text}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={text}
+            tooltipProps={{disabled: true}}
+          />
+        </Fragment>
+      }
+      showOnlyOnOverflow
+      isHoverable
+    >
+      <TitleOpText>{text}</TitleOpText>
+    </Tooltip>
+  );
+}
+
 const Type = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TitleOp = styled('div')`
+const TitleOpText = styled('div')`
   font-size: 15px;
   font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
@@ -129,11 +157,25 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled(Title)`
+const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
-  width: 100%;
-  z-index: 10;
-  flex: 1 1 auto;
+  gap: ${space(3)};
+  container-type: inline-size;
+
+  @container (max-width: 780px) {
+    .DropdownMenu {
+      display: block;
+    }
+    .Actions {
+      display: none;
+    }
+  }
+
+  @container (min-width: 781px) {
+    .DropdownMenu {
+      display: none;
+    }
+  }
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -345,6 +387,20 @@ function getThreadIdFromNode(
   return undefined;
 }
 
+// Renders the dropdown menu list at the root trace drawer content container level, to prevent
+// being stacked under other content.
+function DropdownMenuWithPortal(props: DropdownMenuProps) {
+  const drawerContainerRef = useDrawerContainerRef();
+
+  return (
+    <DropdownMenu
+      {...props}
+      usePortal={!!drawerContainerRef}
+      portalContainerRef={drawerContainerRef}
+    />
+  );
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -468,7 +524,7 @@ function NodeActions(props: {
           </Button>
         ) : null}
       </Actions>
-      <DropdownMenu
+      <DropdownMenuWithPortal
         items={items}
         className="DropdownMenu"
         position="bottom-end"
@@ -496,24 +552,6 @@ const ActionsContainer = styled('div')`
   justify-content: end;
   align-items: center;
   gap: ${space(1)};
-  container-type: inline-size;
-  min-width: 24px;
-  width: 100%;
-
-  @container (max-width: 380px) {
-    .DropdownMenu {
-      display: block;
-    }
-    .Actions {
-      display: none;
-    }
-  }
-
-  @container (min-width: 381px) {
-    .DropdownMenu {
-      display: none;
-    }
-  }
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
@@ -676,6 +714,7 @@ const TraceDrawerComponents = {
   EventTags,
   TraceDataSection,
   SectionCardGroup,
+  DropdownMenuWithPortal,
 };
 
 export {TraceDrawerComponents};

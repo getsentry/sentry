@@ -264,7 +264,7 @@ class TriggersChart extends PureComponent<Props, State> {
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
     const queryOverride = (queryExtras.query as string | undefined) ?? query;
 
-    if (shouldUseErrorsDiscoverDataset(query, dataset)) {
+    if (shouldUseErrorsDiscoverDataset(query, dataset, organization)) {
       queryDataset = DiscoverDatasets.ERRORS;
     }
 
@@ -436,7 +436,7 @@ class TriggersChart extends PureComponent<Props, State> {
         newAlertOrQuery,
       }),
       ...getForceMetricsLayerQueryExtras(organization, dataset),
-      ...(shouldUseErrorsDiscoverDataset(query, dataset)
+      ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
     };

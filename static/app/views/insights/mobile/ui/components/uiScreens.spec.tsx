@@ -143,7 +143,7 @@ describe('Performance Mobile UI Screens', () => {
             'avg(mobile.frames_delay)',
           ],
           query:
-            'release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42] transaction:["top 1","top 2","top 3","top 4","top 5"]',
+            '( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 ) transaction:["top 1","top 2","top 3","top 4","top 5"]',
         }),
       })
     );

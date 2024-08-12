@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import logging
 import time
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from typing import Any
 
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
 
-from sentry.digests import Record
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry
+from sentry.digests.types import Record
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
@@ -165,8 +167,8 @@ class RedisBackend(Backend):
                     error,
                 )
 
-    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> Any:
-        return script(
+    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> None:
+        script(
             ["-"],
             ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
             self.cluster.get_local_client(host),
@@ -189,7 +191,7 @@ class RedisBackend(Backend):
     @contextmanager
     def digest(
         self, key: str, minimum_delay: int | None = None, timestamp: float | None = None
-    ) -> Any:
+    ) -> Generator[list[Record]]:
         if minimum_delay is None:
             minimum_delay = self.minimum_delay
 

@@ -10,7 +10,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer, features
+from sentry import analytics, buffer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -306,12 +306,7 @@ class RuleProcessor:
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
         fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
-        process_slow_conditions_later = features.has(
-            "organizations:process-slow-alerts", self.project.organization
-        )
         condition_list = fast_conditions
-        if not process_slow_conditions_later:
-            condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
         # evaluate all filters and return if they fail, then do the enqueue logic for conditions
         if filter_list:
@@ -348,7 +343,7 @@ class RuleProcessor:
                 result = predicate_func(predicate_iter)
 
             if condition_match == "any":
-                if not result and slow_conditions and process_slow_conditions_later:
+                if not result and slow_conditions:
                     self.enqueue_rule(rule)
                     return
                 elif not result:
@@ -358,7 +353,7 @@ class RuleProcessor:
                 if not result:
                     return
 
-                if slow_conditions and process_slow_conditions_later:
+                if slow_conditions:
                     self.enqueue_rule(rule)
                     return
 

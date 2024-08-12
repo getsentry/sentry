@@ -233,7 +233,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                     "exception_type": "FailedToFetchError",
                     "k": 1,
                     "referrer": "ingest",
-                    "use_reranking": False,
+                    "use_reranking": True,
                 }
             )
 

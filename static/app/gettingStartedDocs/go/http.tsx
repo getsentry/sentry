@@ -30,7 +30,7 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",${
+  Dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   // Set TracesSampleRate to 1.0 to capture 100%
@@ -112,7 +112,7 @@ if err := http.ListenAndServe(":3000", nil); err != nil {
 
 const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
+  Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
