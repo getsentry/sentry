@@ -21,6 +21,10 @@ export type CommonSidebarProps = {
    */
   currentPanel: SidebarPanelKey | '';
   /**
+   * Alternate collapsed state
+   */
+  hasNewNav: boolean;
+  /**
    * Triggered when the panel should be hidden
    */
   hidePanel: () => void;

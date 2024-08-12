@@ -178,6 +178,10 @@ function Sidebar() {
 
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;
+  // const hasNewNav = organization?.features.includes(
+  //   'organizations:navigation-sidebar-v2'
+  // );
+  const hasNewNav = true;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
   const sidebarItemProps = {
@@ -185,6 +189,7 @@ function Sidebar() {
     collapsed,
     hasPanel,
     organization,
+    hasNewNav,
   };
 
   const sidebarAnchor = isDemoWalkthrough() ? (
@@ -214,6 +219,7 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
+      hasNewNav={hasNewNav}
     />
   );
 
@@ -608,13 +614,19 @@ function Sidebar() {
   );
 
   return (
-    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
+    <SidebarWrapper
+      aria-label={t('Primary Navigation')}
+      collapsed={hasNewNav || collapsed}
+    >
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
           >
-            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
+            <SidebarDropdown
+              orientation={orientation}
+              collapsed={hasNewNav || collapsed}
+            />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
               <Hook name="component:superuser-warning" organization={organization} />
@@ -723,6 +735,7 @@ function Sidebar() {
                 collapsed={collapsed}
                 hidePanel={hidePanel}
                 organization={organization}
+                hasNewNav={hasNewNav} // TODO: implement
               />
               <Broadcasts
                 orientation={orientation}
@@ -731,6 +744,7 @@ function Sidebar() {
                 onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
                 hidePanel={hidePanel}
                 organization={organization}
+                hasNewNav={hasNewNav} // TODO: implement
               />
               <ServiceIncidents
                 orientation={orientation}
@@ -738,10 +752,11 @@ function Sidebar() {
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
                 hidePanel={hidePanel}
+                hasNewNav={hasNewNav} // TODO: implement
               />
             </SidebarSection>
 
-            {!horizontal && (
+            {!horizontal && !hasNewNav && (
               <SidebarSection>
                 <SidebarCollapseItem
                   id="collapse"

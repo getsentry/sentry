@@ -70,6 +70,7 @@ export type SidebarItemProps = {
    * prop.
    */
   exact?: boolean;
+  hasNewNav?: boolean;
   /**
    * Sidebar has a panel open
    */
@@ -84,6 +85,7 @@ export type SidebarItemProps = {
    * Additional badge letting users know a tab is in beta.
    */
   isBeta?: boolean;
+
   /**
    * Is main item in a floating accordion
    */
@@ -93,7 +95,6 @@ export type SidebarItemProps = {
    * Is this item nested within another item
    */
   isNested?: boolean;
-
   /**
    * Specify the variant for the badge.
    */
@@ -143,6 +144,7 @@ function SidebarItem({
   isNested,
   isMainItem,
   isOpenInFloatingSidebar,
+  hasNewNav,
   ...props
 }: SidebarItemProps) {
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
@@ -202,13 +204,14 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
 
-  const isInCollapsedState = !isInFloatingAccordion && collapsed;
+  const isInCollapsedState = !isInFloatingAccordion && (collapsed || hasNewNav);
 
   return (
     <Tooltip
       disabled={
         (!isInCollapsedState && !isTop) ||
-        (shouldAccordionFloat && isOpenInFloatingSidebar)
+        (shouldAccordionFloat && isOpenInFloatingSidebar) ||
+        hasNewNav
       }
       title={
         <Flex align="center">
