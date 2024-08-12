@@ -345,6 +345,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                   conditionId={metricsQuery.condition}
                   onChange={handleConditionChange}
                 />
+
                 <QueryFieldGroup.Label
                   css={css`
                     width: auto;
@@ -530,37 +531,37 @@ const QueryBuilderWrapper = styled('div')<{
       grid-template-columns: subgrid;
       gap: ${space(1)};
       align-items: flex-start;
-
-      grid-column: ${p.hasSymbols ? '2/2' : '1/1'};
+      grid-column-start: ${p.hasSymbols ? '2' : '1'};
 
       @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-column: ${p.hasSymbols ? '2/4' : '1/3'};
+        grid-column-end: ${p.hasSymbols ? '4' : '3'};
       }
 
       @media (min-width: ${p.theme.breakpoints.large}) {
-        grid-column: ${p.hasSymbols ? '2/5' : '1/4'};
+        grid-column-end: ${p.hasSymbols ? '5' : '4'};
       }
 
       @media (min-width: ${p.theme.breakpoints.xxlarge}) {
-        grid-column: ${p.hasSymbols ? '2/6' : '1/5'};
+        grid-column-end: ${p.hasSymbols ? '6' : '5'};
       }
     `}
 `;
 
 const Visualize = styled('div')`
   grid-column: 1/-1;
-
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/1;
   }
 `;
 
 const Aggregate = styled('div')``;
+
 const GroupBy = styled('div')``;
+
 const FilterBy = styled('div')<{hasSymbols: boolean}>`
   grid-column: 1/-1;
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-column: ${p => (p.hasSymbols ? '5/5' : '4/4')};
+    grid-column: ${p => (p.hasSymbols ? '6/6' : '5/5')};
   }
 `;
 
@@ -572,10 +573,12 @@ const FlexBlock = styled('div')`
 
 const SearchBarWrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
   flex: 1;
-  min-width: 200px;
   ${p =>
     p.hasMetricsNewInputs &&
     css`
       width: 100%;
     `}
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    min-width: 200px;
+  }
 `;

@@ -181,13 +181,18 @@ const Wrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
       display: grid;
       grid-template-columns: subgrid;
 
-      grid-column: 2/2;
+      grid-column-start: 2;
+
       @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-column: 2/4;
+        grid-column-end: 4;
       }
 
       @media (min-width: ${p.theme.breakpoints.large}) {
-        grid-column: 2/5;
+        grid-column-end: 5;
+      }
+
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        grid-column-end: 6;
       }
     `}
 `;

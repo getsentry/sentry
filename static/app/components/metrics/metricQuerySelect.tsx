@@ -177,9 +177,12 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
           <QueryFooter mri={mri} closeOverlay={closeOverlay} />
         )}
         css={css`
-          width: auto;
-          & > button {
-            min-height: 100%;
+          && {
+            width: auto;
+            min-width: auto;
+            & > button {
+              min-height: 100%;
+            }
           }
         `}
       />
