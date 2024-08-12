@@ -13,7 +13,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -27,7 +29,23 @@ import {
 import {useCreateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
+  organization: Organization;
+  /**
+   * Source parameter for analytics
+   */
+  source: string;
+  /**
+   * Initial data to populate the form with
+   */
   initialData?: Partial<FormData>;
+  /**
+   * Callback when the form is submitted successfully
+   */
+  onSubmitSuccess?: (data: FormData) => void;
+  /**
+   * The project to create the metric for
+   * If not provided, the user will be prompted to select a project
+   */
   projectId?: string | number;
 }
 
@@ -46,6 +64,7 @@ export function MetricsExtractionRuleCreateModal({
   CloseButton,
   initialData: initalDataProp = {},
   projectId: projectIdProp,
+  onSubmitSuccess,
 }: Props & ModalRenderProps) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -137,6 +156,7 @@ export function MetricsExtractionRuleCreateModal({
             initialData={initialData}
             projectId={projectId}
             closeModal={closeModal}
+            onSubmitSuccess={onSubmitSuccess}
           />
         ) : null}
       </Body>
@@ -148,10 +168,12 @@ function FormWrapper({
   closeModal,
   projectId,
   initialData,
+  onSubmitSuccess: onSubmitSuccessProp,
 }: {
   closeModal: () => void;
   initialData: FormData;
   projectId: string | number;
+  onSubmitSuccess?: (data: FormData) => void;
 }) {
   const organization = useOrganization();
   const createExtractionRuleMutation = useCreateMetricsExtractionRules(
@@ -188,6 +210,7 @@ function FormWrapper({
         },
         {
           onSuccess: () => {
+            onSubmitSuccessProp?.(data);
             onSubmitSuccess(data);
             addSuccessMessage(t('Metric extraction rule created'));
             closeModal();
@@ -203,7 +226,7 @@ function FormWrapper({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, projectId, createExtractionRuleMutation]
+    [projectId, createExtractionRuleMutation, onSubmitSuccessProp, closeModal]
   );
 
   return (
@@ -234,11 +257,40 @@ export const modalCss = css`
 `;
 
 export function openExtractionRuleCreateModal(props: Props, options?: ModalOptions) {
+  const {organization, source, onSubmitSuccess} = props;
+
+  trackAnalytics('ddm.span-metric.create.open', {
+    organization,
+    source,
+  });
+
+  const handleClose: ModalOptions['onClose'] = reason => {
+    if (reason && ['close-button', 'backdrop-click', 'escape-key'].includes(reason)) {
+      trackAnalytics('ddm.span-metric.create.cancel', {organization});
+    }
+    options?.onClose?.(reason);
+  };
+
+  const handleSubmitSuccess: Props['onSubmitSuccess'] = data => {
+    trackAnalytics('ddm.span-metric.create.success', {
+      organization,
+      hasFilters: data.conditions.some(condition => condition.value),
+    });
+    onSubmitSuccess?.(data);
+  };
+
   openModal(
-    modalProps => <MetricsExtractionRuleCreateModal {...props} {...modalProps} />,
+    modalProps => (
+      <MetricsExtractionRuleCreateModal
+        {...props}
+        onSubmitSuccess={handleSubmitSuccess}
+        {...modalProps}
+      />
+    ),
     {
       modalCss,
       ...options,
+      onClose: handleClose,
     }
   );
 }

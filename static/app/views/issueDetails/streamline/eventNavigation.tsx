@@ -24,11 +24,11 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -301,7 +301,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           <JumpTo>
             <div>{t('Jump to:')}</div>
-            <ButtonBar>
+            <StyledButtonBar>
               {jumpToSections.map(jump => (
                 <Button
                   key={jump.section}
@@ -317,7 +317,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {jump.label}
                 </Button>
               ))}
-            </ButtonBar>
+            </StyledButtonBar>
           </JumpTo>
         </EventInfoJumpToWrapper>
         <Divider />
@@ -365,6 +365,9 @@ const JumpTo = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
+  max-width: 50%;
+  width: 400px;
 `;
 
 const Divider = styled('hr')`
@@ -403,4 +406,17 @@ const CopyIconContainer = styled('span')`
 
 const EventTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  &:after {
+    position: sticky;
+    padding: ${space(1)};
+    content: '';
+    inset: 0;
+    background: linear-gradient(90deg, transparent, ${p => p.theme.background});
+  }
 `;

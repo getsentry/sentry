@@ -127,7 +127,7 @@ const getCrashReportModalSnippetJavaScript = params => [
         language: 'html',
         code: `<script>
   Sentry.init({
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     beforeSend(event, hint) {
       // Check if it is an exception, and if so, show the report dialog
       if (event.exception && event.event_id) {
@@ -187,7 +187,7 @@ const getGenericScript = params => [
     value: 'html',
     language: 'html',
     code: `<script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({
     eventId: "{{ event_id }}",
   });
@@ -297,7 +297,7 @@ export const getCrashReportPHPInstallStep = params => [
             language: 'html',
             code: `<?php if (\Sentry\SentrySdk::getCurrentHub()->getLastEventId()) { ?>
 <script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({
     eventId:
       "<?php echo \Sentry\SentrySdk::getCurrentHub()->getLastEventId(); ?>",
