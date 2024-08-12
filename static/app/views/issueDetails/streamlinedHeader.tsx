@@ -240,6 +240,8 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
       : p.theme.background};
   color: ${p => p.theme.gray300};
   padding: ${space(1)} 24px;
+  margin-right: 0;
+  margin-left: 0;
 `;
 
 const PriorityWorkflowWrapper = styled('div')`
@@ -273,11 +275,6 @@ const Header = styled('div')`
   > * {
     margin-right: 24px;
     margin-left: 24px;
-  }
-
-  ${InfoWrapper} {
-    margin-right: 0;
-    margin-left: 0;
   }
 `;
 
