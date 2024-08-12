@@ -30,6 +30,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     remove_uptime_subscription_if_unused,
 )
+from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -65,8 +66,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         logger.info("process_result", extra=result)
 
         if subscription is None:
-            # TODO: We probably want to want to publish a tombstone
-            # subscription here
+            # If no subscription in the Postgres, this subscription has been orphaned. Remove
+            # from the checker
+            send_uptime_config_deletion(result["subscription_id"])
             metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
             return
 
