@@ -128,8 +128,17 @@ class SnubaParams:
         )
 
     @property
+    def environment_ids(self) -> list[int]:
+        return (
+            [env.id for env in self.environments if env is not None and env.id is not None]
+            if self.environments
+            else []
+        )
+
+    @property
     def project_ids(self) -> list[int]:
-        return sorted([proj.id for proj in self.projects])
+        # proj.id can be None if the project no longer exists
+        return sorted([proj.id for proj in self.projects if proj.id is not None])
 
     @property
     def project_slug_map(self) -> dict[str, int]:

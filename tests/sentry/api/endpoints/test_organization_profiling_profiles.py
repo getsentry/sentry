@@ -40,11 +40,13 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
             self.create_project(),
             self.create_project(),
         ]
-        response = self.do_request(
-            {
-                "projects": [p.id for p in projects],
-            }
-        )
+        # Need this feature so we don't get the multiple project without global view error
+        with self.feature("organizations:global-views"):
+            response = self.do_request(
+                {
+                    "projects": [p.id for p in projects],
+                }
+            )
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
@@ -139,6 +141,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         profile_id=None,
         profiler_id=None,
         thread_id=None,
+        transaction_id=None,
         project=None,
     ):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -156,6 +159,9 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             data.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})[
                 "thread.id"
             ] = thread_id
+
+        if transaction_id is not None:
+            data["event_id"] = transaction_id
 
         self.store_event(data, project_id=project.id if project else self.project.id)
 
@@ -481,19 +487,23 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
         # this transaction has transaction profile
         profile_id = uuid4().hex
+        profile_transaction_id = uuid4().hex
         self.store_transaction(
             transaction="foo",
             profile_id=profile_id,
+            transaction_id=profile_transaction_id,
             project=self.project,
         )
 
         # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
+        profiler_transaction_id = uuid4().hex
         profiler_transaction = self.store_transaction(
             transaction="foo",
             profiler_id=profiler_id,
             thread_id=thread_id,
+            transaction_id=profiler_transaction_id,
             project=self.project,
         )
         start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
@@ -576,6 +586,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "thread_id": thread_id,
                         "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
                         "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                        "transaction_id": profiler_transaction_id,
                     },
                 ],
             },
@@ -704,12 +715,15 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
     ):
         # this transaction has transaction profile
         profile_id = uuid4().hex
+        profile_transaction_id = uuid4().hex
         profile_transaction = self.store_transaction(
             transaction="foo",
             profile_id=profile_id,
+            transaction_id=profile_transaction_id,
             project=self.project,
         )
         transaction_1 = {
+            "id": profile_transaction_id,
             "project.id": self.project.id,
             "profile.id": profile_id,
             "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
@@ -727,13 +741,16 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
+        profiler_transaction_id = uuid4().hex
         profiler_transaction = self.store_transaction(
             transaction="foo",
             profile_id=profiler_id,
             thread_id=thread_id,
+            transaction_id=profiler_transaction_id,
             project=self.project,
         )
         transaction_2 = {
+            "id": profiler_transaction_id,
             "project.id": self.project.id,
             "profile.id": None,
             "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
@@ -845,6 +862,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                             "thread_id": thread_id,
                             "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
                             "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                            "transaction_id": profiler_transaction_id,
                         },
                     ],
                 },

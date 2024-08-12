@@ -6,20 +6,25 @@ import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -37,6 +42,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {ExploreContent} from 'sentry/views/explore/content';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {usePageParams} from './hooks/usePageParams';
@@ -67,13 +73,26 @@ import {
   normalizeTraces,
 } from './utils';
 
+const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
-export function Content() {
+export default function Wrapper(props) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('visibility-explore-view')) {
+    return <ExploreContent {...props} />;
+  }
+
+  return <Content {...props} />;
+}
+
+function Content() {
   const location = useLocation();
+  const organization = useOrganization();
 
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
@@ -154,108 +173,140 @@ export function Content() {
   const data = normalizeTraces(rawData);
 
   return (
-    <LayoutMain fullWidth>
-      <PageFilterBar condensed>
-        <ProjectPageFilter />
-        <EnvironmentPageFilter />
-        <DatePageFilter defaultPeriod="2h" />
-      </PageFilterBar>
-      {hasMetric && (
-        <StyledAlert
-          type="info"
-          showIcon
-          trailingItems={<StyledCloseButton onClick={removeMetric} />}
-        >
-          {tct('The metric query [metricQuery] is filtering the results below.', {
-            metricQuery: (
-              <strong>
-                {getFormattedMQL({
-                  mri: mri as MRI,
-                  aggregation: metricsOp as MetricAggregation,
-                  query: metricsQuery,
-                })}
-              </strong>
-            ),
-          })}
-        </StyledAlert>
-      )}
-      {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-        <StyledAlert type="error" showIcon>
-          {tracesQuery.error?.responseJSON?.detail}
-        </StyledAlert>
-      ) : null}
-      <TracesSearchBar
-        queries={queries}
-        handleSearch={handleSearch}
-        handleClearSearch={handleClearSearch}
-      />
-
-      <ModuleLayout.Full>
-        <TracesChart />
-      </ModuleLayout.Full>
-      <StyledPanel>
-        <TracePanelContent>
-          <StyledPanelHeader align="left" lightText>
-            {t('Trace ID')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="left" lightText>
-            {t('Trace Root')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            {areQueriesEmpty(queries) ? t('Total Spans') : t('Matching Spans')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="left" lightText>
-            {t('Timeline')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            {t('Duration')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            {t('Timestamp')}
-          </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
-            {t('Issues')}
-          </StyledPanelHeader>
-          {isLoading && (
-            <StyledPanelItem span={7} overflow>
-              <LoadingIndicator />
-            </StyledPanelItem>
-          )}
-          {isError && ( // TODO: need an error state
-            <StyledPanelItem span={7} overflow>
-              <EmptyStreamWrapper>
-                <IconWarning color="gray300" size="lg" />
-              </EmptyStreamWrapper>
-            </StyledPanelItem>
-          )}
-          {isEmpty && (
-            <StyledPanelItem span={7} overflow>
-              <EmptyStateWarning withIcon>
-                <EmptyStateText size="fontSizeExtraLarge">
-                  {t('No trace results found')}
-                </EmptyStateText>
-                <EmptyStateText size="fontSizeMedium">
-                  {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                    docSearchProps: (
-                      <ExternalLink href={SPAN_PROPS_DOCS_URL}>
-                        {t('docs for search properties')}
-                      </ExternalLink>
+    <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
+      <PageFiltersContainer
+        defaultSelection={{
+          datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
+        }}
+      >
+        <Layout.Page>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <HeaderContentBar>
+                <Layout.Title>
+                  {t('Traces')}
+                  <PageHeadingQuestionTooltip
+                    docsUrl={TRACE_EXPLORER_DOCS_URL}
+                    title={t(
+                      'Traces lets you search for individual spans that make up a trace, linked by a trace id.'
+                    )}
+                  />
+                  <FeatureBadge type="beta" />
+                </Layout.Title>
+                <FeedbackWidgetButton />
+              </HeaderContentBar>
+            </Layout.HeaderContent>
+          </Layout.Header>
+          <Layout.Body>
+            <LayoutMain fullWidth>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter defaultPeriod="2h" />
+              </PageFilterBar>
+              {hasMetric && (
+                <StyledAlert
+                  type="info"
+                  showIcon
+                  trailingItems={<StyledCloseButton onClick={removeMetric} />}
+                >
+                  {tct('The metric query [metricQuery] is filtering the results below.', {
+                    metricQuery: (
+                      <strong>
+                        {getFormattedMQL({
+                          mri: mri as MRI,
+                          aggregation: metricsOp as MetricAggregation,
+                          query: metricsQuery,
+                        })}
+                      </strong>
                     ),
                   })}
-                </EmptyStateText>
-              </EmptyStateWarning>
-            </StyledPanelItem>
-          )}
-          {data?.map((trace, i) => (
-            <TraceRow
-              key={trace.trace}
-              trace={trace}
-              defaultExpanded={!areQueriesEmpty(queries) && i === 0}
-            />
-          ))}
-        </TracePanelContent>
-      </StyledPanel>
-    </LayoutMain>
+                </StyledAlert>
+              )}
+              {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
+                <StyledAlert type="error" showIcon>
+                  {tracesQuery.error?.responseJSON?.detail}
+                </StyledAlert>
+              ) : null}
+              <TracesSearchBar
+                queries={queries}
+                handleSearch={handleSearch}
+                handleClearSearch={handleClearSearch}
+              />
+
+              <ModuleLayout.Full>
+                <TracesChart />
+              </ModuleLayout.Full>
+              <StyledPanel>
+                <TracePanelContent>
+                  <StyledPanelHeader align="left" lightText>
+                    {t('Trace ID')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="left" lightText>
+                    {t('Trace Root')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="right" lightText>
+                    {areQueriesEmpty(queries) ? t('Total Spans') : t('Matching Spans')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="left" lightText>
+                    {t('Timeline')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="right" lightText>
+                    {t('Duration')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="right" lightText>
+                    {t('Timestamp')}
+                  </StyledPanelHeader>
+                  <StyledPanelHeader align="right" lightText>
+                    {t('Issues')}
+                  </StyledPanelHeader>
+                  {isLoading && (
+                    <StyledPanelItem span={7} overflow>
+                      <LoadingIndicator />
+                    </StyledPanelItem>
+                  )}
+                  {isError && ( // TODO: need an error state
+                    <StyledPanelItem span={7} overflow>
+                      <EmptyStreamWrapper>
+                        <IconWarning color="gray300" size="lg" />
+                      </EmptyStreamWrapper>
+                    </StyledPanelItem>
+                  )}
+                  {isEmpty && (
+                    <StyledPanelItem span={7} overflow>
+                      <EmptyStateWarning withIcon>
+                        <EmptyStateText size="fontSizeExtraLarge">
+                          {t('No trace results found')}
+                        </EmptyStateText>
+                        <EmptyStateText size="fontSizeMedium">
+                          {tct(
+                            'Try adjusting your filters or refer to [docSearchProps].',
+                            {
+                              docSearchProps: (
+                                <ExternalLink href={SPAN_PROPS_DOCS_URL}>
+                                  {t('docs for search properties')}
+                                </ExternalLink>
+                              ),
+                            }
+                          )}
+                        </EmptyStateText>
+                      </EmptyStateWarning>
+                    </StyledPanelItem>
+                  )}
+                  {data?.map((trace, i) => (
+                    <TraceRow
+                      key={trace.trace}
+                      trace={trace}
+                      defaultExpanded={!areQueriesEmpty(queries) && i === 0}
+                    />
+                  ))}
+                </TracePanelContent>
+              </StyledPanel>
+            </LayoutMain>
+          </Layout.Body>
+        </Layout.Page>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
 
@@ -566,6 +617,13 @@ function SpanRow({
     </Fragment>
   );
 }
+
+const HeaderContentBar = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
 
 const LayoutMain = styled(Layout.Main)`
   display: flex;

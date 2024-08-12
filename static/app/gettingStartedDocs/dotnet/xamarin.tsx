@@ -40,7 +40,7 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
         SentryXamarin.Init(options =>
         {
             // Tells which project in Sentry to send events to:
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
@@ -57,7 +57,7 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
     {
         SentryXamarin.Init(options =>
         {
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
@@ -73,7 +73,7 @@ sealed partial class App : Application
     {
         SentryXamarin.Init(options =>
         {
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.

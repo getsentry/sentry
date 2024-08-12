@@ -75,7 +75,6 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
               status: statusToText[newMailbox],
             }),
         confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
-        withoutBold: true,
       });
     },
     [deselectAll, resolve, selectedIds, organization]

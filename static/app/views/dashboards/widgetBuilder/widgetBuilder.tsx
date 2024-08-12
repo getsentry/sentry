@@ -10,8 +10,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import InputField from 'sentry/components/forms/fields/inputField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
+import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -190,20 +190,11 @@ function WidgetBuilder({
     defaultTableColumns = [defaultTableColumns];
   }
 
-  const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
-
-  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
-    if (widgetType === WidgetType.RELEASE) {
-      return hasReleaseHealthFeature;
-    }
-    return true;
-  });
-
   const isEditing = defined(widgetIndex);
   const widgetIndexNum = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
-    widgetIndexNum < filteredDashboardWidgets.length &&
+    widgetIndexNum < dashboard.widgets.length &&
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
 
@@ -316,7 +307,7 @@ function WidgetBuilder({
     }
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
+      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
 
       let queries;
       let newDisplayType = widgetFromDashboard.displayType;
@@ -1190,7 +1181,6 @@ function WidgetBuilder({
                                     dataSet={state.dataSet}
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
-                                    hasReleaseHealthFeature={hasReleaseHealthFeature}
                                     splitDecision={
                                       splitDecision ??
                                       // The original widget type is used for a forced split decision
@@ -1346,7 +1336,7 @@ function WidgetBuilder({
 
 export default withPageFilters(withTags(WidgetBuilder));
 
-const TitleInput = styled(InputField)`
+const TitleInput = styled(TextField)`
   padding: 0 ${space(2)} 0 0;
 `;
 
