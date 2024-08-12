@@ -21,6 +21,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.response.text import TextApiResponse
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -328,9 +329,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             return self.head_cached(request_path, params={"ref": version})
         except ApiError as e:
             # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code not in (404, 400):
-                raise
-            return None
+            if e.code in (404, 400):
+                return TextApiResponse(status_code=e.code, text=e.text)
+            raise
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
