@@ -65,7 +65,9 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
+        # SPAN_METRICS_MAP and METRICS_MAP have some overlapping keys
+        mri_map = constants.SPAN_METRICS_MAP | constants.METRICS_MAP
+        metric_id = self.builder.resolve_metric_index(mri_map.get(value, value))
         if metric_id is None:
             metric_id = self.builder.resolve_metric_index(
                 constants.SPAN_METRICS_MAP.get(value, value)
@@ -116,7 +118,8 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
