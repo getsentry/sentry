@@ -121,7 +121,7 @@ class IssueBasicMixin:
 
     def get_group_description(self, group, event, **kwargs):
         output = self.get_group_link(group, **kwargs)
-        if isinstance(event, GroupEvent) and event.occurrence is not None:
+        if event and isinstance(event, GroupEvent) and event.occurrence is not None:
             body = ""
             if group.issue_category == GroupCategory.FEEDBACK:
                 body = self.get_feedback_issue_body(event)
