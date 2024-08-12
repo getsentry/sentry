@@ -116,6 +116,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
+    IssueDetailsBannerEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -2301,6 +2302,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
         ActionableItemsEndpoint.as_view(),
         name="sentry-api-0-event-actionable-items",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/issue-details-banner/$",
+        IssueDetailsBannerEndpoint.as_view(),
+        name="sentry-api-0-event-issue-details-banner",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/$",
