@@ -141,6 +141,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
             disabled
             name="url"
             label={t('URL')}
+            hideLabel
             placeholder={t('The URL to monitor')}
             inline={false}
             flexibleControlStateSize
