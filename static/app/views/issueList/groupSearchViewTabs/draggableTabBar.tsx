@@ -31,11 +31,6 @@ export interface Tab {
 }
 
 export interface DraggableTabBarProps {
-  /**
-   * Callback function to be called when the user reorders the tabs. Returns the
-   * new order of the tabs along with their props.
-   */
-  onReorder: (newTabs: Tab[]) => void;
   orgSlug: string;
   router: InjectedRouter;
   setTabs: (tabs: Tab[]) => void;
@@ -64,6 +59,11 @@ export interface DraggableTabBarProps {
    * Note: The `Duplicate` button only appears for persistent views
    */
   onDuplicate?: (newTabs: Tab[]) => void;
+  /**
+   * Callback function to be called when the user reorders the tabs. Returns the
+   * new order of the tabs along with their props.
+   */
+  onReorder?: (newTabs: Tab[]) => void;
   /**
    * Callback function to be called when user clicks the 'Save' button.
    * Note: The `Save` button only appears for persistent views when `isChanged=true`
