@@ -25,7 +25,7 @@ type TokenProps = {
   token: ParseResultToken;
 };
 
-const EMPTY_TAGS_COLLECTION = {};
+const EMPTY_FILTER_KEYS: TagCollection = {};
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   return (
@@ -71,7 +71,7 @@ function QueryToken({token}: TokenProps) {
 export function FormattedQuery({
   query,
   fieldDefinitionGetter = getFieldDefinition,
-  filterKeys = EMPTY_TAGS_COLLECTION,
+  filterKeys = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {filterKeys});
