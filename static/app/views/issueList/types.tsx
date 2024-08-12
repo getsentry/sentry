@@ -21,11 +21,3 @@ export type GroupSearchView = {
   querySort: IssueSortOptions;
   id?: string;
 };
-
-// Id is always returned by the response
-export type GroupSearchViewResponse = {
-  id: string;
-  name: string;
-  query: string;
-  querySort: IssueSortOptions;
-};

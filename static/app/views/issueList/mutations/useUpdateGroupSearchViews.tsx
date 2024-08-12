@@ -9,20 +9,17 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {
-  GroupSearchView,
-  GroupSearchViewResponse,
-} from 'sentry/views/issueList/types';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewsVariables = {
-  groupSearchViews: GroupSearchView[];
+  groupSearchViews: GroupSearchView[]; // Id is not required in request payload
   orgSlug: string;
 };
 
 export const useUpdateGroupSearchViews = (
   options: Omit<
     UseMutationOptions<
-      GroupSearchViewResponse[],
+      Required<GroupSearchView>[],
       RequestError,
       UpdateGroupSearchViewsVariables
     >,
@@ -33,7 +30,7 @@ export const useUpdateGroupSearchViews = (
   const queryClient = useQueryClient();
 
   return useMutation<
-    GroupSearchViewResponse[],
+    Required<GroupSearchView>[],
     RequestError,
     UpdateGroupSearchViewsVariables
   >({
@@ -44,7 +41,7 @@ export const useUpdateGroupSearchViews = (
         data,
       }),
     onSuccess: (groupSearchViews, parameters, context) => {
-      setApiQueryData<GroupSearchViewResponse[]>(
+      setApiQueryData<GroupSearchView[]>(
         queryClient,
         makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
         groupSearchViews // Update the cache with the new groupSearchViews
