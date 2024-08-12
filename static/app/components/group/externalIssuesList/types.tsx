@@ -17,10 +17,8 @@ export type ExternalIssueType =
   | 'plugin-action';
 
 interface BaseIssueComponent {
-  displayName: string;
   key: string;
   disabled?: boolean;
-  displayIcon?: React.ReactNode;
   hasLinkedIssue?: boolean;
 }
 

@@ -2,17 +2,12 @@ import type {ExternalIssueComponent} from 'sentry/components/group/externalIssue
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {GroupIntegration} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {
-  getIntegrationDisplayName,
-  getIntegrationIcon,
-} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
@@ -58,14 +53,12 @@ export default function useExternalIssueData({group, event, project}: Props) {
       return acc;
     }, new Map<string, GroupIntegration[]>());
 
-    return [...activeIntegrationsByProvider.entries()].map<ExternalIssueComponent>(
+    return [...activeIntegrationsByProvider.entries()].map(
       ([provider, configurations]) => ({
         type: 'integration-issue',
         key: provider,
         disabled: false,
         hasLinkedIssue: configurations.some(x => x.externalIssues.length > 0),
-        displayName: getIntegrationDisplayName(provider),
-        displayIcon: getIntegrationIcon(provider, 'sm'),
         props: {
           configurations,
           group,
@@ -94,10 +87,6 @@ export default function useExternalIssueData({group, event, project}: Props) {
           key: sentryApp.slug,
           disabled,
           hasLinkedIssue: !!externalIssue,
-          displayName: sentryApp.name,
-          displayIcon: (
-            <SentryAppComponentIcon sentryAppComponent={component} size={14} />
-          ),
           props: {
             sentryApp,
             group,
@@ -119,8 +108,6 @@ export default function useExternalIssueData({group, event, project}: Props) {
       key: `plugin-issue-${i}`,
       disabled: false,
       hasLinkedIssue: true,
-      displayName: plugin.shortName,
-      displayIcon: getIntegrationIcon(plugin.id, 'sm'),
       props: {
         group,
         project,
@@ -134,7 +121,6 @@ export default function useExternalIssueData({group, event, project}: Props) {
       group.pluginActions?.map((plugin, i) => ({
         type: 'plugin-action',
         key: `plugin-action-${i}`,
-        displayName: plugin.shortName,
         disabled: false,
         hasLinkedIssue: false,
         props: {plugin},
