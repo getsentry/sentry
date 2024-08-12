@@ -420,7 +420,7 @@ class GitHubBaseClient(GithubProxyClient):
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.error("Investigate if to raise error. An error happened. %s", msg, extra=extra)
+            logger.error("Continuing execution. Investigate: %s", txt, extra=extra)
 
         return should_count_error
 
