@@ -260,7 +260,8 @@ function MonitorForm({
         <InputGroup>
           <TextField
             name="name"
-            aria-label={t('Name')}
+            label={t('Name')}
+            hideLabel
             placeholder={t('My Cron Job')}
             required
             stacked
@@ -269,7 +270,8 @@ function MonitorForm({
           {monitor && (
             <TextField
               name="slug"
-              aria-label={t('Slug')}
+              label={t('Slug')}
+              hideLabel
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -283,7 +285,8 @@ function MonitorForm({
           )}
           <SentryProjectSelectorField
             name="project"
-            aria-label={t('Project')}
+            label={t('Project')}
+            hideLabel
             groupProjects={project =>
               platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
             }
@@ -317,7 +320,8 @@ function MonitorForm({
           )}
           <SelectField
             name="config.scheduleType"
-            aria-label={t('Schedule Type')}
+            label={t('Schedule Type')}
+            hideLabel
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
@@ -341,7 +345,8 @@ function MonitorForm({
                   <MultiColumnInput columns="1fr 2fr">
                     <TextField
                       name="config.schedule"
-                      aria-label={t('Crontab Schedule')}
+                      label={t('Crontab Schedule')}
+                      hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
@@ -351,7 +356,8 @@ function MonitorForm({
                     />
                     <SelectField
                       name="config.timezone"
-                      aria-label={t('Timezone')}
+                      label={t('Timezone')}
+                      hideLabel
                       defaultValue="UTC"
                       options={timezoneOptions}
                       required
@@ -368,7 +374,8 @@ function MonitorForm({
                     <LabelText>{t('Every')}</LabelText>
                     <NumberField
                       name="config.schedule.frequency"
-                      aria-label={t('Interval Frequency')}
+                      label={t('Interval Frequency')}
+                      hideLabel
                       placeholder="e.g. 1"
                       defaultValue="1"
                       min={1}
@@ -378,7 +385,8 @@ function MonitorForm({
                     />
                     <SelectField
                       name="config.schedule.interval"
-                      aria-label={t('Interval Type')}
+                      label={t('Interval Type')}
+                      hideLabel
                       options={getScheduleIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
