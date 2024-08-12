@@ -23,7 +23,7 @@ type Props = {
   projectSlug: string;
   refetchConfigs: () => void;
   analyticsParams?: {
-    view: string;
+    view: `alert_rule_creation`;
   };
 };
 
