@@ -79,7 +79,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'url',
-          code: params.dsn,
+          code: params.dsn.public,
         },
       ],
       additionalInfo: (

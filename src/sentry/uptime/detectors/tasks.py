@@ -26,7 +26,7 @@ from sentry.uptime.models import ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     create_uptime_subscription,
-    delete_project_uptime_subscription,
+    delete_uptime_subscriptions_for_project,
     get_auto_monitored_subscriptions_for_project,
     is_url_auto_monitored_for_project,
 )
@@ -221,8 +221,9 @@ def process_candidate_url(
     if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
-        # Disable auto-detection on this project now that we've successfully found a hostname
+        # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
+        project.organization.update_option("sentry:uptime_autodetection", False)
 
     metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
@@ -234,7 +235,7 @@ def monitor_url_for_project(project: Project, url: str):
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
     for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(
+        delete_uptime_subscriptions_for_project(
             project,
             monitored_subscription.uptime_subscription,
             modes=[

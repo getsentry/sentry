@@ -301,6 +301,18 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           searchSource="storybook"
         />
+        <p>
+          If you wish to modify the size of the filter key menu, use
+          <code>filterKeyMenuWidth</code> to define the width in pixels.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          filterKeyMenuWidth={600}
+        />
       </Fragment>
     );
   });

@@ -201,7 +201,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isLoading,
     docs: newDocs,
     dsn,
-    cdn,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
@@ -344,7 +343,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <FeedbackOnboardingLayout
         docsConfig={newDocs}
         dsn={dsn}
-        cdn={cdn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
         projectId={currentProject.id}
