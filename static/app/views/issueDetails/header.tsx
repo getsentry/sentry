@@ -23,6 +23,7 @@ import type {Event, Group, Organization, Project} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -60,7 +61,7 @@ export function GroupHeaderTabs({
   const location = useLocation();
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
+    statsPeriod: decodeScalar(location.query.statsPeriod) ?? '90d',
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 

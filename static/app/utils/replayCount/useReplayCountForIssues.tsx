@@ -1,7 +1,9 @@
 import {useMemo} from 'react';
 
 import {IssueCategory} from 'sentry/types/group';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -14,9 +16,10 @@ interface Props {
  */
 export default function useReplayCountForIssues({
   bufferLimit = 25,
-  statsPeriod = '14d',
+  statsPeriod,
 }: Props = {}) {
   const organization = useOrganization();
+  const location = useLocation();
   const {
     getOne: getOneError,
     getMany: getManyError,
@@ -27,7 +30,7 @@ export default function useReplayCountForIssues({
     dataSource: 'discover',
     fieldName: 'issue.id',
     organization,
-    statsPeriod,
+    statsPeriod: statsPeriod ?? decodeScalar(location.query.statsPeriod) ?? '90d',
   });
   const {
     getOne: getOneIssue,
@@ -39,7 +42,7 @@ export default function useReplayCountForIssues({
     dataSource: 'search_issues',
     fieldName: 'issue.id',
     organization,
-    statsPeriod,
+    statsPeriod: statsPeriod ?? decodeScalar(location.query.statsPeriod) ?? '90d',
   });
 
   return useMemo(

@@ -39,7 +39,7 @@ export default function useReplaysFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
-            statsPeriod: '90d',
+            statsPeriod: location.query.statsPeriod,
             environment: location.query.environment,
             project: ALL_ACCESS_PROJECTS,
           },
@@ -50,7 +50,7 @@ export default function useReplaysFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource, location.query.environment]);
+  }, [api, organization.slug, group.id, dataSource, location]);
 
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {

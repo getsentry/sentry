@@ -21,6 +21,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
@@ -113,7 +114,7 @@ function TransactionHeader({
   );
 
   const {getReplayCountForTransaction} = useReplayCountForTransactions({
-    statsPeriod: '90d',
+    statsPeriod: decodeScalar(location.query.statsPeriod) ?? '90d',
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
 

@@ -6,8 +6,10 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -19,7 +21,10 @@ interface Props {
  */
 function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const location = useLocation();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: decodeScalar(location.query.statsPeriod) ?? '90d',
+  });
   const count = getReplayCountForIssue(group.id, group.issueCategory);
 
   if (count === undefined || count === 0) {

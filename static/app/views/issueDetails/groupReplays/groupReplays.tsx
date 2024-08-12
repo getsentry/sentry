@@ -14,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
@@ -175,7 +176,7 @@ function GroupReplaysTable({
   const location = useLocation();
   const urlParams = useUrlParams();
   const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
+    statsPeriod: decodeScalar(location.query.statsPeriod) ?? '90d',
   });
 
   const replayListData = useReplayList({

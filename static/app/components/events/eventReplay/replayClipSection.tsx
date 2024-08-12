@@ -14,8 +14,10 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -38,8 +40,11 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const location = useLocation();
   const router = useRouter();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: decodeScalar(location.query.statsPeriod) ?? '90d',
+  });
 
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
