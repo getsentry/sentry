@@ -19,7 +19,7 @@ from pyramid.config import Configurator
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
 )
 `;
 
