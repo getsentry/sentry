@@ -156,7 +156,6 @@ export function EquationInput({
     <Wrapper hasMetricsNewInputs={metricsNewInputs}>
       <StyledInput
         {...props}
-        hasMetricsNewInputs={metricsNewInputs}
         monospace
         hasError={showErrors && errors.length > 0}
         defaultValue={value}
@@ -178,7 +177,6 @@ const Wrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
   ${p =>
     p.hasMetricsNewInputs &&
     css`
-      display: grid;
       grid-template-columns: subgrid;
 
       grid-column-start: 2;
@@ -214,12 +212,7 @@ const RendererOverlay = styled('div')`
   resize: none;
 `;
 
-const StyledInput = styled(Input)<{hasError: boolean; hasMetricsNewInputs: boolean}>`
-  ${p =>
-    p.hasMetricsNewInputs &&
-    css`
-      grid-column: 1/-1;
-    `}
+const StyledInput = styled(Input)<{hasError: boolean}>`
   caret-color: ${p => p.theme.subText};
   color: transparent;
   ${p =>
