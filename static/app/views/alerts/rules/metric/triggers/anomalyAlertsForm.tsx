@@ -27,6 +27,7 @@ type Props = {
   // thresholdType: UnsavedMetricRule['thresholdType'];
   // trigger: Trigger;
   fieldLabel: React.ReactNode;
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   sensitivity: UnsavedMetricRule['sensitivity'];
   /**
    * Map of fieldName -> errorMessage
@@ -37,9 +38,12 @@ type Props = {
 };
 
 class AnomalyAlertFormItem extends PureComponent<Props> {
-  // Probably some stuff to handle value change that I haven't figured out yet
+  handleSensitivityChange = ({value}) => {
+    this.props.onSensitivityChange(value);
+  };
+
   render() {
-    const {fieldHelp, fieldLabel, sensitivity} = this.props;
+    const {fieldHelp, fieldLabel, sensitivity, onSensitivityChange: __} = this.props;
 
     return (
       <StyledField label={fieldLabel} help={fieldHelp} required>
@@ -61,6 +65,7 @@ class AnomalyAlertFormItem extends PureComponent<Props> {
                 label: 'High (alert more often)',
               },
             ]}
+            onChange={this.handleSensitivityChange}
           />
         </SelectContainer>
       </StyledField>

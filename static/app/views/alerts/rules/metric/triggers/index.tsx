@@ -13,6 +13,7 @@ import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 import {
   type Action,
   AlertRuleComparisonType,
+  type AlertRuleSensitivity,
   type AlertRuleThresholdType,
   type MetricActionTemplate,
   type Trigger,
@@ -34,6 +35,7 @@ type Props = {
   onResolveThresholdChange: (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
@@ -109,6 +111,7 @@ class Triggers extends Component<Props> {
       comparisonType,
       resolveThreshold,
       isMigration,
+      onSensitivityChange,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
@@ -124,6 +127,7 @@ class Triggers extends Component<Props> {
               <AnomalyAlertFormItem
                 disabled={disabled}
                 sensitivity={sensitivity}
+                onSensitivityChange={onSensitivityChange}
                 fieldHelp={
                   <div>
                     {

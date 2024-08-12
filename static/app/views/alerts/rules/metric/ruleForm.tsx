@@ -85,12 +85,13 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import type {
-  EventTypes,
-  MetricActionTemplate,
-  MetricRule,
-  Trigger,
-  UnsavedMetricRule,
+import {
+  AlertRuleSensitivity,
+  type EventTypes,
+  type MetricActionTemplate,
+  type MetricRule,
+  type Trigger,
+  type UnsavedMetricRule,
 } from './types';
 import {
   AlertRuleComparisonType,
@@ -233,6 +234,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
+      sensitivity: rule.sensitivity || AlertRuleSensitivity.MEDIUM,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,
@@ -850,6 +852,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
+  handleSensitivityChange = (sensitivity: AlertRuleSensitivity) => {
+    this.setState({sensitivity});
+  };
+
   handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
     const {triggers} = this.state;
 
@@ -1096,6 +1102,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       resolveThreshold,
+      sensitivity,
       loading,
       eventTypes,
       dataset,
@@ -1120,6 +1127,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         aggregate={aggregate}
         isMigration={isMigration}
         resolveThreshold={resolveThreshold}
+        sensitivity={sensitivity}
         thresholdPeriod={thresholdPeriod}
         thresholdType={thresholdType}
         comparisonType={comparisonType}
@@ -1130,6 +1138,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
         onResolveThresholdChange={this.handleResolveThresholdChange}
+        onSensitivityChange={this.handleSensitivityChange}
       />
     );
 
