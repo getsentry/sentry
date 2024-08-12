@@ -22,7 +22,6 @@ RELAY_OPTIONS: list[str] = [
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
     "relay.metric-stats.rollout-rate",
-    "feedback.ingest-topic.rollout-rate",
     "relay.span-extraction.sample-rate",
     "relay.compute-metrics-summaries.sample-rate",
     "sentry-metrics.extrapolation.duplication-limit",
