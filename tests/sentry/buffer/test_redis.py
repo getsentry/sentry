@@ -525,26 +525,25 @@ class TestRedisBuffer:
 
         redis_buffer_router._routers = original_routers
 
+    @django_db_all
+    @freeze_time()
+    def test_incr_uses_signal_only(self, default_group, task_runner):
+        # Make sure group is stored in the cache and keep track of times_seen at the time
+        orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
+        times_seen_incr = 5
+        self.buf.incr(
+            Group,
+            {"times_seen": times_seen_incr},
+            {"pk": default_group.id},
+            {"last_seen": timezone.now()},
+            signal_only=True,
+        )
+        with task_runner(), mock.patch("sentry.buffer", self.buf):
+            self.buf.process_pending()
+        group = Group.objects.get_from_cache(id=default_group.id)
 
-#    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-#    def test_incr_uses_signal_only(self):
-#        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.timezone.utc)
-#        client = self.buf.cluster.get_routing_client()
-#        model = mock.Mock()
-#        model.__name__ = "Mock"
-#        columns = {"times_seen": 1}
-#        filters = {"pk": 1, "datetime": now}
-#        self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True)
-#        result = client.hgetall("foo")
-#        assert result == {
-#            "e+foo": '["s","bar"]',
-#            "e+datetime": '["dt","1493791566.000000"]',
-#            "f": '{"pk":["i","1"],"datetime":["dt","1493791566.000000"]}',
-#            "i+times_seen": "1",
-#            "m": "mock.mock.Mock",
-#            "s": "1"
-#        }
-#
+        # signal_only should not increment the times_seen column
+        assert group.times_seen == orig_times_seen
 
 
 @pytest.mark.parametrize(
