@@ -15,7 +15,8 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashMissingGroupError,
+    SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
@@ -210,7 +211,7 @@ def get_similarity_data_from_seer(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
-        except SimilarGroupNotFoundError:
+        except SimilarHashNotFoundError:
             parent_hash = raw_similar_issue_data.get("parent_hash")
 
             # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
@@ -218,15 +219,34 @@ def get_similarity_data_from_seer(
             delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
 
             # As with the `IncompleteSeerDataError` above, this will mark the entire request as
-            # errored even if it's only one group that we can't find. The extent to which that's
+            # errored even if it's only one grouphash that we can't find. The extent to which that's
             # inaccurate will be quite small, though, as the vast majority of calls to this function
             # come from ingest (where we're only requesting one matching group, making "one's
             # missing" the same thing as "they're all missing"). We should also almost never land
             # here in any case, since deleting the group on the Sentry side should already have
             # triggered a request to Seer to delete the corresponding hashes.
-            metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
+            metric_tags.update({"outcome": "error", "error": "SimilarHashNotFoundError"})
             logger.warning(
-                "get_similarity_data_from_seer.parent_group_not_found",
+                "get_similarity_data_from_seer.parent_hash_not_found",
+                extra={
+                    "hash": request_hash,
+                    "parent_hash": parent_hash,
+                    "project_id": project_id,
+                },
+            )
+        except SimilarHashMissingGroupError:
+            parent_hash = raw_similar_issue_data.get("parent_hash")
+
+            # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
+            # which doesn't exist
+            delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+
+            # The same caveats apply here as with the `SimilarHashNotFoundError` above, except that
+            # landing here should be even rarer, in that it's theoretically impossible - but
+            # nonetheless has happened, when events have seemingly vanished mid-ingest.
+            metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
+            logger.warning(
+                "get_similarity_data_from_seer.parent_hash_missing_group",
                 extra={
                     "hash": request_hash,
                     "parent_hash": parent_hash,

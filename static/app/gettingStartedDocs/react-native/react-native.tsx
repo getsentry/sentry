@@ -22,7 +22,7 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: "${params.dsn}",${
+  dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.

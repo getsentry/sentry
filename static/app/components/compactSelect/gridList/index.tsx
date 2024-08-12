@@ -98,12 +98,10 @@ function GridList({
     () =>
       [...listState.collection].filter(node => {
         if (node.type === 'section') {
-          return ![...node.childNodes].every(child =>
-            hiddenOptions.has(child.props.value)
-          );
+          return ![...node.childNodes].every(child => hiddenOptions.has(child.key));
         }
 
-        return !hiddenOptions.has(node.props.value);
+        return !hiddenOptions.has(node.key);
       }),
     [listState.collection, hiddenOptions]
   );

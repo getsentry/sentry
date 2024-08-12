@@ -4,6 +4,7 @@ import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 
 export default function getGuidesContent(
   organization: Organization | null
@@ -195,11 +196,28 @@ export default function getGuidesContent(
           target: 'metrics_aggregate',
           description: t('See different facets of your metric through aggregations.'),
         },
-        {
-          title: t('Grouping & Filtering'),
-          target: 'metrics_groupby',
-          description: t('Segment or filter your data by the tags you’ve attached.'),
-        },
+        ...(organization && hasMetricsNewInputs(organization)
+          ? [
+              {
+                title: t('Grouping'),
+                target: 'metrics_groupby',
+                description: t('Segment your data by the tags you’ve attached.'),
+              },
+              {
+                title: t('Filtering'),
+                target: 'metrics_filterby',
+                description: t('Filter your data by the tags you’ve attached.'),
+              },
+            ]
+          : [
+              {
+                title: t('Grouping & Filtering'),
+                target: 'metrics_groupby',
+                description: t(
+                  'Segment or filter your data by the tags you’ve attached.'
+                ),
+              },
+            ]),
         {
           title: t('Multiple Metrics'),
           target: 'add_metric_query',

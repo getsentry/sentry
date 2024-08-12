@@ -737,6 +737,8 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.backfill_outboxes",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
@@ -752,7 +754,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
-    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
@@ -768,13 +769,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion.scheduled",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
-    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
-    "sentry.tasks.integrations.slack",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -2979,6 +2977,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
     "sentry.issues.endpoints",
+    "sentry.integrations.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 

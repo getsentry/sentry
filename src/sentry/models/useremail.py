@@ -21,8 +21,9 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.outboxes import ControlOutboxProducingModel
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.types.region import find_regions_for_user
 from sentry.users.services.user.model import RpcUser

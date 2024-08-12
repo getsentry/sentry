@@ -10,6 +10,7 @@ import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,11 +24,11 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -202,32 +203,34 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </Tabs>
           <NavigationWrapper>
             <Navigation>
-              <LinkButton
-                title={'Previous Event'}
-                aria-label="Previous Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="left" />}
-                disabled={!hasPreviousEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.previousEventID}/`,
-                  query: {...location.query, referrer: 'previous-event'},
-                }}
-                css={grayText}
-              />
-              <LinkButton
-                title={'Next Event'}
-                aria-label="Next Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="right" />}
-                disabled={!hasNextEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.nextEventID}/`,
-                  query: {...location.query, referrer: 'next-event'},
-                }}
-                css={grayText}
-              />
+              <Tooltip title={t('Previous Event')}>
+                <LinkButton
+                  aria-label={t('Previous Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="left" />}
+                  disabled={!hasPreviousEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.previousEventID}/`,
+                    query: {...location.query, referrer: 'previous-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next Event')}>
+                <LinkButton
+                  aria-label={t('Next Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="right" />}
+                  disabled={!hasNextEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.nextEventID}/`,
+                    query: {...location.query, referrer: 'next-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
             </Navigation>
             <LinkButton
               to={{

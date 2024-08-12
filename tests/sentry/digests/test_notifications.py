@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, MutableSequence
 from functools import cached_property, reduce
 
-from sentry.digests import Record
 from sentry.digests.notifications import (
-    Notification,
+    Digest,
     event_to_record,
     group_records,
     rewrite_record,
@@ -16,6 +14,7 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
+from sentry.digests.types import NotificationWithRuleObjects, RecordWithRuleObjects
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase
@@ -42,11 +41,7 @@ class RewriteRecordTestCase(TestCase):
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={self.rule.id: self.rule},
-        ) == Record(
-            self.record.key,
-            Notification(self.record.value.event, [self.rule], self.notification_uuid),
-            self.record.timestamp,
-        )
+        ) == self.record.with_rules([self.rule])
 
     def test_without_group(self):
         # If the record can't be associated with a group, it should be returned as None.
@@ -63,11 +58,7 @@ class RewriteRecordTestCase(TestCase):
             project=self.event.project,
             groups={self.event.group.id: self.event.group},
             rules={},
-        ) == Record(
-            self.record.key,
-            Notification(self.record.value.event, [], self.notification_uuid),
-            self.record.timestamp,
-        )
+        ) == self.record.with_rules([])
 
 
 class GroupRecordsTestCase(TestCase):
@@ -85,16 +76,14 @@ class GroupRecordsTestCase(TestCase):
         ]
         group = events[0].group
         records = [
-            Record(
+            RecordWithRuleObjects(
                 event.event_id,
-                Notification(event, [self.rule], self.notification_uuid),
-                event.datetime,
+                NotificationWithRuleObjects(event, [self.rule], self.notification_uuid),
+                event.datetime.timestamp(),
             )
             for event in events
         ]
-        results: MutableMapping[str, Mapping[str, MutableSequence[Record]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        results: Digest = defaultdict(lambda: defaultdict(list))
         assert reduce(group_records, records, results) == {self.rule: {group: records}}
 
 
@@ -124,7 +113,7 @@ class SortRecordsTestCase(TestCase):
         groups[2].event_count = 5
         groups[2].user_count = 1
 
-        grouped = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
+        grouped: Digest = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
 
         ret = sort_rule_groups(sort_group_contents(grouped))
 
