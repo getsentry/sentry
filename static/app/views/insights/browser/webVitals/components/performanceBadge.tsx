@@ -9,13 +9,14 @@ import {
 
 type Props = {
   score: number;
+  displayValue?: number;
 };
 
-export function PerformanceBadge({score}: Props) {
+export function PerformanceBadge({score, displayValue}: Props) {
   const status = scoreToStatus(score);
   return (
     <Badge status={status}>
-      {STATUS_TEXT[status]} {score}
+      {STATUS_TEXT[status]} {displayValue ?? score}
     </Badge>
   );
 }

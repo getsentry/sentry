@@ -1,4 +1,4 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
@@ -11,32 +11,41 @@ import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
+import {WebVitalCollapsible} from 'sentry/components/replays/breadcrumbs/webVitalBreadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {explodeSlug} from 'sentry/utils';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import {getNodeIdAndLabel} from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
   FeedbackFrame,
   HydrationErrorFrame,
   ReplayFrame,
+  SpanFrame,
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
+  isSpanFrame,
 } from 'sentry/utils/replays/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
@@ -47,11 +56,7 @@ const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (
-    path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
-  ) => void;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -105,7 +110,19 @@ function BreadcrumbItem({
     ) : null;
   }, [frame, replay]);
 
+  const renderWebVitalData = useCallback(() => {
+    return isSpanFrame(frame) && frame.op.startsWith('navigation.') ? (
+      <CrumbWebVital
+        replay={replay}
+        navFrame={frame}
+        expandPaths={expandPaths}
+        onInspectorExpanded={onInspectorExpanded}
+      />
+    ) : null;
+  }, [frame, expandPaths, replay, onInspectorExpanded]);
+
   const renderCodeSnippet = useCallback(() => {
+    console.log('code snippet', extraction ? getNodeIdAndLabel(extraction.frame) : null);
     return extraction?.html ? (
       <CodeContainer>
         <CodeSnippet language="html" hideCopyButton>
@@ -113,7 +130,7 @@ function BreadcrumbItem({
         </CodeSnippet>
       </CodeContainer>
     ) : null;
-  }, [extraction?.html]);
+  }, [extraction]);
 
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
@@ -149,6 +166,7 @@ function BreadcrumbItem({
       >
         <ErrorBoundary mini>
           {renderDescription()}
+          {renderWebVitalData()}
           {renderComparisonButton()}
           {renderCodeSnippet()}
           {renderIssueLink()}
@@ -214,6 +232,89 @@ function CrumbHydrationButton({
       </OpenReplayComparisonButton>
     </div>
   );
+}
+
+function RATING_TO_SCORE(rating) {
+  switch (rating) {
+    case 'good':
+      return 'good';
+    case 'needs-improvement':
+      return 'needsImprovement';
+    case 'poor':
+      return 'bad';
+    default:
+      return 'good';
+  }
+}
+
+function CrumbWebVital({
+  replay,
+  navFrame,
+  onInspectorExpanded,
+  expandPaths,
+}: {
+  navFrame: SpanFrame;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  replay: ReplayReader | null;
+  expandPaths?: string[];
+}) {
+  if (!replay) {
+    return null;
+  }
+  const endIndex = replay.getNavigationFrames().indexOf(navFrame);
+  const endFrame = replay.getNavigationFrames().at(endIndex + 1);
+
+  const wvFrames = replay
+    .getWebVitalFrames()
+    .filter(
+      frame =>
+        frame.timestampMs >= navFrame.timestampMs &&
+        (endFrame ? frame.timestampMs <= endFrame.timestampMs : true)
+    );
+
+  const goodCount = wvFrames?.filter(f => f.data.rating === 'good').length ?? 0;
+  const badCount = wvFrames?.filter(f => f.data.rating === 'poor').length ?? 0;
+  const mehCount =
+    wvFrames?.filter(f => f.data.rating === 'needs-improvement').length ?? 0;
+
+  const frameToExtraction = useExtractDomNodes({replay}).data;
+
+  if (Array.isArray(wvFrames) && wvFrames.length) {
+    return (
+      <Timeline.Data>
+        <ExpandedStateContextProvider
+          initialExpandedPaths={() => expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
+          }}
+        >
+          <WebVitalCollapsible
+            path={'$'}
+            goodCount={goodCount}
+            mehCount={mehCount}
+            badCount={badCount}
+          >
+            {wvFrames.map(vital => {
+              return (
+                <div key={vital.data.value}>
+                  {toTitleCase(explodeSlug(vital.description))}
+                  <Score status={RATING_TO_SCORE(vital.data.rating)}>
+                    {vital.data.value.toFixed(2)}
+                  </Score>
+                  {getNodeIdAndLabel(vital)?.selector}
+                  {console.log(getNodeIdAndLabel(vital))}
+                </div>
+              );
+            })}
+          </WebVitalCollapsible>
+        </ExpandedStateContextProvider>
+      </Timeline.Data>
+    );
+  }
+  return null;
 }
 
 function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
@@ -379,6 +480,10 @@ const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
   overflow: auto;
+`;
+
+const Score = styled('span')<{status: string}>`
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
 `;
 
 export default memo(BreadcrumbItem);
