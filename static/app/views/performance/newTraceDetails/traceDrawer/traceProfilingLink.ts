@@ -99,12 +99,12 @@ export function makeTraceContinuousProfilingLink(
     queryWithEventData.spanId = spanId;
   }
 
-  return generateContinuousProfileFlamechartRouteWithQuery(
-    options.orgSlug,
-    options.projectSlug,
-    profilerId,
-    start.toISOString(),
-    end.toISOString(),
-    queryWithEventData
-  );
+  return generateContinuousProfileFlamechartRouteWithQuery({
+    orgSlug: options.orgSlug,
+    projectSlug: options.projectSlug,
+    profilerId: profilerId,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    query: queryWithEventData,
+  });
 }

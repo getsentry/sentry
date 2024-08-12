@@ -1,6 +1,5 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
-  type SpeedscopeSchema = import('sentry/utils/profiling/speedscope').SpeedscopeSchema;
 
   type Image = import('sentry/types/debugImage').Image;
 
@@ -164,6 +163,7 @@ declare namespace Profiling {
     weights: number[];
     samples: number[][];
     samples_profiles?: number[][];
+    samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
   }
@@ -230,8 +230,28 @@ declare namespace Profiling {
     profiles: ReadonlyArray<ProfileInput>;
   };
 
+  type TransactionProfileReference = {
+    project_id: number;
+    profile_id: string;
+  };
+
+  type ContinuousProfileReference = {
+    project_id: number;
+    profiler_id: string;
+    transaction_id: string | undefined;
+    start: number;
+    chunk_id: string;
+    end: number;
+    thread_id: string;
+  };
+
+  type ProfileReference =
+    | TransactionProfileReference
+    | ContinuousProfileReference
+    | string;
+
   // We have extended the speedscope schema to include some additional metadata and measurements
-  interface Schema extends SpeedscopeSchema {
+  interface Schema {
     metadata: {
       androidAPILevel: number;
       deviceClassification: string;
@@ -255,5 +275,16 @@ declare namespace Profiling {
     profileID: string;
     projectID: number;
     measurements?: Measurements;
+    profiles: ReadonlyArray<
+      Readonly<
+        Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace
+      >
+    >;
+    shared: {
+      frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>[];
+      profiles?: ReadonlyArray<ProfileReference>;
+    };
+    activeProfileIndex?: number;
   }
 }

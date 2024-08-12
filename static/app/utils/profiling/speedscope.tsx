@@ -384,18 +384,6 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
   };
 }
 
-// @TODO drop when we move to sampled profile
-export interface SpeedscopeSchema {
-  profiles: ReadonlyArray<
-    Readonly<Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace>
-  >;
-  shared: {
-    frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
-    profile_ids?: ReadonlyArray<string>;
-  };
-  activeProfileIndex?: number;
-}
-
 // This differs, but the underlying logic is similar, we just support a mat3 as the transform
 // because our charts can be offset on the x axis.
 export function computeInterval(

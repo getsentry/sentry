@@ -34,7 +34,7 @@ import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useDifferentialFlamegraphModel} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphModel';
 import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -195,15 +195,27 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       if (!frame.profileIds?.length) {
         return '';
       }
-      return generateProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
-        projectSlug: props.project.slug,
-        profileId: frame.profileIds?.[0] ?? '',
-        query: {
-          frameName: frame.frame.name,
-          framePackage: frame.frame.package,
-        },
-      });
+      const profileId = frame.profileIds[0];
+
+      if (typeof profileId !== 'undefined') {
+        return (
+          generateProfileRouteFromProfileReference({
+            orgSlug: organization.slug,
+            projectSlug: props.project.slug,
+            reference:
+              typeof profileId === 'string'
+                ? profileId
+                : 'profiler_id' in profileId
+                  ? profileId.profiler_id
+                  : profileId.profile_id,
+            framePackage: frame.frame.package,
+            frameName: frame.frame.name,
+          }) ?? ''
+        );
+      }
+
+      // Regression issues do not work with continuous profiles
+      return '';
     },
     [organization.slug, props.project]
   );
