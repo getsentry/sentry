@@ -7,10 +7,12 @@ import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
+  AGGREGATIONS,
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
+  type QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -416,4 +418,47 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 
 export function getIsTimeseriesChart(displayType: DisplayType) {
   return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
+}
+
+// Handle adding functions to the field options
+// Field and equations are already compatible
+export function getFieldOptionFormat(field: QueryFieldValue) {
+  // TODO: handle 'calculated fields' ??
+
+  if (field.kind === 'function') {
+    // Show the ellipsis if there are parameters that actually have values
+    const ellipsis =
+      field.function.slice(1).map(Boolean).filter(Boolean).length > 0 ? '\u2026' : '';
+
+    const functionName = field.alias || field.function[0];
+    return [
+      `function:${functionName}`,
+      {
+        label: `${functionName}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: field.alias,
+            parameters: AGGREGATIONS[field.function[0]].parameters.map(param => ({
+              ...param,
+              columnTypes: props => {
+                // HACK: Forcibly allow the parameter if it's already set, this allows
+                // us to render the option even if it's not compatible with the dataset.
+                if (props.name === field.function[1]) {
+                  return true;
+                }
+
+                // default behavior
+                if (typeof param.columnTypes === 'function') {
+                  return param.columnTypes(props);
+                }
+                return param.columnTypes;
+              },
+            })),
+          },
+        },
+      },
+    ];
+  }
+  return ['a', {} as any]; // TODO: Remove this
 }

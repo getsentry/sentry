@@ -6,8 +6,10 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import {appendFieldIfUnknown} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-import {DataSet} from '../../utils';
+import {DataSet, getFieldOptionFormat} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
@@ -38,6 +40,45 @@ export function ColumnsStep({
 }: Props) {
   const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
+
+  let fieldOptions = datasetConfig.getTableFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+
+  // We need to persist the form values across Errors and Transactions datasets
+  // for the discover dataset split, so functions that are not compatible with
+  // errors should still appear in the field options to gracefully handle incorrect
+  // dataset splitting.
+  if ([DataSet.ERRORS, DataSet.TRANSACTIONS].includes(dataSet)) {
+    explodedFields.forEach(field => {
+      // Inject functions that aren't compatible with the current dataset
+      if (field.kind === 'function') {
+        if (!(`function:${field.alias}` in fieldOptions)) {
+          const [key, value] = getFieldOptionFormat(field);
+          fieldOptions[key] = value;
+
+          // If the function needs to be injected, inject the parameter as a tag
+          // as well if it isn't already an option
+          if (
+            field.function[1] &&
+            !fieldOptions[`field:${field.function[1]}`] &&
+            !fieldOptions[`tag:${field.function[1]}`]
+          ) {
+            fieldOptions = appendFieldIfUnknown(fieldOptions, {
+              kind: FieldValueKind.TAG,
+              meta: {
+                dataType: 'string',
+                name: field.function[1],
+                unknown: true,
+              },
+            });
+          }
+        }
+      }
+    });
+  }
 
   return (
     <BuildStep
@@ -84,11 +125,7 @@ export function ColumnsStep({
         widgetType={widgetType}
         fields={explodedFields}
         errors={queryErrors}
-        fieldOptions={datasetConfig.getTableFieldOptions(
-          organization,
-          tags,
-          customMeasurements
-        )}
+        fieldOptions={fieldOptions}
         isOnDemandWidget={isOnDemandWidget}
         filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}

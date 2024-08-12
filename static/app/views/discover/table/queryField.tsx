@@ -358,7 +358,7 @@ class QueryField extends Component<Props> {
 
     if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
-      fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+      fieldOptions = appendFieldIfUnknown(fieldOptions, field);
     }
 
     let parameterDescriptions: ParameterDescription[] = [];
@@ -376,7 +376,7 @@ class QueryField extends Component<Props> {
               fieldValue.function[1],
               [fieldValue.function[0]]
             );
-            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+            fieldOptions = appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
               value: fieldParameter,
@@ -389,6 +389,7 @@ class QueryField extends Component<Props> {
                     value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
                     value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
+                  // This is blocking my parameter from appearing
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
@@ -420,29 +421,6 @@ class QueryField extends Component<Props> {
       );
     }
     return {field, fieldOptions, parameterDescriptions};
-  }
-
-  appendFieldIfUnknown(
-    fieldOptions: FieldOptions,
-    field: FieldValue | null
-  ): FieldOptions {
-    if (!field) {
-      return fieldOptions;
-    }
-
-    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
-      // Clone the options so we don't mutate other rows.
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-    } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[`measurement:${field.meta.name}`] = {
-        label: field.meta.name,
-        value: field,
-      };
-    }
-
-    return fieldOptions;
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
@@ -843,3 +821,26 @@ const ArithmeticError = styled(Tooltip)`
 `;
 
 export {QueryField};
+
+export function appendFieldIfUnknown(
+  fieldOptions: FieldOptions,
+  field: FieldValue | null
+): FieldOptions {
+  if (!field) {
+    return fieldOptions;
+  }
+
+  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+    // Clone the options so we don't mutate other rows.
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[`measurement:${field.meta.name}`] = {
+      label: field.meta.name,
+      value: field,
+    };
+  }
+
+  return fieldOptions;
+}
