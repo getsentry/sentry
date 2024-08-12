@@ -223,7 +223,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 
   if (isInvestigationRuleInProgress) {
     // investigation rule in progress, just show a message
-    const existingRule = rule;
+    const existingRule = rule as CustomDynamicSamplingRule;
     const ruleStartDate = new Date(existingRule.startDate);
     const now = new Date();
     const interval = moment.duration(now.getTime() - ruleStartDate.getTime()).humanize();
