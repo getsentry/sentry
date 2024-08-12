@@ -40,7 +40,7 @@ function useLogInviteModalOpened({
       modal_session: sessionId,
       can_invite:
         organization.access?.includes('member:write') ||
-        (organization.features.includes('organizations:members-invite-teammates') &&
+        (organization.features.includes('members-invite-teammates') &&
           organization.allowMemberInvite),
       source,
     });
@@ -51,7 +51,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const api = useApi();
   const willInvite =
     organization.access?.includes('member:write') ||
-    (organization.features.includes('organizations:members-invite-teammates') &&
+    (organization.features.includes('members-invite-teammates') &&
       organization.allowMemberInvite);
 
   /**
