@@ -277,6 +277,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
 
+/static/app/views/explore/                                                @getsentry/explore
 /static/app/views/traces/                                                 @getsentry/explore
 /static/app/components/quickTrace/                                        @getsentry/explore
 
@@ -512,8 +513,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/event_manager.py                                @getsentry/issues
 /src/sentry/grouping/                                       @getsentry/issues
 /src/sentry/mediators/                                      @getsentry/issues
-/src/sentry/middleware/ratelimit.py                         @getsentry/issues
-/src/sentry/middleware/access_log.py                        @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
 /src/sentry/seer/similarity/                                @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues

@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 
@@ -56,10 +56,7 @@ export function buildEventViewQuery({
     });
 
   result.push(`has:${SPAN_DESCRIPTION}`);
-
-  if (moduleName !== ModuleName.ALL) {
-    result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
+  result.push(`${SPAN_MODULE}:${moduleName}`);
 
   if (defined(spanCategory)) {
     if (spanCategory === NULL_SPAN_CATEGORY) {

@@ -34,7 +34,7 @@ import { render } from "solid-js/web";
 import App from "./app";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isPerformanceSelected
       ? `
