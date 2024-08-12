@@ -6,6 +6,7 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -28,6 +29,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
   });
 
   const {setParamValue: setProjectId} = useUrlParams('project');
+  const issueTypeConfig = getConfigForIssueType(group!, group?.project!);
 
   useEffect(() => {
     if (canShowUpsell) {
@@ -39,7 +41,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     return <ReplayClipSection event={event} replayId={replayId} group={group} />;
   }
 
-  if (canShowUpsell && !hasSentOneReplay) {
+  if (canShowUpsell && !hasSentOneReplay && issueTypeConfig.replays.enabled) {
     return (
       <ErrorBoundary mini>
         <LazyLoad
