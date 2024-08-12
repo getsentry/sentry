@@ -9,6 +9,7 @@ from sentry.exceptions import (
     UnsupportedQuerySubscription,
 )
 from sentry.models.group import GroupStatus
+from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -616,6 +617,35 @@ class EntitySubscriptionTestCase(TestCase):
             Condition(Column("project_id", entity=e_entity), Op.IN, [self.project.id]),
             Condition(Column("project_id", entity=g_entity), Op.IN, [self.project.id]),
         ]
+
+    def test_get_entity_subscription_for_insights_queries(self) -> None:
+        with Feature("organizations:custom-metrics"):
+            cases = [
+                ("count()", "", True),
+                ("avg(transaction.duration)", "", True),
+                ("count()", "span.module:http", False),
+                ("count()", "span.category:http", False),
+                ("count()", "span.op:http.client", False),
+                ("count()", "span.description:abc", False),
+                ("performance_score(measurements.score.lcp)", "", False),
+                # TODO: The following functions are not supported in the discover metrics dataset yet.
+                # Uncomment these as we port them over.
+                # ("spm()", "", False),
+                # ("cache_miss_rate()", "", False),
+                # ("http_response_rate()", "", False),
+                # ("avg(span.self_time)", "", False),
+            ]
+            for aggregate, query, use_metrics_layer in cases:
+                entity_subscription = get_entity_subscription(
+                    query_type=SnubaQuery.Type.PERFORMANCE,
+                    dataset=Dataset.PerformanceMetrics,
+                    aggregate=aggregate,
+                    time_window=3600,
+                    extra_fields={"org_id": self.organization.id},
+                )
+                builder = entity_subscription.build_query_builder(query, [self.project.id], None)
+                assert isinstance(builder, AlertMetricsQueryBuilder)
+                assert builder.use_metrics_layer is use_metrics_layer
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):

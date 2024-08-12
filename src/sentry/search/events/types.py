@@ -211,6 +211,7 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
+    insights_metrics_override_metric_layer: bool = False
 
 
 @dataclass(frozen=True)
