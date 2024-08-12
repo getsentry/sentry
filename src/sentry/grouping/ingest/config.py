@@ -90,7 +90,10 @@ def project_uses_optimized_grouping(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
 
-    return not has_mobile_config and features.has(
+    if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
+        return False
+
+    return features.has(
         "organizations:grouping-suppress-unnecessary-secondary-hash",
         project.organization,
-    )
+    ) or (is_in_transition(project) and project.id % 2 == 0)
