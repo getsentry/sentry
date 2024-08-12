@@ -222,6 +222,26 @@ function SummaryContent({
     return items;
   }
 
+  const generateTrailingItems = useCallback(() => {
+    if (!canUseTransactionMetricsData(organization, mepDataContext)) {
+      return (
+        <Tooltip
+          title={t(
+            'Based on your search criteria and sample rate, the events available may be limited.'
+          )}
+        >
+          <StyledIconWarning
+            data-test-id="search-metrics-fallback-warning"
+            size="sm"
+            color="warningText"
+          />
+        </Tooltip>
+      );
+    }
+
+    return null;
+  }, [organization, mepDataContext]);
+
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
   );
@@ -363,6 +383,7 @@ function SummaryContent({
           searchSource="transaction_summary"
           disableLoadingTags // already loaded by the parent component
           filterKeyMenuWidth={420}
+          trailingItems={generateTrailingItems()}
         />
       );
     }
