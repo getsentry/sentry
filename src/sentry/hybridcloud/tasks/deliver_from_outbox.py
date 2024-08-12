@@ -8,9 +8,14 @@ from celery import Task
 from django.conf import settings
 from django.db.models import Max, Min
 
-from sentry.models.outbox import ControlOutboxBase, OutboxBase, OutboxFlushError, RegionOutboxBase
+from sentry.hybridcloud.models.outbox import (
+    ControlOutboxBase,
+    OutboxBase,
+    OutboxFlushError,
+    RegionOutboxBase,
+)
+from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
-from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
@@ -59,7 +64,7 @@ def schedule_batch(
     silo_mode: SiloMode,
     drain_task: Task,
     concurrency: int | None = None,
-    process_outbox_backfills=True,
+    process_outbox_backfills: bool = True,
 ) -> None:
     scheduled_count = 0
 

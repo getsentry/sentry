@@ -1,16 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceIssueEvent} from './traceTimeline/traceIssue';
 import {TraceLink} from './traceTimeline/traceLink';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import {useTraceTimelineEvents} from './traceTimeline/useTraceTimelineEvents';
 
-export function TraceTimeLineOrRelatedIssue({event}: {event: Event}) {
+export function TraceDataSection({event}: {event: Event}) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   // This is also called within the TraceTimeline component but caching will save a second call
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
@@ -26,11 +31,14 @@ export function TraceTimeLineOrRelatedIssue({event}: {event: Event}) {
   if (isLoading) {
     return null;
   }
-  return (
+
+  const traceContent = (
     <Fragment>
       <StyledTraceLink>
         {/* Used for trace-related issue */}
-        {oneOtherIssueEvent && <span>One other issue appears in the same trace.</span>}
+        {oneOtherIssueEvent && (
+          <span>{t('One other issue appears in the same trace.')}</span>
+        )}
         <TraceLink event={event} />
       </StyledTraceLink>
       {oneOtherIssueEvent === undefined ? (
@@ -40,6 +48,14 @@ export function TraceTimeLineOrRelatedIssue({event}: {event: Event}) {
       )}
     </Fragment>
   );
+
+  return hasStreamlinedUI ? (
+    <InterimSection title={t('Trace Connections')} type={FoldSectionKey.TRACE}>
+      {traceContent}
+    </InterimSection>
+  ) : (
+    traceContent
+  );
 }
 
 const StyledTraceLink = styled('div')`
@@ -48,5 +64,3 @@ const StyledTraceLink = styled('div')`
   overflow: hidden;
   gap: ${space(0.25)};
 `;
-
-export default TraceTimeLineOrRelatedIssue;
