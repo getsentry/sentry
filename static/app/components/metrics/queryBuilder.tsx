@@ -1,6 +1,7 @@
 import type React from 'react';
 import {memo, useCallback, useMemo} from 'react';
-import {ClassNames, css} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -56,6 +57,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   alias,
   isModal,
 }: QueryBuilderProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {getAggregations, getConditions, resolveVirtualMRI, getTags} =
@@ -261,7 +263,9 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <Label>{t('Visualize')}</Label>
+              <QueryFieldGroup.Label css={labelCss({theme})}>
+                {t('Visualize')}
+              </QueryFieldGroup.Label>
               <MRISelect
                 onChange={handleMRIChange}
                 onTagClick={handleMetricTagClick}
@@ -282,7 +286,9 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <Label>{t('Agg by')}</Label>
+              <QueryFieldGroup.Label css={labelCss({theme})}>
+                {t('Agg by')}
+              </QueryFieldGroup.Label>
               <QueryFieldGroup.CompactSelect
                 size="md"
                 options={
@@ -316,7 +322,9 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <Label>{t('Group by')}</Label>
+              <QueryFieldGroup.Label css={labelCss({theme})}>
+                {t('Group by')}
+              </QueryFieldGroup.Label>
               <QueryFieldGroup.CompactSelect
                 multiple
                 size="md"
@@ -345,14 +353,17 @@ export const QueryBuilder = memo(function QueryBuilder({
           >
             {selectedMeta && isVirtualMetric(selectedMeta) ? (
               <QueryFieldGroup>
-                <Label>{t('Where')}</Label>
+                <QueryFieldGroup.Label css={labelCss({theme})}>
+                  {t('Where')}
+                </QueryFieldGroup.Label>
                 <MetricQuerySelect
                   mri={metricsQuery.mri}
                   conditionId={metricsQuery.condition}
                   onChange={handleConditionChange}
                 />
-
-                <Label width="auto">{t('And')}</Label>
+                <QueryFieldGroup.Label css={labelCss({theme, width: 'auto'})}>
+                  {t('And')}
+                </QueryFieldGroup.Label>
                 <SearchBar
                   hasMetricsNewInputs
                   mri={resolvedMRI}
@@ -367,7 +378,7 @@ export const QueryBuilder = memo(function QueryBuilder({
               </QueryFieldGroup>
             ) : (
               <QueryFieldGroup>
-                <Label>{t('Where')}</Label>
+                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
                 <SearchBar
                   hasMetricsNewInputs
                   mri={resolvedMRI}
@@ -576,12 +587,12 @@ const FilterBy = styled('div')<{hasSymbols: boolean; isModal?: boolean}>`
     `}
 `;
 
-const Label = styled(QueryFieldGroup.Label)<{width?: string}>`
-  width: ${p => p.width ?? '95px'};
-  min-width: ${p => p.width ?? '95px'};
+const labelCss = ({width, theme}: {theme: Theme; width?: string}) => css`
+  width: ${width ?? '95px'};
+  min-width: ${width ?? '95px'};
   white-space: nowrap;
 
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${theme.breakpoints.xxlarge}) {
     width: auto;
     min-width: auto;
   }
