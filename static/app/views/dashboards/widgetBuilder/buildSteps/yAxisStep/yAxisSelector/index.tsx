@@ -11,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getFieldOptionFormat} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {appendFieldIfUnknown, QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -99,7 +100,11 @@ export function YAxisSelector({
   // for the discover dataset split, so functions that are not compatible with
   // errors should still appear in the field options to gracefully handle incorrect
   // dataset splitting.
-  if (widgetType && [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widgetType)) {
+  if (
+    hasDatasetSelector(organization) &&
+    widgetType &&
+    [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widgetType)
+  ) {
     aggregates.forEach(field => {
       // Inject functions that aren't compatible with the current dataset
       if (field.kind === 'function') {

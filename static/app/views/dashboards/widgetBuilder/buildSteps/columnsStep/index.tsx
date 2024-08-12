@@ -6,6 +6,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {appendFieldIfUnknown} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -51,7 +52,10 @@ export function ColumnsStep({
   // for the discover dataset split, so functions that are not compatible with
   // errors should still appear in the field options to gracefully handle incorrect
   // dataset splitting.
-  if ([DataSet.ERRORS, DataSet.TRANSACTIONS].includes(dataSet)) {
+  if (
+    hasDatasetSelector(organization) &&
+    [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(dataSet)
+  ) {
     explodedFields.forEach(field => {
       // Inject functions that aren't compatible with the current dataset
       if (field.kind === 'function') {
