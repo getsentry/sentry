@@ -357,7 +357,7 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      <EventActionableItems event={event} project={project} />
+      <EventActionableItems event={event} project={project} isShare={false} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}

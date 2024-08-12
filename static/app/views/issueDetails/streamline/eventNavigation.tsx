@@ -438,6 +438,7 @@ const EventTitle = styled('div')`
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   :hover {
     color: ${p => p.theme.red300};

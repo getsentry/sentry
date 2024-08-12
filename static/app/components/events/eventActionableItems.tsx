@@ -3,7 +3,12 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {groupedErrors} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {getErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {
+  shouldErrorBeShown,
+  useFetchProguardMappingFiles,
+} from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
@@ -16,6 +21,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 type Props = {
   event: Event;
+  isShare: boolean;
   project: Project;
 };
 
@@ -25,16 +31,12 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function EventErrorDescription({errorList}) {
-  const firstError = errorList[0];
-  const {title, desc} = firstError;
-  const numErrors = errorList.length;
-  const errorDataList = errorList.map(error => error.data ?? {});
+function EventErrorDescription({error}: {error: ErrorMessage}) {
+  const {title, desc, data: errorData} = error;
 
-  const cleanedData = useMemo(() => {
-    const cleaned = errorDataList.map(errorData => {
-      const data = {...errorData};
-
+  const cleanedData = useMemo(
+    () => {
+      const data = errorData || {};
       if (data.message === 'None') {
         // Python ensures a message string, but "None" doesn't make sense here
         delete data.message;
@@ -69,34 +71,21 @@ function EventErrorDescription({errorList}) {
           }
           return !!d.value;
         });
-    });
-    return cleaned;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errorDataList]);
+    [errorData]
+  );
 
   return (
     <div>
-      <ErrorTitleFlex>
-        <strong>
-          {title} ({numErrors})
-        </strong>
-      </ErrorTitleFlex>
-      <div>
-        {desc && <Description>{desc}</Description>}
-        {cleanedData.map((data, idx) => {
-          return (
-            <div key={idx}>
-              <KeyValueList data={data} isContextData />
-              {idx !== numErrors - 1 && <hr />}
-            </div>
-          );
-        })}
-      </div>
+      <Title>{title}</Title>
+      {desc && <Description>{desc}</Description>}
+      <KeyValueList data={cleanedData} isContextData />
     </div>
   );
 }
 
-export function EventActionableItems({event, project}: Props) {
+export function EventActionableItems({event, project, isShare}: Props) {
   const organization = useOrganization();
   const {data: actionableItems} = useActionableItems({
     eventId: event.id,
@@ -104,29 +93,41 @@ export function EventActionableItems({event, project}: Props) {
     projectSlug: project.slug,
   });
 
-  if (!actionableItems) {
+  const {proguardErrors} = useFetchProguardMappingFiles({
+    event,
+    project,
+    isShare,
+  });
+
+  if (!actionableItems || !proguardErrors) {
     return null;
   }
 
-  const errorMessages = groupedErrors(event, actionableItems, []);
+  const {_meta} = event;
+  const errors = [...actionableItems.errors, ...proguardErrors]
+    .filter(error => shouldErrorBeShown(error, event))
+    .flatMap((error, errorIdx) =>
+      getErrorMessage(error, _meta?.errors?.[errorIdx]).map(message => ({
+        ...message,
+        type: error.type,
+      }))
+    );
 
   return (
     <InterimSection
       title={t('Event Processing Errors')}
       type={FoldSectionKey.PROCESSING_ERROR}
     >
-      {Object.keys(errorMessages).map((error, idx) => {
-        return <EventErrorDescription key={idx} errorList={errorMessages[error]} />;
+      {errors.map((error, idx) => {
+        return <EventErrorDescription key={idx} error={error} />;
       })}
     </InterimSection>
   );
 }
 
-const ErrorTitleFlex = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
 `;
 
 const Description = styled('div')`
