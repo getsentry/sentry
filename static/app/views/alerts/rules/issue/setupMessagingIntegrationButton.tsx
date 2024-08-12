@@ -22,9 +22,16 @@ interface ProjectWithAlertIntegrationInfo extends Project {
 type Props = {
   projectSlug: string;
   refetchConfigs: () => void;
+  analyticsParams?: {
+    view: string;
+  };
 };
 
-function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
+function SetupMessagingIntegrationButton({
+  projectSlug,
+  refetchConfigs,
+  analyticsParams,
+}: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
   const organization = useOrganization();
 
@@ -115,6 +122,7 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
               trackAnalytics('onboarding.messaging_integration_modal_rendered', {
                 project_id: projectQuery.data.id,
                 organization,
+                ...analyticsParams,
               });
             }}
           >
