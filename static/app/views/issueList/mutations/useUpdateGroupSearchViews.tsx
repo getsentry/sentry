@@ -9,31 +9,26 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {
+  GroupSearchView,
+  UpdateGroupSearchViewPayload,
+} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewsVariables = {
-  groupSearchViews: GroupSearchView[]; // Id is not required in request payload
+  groupSearchViews: UpdateGroupSearchViewPayload[]; // Id is not required in request payload
   orgSlug: string;
 };
 
 export const useUpdateGroupSearchViews = (
   options: Omit<
-    UseMutationOptions<
-      Required<GroupSearchView>[],
-      RequestError,
-      UpdateGroupSearchViewsVariables
-    >,
+    UseMutationOptions<GroupSearchView[], RequestError, UpdateGroupSearchViewsVariables>,
     'mutationFn'
   > = {}
 ) => {
   const api = useApi();
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Required<GroupSearchView>[],
-    RequestError,
-    UpdateGroupSearchViewsVariables
-  >({
+  return useMutation<GroupSearchView[], RequestError, UpdateGroupSearchViewsVariables>({
     ...options,
     mutationFn: ({orgSlug, groupSearchViews: data}: UpdateGroupSearchViewsVariables) =>
       api.requestPromise(`/organizations/${orgSlug}/group-search-views/`, {
