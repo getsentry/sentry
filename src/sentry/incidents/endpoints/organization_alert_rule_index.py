@@ -64,7 +64,7 @@ from sentry.utils.cursors import Cursor, StringCursor
 
 class AlertRuleIndexMixin(Endpoint):
     def fetch_metric_alert(
-        self, request: Request, organization: Organization, project: Project = None
+        self, request: Request, organization: Organization, project: Project | None = None
     ):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
