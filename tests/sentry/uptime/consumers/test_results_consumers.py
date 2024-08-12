@@ -35,9 +35,10 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
-class ProcessResultTest(UptimeTestCase):
+class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -180,6 +181,7 @@ class ProcessResultTest(UptimeTestCase):
             metrics.incr.assert_has_calls(
                 [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
             )
+            self.assert_producer_calls(subscription_id)
 
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
