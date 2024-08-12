@@ -225,6 +225,7 @@ export function CardinalityWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) {
+  const organization = useOrganization();
   const {getExtractionRules} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
   const extractionRules = getExtractionRules(mri);
@@ -232,9 +233,13 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
   const handleEdit = useCallback(
     (rule: MetricsExtractionRule) => {
       closeOverlay();
-      openExtractionRuleEditModal({metricExtractionRule: rule});
+      openExtractionRuleEditModal({
+        organization,
+        source: 'ddm.condition-select.add-filter',
+        metricExtractionRule: rule,
+      });
     },
-    [closeOverlay]
+    [closeOverlay, organization]
   );
 
   const options = useMemo(

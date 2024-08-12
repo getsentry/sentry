@@ -119,7 +119,7 @@ export default function Monitors() {
                 size="sm"
                 onClick={() =>
                   openBulkEditMonitorsModal({
-                    onClose: refetch,
+                    onClose: () => refetch(),
                   })
                 }
                 analyticsEventKey="crons.bulk_edit_modal_button_clicked"

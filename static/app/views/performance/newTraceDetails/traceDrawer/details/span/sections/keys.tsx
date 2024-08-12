@@ -154,7 +154,9 @@ function getNonSizeKeyActionData({
         aria-label={t('Extract as metric')}
         onClick={() =>
           openExtractionRuleCreateModal({
+            organization,
             projectId: projectId,
+            source: 'trace-view.span-attribute',
             initialData: {
               spanAttribute,
             },

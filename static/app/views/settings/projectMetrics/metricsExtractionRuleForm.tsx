@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDuplicates} from 'sentry/utils/array/hasDuplicates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -290,7 +291,9 @@ export function MetricsExtractionRuleForm({
                         aria-label={t('Edit %s metric', disabledRule.spanAttribute)}
                         onClick={() => {
                           openExtractionRuleEditModal({
+                            organization,
                             metricExtractionRule: disabledRule,
+                            source: 'span-metric.form.already-in-use',
                           });
                         }}
                       />
@@ -304,7 +307,7 @@ export function MetricsExtractionRuleForm({
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
-  }, [allAttributeOptions, extractionRules]);
+  }, [allAttributeOptions, extractionRules, organization]);
 
   const tagOptions = useMemo(() => {
     return allAttributeOptions.map<SelectValue<string>>(option => ({
@@ -613,7 +616,12 @@ export function MetricsExtractionRuleForm({
                           {value.length > 1 && (
                             <Button
                               aria-label={t('Remove Filter')}
-                              onClick={() => onChange(conditions.toSpliced(index, 1), {})}
+                              onClick={() => {
+                                trackAnalytics('ddm.span-metric.form.remove-filter', {
+                                  organization,
+                                });
+                                onChange(conditions.toSpliced(index, 1), {});
+                              }}
                               icon={<IconClose />}
                             />
                           )}
@@ -624,7 +632,10 @@ export function MetricsExtractionRuleForm({
                   <ConditionsButtonBar>
                     <Button
                       size="sm"
-                      onClick={() => onChange([...conditions, createCondition()], {})}
+                      onClick={() => {
+                        trackAnalytics('ddm.span-metric.form.add-filter', {organization});
+                        onChange([...conditions, createCondition()], {});
+                      }}
                       icon={<IconAdd />}
                     >
                       {t('Add Filter')}
