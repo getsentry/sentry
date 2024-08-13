@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -182,6 +183,15 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         menuFooter={({closeOverlay}) => (
           <QueryFooter mri={mri} closeOverlay={closeOverlay} />
         )}
+        css={css`
+          && {
+            width: auto;
+            min-width: auto;
+            & > button {
+              min-height: 100%;
+            }
+          }
+        `}
       />
     );
   }

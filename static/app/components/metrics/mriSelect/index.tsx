@@ -43,6 +43,7 @@ type MRISelectProps = {
   onTagClick: (mri: MRI, tag: string) => void;
   projects: number[];
   value: MRI;
+  isModal?: boolean;
 };
 
 const isVisibleTransactionMetric = (metric: MetricMeta) =>
@@ -159,6 +160,7 @@ export const MRISelect = memo(function MRISelect({
   metricsMeta,
   isLoading,
   value,
+  isModal,
 }: MRISelectProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -339,6 +341,15 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
+        css={
+          !isModal
+            ? css`
+                @media (min-width: ${theme.breakpoints.xxlarge}) {
+                  max-width: min(500px, 100%);
+                }
+              `
+            : undefined
+        }
         menuFooter={
           isLoading
             ? undefined
