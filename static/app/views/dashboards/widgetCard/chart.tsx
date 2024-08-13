@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Component} from 'react';
 import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
@@ -58,6 +59,7 @@ import type {Widget} from '../types';
 import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -238,21 +240,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // The font size is the container height, minus the top and bottom padding
-      const fontSize = !expandNumbers
-        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
-        : `max(min(8vw, 90px), ${space(4)})`;
-
       return (
-        <BigNumber
-          key={`big_number:${result.title}`}
-          style={{
-            fontSize,
-            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
-          }}
-        >
+        <BigNumber key={`big_number:${result.title}`}>
           <Tooltip title={rendered} showOnlyOnOverflow>
-            {rendered}
+            <AutoSizedText minFontSize={10} maxFontSize={containerHeight}>
+              <Trickery>{rendered}</Trickery>
+            </AutoSizedText>
           </Tooltip>
         </BigNumber>
       );
@@ -581,21 +574,24 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 const BigNumberResizeWrapper = styled('div')`
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  position: relative;
 `;
 
 const BigNumber = styled('div')`
   line-height: 1;
   display: inline-flex;
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  font-size: 32px;
+  position: absolute;
+  inset: ${space(2)};
   color: ${p => p.theme.headingColor};
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+`;
+
+const Trickery = styled('div')`
+  display: inline-block;
 
   * {
-    text-align: left !important;
+    text-overflow: clip !important;
+    display: inline;
+    white-space: nowrap;
   }
 `;
 
