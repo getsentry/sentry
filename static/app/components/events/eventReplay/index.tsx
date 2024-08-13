@@ -9,6 +9,7 @@ import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowRepla
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import {isSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   event: Event;
@@ -26,6 +27,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     group,
     projectSlug,
   });
+  const isSampleError = isSampleEvent();
 
   const {setParamValue: setProjectId} = useUrlParams('project');
 
@@ -39,7 +41,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     return <ReplayClipSection event={event} replayId={replayId} group={group} />;
   }
 
-  if (canShowUpsell && !hasSentOneReplay) {
+  if (canShowUpsell && !hasSentOneReplay && !isSampleError) {
     return (
       <ErrorBoundary mini>
         <LazyLoad

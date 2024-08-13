@@ -18,6 +18,7 @@ import type {ExceptionType, Project} from 'sentry/types';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {isSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
@@ -138,6 +139,8 @@ export function Content({
 
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
+  const isSampleError = isSampleEvent();
+
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
@@ -200,7 +203,7 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        {exc.stacktrace && isTopException && (
+        {exc.stacktrace && isTopException && !isSampleError && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
