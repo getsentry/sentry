@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -439,6 +440,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
                 using=router.db_for_write(Project),
             )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            # Delete any invite requests and pending invites by the deleted member
+            existing_invites = OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(token__isnull=False),
+                inviter_id=member.user_id,
+                organization=organization,
+            )
+            for om in existing_invites:
+                om.delete()
 
         self.create_audit_entry(
             request=request,
