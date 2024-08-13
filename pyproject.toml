@@ -535,6 +535,7 @@ module = [
     "sentry.stacktraces.platform",
     "sentry.tasks.beacon",
     "sentry.tasks.commit_context",
+    "sentry.tasks.deletion.groups",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.store",
