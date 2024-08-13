@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 
 from ..utils import logger
 

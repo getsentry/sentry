@@ -1,7 +1,7 @@
 from sentry import features
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,

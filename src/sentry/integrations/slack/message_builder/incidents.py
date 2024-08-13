@@ -4,12 +4,12 @@ from sentry import features
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder import (
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,
     LEVEL_TO_COLOR,
     SlackBody,
 )
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
