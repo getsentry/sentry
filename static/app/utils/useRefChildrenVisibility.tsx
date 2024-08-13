@@ -1,7 +1,11 @@
 import {useEffect, useState} from 'react';
 
 interface UseRefChildrenVisibilityOptions {
-  ref: React.MutableRefObject<HTMLElement | null>;
+  children: React.ReactNode;
+  /**
+   * Ref to the scroll container.
+   */
+  scrollContainerRef: React.MutableRefObject<HTMLElement | null>;
   visibleRatio: number;
 }
 
@@ -9,7 +13,8 @@ interface UseRefChildrenVisibilityOptions {
  * Determine the visibility of children elements within a scroll container.
  */
 export function useRefChildrenVisibility({
-  ref,
+  children,
+  scrollContainerRef,
   visibleRatio,
 }: UseRefChildrenVisibilityOptions) {
   // The visibility match up to the elements list. Visibility of elements is
@@ -19,13 +24,16 @@ export function useRefChildrenVisibility({
 
   // Update list of children element
   useEffect(
-    () => setChildrenEls(Array.from(ref.current?.children ?? []) as HTMLElement[]),
-    [ref]
+    () =>
+      setChildrenEls(
+        Array.from(scrollContainerRef.current?.children ?? []) as HTMLElement[]
+      ),
+    [children, scrollContainerRef]
   );
 
   // Update the threshold list. This
   useEffect(() => {
-    if (!ref.current) {
+    if (!scrollContainerRef.current) {
       return () => {};
     }
 
@@ -46,7 +54,7 @@ export function useRefChildrenVisibility({
           })
         ),
       {
-        root: ref.current,
+        root: scrollContainerRef.current,
         threshold: [visibleRatio],
       }
     );
@@ -54,7 +62,7 @@ export function useRefChildrenVisibility({
     childrenEls.map(child => observer.observe(child));
 
     return () => observer.disconnect();
-  }, [childrenEls, visibleRatio, ref]);
+  }, [childrenEls, visibleRatio, scrollContainerRef]);
 
   return {childrenEls, visibility};
 }

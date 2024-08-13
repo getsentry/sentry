@@ -32,9 +32,10 @@ const DEFAULT_VISIBLE_RATIO = 0.85;
 const DEFAULT_JUMP_ITEM_COUNT = 2;
 
 export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
-    ref,
+    children,
+    scrollContainerRef,
     visibleRatio: DEFAULT_VISIBLE_RATIO,
   });
 
@@ -68,7 +69,11 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
 
   return (
     <ScrollCarouselWrapper>
-      <ScrollContainer ref={ref} className={className} style={{gap: space(gap)}}>
+      <ScrollContainer
+        ref={scrollContainerRef}
+        className={className}
+        style={{gap: space(gap)}}
+      >
         {children}
       </ScrollContainer>
       {!isAtStart && <LeftMask />}

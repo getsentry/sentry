@@ -24,8 +24,12 @@ interface CarouselProps {
 }
 
 function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const {visibility, childrenEls} = useRefChildrenVisibility({ref, visibleRatio});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const {visibility, childrenEls} = useRefChildrenVisibility({
+    children,
+    scrollContainerRef,
+    visibleRatio,
+  });
 
   const isAtStart = visibility[0];
   const isAtEnd = visibility[visibility.length - 1];
@@ -52,7 +56,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
 
   return (
     <CarouselContainer>
-      <CarouselItems ref={ref}>{children}</CarouselItems>
+      <CarouselItems ref={scrollContainerRef}>{children}</CarouselItems>
       {!isAtStart && (
         <StyledArrowButton
           onClick={scrollLeft}
