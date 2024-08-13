@@ -21,6 +21,7 @@ import {
   listItemPlaceholderWrapperCss,
 } from '../../styles/listItem';
 import {
+  panelDescCss,
   panelHeadingRightCss,
   panelInsetContentCss,
   panelSectionCss,
@@ -57,6 +58,7 @@ export default function FeedbackPanel() {
 
   return (
     <PanelLayout
+      showProjectBadge
       title="User Feedback"
       titleRight={
         buttonRef ? (
@@ -71,10 +73,8 @@ export default function FeedbackPanel() {
         ) : null
       }
     >
-      <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Unresolved feedback related to <code>{transactionName}</code>
-        </span>
+      <div css={[smallCss, panelSectionCss, panelDescCss]}>
+        <span>Unresolved feedback related to this page</span>
       </div>
 
       <div css={resetFlexColumnCss}>

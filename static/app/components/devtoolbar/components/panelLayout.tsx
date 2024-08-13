@@ -1,25 +1,58 @@
+import {css} from '@emotion/react';
+
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import type {PlatformKey} from 'sentry/types/project';
 
 import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
 import {resetDialogCss, resetFlexColumnCss} from '../styles/reset';
 
 interface Props {
   children?: React.ReactNode;
+  showProjectBadge?: boolean;
   title?: string;
   titleLeft?: React.ReactNode;
   titleRight?: React.ReactNode;
 }
 
-export default function PanelLayout({children, title, titleLeft, titleRight}: Props) {
+export default function PanelLayout({
+  children,
+  title,
+  titleLeft,
+  titleRight,
+  showProjectBadge,
+}: Props) {
+  const {projectId, projectSlug, projectPlatform} = useConfiguration();
   return (
     <dialog open css={[resetDialogCss, resetFlexColumnCss, panelCss]}>
-      {title ? (
-        <header css={panelSectionCss}>
-          {titleLeft}
-          {titleRight}
-          <h1 css={[buttonCss, panelHeadingCss]}>{title}</h1>
-        </header>
-      ) : null}
+      <span
+        css={[
+          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
+          panelHeadingCss,
+        ]}
+      >
+        {showProjectBadge && (
+          <ProjectBadge
+            css={css({'&& img': {boxShadow: 'none'}})}
+            project={{
+              slug: projectSlug,
+              id: projectId,
+              platform: projectPlatform as PlatformKey,
+            }}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: false}}
+          />
+        )}
+        {title ? (
+          <header css={panelSectionCss}>
+            {titleLeft}
+            {titleRight}
+            <h1 css={[buttonCss]}>{title}</h1>
+          </header>
+        ) : null}
+      </span>
       <section css={resetFlexColumnCss} style={{contain: 'strict'}}>
         {children}
       </section>

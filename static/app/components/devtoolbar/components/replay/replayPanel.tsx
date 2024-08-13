@@ -36,7 +36,7 @@ export default function ReplayPanel() {
   const {eventName, eventKey} = useContext(AnalyticsContext);
   const [buttonLoading, setButtonLoading] = useState(false);
   return (
-    <PanelLayout title="Session Replay">
+    <PanelLayout title="Session Replay" showProjectBadge>
       <Button
         size="sm"
         icon={isDisabled ? undefined : isRecordingSession ? <IconPause /> : <IconPlay />}
