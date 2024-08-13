@@ -20,10 +20,10 @@ from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisal
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)

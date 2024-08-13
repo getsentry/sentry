@@ -9,7 +9,7 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.models.options.project_template_option import TProjectOptions
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 class ProjectTemplateAttributes(StrEnum):

@@ -114,7 +114,7 @@ def send_beacon() -> None:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.team import Team
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     install_id = get_install_id()
 

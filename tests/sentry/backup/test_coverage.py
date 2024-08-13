@@ -8,13 +8,13 @@ from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.user import User
+from sentry.users.models.user import User
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
 from tests.sentry.backup.test_releases import RELEASE_TESTED
 from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
-from tests.sentry.models.test_user import ORG_MEMBER_MERGE_TESTED
+from tests.sentry.users.models.test_user import ORG_MEMBER_MERGE_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
 

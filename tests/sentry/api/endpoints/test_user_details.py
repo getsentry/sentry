@@ -5,7 +5,6 @@ from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
@@ -15,6 +14,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 
 
 class UserDetailsTest(APITestCase):

@@ -11,7 +11,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 def generate_security_email(

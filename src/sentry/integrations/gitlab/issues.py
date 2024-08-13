@@ -8,9 +8,9 @@ from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")

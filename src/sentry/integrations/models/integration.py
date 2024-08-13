@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         IntegrationProvider,
     )
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)

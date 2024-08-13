@@ -15,11 +15,11 @@ from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
-from sentry.models.user import User
 from sentry.plugins.base import bindings
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder

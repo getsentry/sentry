@@ -22,7 +22,6 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.search.events.filter import (
     FilterConvertParams,
     convert_search_filter_to_snuba_query,
@@ -30,6 +29,7 @@ from sentry.search.events.filter import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.utils import metrics
 
 

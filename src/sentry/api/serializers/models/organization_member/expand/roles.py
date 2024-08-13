@@ -5,9 +5,9 @@ from typing import Any, cast
 
 from sentry.api.serializers import serialize
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import OrganizationRole, Role
+from sentry.users.models.user import User
 from sentry.users.services.user import UserSerializeType
 from sentry.users.services.user.service import user_service
 

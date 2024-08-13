@@ -10,7 +10,6 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.sentry_apps.apps import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.signals import (
@@ -24,6 +23,7 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

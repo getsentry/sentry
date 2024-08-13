@@ -6,9 +6,9 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 import sentry.utils.auth
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 from sentry.utils.auth import (
     EmailAuthBackend,
     SsoSession,

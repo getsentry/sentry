@@ -57,7 +57,6 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
@@ -81,6 +80,7 @@ from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.email import Email
+from sentry.users.models.user import User
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,

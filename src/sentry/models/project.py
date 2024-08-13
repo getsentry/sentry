@@ -51,7 +51,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 

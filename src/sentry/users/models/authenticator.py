@@ -36,7 +36,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class AuthenticatorManager(BaseManager["Authenticator"]):

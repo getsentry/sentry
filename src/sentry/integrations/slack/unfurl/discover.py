@@ -20,9 +20,9 @@ from sentry.integrations.slack.message_builder.discover import SlackDiscoverMess
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.search.events.filter import to_list
 from sentry.snuba.referrer import Referrer
+from sentry.users.models.user import User
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,

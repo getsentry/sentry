@@ -8,7 +8,7 @@ from typing import Any, NamedTuple, Optional, Protocol
 from django.http.request import HttpRequest
 
 from sentry.integrations.models.integration import Integration
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 UnfurledUrl = Mapping[Any, Any]
 ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]

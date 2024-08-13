@@ -42,7 +42,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo.base import SiloMode
@@ -54,6 +53,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 

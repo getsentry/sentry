@@ -8,7 +8,7 @@ from django.db import router
 from sentry.runner.decorators import configuration
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 def user_param_to_user(value: str) -> User:

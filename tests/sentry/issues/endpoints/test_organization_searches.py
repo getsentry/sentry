@@ -5,8 +5,8 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
+from sentry.users.models.user import User
 
 
 class OrgLevelOrganizationSearchesListTest(APITestCase):

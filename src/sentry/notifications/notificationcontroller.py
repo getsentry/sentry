@@ -18,7 +18,6 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
     get_team_members,
@@ -34,6 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Recipient = Union[Actor, Team, RpcUser, User]

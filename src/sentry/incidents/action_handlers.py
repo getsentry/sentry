@@ -30,12 +30,12 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.utils import build_query_strings
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service

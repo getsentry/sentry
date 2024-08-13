@@ -27,11 +27,11 @@ from sentry.backup.services.import_export.model import (
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.project import Project
-from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
+from sentry.users.models.user import MAX_USERNAME_LENGTH, User
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
 OPTION_MODEL_NAME = get_model_name(Option)

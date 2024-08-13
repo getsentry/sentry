@@ -34,8 +34,8 @@ import sentry.models.integrations.sentry_app
 import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
 import sentry.models.servicehook
-import sentry.models.user
 import sentry.users.models.authenticator
+import sentry.users.models.user
 import sentry.utils.security.hash
 from sentry.new_migrations.migrations import CheckedMigration
 
@@ -390,7 +390,7 @@ class Migration(CheckedMigration):
                 "verbose_name_plural": "users",
             },
             managers=[
-                ("objects", sentry.models.user.UserManager(cache_fields=["pk"])),
+                ("objects", sentry.users.models.user.UserManager(cache_fields=["pk"])),
             ],
         ),
         migrations.CreateModel(

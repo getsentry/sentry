@@ -35,9 +35,9 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
-from sentry.models.user import User
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature

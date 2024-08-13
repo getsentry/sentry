@@ -11,8 +11,8 @@ from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
-    from sentry.models.user import User
     from sentry.organizations.services.organization import RpcTeam
+    from sentry.users.models.user import User
 
 
 class ActorType(str, Enum):
@@ -81,8 +81,8 @@ class Actor(RpcModel):
         missing actors will have actors generated.
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
         from sentry.organizations.services.organization import RpcTeam
+        from sentry.users.models.user import User
 
         result: list["Actor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -120,8 +120,8 @@ class Actor(RpcModel):
                      Without the actor_id the Actor acts as a tuple of id and type.
         """
         from sentry.models.team import Team
-        from sentry.models.user import User
         from sentry.organizations.services.organization import RpcTeam
+        from sentry.users.models.user import User
 
         if isinstance(obj, cls):
             return obj

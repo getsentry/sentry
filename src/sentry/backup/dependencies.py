@@ -715,7 +715,7 @@ def merge_users_for_model_in_org(
     """
 
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     model_relations = dependencies()[get_model_name(model)]
     user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
