@@ -5,7 +5,7 @@ import orjson
 import pytest
 import responses
 
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError

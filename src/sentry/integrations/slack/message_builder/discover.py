@@ -1,5 +1,5 @@
-from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBody
 
 
 class SlackDiscoverMessageBuilder(BlockSlackMessageBuilder):
