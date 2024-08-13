@@ -60,7 +60,9 @@ class RangeQuerySetWrapperTest(TestCase):
             expected.append(email)
 
         qs = User.objects.all()
-        next_id = qs.order_by("id").first().id
+        first = qs.order_by("id").first()
+        assert first
+        next_id = first.id
 
         with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
             results = list(self.range_wrapper(qs, step=3))
@@ -154,7 +156,9 @@ class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
             expected.append(email)
 
         qs = User.objects.all()
-        next_id = qs.order_by("id").first().id
+        first = qs.order_by("id").first()
+        assert first
+        next_id = first.id
 
         with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
             results = list(self.range_wrapper(qs, step=3))
@@ -194,7 +198,9 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
             expected.append(email)
 
         qs = User.objects.all()
-        next_id = qs.order_by("id").first().id
+        first = qs.order_by("id").first()
+        assert first
+        next_id = first.id
 
         with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
             results = list(self.range_wrapper(qs, step=3))
