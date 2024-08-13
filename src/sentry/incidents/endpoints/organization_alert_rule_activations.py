@@ -29,7 +29,7 @@ class OrganizationAlertRuleActivationsEndpoint(OrganizationAlertRuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve activations for an AlertRule",
+        operation_id="Retrieve activations for a Metric Alert Rule",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: inline_sentry_response_serializer(

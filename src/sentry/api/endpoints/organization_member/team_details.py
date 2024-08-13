@@ -280,7 +280,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             </tr>
             <tr>
             <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
-            href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
+            href="https://docs.sentry.io/account/auth-tokens/#internal-integrations">Internal Integration Token</a></td>
             <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
                 <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
@@ -295,7 +295,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             </tr>
             <tr>
             <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
-            href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
+            href="https://docs.sentry.io/account/auth-tokens/#user-auth-tokens">User Auth Token</a></td>
             <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
                 <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
