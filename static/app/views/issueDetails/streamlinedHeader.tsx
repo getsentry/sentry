@@ -242,11 +242,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   padding: ${space(1)} 24px;
   margin-right: 0;
   margin-left: 0;
+  flex-wrap: wrap;
 `;
 
 const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  column-gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const Wrapper = styled('div')`
