@@ -77,6 +77,7 @@ def query(
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                insights_metrics_override_metric_layer=True,
             ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
@@ -285,6 +286,7 @@ def timeseries_query(
                     use_metrics_layer=use_metrics_layer,
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
+                    insights_metrics_override_metric_layer=True,
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
