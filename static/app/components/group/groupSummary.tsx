@@ -15,7 +15,7 @@ interface GroupSummaryProps {
 }
 
 interface GroupSummaryData {
-  group_id: string;
+  groupId: string;
   impact: string;
   summary: string;
 }
