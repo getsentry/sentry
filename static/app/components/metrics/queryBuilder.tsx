@@ -1,7 +1,6 @@
 import type React from 'react';
 import {memo, useCallback, useMemo} from 'react';
-import type {Theme} from '@emotion/react';
-import {ClassNames, css, useTheme} from '@emotion/react';
+import {ClassNames, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -33,6 +32,7 @@ import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMet
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -57,7 +57,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   alias,
   isModal,
 }: QueryBuilderProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {getAggregations, getConditions, resolveVirtualMRI, getTags} =
@@ -263,7 +262,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label css={labelCss({theme})}>
+              <QueryFieldGroup.Label css={fixedWidthLabelCss}>
                 {t('Visualize')}
               </QueryFieldGroup.Label>
               <MRISelect
@@ -286,7 +285,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label css={labelCss({theme})}>
+              <QueryFieldGroup.Label css={fixedWidthLabelCss}>
                 {t('Agg by')}
               </QueryFieldGroup.Label>
               <QueryFieldGroup.CompactSelect
@@ -322,7 +321,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             disabled={index !== 0}
           >
             <QueryFieldGroup>
-              <QueryFieldGroup.Label css={labelCss({theme})}>
+              <QueryFieldGroup.Label css={fixedWidthLabelCss}>
                 {t('Group by')}
               </QueryFieldGroup.Label>
               <QueryFieldGroup.CompactSelect
@@ -353,7 +352,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           >
             {selectedMeta && isVirtualMetric(selectedMeta) ? (
               <QueryFieldGroup>
-                <QueryFieldGroup.Label css={labelCss({theme})}>
+                <QueryFieldGroup.Label css={fixedWidthLabelCss}>
                   {t('Where')}
                 </QueryFieldGroup.Label>
                 <MetricQuerySelect
@@ -361,7 +360,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                   conditionId={metricsQuery.condition}
                   onChange={handleConditionChange}
                 />
-                <QueryFieldGroup.Label css={labelCss({theme, width: 'auto'})}>
+                <QueryFieldGroup.Label css={autoWidthLabelCss}>
                   {t('And')}
                 </QueryFieldGroup.Label>
                 <SearchBar
@@ -378,7 +377,9 @@ export const QueryBuilder = memo(function QueryBuilder({
               </QueryFieldGroup>
             ) : (
               <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+                <QueryFieldGroup.Label css={fixedWidthLabelCss}>
+                  {t('Where')}
+                </QueryFieldGroup.Label>
                 <SearchBar
                   hasMetricsNewInputs
                   mri={resolvedMRI}
@@ -587,9 +588,15 @@ const FilterBy = styled('div')<{hasSymbols: boolean; isModal?: boolean}>`
     `}
 `;
 
-const labelCss = ({width, theme}: {theme: Theme; width?: string}) => css`
-  width: ${width ?? '95px'};
-  min-width: ${width ?? '95px'};
+const autoWidthLabelCss = css`
+  width: auto;
+  min-width: auto;
+  white-space: nowrap;
+`;
+
+const fixedWidthLabelCss = css`
+  width: 95px;
+  min-width: 95px;
   white-space: nowrap;
 
   @media (min-width: ${theme.breakpoints.xxlarge}) {

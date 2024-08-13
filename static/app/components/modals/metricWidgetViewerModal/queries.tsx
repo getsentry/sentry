@@ -491,15 +491,7 @@ function ExpressionAliasForm({
     >
       {hasMetricsNewInputs(organization) ? (
         <QueryFieldGroup>
-          <QueryFieldGroup.Label
-            css={css`
-              width: 95px;
-              min-width: 95px;
-              white-space: nowrap;
-            `}
-          >
-            As
-          </QueryFieldGroup.Label>
+          <QueryFieldGroup.Label css={fixedWidthLabelCss}>As</QueryFieldGroup.Label>
           <div
             css={css`
               display: flex;
@@ -693,4 +685,10 @@ const StyledButton = styled(Button)`
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: none;
+`;
+
+const fixedWidthLabelCss = css`
+  width: 95px;
+  min-width: 95px;
+  white-space: nowrap;
 `;
