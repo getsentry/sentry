@@ -44,6 +44,10 @@ export const panelInsetContentCss = css`
   padding-inline: var(--space150);
 `;
 
+export const verticalPaddingCss = css`
+  padding: var(--space150) 0;
+`;
+
 export const panelDescCss = css`
   color: var(--gray300);
   font-weight: bold;

@@ -100,7 +100,9 @@ function IsDirtyMessage() {
   const {isDirty} = useFeatureFlagsContext();
 
   return isDirty ? (
-    <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+    <div
+      css={[smallCss, panelSectionCss, panelInsetContentCss, {color: 'var(--gray300)'}]}
+    >
       <span>Reload to see changes</span>
     </div>
   ) : (
@@ -153,9 +155,9 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
   return (
     <span>
       <PanelTable
+        disablePadding
         disableHeaders
         css={[
-          panelSectionCss,
           {
             flexGrow: 1,
             margin: 0,
@@ -164,7 +166,6 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             padding: 0,
             '& > :first-child': {
               minHeight: 'unset',
-              padding: 'var(--space50) var(--space150)',
             },
           },
         ]}
@@ -177,17 +178,48 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
           </AnalyticsProvider>
         ))}
       </PanelTable>
-      {prefilter === 'overrides' && (
-        <Button
-          size="xs"
-          onClick={() => {
-            clearOverrides();
-          }}
+      {!names.length && (
+        <div
+          css={[
+            smallCss,
+            panelSectionCssNoBorder,
+            panelInsetContentCss,
+            {display: 'block', textAlign: 'center', color: 'var(--gray300)'},
+          ]}
         >
-          <span css={[resetFlexRowCss, {gap: 'var(--space75)', alignItems: 'center'}]}>
-            <IconClose isCircled size="xs" /> Remove all
-          </span>
-        </Button>
+          No flags to display
+        </div>
+      )}
+      {prefilter === 'overrides' && Boolean(names.length) && (
+        <div
+          css={[
+            smallCss,
+            panelSectionCssNoBorder,
+            panelInsetContentCss,
+            {display: 'block', textAlign: 'center'},
+          ]}
+        >
+          <Button
+            size="xs"
+            css={{width: '100%'}}
+            onClick={() => {
+              clearOverrides();
+            }}
+          >
+            <span
+              css={[
+                resetFlexRowCss,
+                {
+                  gap: 'var(--space75)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <IconClose isCircled size="xs" /> Remove All
+            </span>
+          </Button>
+        </div>
       )}
     </span>
   );

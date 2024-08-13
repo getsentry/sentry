@@ -27,7 +27,7 @@ export default function CustomOverride({
       css={[
         {
           display: 'grid',
-          gridTemplateColumns: 'auto max-content auto',
+          gridTemplateColumns: 'auto max-content max-content',
           alignItems: 'center',
           justifyItems: 'space-between',
           gap: 'var(--space100)',
@@ -57,8 +57,9 @@ export default function CustomOverride({
         toggle={() => {
           setIsActive(!isActive);
         }}
+        css={{background: 'white'}}
       />
-      <Button size="xs" type="submit" css={{width: '30px'}}>
+      <Button size="xs" type="submit" css={{width: '28px'}}>
         <IconAdd />
       </Button>
     </form>

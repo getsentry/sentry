@@ -21,7 +21,7 @@ type PanelTableProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   className?: string;
   /**
-   * If true, disables the border-bottom on the header.
+   * If true, disables the border-bottom on the header
    */
   disableHeaderBorderBottom?: boolean;
   /**
