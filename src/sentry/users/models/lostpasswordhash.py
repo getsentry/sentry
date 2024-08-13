@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
@@ -12,6 +14,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
+    from sentry.models.user import User
     from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 
@@ -29,7 +32,7 @@ class LostPasswordHash(Model):
 
     __repr__ = sane_repr("user_id", "hash")
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.hash:
             self.set_hash()
         super().save(*args, **kwargs)
@@ -41,18 +44,18 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
-    def send_recover_password_email(cls, user, hash, ip_address) -> None:
+    def send_recover_password_email(cls, user: User, hash: str, ip_address: str) -> None:
         extra = {
             "ip_address": ip_address,
         }
         cls._send_email("recover_password", user, hash, extra)
 
     @classmethod
-    def send_relocate_account_email(cls, user, hash, orgs) -> None:
+    def send_relocate_account_email(cls, user: User, hash: str, orgs: list[str]) -> None:
         cls._send_email("relocate_account", user, hash, {"orgs": orgs})
 
     @classmethod
-    def _send_email(cls, mode, user, hash, extra) -> None:
+    def _send_email(cls, mode: str, user: User, hash: str, extra: dict[str, Any]) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -97,7 +100,7 @@ class LostPasswordHash(Model):
         return absolute_uri(reverse(url_key, args=[user_id, hash]))
 
     @classmethod
-    def for_user(cls, user) -> "RpcLostPasswordHash":
+    def for_user(cls, user: User) -> RpcLostPasswordHash:
         from sentry.users.services.lost_password_hash import lost_password_hash_service
 
         password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
