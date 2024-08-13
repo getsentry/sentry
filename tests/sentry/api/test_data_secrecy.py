@@ -38,6 +38,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
 
 
 class DataSecrecyV2TestCase(APITestCase):
+    # Picked an endpoint with OrganizationAndStaffPermission
     endpoint = "sentry-api-0-organization-minimal-projects"
     method = "get"
 
