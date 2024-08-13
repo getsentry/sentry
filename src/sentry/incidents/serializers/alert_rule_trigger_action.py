@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.auth.access import Access
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
     create_alert_rule_trigger_action,
@@ -83,7 +84,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         type = attrs.get("type")
         target_type = attrs.get("target_type")
-        access = self.context["access"]
+        access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
 
         if type is not None:

@@ -47,7 +47,7 @@ def has_high_priority_issue_alerts(project: Project) -> bool:
     return features.has("organizations:priority-ga-features", project.organization)
 
 
-def create_default_rules(project, default_rules=True, RuleModel=Rule, **kwargs):
+def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, **kwargs):
     if not default_rules:
         return
 
