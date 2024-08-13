@@ -4,21 +4,26 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
+jest.mock('sentry/utils/useOrganization');
 
 describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules', 'insights-mobile-screens-module'],
+    features: [MODULE_FEATURE],
   });
   const project = ProjectFixture({platform: 'react-native'});
 
+  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
@@ -56,6 +61,7 @@ describe('Screens Landing Page', function () {
 
   describe('Top Section', function () {
     beforeEach(() => {
+      organization.features = [MODULE_FEATURE];
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
       });
@@ -175,6 +181,35 @@ describe('Screens Landing Page', function () {
       for (const card of cards) {
         expect(within(topSection).getByText(card.header)).toBeInTheDocument();
       }
+    });
+  });
+  describe('Permissions', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+      });
+    });
+
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('shows no content if permission is missing', async function () {
+      organization.features = [];
+      render(<ScreensLandingPage />);
+      expect(
+        await screen.findByText(t("You don't have access to this feature"))
+      ).toBeInTheDocument();
+    });
+
+    it('shows content if permission is there', async function () {
+      organization.features = [MODULE_FEATURE];
+      render(<ScreensLandingPage />);
+      expect(await screen.findAllByText(t('Mobile Screens'))).toHaveLength(2);
     });
   });
 });
