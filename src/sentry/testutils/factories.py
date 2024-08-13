@@ -138,7 +138,6 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
-from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
@@ -168,6 +167,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem

@@ -77,7 +77,6 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -88,6 +87,7 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
