@@ -86,8 +86,13 @@ def main():
     # wait, while showing un-interleaved logs
     jobs.append(Popen(tail_args))
 
+    return_codes = []
+
     for job in jobs:
         job.wait()
+
+    if any(return_codes):
+        raise Exception("Error uploading to codecov")
 
 
 if __name__ == "__main__":
