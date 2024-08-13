@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
-export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
+export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 
 type BadgeProps = {
   type: BadgeType;
@@ -32,6 +32,7 @@ const defaultTitles: Record<BadgeType, string> = {
   experimental: t(
     'This feature is experimental! Try it out and let us know what you think. No promises!'
   ),
+  internal: t('This feature is for internal use only'),
 };
 
 const labels: Record<BadgeType, string> = {
@@ -39,6 +40,7 @@ const labels: Record<BadgeType, string> = {
   beta: t('beta'),
   new: t('new'),
   experimental: t('experimental'),
+  internal: t('internal only'),
 };
 
 const shortLabels: Record<BadgeType, string> = {
@@ -46,6 +48,7 @@ const shortLabels: Record<BadgeType, string> = {
   beta: 'B',
   new: 'N',
   experimental: 'E',
+  internal: 'I',
 };
 
 function BaseFeatureBadge({
