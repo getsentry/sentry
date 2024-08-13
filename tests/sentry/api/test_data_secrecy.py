@@ -38,7 +38,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
 
 
 class DataSecrecyV2TestCase(APITestCase):
-    endpoint = "sentry-api-0-organization-details"
+    endpoint = "sentry-api-0-organization-minimal-projects"
     method = "get"
 
     def setUp(self):
@@ -78,7 +78,7 @@ class DataSecrecyV2TestCase(APITestCase):
 
     @with_feature("organizations:data-secrecy")
     @override_options({"staff.ga-rollout": True})
-    def admin_access_when_superuser_no_access(self):
+    def test_admin_access_when_superuser_no_access(self):
         # When the superuser has no access, the admin should also still work
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
