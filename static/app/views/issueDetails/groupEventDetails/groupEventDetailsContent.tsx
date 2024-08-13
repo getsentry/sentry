@@ -140,7 +140,7 @@ export function EventDetailsContent({
   return (
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
-      {hasActionableItems && (
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
@@ -528,6 +528,11 @@ export default function GroupEventDetailsContent({
   }
 }
 
+/**
+ * This component is only necessary while the streamlined UI is not in place.
+ * The FoldSection by default wraps its children with an ErrorBoundary, preventing content
+ * from crashing the whole page if an error occurs, but EventDataSection does not do this.
+ */
 function EntryErrorBoundary({
   children,
   type,
