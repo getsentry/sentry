@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import InlineDocs from 'sentry/components/events/interfaces/spans/inlineDocs';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -227,9 +227,9 @@ function SetupProfiling({link}: {link: string}) {
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button size="sm" priority="primary" href={link} external>
+        <LinkButton size="sm" priority="primary" href={link} external>
           {t('Set Up Profiling')}
-        </Button>
+        </LinkButton>
         <ManualInstrumentationInstruction />
       </InstructionsContainer>
     </Container>

@@ -14,7 +14,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
@@ -43,9 +43,9 @@ const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
 
 const docsLink = (
-  <Button external href={performanceSetupUrl}>
+  <LinkButton external href={performanceSetupUrl}>
     {t('Setup')}
-  </Button>
+  </LinkButton>
 );
 
 export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
@@ -148,13 +148,13 @@ function Onboarding({organization, project}: Props) {
     currentPlatform && withoutPerformanceSupport.has(currentPlatform);
 
   let setupButton = (
-    <Button
+    <LinkButton
       priority="primary"
       href="https://docs.sentry.io/performance-monitoring/getting-started/"
       external
     >
       {t('Start Setup')}
-    </Button>
+    </LinkButton>
   );
 
   if (hasPerformanceOnboarding && showOnboardingChecklist) {
