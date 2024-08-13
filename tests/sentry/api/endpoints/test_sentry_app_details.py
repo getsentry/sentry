@@ -278,50 +278,58 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         org1 = self.create_organization(name="Org1")
         org2 = self.create_organization(name="Org2")
 
+        # Create a fresh public app
+        published_app = self.create_sentry_app(
+            name="Test1",
+            organization=self.organization,
+            published=True,
+            popularity=self.popularity,
+        )
+
         installation1 = self.create_sentry_app_installation(
-            organization=org1, slug=self.published_app.slug
+            organization=org1, slug=published_app.slug
         )
         installation2 = self.create_sentry_app_installation(
-            organization=org2, slug=self.published_app.slug
+            organization=org2, slug=published_app.slug
         )
 
         assert installation1.organization_id == org1.id
         assert installation2.organization_id == org2.id
-        assert installation1.sentry_app == self.published_app
-        assert installation2.sentry_app == self.published_app
-        self.published_app.scope_list = ("event:write", "event:read")
-        self.published_app.save()
+        assert installation1.sentry_app == published_app
+        assert installation2.sentry_app == published_app
+        published_app.scope_list = ("event:write", "event:read")
+        published_app.save()
 
-        # for publishd integrations, it runs in a task
+        # for published integrations, it runs in a task
         with self.tasks():
             self.get_success_response(
-                self.published_app.slug,
+                published_app.slug,
                 webhookUrl="https://newurl.com",
                 scopes=("event:read", "event:write"),
                 events=("issue",),
                 status_code=200,
             )
-        self.published_app.refresh_from_db()
-        assert set(self.published_app.scope_list) == {"event:write", "event:read"}
+        published_app.refresh_from_db()
+        assert set(published_app.scope_list) == {"event:write", "event:read"}
         assert (
-            self.published_app.webhook_url == "https://newurl.com"
-        ), f"Unexpected webhook URL: {self.published_app.webhook_url}"
+            published_app.webhook_url == "https://newurl.com"
+        ), f"Unexpected webhook URL: {published_app.webhook_url}"
         # flaky test requires sleep
         time.sleep(1)
         # Check service hooks for each organization
         with assume_test_silo_mode(SiloMode.REGION):
             service_hooks_org1 = ServiceHook.objects.filter(
-                organization_id=org1.id, application_id=self.published_app.id
+                organization_id=org1.id, application_id=published_app.id
             )
             service_hooks_org2 = ServiceHook.objects.filter(
-                organization_id=org2.id, application_id=self.published_app.id
+                organization_id=org2.id, application_id=published_app.id
             )
 
         assert len(service_hooks_org1) > 0, "No service hooks found for Org1"
         assert len(service_hooks_org2) > 0, "No service hooks found for Org2"
 
         for hook in service_hooks_org1:
-            assert hook.application_id == self.published_app.id
+            assert hook.application_id == published_app.id
             assert hook.organization_id == org1.id
             assert hook.actor_id == installation1.id
             assert hook.url == "https://newurl.com"
@@ -335,7 +343,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert hook.project_id is None
 
         for hook in service_hooks_org2:
-            assert hook.application_id == self.published_app.id
+            assert hook.application_id == published_app.id
             assert hook.organization_id == org2.id
             assert hook.actor_id == installation2.id
             assert hook.url == "https://newurl.com"
