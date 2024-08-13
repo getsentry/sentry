@@ -133,22 +133,26 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
     )
 
     # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
-    groups_to_backfill_batch = [
-        (group[0], group[1])
-        for group in groups_to_backfill_batch_raw
-        if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-        and group[3] > datetime.now(UTC) - timedelta(days=90)
-    ]
+    # Get the last queried group id while we are iterating; even if it's not valid to be backfilled
+    # we want to keep the value to be used as an filter for the next batch
+    groups_to_backfill_batch, batch_end_group_id = [], None
+    for group in groups_to_backfill_batch_raw:
+        if group[2] not in [
+            GroupStatus.PENDING_DELETION,
+            GroupStatus.DELETION_IN_PROGRESS,
+        ] and group[3] > datetime.now(UTC) - timedelta(days=90):
+            groups_to_backfill_batch.append((group[0], group[1]))
+        batch_end_group_id = group[0]
 
-    return groups_to_backfill_batch
+    return groups_to_backfill_batch, batch_end_group_id
 
 
 def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_size: int):
     """
-    Try making postgres query. If it has an operational error, retry with a decreased batch size.
+    Try postgres query. If it has an operational error, retry with a decreased batch size.
     """
     try:
-        groups_to_backfill_batch_raw = _make_postgres_call_with_filter(
+        groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
             group_id_filter, project_id, batch_size
         )
     except OperationalError:
@@ -158,7 +162,7 @@ def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_si
                 "tasks.backfill_seer_grouping_records.postgres_query_retry",
                 extra={"project_id": project_id, "batch_size": batch_size},
             )
-            groups_to_backfill_batch_raw = _make_postgres_call_with_filter(
+            groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
                 group_id_filter, project_id, batch_size
             )
         except OperationalError:
@@ -168,7 +172,7 @@ def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_si
             )
             raise
 
-    return (groups_to_backfill_batch_raw, batch_size)
+    return (groups_to_backfill_batch, batch_size, batch_end_group_id)
 
 
 @sentry_sdk.tracing.trace
@@ -179,14 +183,10 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    (groups_to_backfill_batch, batch_size) = _make_postgres_call_with_retry(
+    (groups_to_backfill_batch, batch_size, batch_end_group_id) = _make_postgres_call_with_retry(
         group_id_filter, project.id, batch_size
     )
-
     total_groups_to_backfill_length = len(groups_to_backfill_batch)
-    batch_end_group_id = (
-        groups_to_backfill_batch[-1][0] if total_groups_to_backfill_length else None
-    )
 
     logger.info(
         "backfill_seer_grouping_records.batch",

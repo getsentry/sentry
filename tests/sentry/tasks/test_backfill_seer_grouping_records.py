@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import ANY, call, patch
 
 import pytest
+from django.db.models import Q
 from django.db.utils import OperationalError
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
@@ -27,6 +28,7 @@ from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project
     backfill_seer_grouping_records_for_project,
 )
 from sentry.tasks.embeddings_grouping.utils import (
+    _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
     lookup_event,
@@ -1753,3 +1755,28 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
             extra={"project_id": self.project.id, "batch_size": batch_size // 2},
         )
+
+    def test_make_postgres_call_with_filter_invalid(self):
+        """
+        Test that invalid deleted group id not included in the batch to be backfilled, but its
+        group id is saved to be used as the offset for the next batch query.
+        """
+        # Change batch size to 1 to force the invalid deleted group to be last id in the query results
+        batch_size = 1
+
+        data = {
+            "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "title": "title",
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.status = GroupStatus.PENDING_DELETION
+        event.group.save()
+        deleted_group = event.group
+
+        groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
+            Q(), self.project.id, batch_size
+        )
+        assert groups_to_backfill_batch == []
+        assert batch_end_group_id == deleted_group.id
