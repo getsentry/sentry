@@ -222,8 +222,6 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
     [onClose]
   );
 
-  console.log({organization, issueTags, tags, filterKeySections, onClose, props});
-
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
