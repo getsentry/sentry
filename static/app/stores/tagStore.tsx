@@ -122,6 +122,7 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.PERFORMANCE,
           IssueCategory.REPLAY,
           IssueCategory.CRON,
+          IssueCategory.UPTIME,
         ],
         predefined: true,
       },

@@ -33,7 +33,7 @@ void Verify()
 const getCrashReporterConfigSnippet = (params: Params) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
-DataRouterUrl="${params.dsn}"`;
+DataRouterUrl="${params.dsn.unreal}"`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -82,7 +82,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'url',
-          code: params.dsn,
+          code: params.dsn.public,
         },
       ],
     },

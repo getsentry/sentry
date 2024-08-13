@@ -38,6 +38,7 @@ from sentry.backup.exports import (
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
+from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
@@ -45,7 +46,6 @@ from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChu
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import RegionOutbox
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,

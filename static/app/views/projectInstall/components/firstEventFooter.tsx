@@ -11,9 +11,9 @@ import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIn
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 interface FirstEventFooterProps {
+  docsLink: string;
   organization: Organization;
   project: Project;
-  docsLink?: string;
   docsOnClick?: () => void;
 }
 
