@@ -24,8 +24,8 @@ from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,

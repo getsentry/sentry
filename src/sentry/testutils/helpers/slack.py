@@ -5,7 +5,7 @@ import responses
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.organization import Organization
