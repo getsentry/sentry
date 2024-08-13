@@ -572,11 +572,18 @@ function WidgetBuilder({
         widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet;
 
-      newState.queries.push(
-        ...(didDatasetChange
-          ? widgetToBeUpdated.queries
-          : [{...config.defaultWidgetQuery}])
-      );
+      if (
+        [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(prevState.dataSet) &&
+        [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(newDataSet as DataSet)
+      ) {
+        newState.queries = prevState.queries;
+      } else {
+        newState.queries.push(
+          ...(didDatasetChange
+            ? widgetToBeUpdated.queries
+            : [{...config.defaultWidgetQuery}])
+        );
+      }
 
       set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
