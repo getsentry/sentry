@@ -16,17 +16,17 @@ interface ScrollCarouselProps {
  * visible scroll region for it to be considered 'visible'. If it is visible
  * but slightly off screen it will be skipped when scrolling
  *
- * For example, if set to 0.9, and 10% of the element is out of the scroll
+ * For example, if set to 0.85, and 15% of the element is out of the scroll
  * area to the right, pressing the right arrow will skip over scrolling to
  * this element, and will scroll to the next invisible one.
  */
-const DEFAULT_VISIBLE_RATIO = 0.9;
+const DEFAULT_VISIBLE_RATIO = 0.85;
 
 /**
  * This number determines how many items to jump when scrolling left or right
  * when the arrow buttons are clicked
  */
-const DEFAULT_JUMP_ITEM_COUNT = 3;
+const DEFAULT_JUMP_ITEM_COUNT = 2;
 
 export function ScrollCarousel({children, className}: ScrollCarouselProps) {
   const ref = useRef<HTMLDivElement | null>(null);

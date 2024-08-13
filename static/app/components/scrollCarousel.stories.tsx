@@ -15,13 +15,13 @@ export default storyBook(ScrollCarousel, story => {
         <JSXNode name="SegmentedControl" /> will detect if the content overflows and show
         arrows to scroll left and right. Native scrollbars are hidden.
       </p>
-      <div style={{width: '300px', display: 'block'}}>
+      <div style={{width: '375px', display: 'block'}}>
         <ScrollCarousel
           css={css`
             gap: ${space(1)};
           `}
         >
-          {['one', 'two', 'three', 'four', 'five'].map(item => (
+          {['one', 'two', 'three', 'four', 'five', 'six'].map(item => (
             <ExampleItem key={item}>{item}</ExampleItem>
           ))}
         </ScrollCarousel>
@@ -32,11 +32,15 @@ export default storyBook(ScrollCarousel, story => {
 
 const ExampleItem = styled('div')`
   min-width: 100px;
-  height: 24px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundSecondary};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundTertiary};
+  }
 `;
