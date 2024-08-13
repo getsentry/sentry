@@ -8,7 +8,11 @@ import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/toke
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
 import type {FilterKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearchFilters';
-import {createRecentFilterOptionKey} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {
+  createItem,
+  createRecentFilterOptionKey,
+  createSection,
+} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import clamp from 'sentry/utils/number/clamp';
 
@@ -57,24 +61,56 @@ function findNextMatchingItem(
   return nextItem;
 }
 
-export function useFilterKeyListBox({
-  items,
-  filterValue,
-}: {
-  filterValue: string;
-  items: FilterKeyItem[];
-}) {
+function useFilterKeyItems() {
+  const {filterKeySections, getFieldDefinition, filterKeys} = useSearchQueryBuilder();
+
+  const flatItems = useMemo(() => {
+    return Object.values(filterKeys).map(filterKey =>
+      createItem(filterKey, getFieldDefinition(filterKey.key))
+    );
+  }, [filterKeys, getFieldDefinition]);
+
+  const categorizedItems = useMemo(() => {
+    return filterKeySections
+      .flatMap(section => section.children)
+      .reduce<
+        Record<string, boolean>
+      >((acc, nextFilterKey) => ({...acc, [nextFilterKey]: true}), {});
+  }, [filterKeySections]);
+
+  const uncategorizedItems = useMemo(() => {
+    return flatItems.filter(item => !categorizedItems[item.value]);
+  }, [categorizedItems, flatItems]);
+
+  const sectionedItems = useMemo(() => {
+    const sections = filterKeySections.map(section =>
+      createSection(section, filterKeys, getFieldDefinition)
+    );
+    if (uncategorizedItems.length) {
+      sections.push({
+        key: 'uncategorized',
+        value: 'uncategorized',
+        label: '',
+        options: uncategorizedItems,
+        type: 'section',
+      });
+    }
+    return sections;
+  }, [filterKeySections, filterKeys, getFieldDefinition, uncategorizedItems]);
+
+  return {sectionedItems};
+}
+
+export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const {filterKeySections} = useSearchQueryBuilder();
   const [selectedSectionKey, setSelectedSection] = useState<Key | null>(null);
 
-  const sections = useMemo(() => {
-    return items.filter(item => item.type === 'section');
-  }, [items]);
+  const {sectionedItems} = useFilterKeyItems();
 
   const recentFilters = useRecentSearchFilters();
 
   const filterKeyMenuItems = useMemo(() => {
-    const filteredByCategory = items.filter(item => {
+    const filteredByCategory = sectionedItems.filter(item => {
       if (itemIsSection(item)) {
         return !selectedSectionKey || item.key === selectedSectionKey;
       }
@@ -83,7 +119,7 @@ export function useFilterKeyListBox({
     });
 
     return addRecentFiltersToItems({items: filteredByCategory, recentFilters});
-  }, [items, recentFilters, selectedSectionKey]);
+  }, [recentFilters, sectionedItems, selectedSectionKey]);
 
   const customMenu: CustomComboboxMenu<FilterKeyItem> = props => {
     return (
@@ -91,7 +127,7 @@ export function useFilterKeyListBox({
         {...props}
         selectedSection={selectedSectionKey}
         setSelectedSection={setSelectedSection}
-        sections={sections}
+        sections={sectionedItems}
         recentFilters={recentFilters}
       />
     );
@@ -182,9 +218,11 @@ export function useFilterKeyListBox({
 
   const handleCycleSections = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      const sectionKeyOrder = [null, ...sections.map(section => section.key)];
+      const sectionKeyOrder = [null, ...filterKeySections.map(section => section.value)];
 
-      const selectedSectionIndex = sectionKeyOrder.indexOf(selectedSectionKey);
+      const selectedSectionIndex = sectionKeyOrder.indexOf(
+        selectedSectionKey?.toString() ?? null
+      );
       const newIndex = clamp(
         selectedSectionIndex + (e.key === 'ArrowRight' ? 1 : -1),
         0,
@@ -193,7 +231,7 @@ export function useFilterKeyListBox({
       const newSectionKey = sectionKeyOrder[newIndex];
       setSelectedSection(newSectionKey);
     },
-    [sections, selectedSectionKey]
+    [filterKeySections, selectedSectionKey]
   );
 
   /**
@@ -240,7 +278,7 @@ export function useFilterKeyListBox({
   );
 
   return {
-    sectionItems: shouldShowExplorationMenu ? filterKeyMenuItems : items,
+    sectionItems: filterKeyMenuItems,
     customMenu: shouldShowExplorationMenu ? customMenu : undefined,
     maxOptions:
       filterValue.length === 0 ? MAX_OPTIONS_WITHOUT_SEARCH : MAX_OPTIONS_WITH_SEARCH,
