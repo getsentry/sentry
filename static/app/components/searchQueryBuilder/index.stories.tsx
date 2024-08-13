@@ -86,7 +86,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
+    children: [FieldKey.ASSIGNED, FieldKey.IS],
   },
   {
     value: 'cat_2',
