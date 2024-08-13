@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from random import randint
 from time import time
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.event_manager import _create_group
+from sentry.event_manager import _create_group, _save_aggregate, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
     _calculate_primary_hash,
@@ -18,8 +20,10 @@ from sentry.grouping.ingest.hashing import (
 from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
@@ -29,6 +33,7 @@ pytestmark = [requires_snuba]
 
 LEGACY_CONFIG = "legacy:2019-03-12"
 NEWSTYLE_CONFIG = "newstyle:2023-01-11"
+MOBILE_CONFIG = "mobile:2021-02-12"
 
 
 @contextmanager
@@ -162,7 +167,9 @@ def get_results_from_saving_event(
 
     with (
         patch_grouping_helpers(return_values) as spies,
-        Feature({"organizations:grouping-suppress-unnecessary-secondary-hash": new_logic_enabled}),
+        mock.patch(
+            "sentry.event_manager.project_uses_optimized_grouping", return_value=new_logic_enabled
+        ),
     ):
         calculate_secondary_hash_spy = spies["_calculate_secondary_hash"]
         create_group_spy = spies["_create_group"]
@@ -474,3 +481,57 @@ def test_existing_group_new_hash_exists(
             "secondary_grouphash_existed_already": None,
             "secondary_grouphash_exists_now": None,
         }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "killswitch_enabled",
+    (True, False),
+    ids=(" killswitch_enabled: True ", " killswitch_enabled: False "),
+)
+@pytest.mark.parametrize("flag_on", (True, False), ids=(" flag_on: True ", " flag_on: False "))
+@pytest.mark.parametrize(
+    "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
+)
+@pytest.mark.parametrize(
+    "mobile_config", (True, False), ids=(" mobile_config: True ", " mobile_config: False ")
+)
+@pytest.mark.parametrize("id_even", (True, False), ids=(" id_even: True ", " id_even: False "))
+@patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
+@patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
+def test_uses_regular_or_optimized_grouping_as_appropriate(
+    mock_save_aggregate: MagicMock,
+    mock_save_aggregate_new: MagicMock,
+    id_even: bool,
+    mobile_config: bool,
+    in_transition: bool,
+    flag_on: bool,
+    killswitch_enabled: bool,
+):
+    # The snowflake id seems to sometimes get stuck generating nothing but even numbers, so replace
+    # it with something we know will generate both odds and evens
+    with patch(
+        "sentry.utils.snowflake.generate_snowflake_id", side_effect=lambda _: randint(1, 1000)
+    ):
+        # Keep making projects until we get an id of the correct parity
+        org = Factories.create_organization()
+        project = Factories.create_project(organization=org)
+        while project.id % 2 == (1 if id_even else 0):
+            project = Factories.create_project(organization=org)
+
+    with (
+        Feature({"organizations:grouping-suppress-unnecessary-secondary-hash": flag_on}),
+        patch("sentry.grouping.ingest.config.is_in_transition", return_value=in_transition),
+        override_options({"grouping.config_transition.killswitch_enabled": killswitch_enabled}),
+    ):
+        config = MOBILE_CONFIG if mobile_config else NEWSTYLE_CONFIG
+        save_event_with_grouping_config({"message": "Dogs are great!"}, project, config)
+
+    if mobile_config or killswitch_enabled:
+        assert mock_save_aggregate.call_count == 1
+    elif flag_on:
+        assert mock_save_aggregate_new.call_count == 1
+    elif in_transition and id_even:
+        assert mock_save_aggregate_new.call_count == 1
+    else:
+        assert mock_save_aggregate.call_count == 1
