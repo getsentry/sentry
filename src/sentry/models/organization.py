@@ -195,14 +195,14 @@ class Organization(ReplicatedRegionModel):
         # Enable codecov integration.
         codecov_access: bool
 
-        # Disable org-members from inviting members
-        disable_member_invite: bool
-
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
 
         # Prevent superuser access to an organization
         prevent_superuser_access: bool
+
+        # Disable org-members from inviting members
+        disable_member_invite: bool
 
         bitfield_default = 1
 
