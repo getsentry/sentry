@@ -36,12 +36,6 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     expect(closeModal).toHaveBeenCalled();
   };
 
-  const submitErrors = async errorCount => {
-    await doSubmit();
-    expect(screen.getAllByText('Field is required')).toHaveLength(errorCount);
-    expect(closeModal).toHaveBeenCalledTimes(0);
-  };
-
   const addMockConfigsAPICall = (otherField = {}) => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/1/?ignored=Sprint',
@@ -126,10 +120,14 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should raise validation errors when "Apply Changes" is clicked with invalid data', async function () {
+    it('submit button shall be disabled if form is incomplete', async function () {
       // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
       renderComponent();
-      await submitErrors(1);
+      expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Apply Changes'}));
+      expect(
+        await screen.findByText('Required fields must be filled out')
+      ).toBeInTheDocument();
     });
 
     it('should reload fields when an "updatesForm" field changes', async function () {
