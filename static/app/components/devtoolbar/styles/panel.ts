@@ -35,6 +35,11 @@ export const panelSectionCss = css`
   }
 `;
 
+export const panelSectionCssNoBorder = css`
+  position: relative;
+  padding-block: var(--space150);
+`;
+
 export const panelInsetContentCss = css`
   padding-inline: var(--space150);
 `;

@@ -54,6 +54,8 @@ export const globalCss = css`
     --pink200: rgba(249, 26, 138, 0.5);
     --pink100: rgba(249, 26, 138, 0.09);
 
+    --surface200: #faf9fb;
+
     --z-index: 100000;
 
     color: var(--gray400);

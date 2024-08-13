@@ -21,9 +21,15 @@ type PanelTableProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   className?: string;
   /**
-   * If true, disables the border-bottom on the header
+   * If true, disables the border-bottom on the header.
+   * Pass in headers as an array of `undefined` so that the
+   * columns still display appropriately.
    */
   disableHeaderBorderBottom?: boolean;
+  /**
+   * If true, disables the headers
+   */
+  disableHeaders?: boolean;
   /**
    * Renders without predefined padding on the header and body cells
    */
@@ -82,6 +88,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
     loader,
     stickyHeaders = false,
     disableHeaderBorderBottom = false,
+    disableHeaders,
     ...props
   }: PanelTableProps,
   ref: React.Ref<HTMLDivElement>
@@ -100,11 +107,12 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...props}
     >
-      {headers.map((header, i) => (
-        <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
-          {header}
-        </PanelTableHeader>
-      ))}
+      {!disableHeaders &&
+        headers.map((header, i) => (
+          <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
+            {header}
+          </PanelTableHeader>
+        ))}
 
       {shouldShowLoading && (
         <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>
