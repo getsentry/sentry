@@ -202,7 +202,7 @@
     "react-refresh": "0.14.0",
     "stylelint": "16.2.1",
     "stylelint-config-recommended": "^14.0.0",
-    "terser": "5.30.3",
+    "terser": "5.31.6",
     "tsconfig-paths": "^4.2.0",
     "webpack-dev-server": "5.0.4"
   },
