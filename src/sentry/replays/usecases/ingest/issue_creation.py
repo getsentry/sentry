@@ -177,38 +177,3 @@ def _make_clicked_element(node):
                 element += f'[data-sentry-component="{value}"]'
 
     return element
-
-
-def test_make_clicked_element():
-    node = {
-        "tagName": "a",
-        "attributes": {
-            "id": "id",
-            "class": "class1 class2",
-            "role": "button",
-            "aria-label": "test",
-            "alt": "1",
-            "data-testid": "2",
-            "title": "3",
-            "data-sentry-component": "SignUpForm",
-        },
-    }
-
-    assert (
-        _make_clicked_element(node)
-        == 'a#id.class1.class2[role="button"][aria="test"][alt="1"][data-test-id="2"][title="3"][data-sentry-component="SignUpForm"]'
-    )
-
-    node_whitespace = {
-        "tagName": "a",
-        "attributes": {
-            "id": "id",
-            "class": " class1 class2 ",
-            "data-sentry-component": "SignUpForm",
-        },
-    }
-
-    assert (
-        _make_clicked_element(node_whitespace)
-        == 'a#id.class1.class2[data-sentry-component="SignUpForm"]'
-    )
