@@ -88,7 +88,7 @@ function getSubmitButtonTitle(form: FormModel) {
   if (!form.isError) {
     return undefined;
   }
-  
+
   const errors = form.getErrors();
   const hasRequiredFieldError = [...errors].some(
     ([_field, message]) => message === fieldIsRequiredMessage
