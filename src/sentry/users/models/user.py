@@ -585,7 +585,7 @@ User._meta.get_field("last_login").null = True
 # sessions and refresh their nonce.
 @receiver(user_logged_out, sender=User)
 def refresh_user_nonce(
-    sender: User | RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
+    sender: User | RpcUser | None, request: HttpRequest | None, user: User | None, **kwargs: Any
 ) -> None:
     if user is None:
         return
@@ -595,7 +595,7 @@ def refresh_user_nonce(
 
 @receiver(user_logged_out, sender=RpcUser)
 def refresh_api_user_nonce(
-    sender: RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
+    sender: RpcUser | None, request: HttpRequest | None, user: User | None, **kwargs: Any
 ) -> None:
     if user is None:
         return
