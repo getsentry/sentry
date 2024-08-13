@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import metrics_enhanced_performance
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -22,12 +22,12 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.params: ParamsType = {
-            "organization_id": self.organization.id,
-            "project_id": [self.project.id],
-            "start": before_now(days=1),
-            "end": self.now,
-        }
+        self.snuba_params = SnubaParams(
+            organization=self.organization.id,
+            projects=[self.project],
+            start=before_now(days=1),
+            end=self.now,
+        )
 
     @cached_property
     def now(self):
@@ -60,7 +60,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
             # Equations are not compatible with metrics in MEP, forces a fallback
             equations=["measurements.datacenter_memory / 3"],
             query="",
-            params=self.params,
+            snuba_params=self.snuba_params,
             referrer="test_query",
             auto_fields=True,
             fallback_to_transactions=True,
@@ -95,7 +95,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
             # Equations are not compatible with metrics in MEP, forces a fallback
             equations=["measurements.datacenter_memory / 3"],
             query="",
-            params=self.params,
+            snuba_params=self.snuba_params,
             referrer="test_query",
             auto_fields=True,
             fallback_to_transactions=False,

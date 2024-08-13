@@ -101,7 +101,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return metrics_query(
                 top_event_columns,
                 query=user_query,
-                params={},
                 snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=event_limit,
