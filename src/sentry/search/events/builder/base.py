@@ -211,7 +211,7 @@ class BaseQueryBuilder:
             self.filter_params = snuba_params.filter_params
         self.params = self._dataclass_params(snuba_params, params)
 
-        org_id = params.get("organization_id")
+        org_id = self.params.organization_id
         self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
