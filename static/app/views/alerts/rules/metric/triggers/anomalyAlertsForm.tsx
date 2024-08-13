@@ -1,10 +1,11 @@
-import {PureComponent} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {
   AlertRuleSensitivity,
+  AlertRuleThresholdType,
   type UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 
@@ -15,20 +16,18 @@ type Props = {
   // config: Config;
 
   disabled: boolean;
-  fieldHelp: React.ReactNode;
+  // trigger: Trigger;
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   // onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   // onThresholdPeriodChange: (value: number) => void;
-  // onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  sensitivity: UnsavedMetricRule['sensitivity'];
   // organization: Organization;
   // placeholder: string;
   // projects: Project[];
   // resolveThreshold: UnsavedMetricRule['resolveThreshold'];
   // thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
-  // thresholdType: UnsavedMetricRule['thresholdType'];
-  // trigger: Trigger;
-  fieldLabel: React.ReactNode;
-  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
-  sensitivity: UnsavedMetricRule['sensitivity'];
+  thresholdType: UnsavedMetricRule['thresholdType'];
   /**
    * Map of fieldName -> errorMessage
    */
@@ -37,38 +36,122 @@ type Props = {
   hideControl?: boolean;
 };
 
-class AnomalyAlertFormItem extends PureComponent<Props> {
-  handleSensitivityChange = ({value}) => {
-    this.props.onSensitivityChange(value);
+type SensitivityFormItemProps = {
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
+  sensitivity: UnsavedMetricRule['sensitivity'];
+};
+
+type DirectionFormItemProps = {
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
+  thresholdType: UnsavedMetricRule['thresholdType'];
+};
+
+function SensitivityFormItem({
+  sensitivity,
+  onSensitivityChange,
+}: SensitivityFormItemProps) {
+  const handleSensitivityChange = ({value}) => {
+    onSensitivityChange(value);
   };
 
+  return (
+    <StyledField
+      label={<div>{'Sensitivity'}</div>}
+      help={
+        <div>
+          {
+            'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
+          }
+        </div>
+      }
+      required
+    >
+      <SelectContainer>
+        <SelectControl
+          name="sensitivity"
+          value={sensitivity}
+          options={[
+            {
+              value: AlertRuleSensitivity.LOW,
+              label: 'Low (alert less often)',
+            },
+            {
+              value: AlertRuleSensitivity.MEDIUM,
+              label: 'Medium',
+            },
+            {
+              value: AlertRuleSensitivity.HIGH,
+              label: 'High (alert more often)',
+            },
+          ]}
+          onChange={handleSensitivityChange}
+        />
+      </SelectContainer>
+    </StyledField>
+  );
+}
+
+function DirectionFormItem({
+  thresholdType,
+  onThresholdTypeChange,
+}: DirectionFormItemProps) {
+  const handleThresholdTypeChange = ({value}) => {
+    onThresholdTypeChange(value);
+  };
+
+  return (
+    <StyledField
+      label={<div>{'Direction'}</div>}
+      help={
+        <div>
+          {
+            'Indicate if you want to be alerted of anomalies above your set bounds, below, or both.'
+          }
+        </div>
+      }
+      required
+    >
+      <SelectContainer>
+        <SelectControl
+          name="sensitivity"
+          value={thresholdType}
+          options={[
+            {
+              value: AlertRuleThresholdType.ABOVE_AND_BELOW,
+              label: 'Above and below bounds',
+            },
+            {
+              value: AlertRuleThresholdType.ABOVE,
+              label: 'Above bounds only',
+            },
+            {
+              value: AlertRuleThresholdType.BELOW,
+              label: 'Below bounds only',
+            },
+          ]}
+          onChange={handleThresholdTypeChange}
+        />
+      </SelectContainer>
+    </StyledField>
+  );
+}
+
+class AnomalyDetectionForm extends Component<Props> {
   render() {
-    const {fieldHelp, fieldLabel, sensitivity} = this.props;
+    const {sensitivity, onSensitivityChange, thresholdType, onThresholdTypeChange} =
+      this.props;
 
     return (
-      <StyledField label={fieldLabel} help={fieldHelp} required>
-        <SelectContainer>
-          <SelectControl
-            name="sensitivity"
-            value={sensitivity}
-            options={[
-              {
-                value: AlertRuleSensitivity.LOW,
-                label: 'Low (alert less often)',
-              },
-              {
-                value: AlertRuleSensitivity.MEDIUM,
-                label: 'Medium',
-              },
-              {
-                value: AlertRuleSensitivity.HIGH,
-                label: 'High (alert more often)',
-              },
-            ]}
-            onChange={this.handleSensitivityChange}
-          />
-        </SelectContainer>
-      </StyledField>
+      <Fragment>
+        <SensitivityFormItem
+          sensitivity={sensitivity}
+          onSensitivityChange={onSensitivityChange}
+        />
+        <DirectionFormItem
+          thresholdType={thresholdType}
+          onThresholdTypeChange={onThresholdTypeChange}
+        />
+      </Fragment>
     );
   }
 }
@@ -83,4 +166,4 @@ const StyledField = styled(FieldGroup)`
 const SelectContainer = styled('div')`
   flex: 1;
 `;
-export default AnomalyAlertFormItem;
+export default AnomalyDetectionForm;

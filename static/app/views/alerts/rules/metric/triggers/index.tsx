@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
-import AnomalyAlertFormItem from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
+import AnomalyDetectionForm from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
@@ -124,18 +124,12 @@ class Triggers extends Component<Props> {
         <Panel>
           <PanelBody>
             {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
-              <AnomalyAlertFormItem
+              <AnomalyDetectionForm
                 disabled={disabled}
                 sensitivity={sensitivity}
                 onSensitivityChange={onSensitivityChange}
-                fieldHelp={
-                  <div>
-                    {
-                      'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
-                    }
-                  </div>
-                }
-                fieldLabel={<div>{'Sensitivity'}</div>}
+                thresholdType={thresholdType}
+                onThresholdTypeChange={onThresholdTypeChange}
               />
             ) : (
               <TriggerForm
