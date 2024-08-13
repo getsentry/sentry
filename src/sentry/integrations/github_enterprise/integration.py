@@ -134,14 +134,11 @@ API_ERRORS = {
 class GitHubEnterpriseIntegration(
     RepositoryIntegration, GitHubIssueBasic, CommitContextIntegration
 ):
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
         return "github_enterprise"
-
-    @property
-    def codeowners_locations(self) -> list[str]:
-        return ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
         if not self.org_integration:

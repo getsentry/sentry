@@ -157,13 +157,11 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubIssueBasic):  # type: ignore[misc]
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+
     @property
     def integration_name(self) -> str:
         return "github"
-
-    @property
-    def codeowners_locations(self) -> list[str]:
-        return ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:

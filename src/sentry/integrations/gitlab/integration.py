@@ -93,6 +93,8 @@ metadata = IntegrationMetadata(
 
 
 class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabIssueBasic):
+    codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
@@ -100,10 +102,6 @@ class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabI
     @property
     def integration_name(self) -> str:
         return "gitlab"
-
-    @property
-    def codeowners_locations(self) -> list[str]:
-        return ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_group_id(self):
         return self.model.metadata["group_id"]
