@@ -1732,10 +1732,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch(
-        "sentry.tasks.embeddings_grouping.utils._make_postgres_call", side_effect=OperationalError
+        "sentry.tasks.embeddings_grouping.utils._make_postgres_call_with_filter",
+        side_effect=OperationalError,
     )
     def test_backfill_seer_grouping_records_postgres_exception(
-        self, mock_make_postgres_call, mock_logger
+        self, mock_make_postgres_call_with_filter, mock_logger
     ):
         """
         Test log after postgres query retries with decreased batch size
