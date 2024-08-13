@@ -88,14 +88,14 @@ class UserEmail(ControlOutboxProducingModel):
             )
         ]
 
-    def set_hash(self):
+    def set_hash(self) -> None:
         self.date_hash_added = timezone.now()
         self.validation_hash = get_secure_token()
 
-    def hash_is_valid(self):
+    def hash_is_valid(self) -> bool:
         return self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)
 
-    def is_primary(self):
+    def is_primary(self) -> bool:
         return self.user.email == self.email
 
     @classmethod
