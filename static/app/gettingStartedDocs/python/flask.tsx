@@ -39,6 +39,10 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('The Flask integration adds support for the [link:Flask Framework].', {
+      link: <ExternalLink href="https://flask.palletsprojects.com" />,
+    }),
   install: () => [
     {
       type: StepType.INSTALL,
