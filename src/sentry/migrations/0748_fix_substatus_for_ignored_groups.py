@@ -51,7 +51,7 @@ def backfill_substatus_for_ignored_groups(
     GroupSnooze = apps.get_model("sentry", "GroupSnooze")
 
     groups = Group.objects.filter(status=GroupStatus.IGNORED, substatus=None)
-    activity = Activity.objects.filter(group__in=groups, type=ActivityType.SET_IGNORED)
+    activity = Activity.objects.filter(type=ActivityType.SET_IGNORED)
 
     for group in groups:
         group_activity = activity.filter(group_id=group.id).order_by("-datetime").first()
@@ -75,8 +75,7 @@ def backfill_substatus_for_ignored_groups(
                 new_substatus = GroupSubStatus.FOREVER
 
         group.substatus = new_substatus
-
-    Group.objects.bulk_update(groups, ["substatus"])
+        group.save()
 
 
 class Migration(CheckedMigration):

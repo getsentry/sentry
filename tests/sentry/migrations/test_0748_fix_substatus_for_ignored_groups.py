@@ -1,6 +1,7 @@
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -11,6 +12,8 @@ class BackfillMissingUnresolvedSubstatus(TestMigrations):
     migrate_to = "0748_fix_substatus_for_ignored_groups"
 
     def setup_initial_state(self):
+        self.organization = Organization.objects.create(name="test", slug="test")
+        self.project = self.create_project(organization=self.organization)
         self.do_not_update = Group.objects.create(
             project=self.project,
             status=GroupStatus.IGNORED,
