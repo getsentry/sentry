@@ -28,7 +28,7 @@ describe('uptime/edit', function () {
     });
   });
 
-  it('dispalys the edit form', async function () {
+  it('displays the edit form', async function () {
     const {organization, project, routerProps} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
