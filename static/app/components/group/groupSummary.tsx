@@ -27,7 +27,7 @@ const makeGroupSummaryQueryKey = (
 
 export function GroupSummary({groupId}: GroupSummaryProps) {
   const organization = useOrganization();
-  const {data, isLoading, error} = useApiQuery<GroupSummaryData>(
+  const {data, isLoading, isError} = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
@@ -54,7 +54,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
           {isLoading && <StyledLoadingIndicator size={16} mini />}
         </StyledTitleRow>
         <div>
-          {error ? <div>{t('Error loading summary')}</div> : null}
+          {isError ? <div>{t('Error loading summary')}</div> : null}
           {data && (
             <Content>
               <SummaryContent
