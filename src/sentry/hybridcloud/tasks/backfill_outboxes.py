@@ -29,7 +29,13 @@ class BackfillBatch:
 
     @property
     def count(self) -> int:
-        return self.up - self.low + 1
+        delta = self.up - self.low
+        if delta < 0:
+            return 0
+        return delta + 1
+
+    def __str__(self) -> str:
+        return f"BackfillBatch(low={self.low} up={self.up} version={self.version} has_more={self.has_more} count={self.count})"
 
 
 def get_backfill_key(table_name: str) -> str:

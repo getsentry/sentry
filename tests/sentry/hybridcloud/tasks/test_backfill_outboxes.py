@@ -140,6 +140,8 @@ def test_control_processing(task_runner: Callable[..., Any]) -> None:
 
     assert OrganizationMapping.objects.all().count() == 2
 
+    # No new outboxes as replication version hasn't changed.
+    assert ControlOutbox.objects.all().count() == 0
     # Does not process these new objects since we already completed all available work for this version.
     with assume_test_silo_mode(SiloMode.REGION):
         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
@@ -150,7 +152,11 @@ def test_control_processing(task_runner: Callable[..., Any]) -> None:
             while backfill_outboxes_for(SiloMode.CONTROL, 0, 1, force_synchronous=True):
                 pass
 
-        # Replicates it now that the version has bumped
+            # Replication version was incremented, both sets of records need
+            # replica updates.
+            assert ControlOutbox.objects.all().count() == 10
+
+        # Replicates it now that the version has bumped, and outboxes run by outbox_runner
         with assume_test_silo_mode(SiloMode.REGION):
             assert AuthIdentityReplica.objects.all().count() == 10
             assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 5
