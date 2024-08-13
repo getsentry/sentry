@@ -57,7 +57,7 @@ export default function SubregionSelector() {
       loading={isLoading}
       clearable
       value={value}
-      triggerLabel={value.length === 0 ? 'All' : undefined}
+      triggerLabel={value.length === 0 ? t('All') : undefined}
       menuTitle={'Filter region'}
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
