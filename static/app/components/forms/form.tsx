@@ -85,27 +85,28 @@ function getSubmitButtonTitle(form: FormModel) {
     return t('Required fields must be filled out');
   }
 
-  if (form.isError) {
-    const errors = form.getErrors();
-    const hasRequiredFieldError = [...errors].some(
+  if (!form.isError) {
+    return undefined;
+  }
+  
+  const errors = form.getErrors();
+  const hasRequiredFieldError = [...errors].some(
+    ([_field, message]) => message === fieldIsRequiredMessage
+  );
+
+  if (hasRequiredFieldError) {
+    const allRequiredFieldErrors = [...errors].every(
       ([_field, message]) => message === fieldIsRequiredMessage
     );
 
-    if (hasRequiredFieldError) {
-      const allRequiredFieldErrors = [...errors].every(
-        ([_field, message]) => message === fieldIsRequiredMessage
-      );
-
-      if (allRequiredFieldErrors) {
-        return t('Required fields must be filled out');
-      }
-
-      return t('Required fields must be filled out and inputs must be valid');
+    if (allRequiredFieldErrors) {
+      return t('Required fields must be filled out');
     }
 
-    return t('Fields must contain valid inputs');
+    return t('Required fields must be filled out and inputs must be valid');
   }
-  return undefined;
+
+  return t('Fields must contain valid inputs');
 }
 
 function Form({
