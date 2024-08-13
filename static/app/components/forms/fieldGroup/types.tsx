@@ -7,18 +7,13 @@ export interface FieldGroupProps {
    */
   alignRight?: boolean;
   /**
-   * The control to render. May be given a function to render with resolved
-   * props.
+   * The control to render
    */
-  children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
+  children?: React.ReactNode;
   /**
    * The classname of the field
    */
   className?: string;
-  /**
-   * The classname of the field control
-   */
-  controlClassName?: string;
   /**
    * Loading / Saving / Error states of the form. See the ControlState
    */
@@ -115,20 +110,5 @@ export interface FieldGroupProps {
 }
 
 /**
- * The children render props mostly pass down FieldGroupProps, with some slight
- * differences for properities that were resolved.
+ * Proops provided to the FieldGroupProps['controlWrapper']
  */
-interface ChildRenderProps extends Omit<FieldGroupProps, 'className' | 'disabled'> {
-  /**
-   * Same as {@link FieldGroupProps.controlState}, but will always be defined
-   */
-  controlState: React.ReactNode;
-  /**
-   * The rendered help node
-   */
-  help: React.ReactNode;
-  /**
-   * Is the field disabled
-   */
-  disabled?: boolean;
-}

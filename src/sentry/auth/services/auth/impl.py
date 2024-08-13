@@ -15,12 +15,12 @@ from sentry.auth.services.auth import (
 )
 from sentry.auth.services.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write

@@ -61,7 +61,6 @@ from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
@@ -113,6 +112,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils import json
 

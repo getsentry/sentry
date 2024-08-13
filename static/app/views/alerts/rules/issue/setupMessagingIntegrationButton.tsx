@@ -19,12 +19,23 @@ interface ProjectWithAlertIntegrationInfo extends Project {
   hasAlertIntegrationInstalled: boolean;
 }
 
+export enum MessagingIntegrationAnalyticsView {
+  ALERT_RULE_CREATION = 'alert_rule_creation',
+}
+
 type Props = {
   projectSlug: string;
   refetchConfigs: () => void;
+  analyticsParams?: {
+    view: MessagingIntegrationAnalyticsView;
+  };
 };
 
-function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
+function SetupMessagingIntegrationButton({
+  projectSlug,
+  refetchConfigs,
+  analyticsParams,
+}: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
   const organization = useOrganization();
 
@@ -52,9 +63,9 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
   const shouldRenderSetupButton =
-    projectQuery.data &&
+    projectQuery.data != null &&
     !projectQuery.data.hasAlertIntegrationInstalled &&
-    integrationQuery.data;
+    integrationQuery.data != null;
 
   useRouteAnalyticsParams({
     setup_message_integration_button_shown: shouldRenderSetupButton,
@@ -115,6 +126,7 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
               trackAnalytics('onboarding.messaging_integration_modal_rendered', {
                 project_id: projectQuery.data.id,
                 organization,
+                ...analyticsParams,
               });
             }}
           >

@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
@@ -204,13 +204,13 @@ function TeamStability({
       isEmpty={projects.length === 0}
       emptyMessage={t('No projects with release health enabled')}
       emptyAction={
-        <Button
+        <LinkButton
           size="sm"
           external
           href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
         >
           {t('Learn More')}
-        </Button>
+        </LinkButton>
       }
       headers={[
         t('Project'),

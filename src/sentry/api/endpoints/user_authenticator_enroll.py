@@ -17,10 +17,12 @@ from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
-from sentry.auth.authenticators.sms import SMSRateLimitExceeded
-from sentry.models.authenticator import Authenticator
+from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
 
@@ -149,15 +151,19 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         response["form"] = get_serializer_field_metadata(serializer_map[interface_id]())
 
         # U2fInterface has no 'secret' attribute
-        try:
+        if hasattr(interface, "secret"):
             response["secret"] = interface.secret
-        except AttributeError:
-            pass
 
         if interface_id == "totp":
+            assert isinstance(
+                interface, TotpInterface
+            ), "Interface must be a TotpInterface to get provision URL"
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interface must be a U2fInterface to start enrollement"
             publicKeyCredentialCreate, state = interface.start_enrollment(user)
             response["challenge"] = {}
             response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
@@ -224,14 +230,15 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             else:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
+        if hasattr(interface, "secret"):
             interface.secret = request.data["secret"]
-        except KeyError:
-            pass
 
         context = {}
         # Need to update interface with phone number before validating OTP
         if "phone" in request.data:
+            assert isinstance(
+                interface, SmsInterface
+            ), "Interface must be a SmsInterface to get phone number"
             interface.phone_number = serializer.data["phone"]
 
             # Disregarding value of 'otp', if no OTP was provided,
@@ -263,6 +270,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             if "webauthn_register_state" not in request.session:
                 return Response(INVALID_AUTH_STATE, status=status.HTTP_400_BAD_REQUEST)
             state = request.session["webauthn_register_state"]
+
+            assert isinstance(interface, U2fInterface), "Interface must be a U2fInterface to enroll"
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],

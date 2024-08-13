@@ -10,12 +10,12 @@ from rest_framework import status
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.authenticators.u2f import create_credential_object
-from sentry.models.authenticator import Authenticator
+from sentry.auth.authenticators.u2f import U2fInterface, create_credential_object
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 
 
@@ -130,6 +130,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
             )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert len(authenticator.interface.get_registered_devices()) == 1
 
         assert_security_email_sent("mfa-removed")
@@ -163,6 +164,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
 
     def test_rename_webauthn_device(self):
@@ -177,6 +179,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("webauthn") == "for testing"
 
     def test_rename_device_not_found(self):
@@ -244,6 +247,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_device_name(self):
         auth = get_auth(self.user)
 
+        assert isinstance(auth.interface, U2fInterface)
         assert auth.interface.get_device_name("devicekeyhandle") == "Amused Beetle"
         assert auth.interface.get_device_name("aowerkoweraowerkkro") == "Sentry"
 
@@ -266,6 +270,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
+        assert interface.authenticator, "should have authenticator"
         response = self.get_success_response(self.user.id, interface.authenticator.id)
         old_codes = response.data["codes"]
         old_created_at = response.data["createdAt"]

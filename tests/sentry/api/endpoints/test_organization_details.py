@@ -23,7 +23,6 @@ from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
@@ -40,6 +39,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]

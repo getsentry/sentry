@@ -8,7 +8,6 @@ from sentry.db.models.base import Model
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import Dashboard
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -43,6 +42,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, find_regions_for_user
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from tests.sentry.backup import expect_models
 

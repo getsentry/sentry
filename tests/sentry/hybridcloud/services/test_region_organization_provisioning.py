@@ -1,5 +1,6 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -13,7 +14,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.outbox import outbox_context
 from sentry.models.team import Team
 from sentry.services.organization import (
     OrganizationOptions,

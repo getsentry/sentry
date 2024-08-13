@@ -57,13 +57,13 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
           // Add the following line:
           webBuilder.UseSentry(o =>
           {
-              o.Dsn = "${params.dsn}";
+              o.Dsn = "${params.dsn.public}";
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;${
                 params.isPerformanceSelected
                   ? `
               // Set TracesSampleRate to 1.0 to capture 100%
-              // of transactions for performance monitoring.
+              // of transactions for tracing.
               // We recommend adjusting this value in production
               o.TracesSampleRate = 1.0;`
                   : ''
@@ -206,7 +206,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: tct(
               'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
               {

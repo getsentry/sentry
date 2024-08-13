@@ -10,9 +10,9 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.models.organization import Organization
-from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories

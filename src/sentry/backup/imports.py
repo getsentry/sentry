@@ -36,10 +36,10 @@ from sentry.backup.services.import_export.model import (
 )
 from sentry.backup.services.import_export.service import ImportExportService
 from sentry.db.models.paranoia import ParanoidModel
+from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -102,9 +102,9 @@ def _import(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.email import Email
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
+    from sentry.users.models.email import Email
     from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
