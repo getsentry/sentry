@@ -115,7 +115,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
       reloadProjects();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingProject]);
+  }, [onboardingProject?.id]);
 
   useEffect(() => {
     if (!mounted.current) {
