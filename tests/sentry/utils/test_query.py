@@ -1,7 +1,5 @@
-import re
-
 import pytest
-from django.db import connections, router, transaction
+from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
 from sentry.db.models.query import in_iexact
