@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -63,7 +62,8 @@ function Actions({
               <StyledDropdownLink
                 caret={false}
                 customTitle={
-                  <ActionButton
+                  <Button
+                    size="xs"
                     aria-label={t('Actions')}
                     disabled={deleted}
                     icon={<IconEllipsis />}

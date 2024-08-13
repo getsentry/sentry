@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import ActionButton from './button';
+import {Button} from 'sentry/components/button';
+
 import ConfirmableAction from './confirmableAction';
 
 const StyledAction = styled('a')<{disabled?: boolean}>`
@@ -10,7 +11,7 @@ const StyledAction = styled('a')<{disabled?: boolean}>`
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
-const StyledActionButton = styled(ActionButton)<{
+const StyledButton = styled(Button)<{
   disabled?: boolean;
   hasDropdown?: boolean;
 }>`
@@ -39,7 +40,7 @@ type CommonProps = Omit<
 
 type Props = CommonProps &
   ({type?: 'button'} & Partial<
-    Omit<React.ComponentProps<typeof StyledActionButton>, 'as' | 'children'>
+    Omit<React.ComponentProps<typeof StyledButton>, 'as' | 'children' | 'ref'>
   >);
 
 export default function ActionLink({
@@ -65,7 +66,7 @@ export default function ActionLink({
 
   const action =
     type === 'button' ? (
-      <StyledActionButton {...actionCommonProps} />
+      <StyledButton size="xs" {...actionCommonProps} />
     ) : (
       <StyledAction {...actionCommonProps} />
     );
