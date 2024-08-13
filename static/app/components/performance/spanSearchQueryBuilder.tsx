@@ -110,7 +110,7 @@ export function SpanSearchQueryBuilder({
       getTagValues={getSpanFilterTagValues}
       disallowFreeText
       disallowUnsupportedFilters
-      recentSearches={SavedSearchType.EVENT}
+      recentSearches={SavedSearchType.SPAN}
     />
   );
 }

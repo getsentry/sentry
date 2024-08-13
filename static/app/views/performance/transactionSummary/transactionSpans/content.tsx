@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -11,6 +11,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -67,28 +68,31 @@ function SpansContent(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
   const query = decodeScalar(location.query.query, '');
 
-  function handleChange(key: string) {
-    return function (value: string | undefined) {
-      ANALYTICS_VALUES[key]?.(organization, value);
+  const handleChange = useCallback(
+    (key: string) => {
+      return function (value: string | undefined) {
+        ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
-        [key]: value,
-      });
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          [key]: value,
+        });
 
-      // do not propagate pagination when making a new search
-      const toOmit = ['cursor'];
-      if (!defined(value)) {
-        toOmit.push(key);
-      }
-      const searchQueryParams = omit(queryParams, toOmit);
+        // do not propagate pagination when making a new search
+        const toOmit = ['cursor'];
+        if (!defined(value)) {
+          toOmit.push(key);
+        }
+        const searchQueryParams = omit(queryParams, toOmit);
 
-      browserHistory.push({
-        ...location,
-        query: searchQueryParams,
-      });
-    };
-  }
+        browserHistory.push({
+          ...location,
+          query: searchQueryParams,
+        });
+      };
+    },
+    [location, organization]
+  );
 
   const spanOp = decodeScalar(location.query.spanOp);
   const spanGroup = decodeScalar(location.query.spanGroup);
@@ -97,6 +101,9 @@ function SpansContent(props: Props) {
   const totalsView = getTotalsView(eventView);
 
   const {projects} = useProjects();
+
+  const onSearch = useMemo(() => handleChange('query'), [handleChange]);
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView]);
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
@@ -124,20 +131,31 @@ function SpansContent(props: Props) {
             relativeOptions={SPAN_RELATIVE_PERIODS}
           />
         </PageFilterBar>
-        <StyledSearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={query}
-          fields={eventView.fields}
-          onSearch={handleChange('query')}
-        />
-        <CompactSelect
-          value={sort.field}
-          options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
-          onChange={opt => handleChange('sort')(opt.value)}
-          triggerProps={{prefix: sort.prefix}}
-          triggerLabel={sort.label}
-        />
+        <StyledSearchBarWrapper>
+          {organization.features.includes('search-query-builder-performance') ? (
+            <SpanSearchQueryBuilder
+              projects={projectIds}
+              initialQuery={query}
+              onSearch={onSearch}
+              searchSource="transaction_spans"
+            />
+          ) : (
+            <SearchBar
+              organization={organization}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={onSearch}
+            />
+          )}
+          <CompactSelect
+            value={sort.field}
+            options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
+            onChange={opt => handleChange('sort')(opt.value)}
+            triggerProps={{prefix: sort.prefix}}
+            triggerLabel={sort.label}
+          />
+        </StyledSearchBarWrapper>
       </FilterActions>
       <DiscoverQuery
         eventView={totalsView}
@@ -195,30 +213,36 @@ function SpansContentV2(props: Props) {
   const supportedTags = useSpanMetricsFieldSupportedTags();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-  const spansQuery = decodeScalar(location.query.spansQuery);
+  const spansQuery = decodeScalar(location.query.spansQuery, '');
 
-  function handleChange(key: string) {
-    return function (value: string | undefined) {
-      ANALYTICS_VALUES[key]?.(organization, value);
+  const handleChange = useCallback(
+    (key: string) => {
+      return function (value: string | undefined) {
+        ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
-        [key]: value,
-      });
+        const queryParams = normalizeDateTimeParams({
+          ...(location.query || {}),
+          [key]: value,
+        });
 
-      // do not propagate pagination when making a new search
-      const toOmit = ['cursor'];
-      if (!defined(value)) {
-        toOmit.push(key);
-      }
-      const searchQueryParams = omit(queryParams, toOmit);
+        // do not propagate pagination when making a new search
+        const toOmit = ['cursor'];
+        if (!defined(value)) {
+          toOmit.push(key);
+        }
+        const searchQueryParams = omit(queryParams, toOmit);
 
-      browserHistory.push({
-        ...location,
-        query: searchQueryParams,
-      });
-    };
-  }
+        browserHistory.push({
+          ...location,
+          query: searchQueryParams,
+        });
+      };
+    },
+    [location, organization]
+  );
+
+  const onSearch = useMemo(() => handleChange('spansQuery'), [handleChange]);
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView]);
 
   return (
     <Layout.Main fullWidth>
@@ -234,17 +258,26 @@ function SpansContentV2(props: Props) {
           <EnvironmentPageFilter />
           <DatePageFilter />
         </PageFilterBar>
-        <StyledSearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={spansQuery}
-          fields={eventView.fields}
-          placeholder={t('Search for span attributes')}
-          supportedTags={supportedTags}
-          // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
-          dataset={DiscoverDatasets.SPANS_INDEXED}
-          onSearch={handleChange('spansQuery')}
-        />
+        {organization.features.includes('search-query-builder-performance') ? (
+          <SpanSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={spansQuery}
+            onSearch={onSearch}
+            searchSource="transaction_spans"
+          />
+        ) : (
+          <SearchBar
+            organization={organization}
+            projectIds={eventView.project}
+            query={spansQuery}
+            fields={eventView.fields}
+            placeholder={t('Search for span attributes')}
+            supportedTags={supportedTags}
+            // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            onSearch={handleChange('spansQuery')}
+          />
+        )}
       </FilterActions>
 
       <SpanMetricsTable
@@ -277,7 +310,7 @@ const FilterActions = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/5;
