@@ -34,6 +34,9 @@ type UseFetchIssueTagsParams = {
   useCache?: boolean;
 };
 
+// "environment" is excluded because it should be handled by the environment page filter
+const EXCLUDED_TAGS = ['environment'];
+
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
  * and combines them with builtin and predfined tags.
@@ -121,6 +124,7 @@ export const useFetchIssueTags = ({
       },
       {}
     );
+
     issuePlatformTags.forEach(tag => {
       if (allTagsCollection[tag.key]) {
         allTagsCollection[tag.key].totalValues =
@@ -129,6 +133,10 @@ export const useFetchIssueTags = ({
         allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
       }
     });
+
+    for (const excludedTag of EXCLUDED_TAGS) {
+      delete allTagsCollection[excludedTag];
+    }
 
     const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
       'me',
