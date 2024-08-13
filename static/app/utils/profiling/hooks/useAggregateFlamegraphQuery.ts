@@ -31,6 +31,7 @@ interface TransactionsAggregateFlamegraphQueryParameters
 
 interface ProfilesAggregateFlamegraphQueryParameters
   extends BaseAggregateFlamegraphQueryParameters {
+  // query is not supported when querying from profiles
   dataSource: 'profiles';
 }
 

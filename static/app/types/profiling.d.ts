@@ -220,7 +220,7 @@ declare namespace Profiling {
   type FunctionMetric = {
     avg: number;
     count: number;
-    examples: {}[];
+    examples: ProfileReference[];
     fingerprint: number;
     in_app: boolean;
     name: string;
