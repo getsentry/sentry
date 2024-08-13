@@ -332,6 +332,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.stats.ResponseCodeMiddleware",
     "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "sentry.middleware.list_filter.ListFilterMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
