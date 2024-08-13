@@ -15,7 +15,10 @@
   },
   "servers": [
     {
-      "url": "https://sentry.io/"
+      "url": "https://us.sentry.io/"
+    },
+    {
+      "url": "https://de.sentry.io/"
     }
   ],
   "tags": [
