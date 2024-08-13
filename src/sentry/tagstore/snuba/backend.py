@@ -266,6 +266,14 @@ class SnubaTagStorage(TagStorage):
         This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
         further explanation of how that is done.
         """
+        if dataset == Dataset.Replays:
+            if include_values_seen:
+                raise ValueError(
+                    "Unsupported parameter for get_tag_keys on replays dataset: include_values_seen"
+                )
+            if group:
+                raise ValueError("Unsupported parameter for get_tag_keys on replays dataset: group")
+
         default_start, default_end = default_start_end_dates()
         if start is None:
             start = default_start
@@ -315,11 +323,15 @@ class SnubaTagStorage(TagStorage):
                 metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
+            if dataset == Dataset.Replays:
+                aggregations = [["count()", "", "count"]]
+                conditions = [["timestamp", Op.GTE.value, start], ["timestamp", Op.LT.value, end]]
+
             result = snuba.query(
                 dataset=dataset,
                 start=start,
                 end=end,
-                groupby=["tags_key"],
+                groupby=["tags_key"] if dataset != Dataset.Replays else ["tags.key"],
                 conditions=conditions,
                 filter_keys=filters,
                 aggregations=aggregations,
