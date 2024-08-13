@@ -1,16 +1,20 @@
-import {Fragment, useEffect} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import getModalPortal from 'sentry/utils/getModalPortal';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+
+interface TooltipContextProps {
+  container: Parameters<typeof createPortal>[1] | undefined;
+}
+
+export const TooltipContext = createContext<TooltipContextProps>({container: undefined});
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -35,8 +39,8 @@ function Tooltip({
   disabled = false,
   ...hoverOverlayProps
 }: TooltipProps) {
+  const context = useContext(TooltipContext);
   const theme = useTheme();
-  const {visible: modalIsVisible} = useGlobalModal();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
 
@@ -65,14 +69,13 @@ function Tooltip({
     </PositionWrapper>
   );
 
-  // If the tooltip is rendered outside the modal's DOM node, it will be unclickable and unselectable.
-  // Therefore, we check if the global modal is active. If it is, the tooltip should be rendered within the same node to ensure interactivity.
-  const container = modalIsVisible ? getModalPortal() : document.body;
-
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, container)}
+      {createPortal(
+        <AnimatePresence>{tooltipContent}</AnimatePresence>,
+        context.container ?? document.body
+      )}
     </Fragment>
   );
 }
