@@ -269,7 +269,8 @@ class DashboardDetailsModelSerializer(Serializer):
                 DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
                     "order"
                 )
-            )
+            ),
+            user=user,
         )
 
         for dashboard in item_list:
