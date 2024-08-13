@@ -89,7 +89,7 @@ class PagerDutyActionHandlerTest(FireTest):
         assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert (
             data["links"][0]["href"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_pagerduty&notification_uuid={notification_uuid}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_pagerduty&detection_type=static&notification_uuid={notification_uuid}"
         )
 
     @responses.activate
