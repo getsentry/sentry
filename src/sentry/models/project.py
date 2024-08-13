@@ -31,9 +31,10 @@ from sentry.db.models import (
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
@@ -50,7 +51,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 

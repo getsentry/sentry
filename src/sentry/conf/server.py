@@ -394,8 +394,9 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
-    "sentry.monitors",
+    "sentry.users",
     "sentry.integrations",
+    "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -737,6 +738,8 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.backfill_outboxes",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
@@ -752,7 +755,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
-    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
@@ -768,13 +770,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion.scheduled",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
-    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
-    "sentry.tasks.integrations.slack",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -1437,7 +1436,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://sentry.io"}],
+        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -2979,6 +2978,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
     "sentry.issues.endpoints",
+    "sentry.integrations.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3150,6 +3150,8 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
+
+SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

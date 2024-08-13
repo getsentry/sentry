@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,6 +12,8 @@ import {
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -52,13 +55,20 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   };
 
   const spanConditions = getConditions(mri);
+  const selectedCondition = spanConditions.find(c => c.id === conditionId);
+  const hasBuiltInCondition = spanConditions.some(c => c.id === BUILT_IN_CONDITION_ID);
 
   const hasMultipleProjects =
     pageFilters.selection.projects.length > 1 ||
     pageFilters.selection.projects[0] === -1 ||
     pageFilters.selection.projects.length === 0;
 
-  const hasBuiltInCondition = spanConditions.some(c => c.id === BUILT_IN_CONDITION_ID);
+  // If the selected condition cannot be found, select the first condition
+  useEffect(() => {
+    if (!selectedCondition && spanConditions.length > 0) {
+      onChange(spanConditions[0].id);
+    }
+  }, [onChange, selectedCondition, spanConditions]);
 
   const options: SelectOptionOrSection<number>[] = useMemo(() => {
     let builtInOption: SelectOption<number> | null = null;
@@ -78,7 +88,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         const section = sectionMap.get(projectId) ?? [];
         section.push({
           label: condition.value ? (
-            <QueryLabel>{condition.value}</QueryLabel>
+            <FormattedCondition condition={condition} />
           ) : (
             t('All Spans')
           ),
@@ -154,6 +164,13 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
     return (
       <QueryFieldGroup.CompactSelect
         size="md"
+        triggerLabel={
+          selectedCondition?.value ? (
+            <FormattedCondition condition={selectedCondition} />
+          ) : (
+            t('All Spans')
+          )
+        }
         triggerProps={{
           icon: leadingIcon,
         }}
@@ -166,6 +183,15 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         menuFooter={({closeOverlay}) => (
           <QueryFooter mri={mri} closeOverlay={closeOverlay} />
         )}
+        css={css`
+          && {
+            width: auto;
+            min-width: auto;
+            & > button {
+              min-height: 100%;
+            }
+          }
+        `}
       />
     );
   }
@@ -209,6 +235,7 @@ export function CardinalityWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) {
+  const organization = useOrganization();
   const {getExtractionRules} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
   const extractionRules = getExtractionRules(mri);
@@ -216,9 +243,13 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
   const handleEdit = useCallback(
     (rule: MetricsExtractionRule) => {
       closeOverlay();
-      openExtractionRuleEditModal({metricExtractionRule: rule});
+      openExtractionRuleEditModal({
+        organization,
+        source: 'ddm.condition-select.add-filter',
+        metricExtractionRule: rule,
+      });
     },
-    [closeOverlay]
+    [closeOverlay, organization]
   );
 
   const options = useMemo(
@@ -275,6 +306,41 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
   );
 }
 
+function parseConditionValue(condition?: MetricsExtractionCondition) {
+  if (condition?.value) {
+    try {
+      return parseSearch(condition.value);
+    } catch {
+      // Ignore
+    }
+  }
+  return null;
+}
+
+function FormattedCondition({condition}: {condition?: MetricsExtractionCondition}) {
+  const parsed = useMemo(() => parseConditionValue(condition), [condition]);
+
+  if (!parsed) {
+    return condition?.value;
+  }
+
+  return (
+    <Tooltip
+      overlayStyle={{maxWidth: '80vw'}}
+      delay={500}
+      title={
+        <CompleteHighlight>
+          <HighlightQuery parsedQuery={parsed} />
+        </CompleteHighlight>
+      }
+    >
+      <Highlight>
+        <HighlightQuery parsedQuery={parsed} />
+      </Highlight>
+    </Tooltip>
+  );
+}
+
 const InfoWrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -290,8 +356,24 @@ const QueryFooterWrapper = styled('div')`
   min-width: 250px;
 `;
 
-const QueryLabel = styled('code')`
-  padding-left: 0;
+const Highlight = styled('span')`
+  padding: ${space(0.5)} ${space(0.25)};
+  overflow: hidden;
+  font-size: ${p => p.theme.fontSizeSmall};
+  gap: ${space(1)};
+  color: ${p => p.theme.textColor};
+  display: flex;
+  white-space: nowrap;
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: 400;
   max-width: 350px;
-  ${p => p.theme.overflowEllipsis}
+  & span {
+    margin: 0;
+  }
+`;
+
+const CompleteHighlight = styled(Highlight)`
+  display: flex;
+  flex-wrap: wrap;
+  max-width: unset;
 `;

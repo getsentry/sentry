@@ -278,6 +278,10 @@ export interface FieldDefinition {
    */
   allowComparisonOperators?: boolean;
   /**
+   * Default value for the field
+   */
+  defaultValue?: string;
+  /**
    * Is this field being deprecated
    */
   deprecated?: boolean;
@@ -298,6 +302,10 @@ export interface FieldDefinition {
    * Defines the number and type of parameters that the function accepts.
    */
   parameters?: AggregateParameter[];
+  /**
+   * Potential values for the field
+   */
+  values?: string[];
 }
 
 export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -870,6 +878,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
+    defaultValue: 'unresolved',
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),

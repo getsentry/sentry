@@ -4,7 +4,7 @@ import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -455,13 +455,13 @@ function RuleNode({
           type="info"
           showIcon
           trailingItems={
-            <Button
+            <LinkButton
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
               external
               size="xs"
             >
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
@@ -475,13 +475,13 @@ function RuleNode({
           type="info"
           showIcon
           trailingItems={
-            <Button
+            <LinkButton
               href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
               external
               size="xs"
             >
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}

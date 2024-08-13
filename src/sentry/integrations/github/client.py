@@ -16,9 +16,13 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -183,7 +187,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient):
+class GitHubBaseClient(GithubProxyClient, CommitContextClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -386,41 +390,43 @@ class GitHubBaseClient(GithubProxyClient):
         """
         msg = "Continuing execution."
         should_count_error = False
-        txt = error.text
+        error_message = error.text
         if error.json:
             json_data: Any = error.json
-            txt = json_data.get("message")
+            error_message = json_data.get("message")
 
         # TODO: Add condition for  getsentry/DataForThePeople
         # e.g. getsentry/nextjs-sentry-example
-        if txt == "Git Repository is empty.":
+        if error_message == "Git Repository is empty.":
             logger.warning("The repository is empty. %s", msg, extra=extra)
-        elif txt == "Not Found":
+        elif error_message == "Not Found":
             logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
-        elif txt == "Repository access blocked":
+        elif error_message == "Repository access blocked":
             logger.warning("Github has blocked the repository. %s", msg, extra=extra)
-        elif txt == "Server Error":
+        elif error_message == "Server Error":
             logger.warning("Github failed to respond. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt == "Bad credentials":
+        elif error_message == "Bad credentials":
             logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
-        elif txt == "Connection reset by peer":
+        elif error_message == "Connection reset by peer":
             logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt == "Connection broken: invalid chunk length":
+        elif error_message == "Connection broken: invalid chunk length":
             logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt and txt.startswith("Unable to reach host:"):
+        elif error_message and error_message.startswith("Unable to reach host:"):
             logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
             should_count_error = True
-        elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+        elif error_message and error_message.startswith(
+            "Due to U.S. trade controls law restrictions, this GitHub"
+        ):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
-            # Raising the error will be handled at the task level
+            # Raising the error will about the task and be handled at the task level
             raise error
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.error("Investigate if to raise error. An error happened. %s", msg, extra=extra)
+            logger.error("Continuing execution. Investigate: %s", error_message, extra=extra)
 
         return should_count_error
 

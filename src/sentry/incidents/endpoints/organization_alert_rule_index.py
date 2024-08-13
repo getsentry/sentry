@@ -46,6 +46,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -53,12 +54,18 @@ from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeStatus,
+)
 from sentry.utils.cursors import Cursor, StringCursor
 
 
 class AlertRuleIndexMixin(Endpoint):
-    def fetch_metric_alert(self, request, organization, project=None):
+    def fetch_metric_alert(
+        self, request: Request, organization: Organization, project: Project | None = None
+    ):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
@@ -88,7 +95,9 @@ class AlertRuleIndexMixin(Endpoint):
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
-    def create_metric_alert(self, request, organization, project=None):
+    def create_metric_alert(
+        self, request: Request, organization: Organization, project: Project | None = None
+    ):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
@@ -200,7 +209,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = ProjectUptimeSubscription.objects.filter(project__in=projects)
+        uptime_rules = ProjectUptimeSubscription.objects.filter(
+            project__in=projects,
+            mode__in=(
+                ProjectUptimeSubscriptionMode.MANUAL,
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            ),
+        )
 
         if not features.has("organizations:uptime-rule-api", organization):
             uptime_rules = ProjectUptimeSubscription.objects.none()
@@ -451,7 +466,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of active metric alert rules bound to an organization.
 
@@ -476,7 +491,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a new metric alert rule for the given organization.
 

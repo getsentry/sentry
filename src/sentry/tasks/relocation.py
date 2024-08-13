@@ -38,13 +38,14 @@ from sentry.backup.exports import (
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -52,7 +53,6 @@ from sentry.models.relocation import (
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
@@ -62,6 +62,7 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_local_region
+from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import json

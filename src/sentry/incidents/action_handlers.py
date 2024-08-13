@@ -30,12 +30,12 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.utils import build_query_strings
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
@@ -234,86 +234,6 @@ class EmailActionHandler(ActionHandler):
             context=context,
             headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
         )
-
-
-@AlertRuleTriggerAction.register_type(
-    "slack",
-    AlertRuleTriggerAction.Type.SLACK,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="slack",
-)
-class SlackActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "slack"
-
-    def send_alert(
-        self,
-        metric_value: int | float,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ):
-        from sentry.integrations.slack.utils import send_incident_alert_notification
-
-        success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
-        )
-        if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
-
-
-@AlertRuleTriggerAction.register_type(
-    "msteams",
-    AlertRuleTriggerAction.Type.MSTEAMS,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="msteams",
-)
-class MsTeamsActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "msteams"
-
-    def send_alert(
-        self,
-        metric_value: int | float,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ):
-        from sentry.integrations.msteams.utils import send_incident_alert_notification
-
-        success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
-        )
-        if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
-
-
-@AlertRuleTriggerAction.register_type(
-    "discord",
-    AlertRuleTriggerAction.Type.DISCORD,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="discord",
-)
-class DiscordActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "discord"
-
-    def send_alert(
-        self,
-        metric_value: int | float,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ):
-        from sentry.integrations.discord.actions.metric_alert import (
-            send_incident_alert_notification,
-        )
-
-        success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status
-        )
-        if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(

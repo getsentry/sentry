@@ -27,9 +27,10 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_subscription,
-    delete_project_uptime_subscription,
+    delete_uptime_subscriptions_for_project,
     remove_uptime_subscription_if_unused,
 )
+from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -65,8 +66,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         logger.info("process_result", extra=result)
 
         if subscription is None:
-            # TODO: We probably want to want to publish a tombstone
-            # subscription here
+            # If no subscription in the Postgres, this subscription has been orphaned. Remove
+            # from the checker
+            send_uptime_config_deletion(result["subscription_id"])
             metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
             return
 
@@ -120,6 +122,26 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     "handle_result_for_project.missed",
                     extra={"project_id": project_subscription.project_id, **result},
                 )
+            else:
+                # We log the result stats here after the duplicate check so that we know the "true" duration and delay
+                # of each check. Since during deploys we might have checks run from both the old/new checker
+                # deployments, there will be overlap of when things run. The new deployment will have artificially
+                # inflated delay stats, since it may duplicate checks that already ran on time on the old deployment,
+                # but will have run them later.
+                # Since we process all results for a given uptime monitor in order, we can guarantee that we get the
+                # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
+                # accurate measurement of delay/duration.
+                if result["duration_ms"]:
+                    metrics.gauge(
+                        "uptime.result_processor.check_result.duration",
+                        result["duration_ms"],
+                        sample_rate=1.0,
+                    )
+                metrics.gauge(
+                    "uptime.result_processor.check_result.delay",
+                    result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
+                    sample_rate=1.0,
+                )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
                 self.handle_result_for_project_auto_onboarding_mode(project_subscription, result)
@@ -150,7 +172,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             failure_count = pipeline.execute()[0]
             if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
                 # If we've hit too many failures during the onboarding period we stop monitoring
-                delete_project_uptime_subscription(
+                delete_uptime_subscriptions_for_project(
                     project_subscription.project,
                     project_subscription.uptime_subscription,
                     modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING],
@@ -216,6 +238,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 create_issue_platform_occurrence(result, project_subscription)
+                metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_sent_occurrence",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.FAILED)
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
@@ -225,6 +256,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 resolve_uptime_issue(project_subscription)
+                metrics.incr("uptime.result_processor.active.resolved", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_resolved",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.OK)
 
 

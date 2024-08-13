@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   BrowserClient,
+  captureFeedback,
   defaultStackParser,
   getDefaultIntegrations,
   makeFetchTransport,
@@ -74,9 +75,13 @@ type DefaultFeedbackModal = {
   secondaryAction?: React.ReactNode;
 };
 
-export type FeedbackModalProps<T extends Data> =
+export type FeedbackModalProps<T extends Data> = (
   | DefaultFeedbackModal
-  | CustomFeedbackModal<T>;
+  | CustomFeedbackModal<T>
+) & {
+  /** Use the actual user feedback feature instead of simply creating a message event. */
+  useNewUserFeedback?: boolean;
+};
 
 export function FeedbackModal<T extends Data>({
   Header,
@@ -129,22 +134,45 @@ export function FeedbackModal<T extends Data>({
 
       if (props.children === undefined) {
         const feedbackTypes = props.feedbackTypes ?? defaultFeedbackTypes;
-        feedbackClient.captureEvent({
-          ...commonEventProps,
-          contexts: {
-            feedback: {
-              additionalInfo: state.additionalInfo?.trim() ? state.additionalInfo : null,
+        const fullMessage = state.additionalInfo?.trim()
+          ? `${message} - ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
+          : `${message} - ${feedbackTypes[state.subject]}`;
+        if (props.useNewUserFeedback) {
+          captureFeedback({
+            message: fullMessage,
+            source: props.featureName,
+            tags: {
+              feature: props.featureName,
             },
-          },
-          message: state.additionalInfo?.trim()
-            ? `${message} - ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
-            : `${message} - ${feedbackTypes[state.subject]}`,
-        });
+          });
+        } else {
+          feedbackClient.captureEvent({
+            ...commonEventProps,
+            contexts: {
+              feedback: {
+                additionalInfo: state.additionalInfo?.trim()
+                  ? state.additionalInfo
+                  : null,
+              },
+            },
+            message: fullMessage,
+          });
+        }
       } else {
-        feedbackClient.captureEvent({
-          ...commonEventProps,
-          ...(submitEventData ?? {}),
-        });
+        if (props.useNewUserFeedback) {
+          captureFeedback({
+            message,
+            source: props.featureName,
+            tags: {
+              feature: props.featureName,
+            },
+          });
+        } else {
+          feedbackClient.captureEvent({
+            ...commonEventProps,
+            ...(submitEventData ?? {}),
+          });
+        }
       }
 
       addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));

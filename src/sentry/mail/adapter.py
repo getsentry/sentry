@@ -4,9 +4,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import digests
-from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import event_to_record, unsplit_key
+from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
 from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -147,7 +146,7 @@ class MailAdapter:
     @staticmethod
     def notify_digest(
         project: Project,
-        digest: Digest,
+        digest: DigestInfo,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,

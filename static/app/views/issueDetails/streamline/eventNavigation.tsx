@@ -1,4 +1,5 @@
 import {type CSSProperties, forwardRef} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -8,9 +9,12 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -23,11 +27,11 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -117,6 +121,14 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const params = useParams<{eventId?: string}>();
     const defaultIssueEvent = useDefaultIssueEvent();
 
+    const {data: actionableItems} = useActionableItems({
+      eventId: event.id,
+      orgSlug: organization.slug,
+      projectSlug: group.project.slug,
+    });
+
+    const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
+
     const getSelectedOption = () => {
       switch (params.eventId) {
         case EventNavOptions.RECOMMENDED:
@@ -202,32 +214,34 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </Tabs>
           <NavigationWrapper>
             <Navigation>
-              <LinkButton
-                title={'Previous Event'}
-                aria-label="Previous Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="left" />}
-                disabled={!hasPreviousEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.previousEventID}/`,
-                  query: {...location.query, referrer: 'previous-event'},
-                }}
-                css={grayText}
-              />
-              <LinkButton
-                title={'Next Event'}
-                aria-label="Next Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="right" />}
-                disabled={!hasNextEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.nextEventID}/`,
-                  query: {...location.query, referrer: 'next-event'},
-                }}
-                css={grayText}
-              />
+              <Tooltip title={t('Previous Event')}>
+                <LinkButton
+                  aria-label={t('Previous Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="left" />}
+                  disabled={!hasPreviousEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.previousEventID}/`,
+                    query: {...location.query, referrer: 'previous-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next Event')}>
+                <LinkButton
+                  aria-label={t('Next Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="right" />}
+                  disabled={!hasNextEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.nextEventID}/`,
+                    query: {...location.query, referrer: 'next-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
             </Navigation>
             <LinkButton
               to={{
@@ -244,7 +258,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
             </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
-        <Divider />
+        <NavigationDivider />
         <EventInfoJumpToWrapper>
           <EventInfo>
             <EventIdInfo>
@@ -295,10 +309,30 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               />
             </EventIdInfo>
             <TimeSince date={event.dateCreated ?? event.dateReceived} css={grayText} />
+            {hasEventError && (
+              <Fragment>
+                <Divider />
+                <ProcessingErrorButton
+                  title={t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  )}
+                  borderless
+                  size="zero"
+                  icon={<IconWarning color="red300" />}
+                  onClick={() => {
+                    document
+                      .getElementById(FoldSectionKey.PROCESSING_ERROR)
+                      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                  }}
+                >
+                  {t('Processing Error')}
+                </ProcessingErrorButton>
+              </Fragment>
+            )}
           </EventInfo>
           <JumpTo>
             <div>{t('Jump to:')}</div>
-            <ButtonBar>
+            <StyledButtonBar>
               {jumpToSections.map(jump => (
                 <Button
                   key={jump.section}
@@ -314,10 +348,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {jump.label}
                 </Button>
               ))}
-            </ButtonBar>
+            </StyledButtonBar>
           </JumpTo>
         </EventInfoJumpToWrapper>
-        <Divider />
+        <NavigationDivider />
       </div>
     );
   }
@@ -362,9 +396,12 @@ const JumpTo = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
+  max-width: 50%;
+  width: 400px;
 `;
 
-const Divider = styled('hr')`
+const NavigationDivider = styled('hr')`
   border-color: ${p => p.theme.border};
   margin: 0;
 `;
@@ -400,4 +437,26 @@ const CopyIconContainer = styled('span')`
 
 const EventTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ProcessingErrorButton = styled(Button)`
+  color: ${p => p.theme.red300};
+  font-weight: ${p => p.theme.fontWeightNormal};
+
+  :hover {
+    color: ${p => p.theme.red300};
+  }
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  &:after {
+    position: sticky;
+    padding: ${space(1)};
+    content: '';
+    inset: 0;
+    background: linear-gradient(90deg, transparent, ${p => p.theme.background});
+  }
 `;

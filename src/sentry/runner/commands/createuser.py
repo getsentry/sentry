@@ -9,13 +9,13 @@ from sentry.runner.decorators import configuration
 if TYPE_CHECKING:
     from django.db.models.fields import Field
 
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 def _get_field(field_name: str) -> Field[str, str]:
     from django.db.models.fields import Field
 
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     ret = User._meta.get_field(field_name)
     assert isinstance(ret, Field), ret
@@ -135,7 +135,7 @@ def createuser(
         raise click.ClickException("No password set and --no-password not passed.")
 
     from sentry import roles
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     # Loop through the email list provided.
     for email in emails:

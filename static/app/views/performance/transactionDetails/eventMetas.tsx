@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {DateTime} from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {generateIconName} from 'sentry/components/events/contexts/utils';
@@ -190,9 +190,9 @@ class EventMetas extends Component<Props, State> {
                 ))}
               {hasReplay && (
                 <ReplayButtonContainer>
-                  <Button href="#replay" size="sm" icon={<IconPlay />}>
+                  <LinkButton href="#replay" size="sm" icon={<IconPlay />}>
                     {t('Replay')}
-                  </Button>
+                  </LinkButton>
                 </ReplayButtonContainer>
               )}
               <QuickTraceContainer>
