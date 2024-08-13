@@ -183,10 +183,14 @@ export function DatabaseLandingPage() {
 
             <ModuleLayout.Full>
               <PageFilterWrapper>
-                <ModulePageFilterBar moduleName={ModuleName.DB} />
-                {organization.features.includes(
-                  'performance-queries-mongodb-extraction'
-                ) && <DatabaseSystemSelector />}
+                <ModulePageFilterBar
+                  moduleName={ModuleName.DB}
+                  extraFilters={
+                    organization.features.includes(
+                      'performance-queries-mongodb-extraction'
+                    ) && <DatabaseSystemSelector />
+                  }
+                />
               </PageFilterWrapper>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
