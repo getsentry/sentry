@@ -84,5 +84,5 @@ export default function SubregionSelector() {
 }
 
 const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-right: ${space(2)};
+  margin-right: ${space(1)};
 `;
