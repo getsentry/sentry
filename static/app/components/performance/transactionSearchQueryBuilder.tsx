@@ -35,6 +35,7 @@ interface TransactionSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  trailingItems?: React.ReactNode;
 }
 
 export function TransactionSearchQueryBuilder({
@@ -46,6 +47,7 @@ export function TransactionSearchQueryBuilder({
   projects,
   disableLoadingTags,
   filterKeyMenuWidth,
+  trailingItems,
 }: TransactionSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -137,6 +139,7 @@ export function TransactionSearchQueryBuilder({
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.EVENT}
       filterKeyMenuWidth={filterKeyMenuWidth}
+      trailingItems={trailingItems}
     />
   );
 }
