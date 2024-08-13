@@ -210,7 +210,7 @@ function SummaryContent({
     return items;
   }
 
-  const generateTrailingItems = useCallback(() => {
+  const trailingItems = useMemo(() => {
     if (!canUseTransactionMetricsData(organization, mepDataContext)) {
       return <MetricsWarningIcon />;
     }
@@ -359,7 +359,7 @@ function SummaryContent({
           searchSource="transaction_summary"
           disableLoadingTags // already loaded by the parent component
           filterKeyMenuWidth={420}
-          trailingItems={generateTrailingItems()}
+          trailingItems={trailingItems}
         />
       );
     }
