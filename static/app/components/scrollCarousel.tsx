@@ -85,7 +85,6 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
           style={{left: 0}}
           aria-label={t('Scroll left')}
           icon={<StyledIconChevron direction="left" />}
-          size="xs"
           borderless
         />
       )}
@@ -95,7 +94,6 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
           style={{right: 0}}
           aria-label={t('Scroll right')}
           icon={<StyledIconChevron direction="right" />}
-          size="xs"
           borderless
         />
       )}
@@ -128,9 +126,10 @@ const StyledArrowButton = styled(Button)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  min-height: 16px;
-  height: 16px;
-  width: 16px;
+  min-height: 14px;
+  height: 14px;
+  width: 14px;
+  padding: 10px;
   border-radius: 100%;
   z-index: 1;
   color: ${p => p.theme.subText};
@@ -147,7 +146,7 @@ const Mask = css`
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 35px;
+  width: 40px;
   pointer-events: none;
   z-index: 1;
 `;
