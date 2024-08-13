@@ -147,7 +147,9 @@ function getPredefinedValues({
     return null;
   }
 
-  if (!key.values?.length) {
+  const definedValues = key.values ?? fieldDefinition?.values;
+
+  if (!definedValues?.length) {
     return getValueSuggestions({
       filterValue,
       token,
@@ -155,17 +157,17 @@ function getPredefinedValues({
     });
   }
 
-  if (isStringFilterValues(key.values)) {
-    return [{sectionText: '', suggestions: key.values.map(value => ({value}))}];
+  if (isStringFilterValues(definedValues)) {
+    return [{sectionText: '', suggestions: definedValues.map(value => ({value}))}];
   }
 
-  const valuesWithoutSection = key.values
+  const valuesWithoutSection = definedValues
     .filter(group => group.type === ItemType.TAG_VALUE && group.value)
     .map(group => ({
       value: group.value as string,
       description: getSuggestionDescription(group),
     }));
-  const sections = key.values
+  const sections = definedValues
     .filter(group => group.type === 'header')
     .map(group => {
       return {
@@ -609,7 +611,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
-          value: getDefaultFilterValue({key: keyName, fieldDefinition}),
+          value: getDefaultFilterValue({fieldDefinition}),
         });
         onCommit();
         return;
@@ -649,7 +651,6 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
-      keyName,
       onCommit,
       token,
       updateFilterValue,
