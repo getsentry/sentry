@@ -10,6 +10,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {ClsBurst} from 'sentry/components/replays/breadcrumbs/breadcrumbClsBurst';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
@@ -33,6 +34,8 @@ import {
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
+  isSpanFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -115,6 +118,19 @@ function BreadcrumbItem({
     ) : null;
   }, [extraction?.html]);
 
+  const renderClsBurst = useCallback(() => {
+    return isSpanFrame(frame) &&
+      isWebVitalFrame(frame) &&
+      frame.description === 'cumulative-layout-shift' ? (
+      <ClsBurst
+        replay={replay}
+        clsFrame={frame}
+        expandPaths={expandPaths}
+        onInspectorExpanded={onInspectorExpanded}
+      />
+    ) : null;
+  }, [expandPaths, frame, onInspectorExpanded, replay]);
+
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
       <CrumbErrorIssue frame={frame} />
@@ -185,6 +201,7 @@ function BreadcrumbItem({
           </Flex>
           {renderComparisonButton()}
           {renderCodeSnippet()}
+          {renderClsBurst()}
           {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>

@@ -34,6 +34,7 @@ import type {
   SlowClickFrame,
   SpanFrame,
   VideoEvent,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
@@ -628,7 +629,21 @@ export default class ReplayReader {
 
   getWebVitalFrames = memoize(() => {
     if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      return this._sortedSpanFrames.filter(isWebVitalFrame);
+      // sort by largest timestamp first to easily find the last CLS in a burst
+      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+      let lastTimestamp = 0;
+      const groupedCls: WebVitalFrame[] = [];
+
+      for (const cls of allWebVitals) {
+        if (cls.description === 'cumulative-layout-shift') {
+          if (lastTimestamp === cls.timestampMs) {
+            groupedCls.push(cls);
+          } else {
+            lastTimestamp = cls.timestampMs;
+          }
+        }
+      }
+      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
     }
     return [];
   });
