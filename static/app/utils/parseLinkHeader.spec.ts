@@ -21,6 +21,12 @@ describe('parseLinkHeader', () => {
     });
   });
 
+  it('will not return anything if the string cannot be parsed', () => {
+    const parsed = parseLinkHeader('hell world');
+
+    expect(parsed).toStrictEqual({});
+  });
+
   it('should extract only next or prev when only one exists', () => {
     const prevOnly =
       '<https://us.sentry.io/api/0/organizations/sentry/replays/?per_page=50&queryReferrer=replayList&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1"';
