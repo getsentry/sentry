@@ -1,4 +1,8 @@
-export type ParsedHeader = {cursor: string; href: string; results: boolean | null};
+export interface ParsedHeader {
+  cursor: string;
+  href: string;
+  results: boolean | null;
+}
 type Result = Record<string, ParsedHeader>;
 
 export default function parseLinkHeader(header: string | null): Result {
@@ -7,19 +11,23 @@ export default function parseLinkHeader(header: string | null): Result {
   }
 
   const headerValues = header.split(',');
-  const links = {};
+  const links: Record<string, ParsedHeader> = {};
 
   headerValues.forEach(val => {
     const match =
       /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(
         val
       );
-    const hasResults = match![3] === 'true' ? true : match![3] === 'false' ? false : null;
+    if (!match) {
+      return;
+    }
+    const [, href, rel, results, cursor] = match;
+    const hasResults = results === 'true' ? true : results === 'false' ? false : null;
 
-    links[match![2]] = {
-      href: match![1],
+    links[rel] = {
+      href,
       results: hasResults,
-      cursor: match![4],
+      cursor: cursor,
     };
   });
 
