@@ -936,8 +936,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_user_with_no_teams(self, message_builder, record):
-        # other_project = self.create_project(organization=self.organization)
+    def test_user_with_team_and_no_projects(self, message_builder, record):
         organization = self.create_organization()
         project = self.create_project(organization=organization)
 
