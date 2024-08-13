@@ -104,5 +104,8 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.analysis.autoImportCompletions": true,
-  "prettier.configPath": "package.json"
+  "prettier.configPath": "package.json",
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
 }

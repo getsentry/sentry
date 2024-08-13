@@ -1,11 +1,11 @@
 import type React from 'react';
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
-import {inputStyles} from 'sentry/components/input';
-import {InputGroup} from 'sentry/components/inputGroup';
+import { inputStyles } from 'sentry/components/input';
+import { InputGroup } from 'sentry/components/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {SearchBarTrailingButton} from 'sentry/components/searchBar';
+import { SearchBarTrailingButton } from 'sentry/components/searchBar';
 import {
   SearchQueryBuilerContext,
   type SearchQueryBuilerContextValue,
@@ -14,26 +14,26 @@ import {
   useHandleSearch,
   UseHandleSearchProps,
 } from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
-import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import { useQueryBuilderState } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import { PlainTextQueryInput } from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
+import { TokenizedQueryGrid } from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
+import { parseQueryBuilderValue } from 'sentry/components/searchQueryBuilder/utils';
+import { IconChevron, IconClose, IconSearch } from 'sentry/icons';
+import { t } from 'sentry/locale';
+import { space } from 'sentry/styles/space';
+import { trackAnalytics } from 'sentry/utils/analytics';
+import { getFieldDefinition } from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {useDimensions} from 'sentry/utils/useDimensions';
+import { useDimensions } from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import { traceAnalytics } from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
+import type { TraceSearchState } from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 
-import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
+import { useTraceState, useTraceStateDispatch } from '../traceState/traceStateProvider';
 
 interface TraceSearchInputProps {
   onTraceSearch: (
@@ -91,18 +91,18 @@ function useTraceSearchInput(props: TraceSearchInputProps) {
   const onSearchFocus = useCallback(() => {
     traceAnalytics.trackSearchFocus(organization);
     if (traceStateRef.current.rovingTabIndex.node) {
-      traceDispatch({type: 'clear roving index'});
+      traceDispatch({ type: 'clear roving index' });
     }
   }, [traceDispatch, organization]);
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!event.target.value) {
-        traceDispatch({type: 'clear query'});
+        traceDispatch({ type: 'clear query' });
         return;
       }
 
-      traceDispatch({type: 'set query', query: event.target.value});
+      traceDispatch({ type: 'set query', query: event.target.value });
       onTraceSearch(
         event.target.value,
         traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node,
@@ -116,7 +116,7 @@ function useTraceSearchInput(props: TraceSearchInputProps) {
     trackAnalytics('trace.trace_layout.search_clear', {
       organization,
     });
-    traceDispatch({type: 'clear query'});
+    traceDispatch({ type: 'clear query' });
   }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
@@ -165,9 +165,9 @@ function useTraceSearchInput(props: TraceSearchInputProps) {
       interaction: 'click',
     });
     if (traceStateRef.current.rovingTabIndex.node) {
-      traceDispatch({type: 'clear roving index'});
+      traceDispatch({ type: 'clear roving index' });
     }
-    traceDispatch({type: 'go to next match'});
+    traceDispatch({ type: 'go to next match' });
   }, [traceDispatch, organization]);
 
   const onPreviousSearchClick = useCallback(() => {
@@ -177,9 +177,9 @@ function useTraceSearchInput(props: TraceSearchInputProps) {
       interaction: 'click',
     });
     if (traceStateRef.current.rovingTabIndex.node) {
-      traceDispatch({type: 'clear roving index'});
+      traceDispatch({ type: 'clear roving index' });
     }
-    traceDispatch({type: 'go to previous match'});
+    traceDispatch({ type: 'go to previous match' });
   }, [traceDispatch, organization]);
 
   return {
@@ -223,16 +223,15 @@ function LegacyTraceSearchInput(props: TraceSearchInputProps) {
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
-          {`${
-            inputProps.traceState.search.query &&
+          {`${inputProps.traceState.search.query &&
             !inputProps.traceState.search.results?.length
-              ? t('no results')
-              : inputProps.traceState.search.query
-                ? (inputProps.traceState.search.resultIteratorIndex !== null
-                    ? inputProps.traceState.search.resultIteratorIndex + 1
-                    : '-') + `/${inputProps.traceState.search.results?.length ?? 0}`
-                : ''
-          }`}
+            ? t('no results')
+            : inputProps.traceState.search.query
+              ? (inputProps.traceState.search.resultIteratorIndex !== null
+                ? inputProps.traceState.search.resultIteratorIndex + 1
+                : '-') + `/${inputProps.traceState.search.results?.length ?? 0}`
+              : ''
+            }`}
         </StyledTrailingText>
         {inputProps.traceState.search.query ? (
           <Fragment>
@@ -278,7 +277,7 @@ function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
-  const {state, dispatch} = useQueryBuilderState({
+  const { state, dispatch } = useQueryBuilderState({
     initialQuery: inputProps.traceState.search.query ?? '',
     getFieldDefinition,
     disabled: false,
@@ -315,7 +314,7 @@ function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
     onSearch: onTraceSearch,
   });
 
-  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
+  const { width: actionBarWidth } = useDimensions({ elementRef: actionBarRef });
 
   const contextValue = useMemo((): SearchQueryBuilerContextValue => {
     return {
@@ -336,9 +335,7 @@ function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
       size: 'normal',
     };
   }, [dispatch, parsedQuery, handleSearch, state]);
-  useLayoutEffect(() => {
-    onTraceSearch(state.query);
-  }, [state.query]);
+
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
@@ -358,7 +355,7 @@ function TraceViewSearchQueryBuilderInput(props: TraceSearchInputProps) {
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const organization = useOrganization();
 
-  return true ? (
+  return true || organization.features.includes('trace-view-query-builder') ? (
     <TraceViewSearchQueryBuilderInput {...props} />
   ) : (
     <LegacyTraceSearchInput {...props} />
