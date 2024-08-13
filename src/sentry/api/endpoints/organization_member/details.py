@@ -189,7 +189,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Additionally, both the original and desired organization role must have
         the same or lower permissions than the role of the organization user making the request
 
-        For example, an organization Manager may change a someone's role from
+        For example, an organization Manager may change someone's role from
         Member to Manager, but not to Owner.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
