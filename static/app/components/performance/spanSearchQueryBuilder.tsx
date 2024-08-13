@@ -1,12 +1,6 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {getHasTag} from 'sentry/components/events/searchBar';
-import {
-  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-  STATIC_SEMVER_TAGS,
-  STATIC_SPAN_TAGS,
-} from 'sentry/components/events/searchBarFieldConstants';
+import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -14,83 +8,67 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {
-  ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-  isAggregateField,
-  isMeasurement,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useTags from 'sentry/utils/useTags';
+import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {
+  useSpanFieldCustomTags,
+  useSpanFieldSupportedTags,
+} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
-interface TransactionSearchQueryBuilderProps {
+interface SpanSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
-  filterKeyMenuWidth?: number;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
 }
 
-export function TransactionSearchQueryBuilder({
+export function SpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
   onSearch,
   placeholder,
   projects,
-  disableLoadingTags,
-  filterKeyMenuWidth,
-}: TransactionSearchQueryBuilderProps) {
+}: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const tags = useTags();
 
   const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for events, users, tags, and more');
+    return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
-  useEffect(() => {
-    if (!disableLoadingTags) {
-      loadOrganizationTags(api, organization.slug, selection);
-    }
-  }, [api, organization.slug, selection, disableLoadingTags]);
+  const customTags = useSpanFieldCustomTags({
+    projects: projects ?? selection.projects,
+  });
 
-  const filterTags = useMemo(() => {
-    const measurements = getMeasurements();
+  const supportedTags = useSpanFieldSupportedTags({
+    projects: projects ?? selection.projects,
+  });
 
-    const combinedTags: TagCollection = {
-      ...STATIC_SPAN_TAGS,
-      ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-      ...STATIC_SEMVER_TAGS,
-      ...measurements,
-      ...tags,
-    };
+  const filterTags: TagCollection = useMemo(() => {
+    return {...supportedTags};
+  }, [supportedTags]);
 
-    combinedTags.has = getHasTag(combinedTags);
-    return combinedTags;
-  }, [tags]);
-
-  const filterKeySections = useMemo(
-    () => [
-      ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+  const filterKeySections = useMemo(() => {
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS,
       {
         value: 'custom_fields',
         label: 'Custom Tags',
-        children: Object.keys(tags),
+        children: Object.keys(customTags),
       },
-    ],
-    [tags]
-  );
+    ];
+  }, [customTags]);
 
-  // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = useCallback(
+  const getSpanFilterTagValues = useCallback(
     async (tag: Tag, queryString: string) => {
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
@@ -105,17 +83,14 @@ export function TransactionSearchQueryBuilder({
       }
 
       try {
-        const results = await fetchTagValues({
+        const results = await fetchSpanFieldValues({
           api,
           orgSlug: organization.slug,
-          tagKey: tag.key,
+          fieldKey: tag.key,
           search: queryString,
           projectIds: projects?.map(String) ?? selection.projects?.map(String),
-          includeTransactions: true,
-          sort: '-count',
           endpointParams: normalizeDateTimeParams(datetime ?? selection.datetime),
         });
-
         return results.filter(({name}) => defined(name)).map(({name}) => name);
       } catch (e) {
         throw new Error(`Unable to fetch event field values: ${e}`);
@@ -132,11 +107,10 @@ export function TransactionSearchQueryBuilder({
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
-      getTagValues={getTransactionFilterTagValues}
+      getTagValues={getSpanFilterTagValues}
       disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.EVENT}
-      filterKeyMenuWidth={filterKeyMenuWidth}
     />
   );
 }

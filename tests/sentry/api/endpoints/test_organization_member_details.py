@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -21,6 +20,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.authenticator import Authenticator
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -851,6 +851,34 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_success_response(self.organization.slug, member_om.id)
 
+    def test_related_invitations_are_deleted(self):
+        manager_user = self.create_user("manager@localhost")
+        self.manager = self.create_member(
+            user=manager_user, organization=self.organization, role="manager"
+        )
+        self.login_as(user=manager_user)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
+        # invite request
+        data = {"email": "foo@example.com", "role": "member", "teams": [self.team.slug]}
+        url = reverse(
+            "sentry-api-0-organization-invite-request-index", args=(self.organization.slug,)
+        )
+        self.client.post(url, data=data)
+
+        # pending invite
+        data = {"email": "bar@example.com", "role": "member", "teams": [self.team.slug]}
+        url = reverse("sentry-api-0-organization-member-index", args=(self.organization.slug,))
+        self.client.post(url, data=data)
+
+        assert OrganizationMember.objects.filter(inviter_id=manager_user.id).count() == 2
+
+        # manager leaves
+        self.get_success_response(self.organization.slug, self.manager.id)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
 
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
@@ -1000,6 +1028,8 @@ class ResetOrganizationMember2faTest(APITestCase):
         # cannot regenerate recovery codes
         recovery = RecoveryCodeInterface()
         recovery.enroll(self.user)
+        assert recovery.authenticator, "authenticator should exist"
+
         path = reverse(
             "sentry-api-0-user-authenticator-details",
             args=[self.member.id, recovery.authenticator.id],

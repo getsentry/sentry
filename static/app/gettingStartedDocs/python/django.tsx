@@ -15,7 +15,6 @@ type Params = DocsParams;
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
-# settings.py
 import sentry_sdk
 
 sentry_sdk.init(
@@ -65,8 +64,14 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'settings.py',
+              value: 'settings.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
       ],
     },
@@ -79,9 +84,12 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-
-          code: `# urls.py
+          code: [
+            {
+              label: 'urls.py',
+              value: 'urls.py',
+              language: 'python',
+              code: `
 from django.urls import path
 
 def trigger_error(request):
@@ -92,6 +100,8 @@ urlpatterns = [
     # ...
 ]
                   `,
+            },
+          ],
         },
       ],
       additionalInfo: (
