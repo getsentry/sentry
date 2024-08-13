@@ -58,7 +58,7 @@ export default function SubregionSelector() {
       clearable
       value={value}
       triggerLabel={value.length === 0 ? t('All') : undefined}
-      menuTitle={'Filter region'}
+      menuTitle={t('Filter region')}
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
         trackAnalytics('insight.vital.select_browser_value', {
