@@ -11,10 +11,12 @@ import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 interface TooltipContextProps {
-  container: Parameters<typeof createPortal>[1] | undefined;
+  container: Parameters<typeof createPortal>[1];
 }
 
-export const TooltipContext = createContext<TooltipContextProps>({container: undefined});
+export const TooltipContext = createContext<TooltipContextProps>({
+  container: document.body,
+});
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -74,7 +76,7 @@ function Tooltip({
       {wrapTrigger(children)}
       {createPortal(
         <AnimatePresence>{tooltipContent}</AnimatePresence>,
-        context.container ?? document.body
+        context.container
       )}
     </Fragment>
   );
