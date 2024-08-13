@@ -96,7 +96,7 @@ const StyledTitleRow = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledTitle = styled('span')`
+const StyledTitle = styled('div')`
   margin: 0;
   color: ${p => p.theme.text};
   font-size: ${p => p.theme.fontSizeMedium};
