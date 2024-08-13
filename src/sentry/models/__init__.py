@@ -1,5 +1,6 @@
 from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
+from sentry.users.models.lostpasswordhash import *  # NOQA
 
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
@@ -63,7 +64,6 @@ from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .lostpasswordhash import *  # NOQA
 from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA

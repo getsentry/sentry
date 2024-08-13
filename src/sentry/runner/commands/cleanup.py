@@ -175,6 +175,7 @@ def cleanup(
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
+        from sentry.users.models.lostpasswordhash import LostPasswordHash
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -234,10 +235,10 @@ def cleanup(
         ]
 
         debug_output("Removing expired values for LostPasswordHash")
-        if is_filtered(models.LostPasswordHash):
+        if is_filtered(LostPasswordHash):
             debug_output(">> Skipping LostPasswordHash")
         else:
-            models.LostPasswordHash.objects.filter(
+            LostPasswordHash.objects.filter(
                 date_added__lte=timezone.now() - timedelta(hours=48)
             ).delete()
 
