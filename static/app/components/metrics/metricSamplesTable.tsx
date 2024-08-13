@@ -751,9 +751,7 @@ function ProfileId({
   if (!defined(profileId)) {
     return (
       <Container>
-        <Button href={undefined} disabled size="xs">
-          <IconProfiling size="xs" />
-        </Button>
+        <Button disabled size="xs" icon={<IconProfiling />} aria-label="" />
       </Container>
     );
   }
