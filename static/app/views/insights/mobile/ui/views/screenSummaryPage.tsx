@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -34,15 +35,7 @@ type Query = {
 
 function ScreenSummary() {
   const location = useLocation<Query>();
-  const router = useRouter();
-
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName} = location.query;
 
   const crumbs = useModuleBreadcrumbs('mobile-ui');
 
@@ -66,53 +59,72 @@ function ScreenSummary() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
-            <HeaderContainer>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <ReleaseComparisonSelector />
-              </ToolRibbon>
-            </HeaderContainer>
-
-            <SamplesContainer>
-              <SamplesTables
-                transactionName={transactionName}
-                SpanOperationTable={SpanOperationTable}
-                // TODO(nar): Add event samples component specific to ui module
-                EventSamples={_props => <div />}
-              />
-            </SamplesContainer>
-
-            {spanGroup && spanOp && (
-              <SpanSamplesPanel
-                additionalFilters={{
-                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-                }}
-                groupId={spanGroup}
-                moduleName={ModuleName.OTHER}
-                transactionName={transactionName}
-                spanDescription={spanDescription}
-                spanOp={spanOp}
-                onClose={() => {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: omit(
-                      router.location.query,
-                      'spanGroup',
-                      'transactionMethod',
-                      'spanDescription',
-                      'spanOp'
-                    ),
-                  });
-                }}
-              />
-            )}
+            <ScreenSummaryContent />
           </Layout.Main>
         </Layout.Body>
       </PageAlertProvider>
     </Layout.Page>
+  );
+}
+
+export function ScreenSummaryContent() {
+  const location = useLocation<Query>();
+  const router = useRouter();
+
+  const {
+    transaction: transactionName,
+    spanGroup,
+    spanDescription,
+    spanOp,
+    'device.class': deviceClass,
+  } = location.query;
+
+  return (
+    <Fragment>
+      <HeaderContainer>
+        <ToolRibbon>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <ReleaseComparisonSelector />
+        </ToolRibbon>
+      </HeaderContainer>
+
+      <SamplesContainer>
+        <SamplesTables
+          transactionName={transactionName}
+          SpanOperationTable={SpanOperationTable}
+          // TODO(nar): Add event samples component specific to ui module
+          EventSamples={_props => <div />}
+        />
+      </SamplesContainer>
+
+      {spanGroup && spanOp && (
+        <SpanSamplesPanel
+          additionalFilters={{
+            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+          }}
+          groupId={spanGroup}
+          moduleName={ModuleName.OTHER}
+          transactionName={transactionName}
+          spanDescription={spanDescription}
+          spanOp={spanOp}
+          onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(
+                router.location.query,
+                'spanGroup',
+                'transactionMethod',
+                'spanDescription',
+                'spanOp'
+              ),
+            });
+          }}
+        />
+      )}
+    </Fragment>
   );
 }
 

@@ -305,7 +305,12 @@ function Sidebar() {
     </Feature>
   );
 
-  const screenLoads = hasOrganization && (
+  // the mobile screens module is meant to be as a replacement for screen load, app start, and mobile ui
+  // so if mobile screens is enabled, we should not show the other mobile modules
+  const hasMobileScreensModule =
+    hasOrganization && organization.features.includes('insights-mobile-screens-module');
+
+  const screenLoads = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="screen_load"
       features="insights-entry-points"
@@ -321,7 +326,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const appStarts = hasOrganization && (
+  const appStarts = hasOrganization && !hasMobileScreensModule && (
     <Feature key="app_start" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
@@ -333,7 +338,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const mobileUI = hasOrganization && (
+  const mobileUI = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="mobile-ui"
       features={['insights-entry-points', 'starfish-mobile-ui-module']}
@@ -346,6 +351,22 @@ function Sidebar() {
         id="performance-mobile-ui"
         icon={<SubitemDot collapsed />}
         isAlpha
+      />
+    </Feature>
+  );
+
+  const mobileScreens = hasOrganization && hasMobileScreensModule && (
+    <Feature
+      key="mobile-screens"
+      features={['insights-entry-points']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-screens']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-screens')}/`}
+        id="performance-mobile-screens"
+        icon={<SubitemDot collapsed />}
       />
     </Feature>
   );
@@ -564,6 +585,7 @@ function Sidebar() {
         {caches}
         {queues}
         {mobileUI}
+        {mobileScreens}
         {llmMonitoring}
       </SidebarAccordion>
     </Feature>
