@@ -111,7 +111,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.notifications.base import alert_page_needs_org_id
@@ -146,6 +145,7 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -2983,9 +2983,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[2]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[4]["elements"][0]["text"]
@@ -3015,9 +3013,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[3]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[4]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[4]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[5]["elements"][0]["text"]

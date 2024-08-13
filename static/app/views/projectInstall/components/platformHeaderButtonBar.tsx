@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,9 +14,9 @@ export default function PlatformHeaderButtonBar({gettingStartedLink, docsLink}: 
       <Button size="sm" icon={<IconChevron direction="left" />} to={gettingStartedLink}>
         {t('Back')}
       </Button>
-      <Button size="sm" href={docsLink} external>
+      <LinkButton size="sm" href={docsLink} external>
         {t('Full Documentation')}
-      </Button>
+      </LinkButton>
     </ButtonBar>
   );
 }

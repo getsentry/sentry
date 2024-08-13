@@ -4,12 +4,12 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.users.models.user import User
 from sentry.utils import mockdata
 
 

@@ -82,10 +82,6 @@ export function SpanTimeCharts({
     ModuleName,
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
-    [ModuleName.ALL]: [
-      {title: getThroughputChartTitle(moduleName, throughputUnit), Comp: ThroughputChart},
-      {title: getDurationChartTitle(moduleName), Comp: DurationChart},
-    ],
     [ModuleName.DB]: [],
     [ModuleName.CACHE]: [],
     [ModuleName.VITAL]: [],
@@ -100,13 +96,15 @@ export function SpanTimeCharts({
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.AI]: [],
     [ModuleName.MOBILE_UI]: [],
+    [ModuleName.MOBILE_SCREENS]: [],
     [ModuleName.OTHER]: [],
   };
 
-  const charts = [...moduleCharts[ModuleName.ALL]];
-  if (moduleName !== ModuleName.ALL) {
-    charts.push(...moduleCharts[moduleName]);
-  }
+  const charts = [
+    {title: getThroughputChartTitle(moduleName, throughputUnit), Comp: ThroughputChart},
+    {title: getDurationChartTitle(moduleName), Comp: DurationChart},
+    ...moduleCharts[moduleName],
+  ];
 
   return (
     <ChartsContainer>
@@ -388,7 +386,7 @@ const buildDiscoverQueryConditions = (
 
   result.push(`has:${SPAN_DESCRIPTION}`);
 
-  if (moduleName !== ModuleName.ALL && moduleName !== ModuleName.RESOURCE) {
+  if (moduleName !== ModuleName.RESOURCE) {
     result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 

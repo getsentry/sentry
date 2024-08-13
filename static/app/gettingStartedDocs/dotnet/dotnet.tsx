@@ -66,7 +66,7 @@ SentrySdk.Init(options =>
     // A Sentry Data Source Name (DSN) is required.
     // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
     // You can set it in the SENTRY_DSN environment variable, or you can set it in code here.
-    options.Dsn = "${params.dsn}";
+    options.Dsn = "${params.dsn.public}";
 
     // When debug is enabled, the Sentry client will emit detailed debugging information to the console.
     // This might be helpful, or might interfere with the normal operation of your application.
@@ -80,7 +80,7 @@ SentrySdk.Init(options =>
         ? `
 
     // Set TracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
+    // of transactions for tracing.
     // We recommend adjusting this value in production.
     options.TracesSampleRate = 1.0;`
         : ''
@@ -246,7 +246,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: t(
               'You can measure the performance of your code by capturing transactions and spans.'
             ),

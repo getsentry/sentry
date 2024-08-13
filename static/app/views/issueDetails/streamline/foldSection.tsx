@@ -29,7 +29,7 @@ export const enum FoldSectionKey {
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
 
-  // QuickTraceQuery?
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
 
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
@@ -56,6 +56,7 @@ export const enum FoldSectionKey {
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
+  PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 

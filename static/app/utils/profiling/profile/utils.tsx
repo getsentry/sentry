@@ -301,8 +301,8 @@ export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFr
 
 export function resolveFlamegraphSamplesProfileIds(
   samplesProfiles: Readonly<number[][]>,
-  profileIds: Readonly<string[]>
-): string[][] {
+  profileIds: Profiling.ProfileReference[]
+): Profiling.ProfileReference[][] {
   return samplesProfiles.map(profileIdIndices => {
     return profileIdIndices.map(i => profileIds[i]);
   });

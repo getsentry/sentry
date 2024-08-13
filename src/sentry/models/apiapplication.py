@@ -20,8 +20,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.types.region import find_all_region_names
 
 

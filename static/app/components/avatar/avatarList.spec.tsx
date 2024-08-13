@@ -31,7 +31,7 @@ describe('AvatarList', () => {
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
   });
 
-  it('renders with collapsed avatar count if > 5 users', () => {
+  it('renders with all avatars if count is max + 1 users', () => {
     const users = [
       {...user, id: '1', name: 'AB'},
       {...user, id: '2', name: 'BC'},
@@ -39,6 +39,27 @@ describe('AvatarList', () => {
       {...user, id: '4', name: 'DE'},
       {...user, id: '5', name: 'EF'},
       {...user, id: '6', name: 'FG'},
+    ];
+
+    renderComponent({users});
+    expect(screen.getByText(users[0].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[1].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[2].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[3].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
+    expect(screen.getByText(users[5].name.charAt(0))).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
+  });
+
+  it('renders with collapsed avatar count if > max + 1 users', () => {
+    const users = [
+      {...user, id: '1', name: 'AB'},
+      {...user, id: '2', name: 'BC'},
+      {...user, id: '3', name: 'CD'},
+      {...user, id: '4', name: 'DE'},
+      {...user, id: '5', name: 'EF'},
+      {...user, id: '6', name: 'FG'},
+      {...user, id: '7', name: 'GH'},
     ];
 
     renderComponent({users});
