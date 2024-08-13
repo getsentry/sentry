@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -57,12 +58,12 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
         clear_tags_and_context()
-        extra = {}
+        extra: dict[str, object] = {}
         try:
             integration = get_integration_from_token(token)
             extra["integration_id"] = integration.id
