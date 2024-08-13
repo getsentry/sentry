@@ -5,7 +5,7 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.mixins import IssueBasicMixin
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 from sentry.silo.base import all_silo_function
@@ -27,7 +27,7 @@ PRIORITIES = (
 )
 
 
-class BitbucketIssueBasicMixin(IssueBasicMixin):
+class BitbucketIssueBasicMixin(IssueBasicIntegration):
     def get_issue_url(self, key: str) -> str:
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"

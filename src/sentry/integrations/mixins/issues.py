@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -60,13 +61,14 @@ class ResolveSyncAction(enum.Enum):
         return ResolveSyncAction.NOOP
 
 
-class IssueBasicMixin:
+class IssueBasicIntegration(ABC):
     def should_sync(self, attribute):
         return False
 
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
+    @abstractmethod
     def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
@@ -180,6 +182,7 @@ class IssueBasicMixin:
         """
         return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
+    @abstractmethod
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         """
         Returns a list of field names that should have their last used values
@@ -260,6 +263,7 @@ class IssueBasicMixin:
             str(project_id), {}
         )
 
+    @abstractmethod
     def create_issue(self, data, **kwargs):
         """
         Create an issue via the provider's API and return the issue key,
@@ -278,6 +282,7 @@ class IssueBasicMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_issue(self, issue_id, **kwargs):
         """
         Get an issue via the provider's API and return the issue key,
@@ -396,7 +401,7 @@ class IssueBasicMixin:
         pass
 
 
-class IssueSyncMixin(IssueBasicMixin):
+class IssueSyncIntegration(IssueBasicIntegration, ABC):
     comment_key: ClassVar[str | None] = None
     outbound_status_key: ClassVar[str | None] = None
     inbound_status_key: ClassVar[str | None] = None
@@ -410,6 +415,7 @@ class IssueSyncMixin(IssueBasicMixin):
         value: bool = self.org_integration.config.get(key, False)
         return value
 
+    @abstractmethod
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -423,12 +429,14 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """
         Given webhook data, check whether the status category changed FROM
@@ -458,3 +466,4 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
+        pass

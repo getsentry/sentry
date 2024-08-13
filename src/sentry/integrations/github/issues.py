@@ -8,7 +8,7 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
@@ -20,7 +20,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 
-class GitHubIssueBasic(IssueBasicMixin):
+class GitHubIssueBasic(IssueBasicIntegration):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 

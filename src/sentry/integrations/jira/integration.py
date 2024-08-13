@@ -21,7 +21,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.jira.tasks import migrate_issues
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
@@ -119,7 +119,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
+class JiraIntegration(IntegrationInstallation, IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"
@@ -424,7 +424,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
