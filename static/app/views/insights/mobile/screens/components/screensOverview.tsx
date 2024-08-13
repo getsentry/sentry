@@ -6,6 +6,7 @@ import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -130,12 +131,7 @@ export function ScreensOverview() {
     []
   );
 
-  const {
-    data: secondaryData,
-    // isLoading: secondaryLoading,
-    // pageLinks: secondaryLinks,
-    // eventView: secondaryEventView,
-  } = useMetrics(
+  const {data: secondaryData, isLoading: secondaryLoading} = useMetrics(
     secondaryDataset,
     secondaryFields,
     isProjectCrossPlatform ? selectedPlatform : undefined,
@@ -162,7 +158,7 @@ export function ScreensOverview() {
   const derivedQuery = getTransactionSearchQuery(location, primaryEventView.query);
 
   const combinedData = useMemo((): TableData | undefined => {
-    if (primaryData !== undefined && secondaryData !== undefined) {
+    if (defined(primaryData) && defined(secondaryData)) {
       const meta: MetaType = {};
       meta.units = {
         ...secondaryData.meta?.units,
@@ -187,15 +183,15 @@ export function ScreensOverview() {
       });
 
       return {
-        data: data,
-        meta: meta,
+        data,
+        meta,
       };
     }
 
     return primaryData;
   }, [primaryData, secondaryData]);
 
-  const loading = primaryLoading;
+  const loading = primaryLoading || secondaryLoading;
 
   return (
     <Container>
@@ -214,7 +210,7 @@ export function ScreensOverview() {
         organization={organization}
         query={getFreeTextFromQuery(derivedQuery)}
         placeholder={t('Search for Screen')}
-        additionalConditions={new MutableSearch(tableSearchFilters.formatString())}
+        additionalConditions={tableSearchFilters}
       />
       <Container>
         <ScreensOverviewTable
