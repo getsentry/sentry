@@ -8,64 +8,13 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {SectionConfig} from 'sentry/views/issueDetails/streamline/eventDetails';
 
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
 
-export const enum FoldSectionKey {
-  TRACE = 'trace',
-
-  USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
-
-  UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
-
-  HIGHLIGHTS = 'highlights',
-  RESOURCES = 'resources', // Position controlled by flag
-
-  EXCEPTION = 'exception',
-  STACKTRACE = 'stacktrace',
-  SPANS = 'spans',
-  EVIDENCE = 'evidence',
-  MESSAGE = 'message',
-
-  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
-
-  SPAN_EVIDENCE = 'span-evidence',
-  HYDRATION_DIFF = 'hydration-diff',
-  REPLAY = 'replay',
-
-  HPKP = 'hpkp',
-  CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  TEMPLATE = 'template',
-
-  BREADCRUMBS = 'breadcrumbs',
-  DEBUGMETA = 'debugmeta',
-  REQUEST = 'request',
-
-  TAGS = 'tags',
-  SCREENSHOT = 'screenshot',
-
-  CONTEXTS = 'contexts',
-  EXTRA = 'extra',
-  PACKAGES = 'packages',
-  DEVICE = 'device',
-  VIEW_HIERARCHY = 'view-hierarchy',
-  ATTACHMENTS = 'attachments',
-  SDK = 'sdk',
-  GROUPING_INFO = 'grouping-info',
-  PROCESSING_ERROR = 'processing-error',
-  RRWEB = 'rrweb', // Legacy integration prior to replays
-}
-
 interface FoldSectionProps {
   children: React.ReactNode;
-  /**
-   * Unique key to persist user preferences for initalizing the section to open/closed
-   */
-  sectionKey: FoldSectionKey;
+  config: SectionConfig;
   /**
    * Title of the section, always visible
    */
@@ -91,7 +40,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     children,
     title,
     actions,
-    sectionKey,
+    config,
     initialCollapse = false,
     preventCollapse = false,
     ...props
@@ -99,6 +48,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   ref
 ) {
   const organization = useOrganization();
+  const {key: sectionKey, isBlank} = config;
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
@@ -119,6 +69,10 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     },
     [setIsCollapsed, organization, sectionKey, isCollapsed]
   );
+
+  if (isBlank?.() ?? false) {
+    return null;
+  }
 
   return (
     <Section {...props} ref={ref} id={sectionKey}>

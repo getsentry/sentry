@@ -14,7 +14,7 @@ import {
 } from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
@@ -73,7 +73,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     <Wrapper
       title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
-      type={FoldSectionKey.RESOURCES}
+      type={SectionKey.RESOURCES}
     >
       <Content>
         {config.resources && (

@@ -32,7 +32,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
@@ -45,7 +45,7 @@ type EventNavigationProps = {
 type SectionDefinition = {
   condition: (event: Event) => boolean;
   label: string;
-  section: FoldSectionKey;
+  section: SectionKey;
 };
 
 enum EventNavOptions {
@@ -71,43 +71,43 @@ const EventNavOrder = [
 
 const eventDataSections: SectionDefinition[] = [
   {
-    section: FoldSectionKey.HIGHLIGHTS,
+    section: SectionKey.HIGHLIGHTS,
     label: t('Event Highlights'),
     condition: () => true,
   },
   {
-    section: FoldSectionKey.STACKTRACE,
+    section: SectionKey.STACKTRACE,
     label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
   },
   {
-    section: FoldSectionKey.EXCEPTION,
+    section: SectionKey.EXCEPTION,
     label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
   },
   {
-    section: FoldSectionKey.BREADCRUMBS,
+    section: SectionKey.BREADCRUMBS,
     label: t('Breadcrumbs'),
     condition: (event: Event) =>
       event.entries.some(entry => entry.type === 'breadcrumbs'),
   },
   {
-    section: FoldSectionKey.TAGS,
+    section: SectionKey.TAGS,
     label: t('Tags'),
     condition: (event: Event) => event.tags.length > 0,
   },
   {
-    section: FoldSectionKey.CONTEXTS,
+    section: SectionKey.CONTEXTS,
     label: t('Context'),
     condition: (event: Event) => !!event.context,
   },
   {
-    section: FoldSectionKey.USER_FEEDBACK,
+    section: SectionKey.USER_FEEDBACK,
     label: t('User Feedback'),
     condition: (event: Event) => !!event.userReport,
   },
   {
-    section: FoldSectionKey.REPLAY,
+    section: SectionKey.REPLAY,
     label: t('Replay'),
     condition: (event: Event) => !!getReplayIdFromEvent(event),
   },
@@ -321,7 +321,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   icon={<IconWarning color="red300" />}
                   onClick={() => {
                     document
-                      .getElementById(FoldSectionKey.PROCESSING_ERROR)
+                      .getElementById(SectionKey.PROCESSING_ERROR)
                       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
                   }}
                 >
