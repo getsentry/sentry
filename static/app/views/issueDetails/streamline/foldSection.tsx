@@ -29,7 +29,7 @@ export const enum FoldSectionKey {
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
 
-  // QuickTraceQuery?
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
 
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
