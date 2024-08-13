@@ -52,4 +52,4 @@ sending events from any language, in any application.
   - [Bug Tracker](https://github.com/getsentry/sentry/issues)
   - [Code](https://github.com/getsentry/sentry)
   - [Transifex](https://www.transifex.com/getsentry/sentry/) (Translate
-    Sentry\!)
+    Sentry!)
