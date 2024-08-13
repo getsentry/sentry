@@ -251,8 +251,8 @@ def create_incident_activity(
     incident: Incident,
     activity_type: IncidentActivityType,
     user: RpcUser | None = None,
-    value: int | None = None,
-    previous_value: int | None = None,
+    value: str | int | None = None,
+    previous_value: str | int | None = None,
     comment: str | None = None,
     mentioned_user_ids: Collection[int] = (),
     date_added: datetime | None = None,
@@ -420,7 +420,7 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident: Incident, user_id: int) -> IncidentSubscription:
+def subscribe_to_incident(incident: Incident, user_id: int) -> tuple[IncidentSubscription, bool]:
     return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
 
 
@@ -716,7 +716,7 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> N
 def update_alert_rule(
     alert_rule: AlertRule,
     query_type: SnubaQuery.Type | None = None,
-    dataset: str | None = None,
+    dataset: Dataset | None = None,
     projects: Collection[Project] | None = None,
     name: str | None = None,
     owner: Actor | None | NotSet = NOT_SET,
@@ -731,7 +731,7 @@ def update_alert_rule(
     excluded_projects: Iterable[Project] | None = None,
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] | None = None,
-    comparison_delta: int | NotSet = NOT_SET,
+    comparison_delta: int | None | NotSet = NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
