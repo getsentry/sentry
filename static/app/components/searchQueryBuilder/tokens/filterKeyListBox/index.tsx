@@ -213,7 +213,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
               {...listBoxProps}
               ref={listBoxRef}
               listState={state}
-              hasSearch={false}
+              hasSearch={selectedSection !== null}
               hiddenOptions={hiddenOptionsWithRecentsAdded}
               keyDownHandler={() => true}
               overlayIsOpen={isOpen}
