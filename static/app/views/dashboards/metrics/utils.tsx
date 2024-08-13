@@ -8,11 +8,10 @@ import {
   isVirtualMetric,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
-import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import {NO_QUERY_ID, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
-import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
 import type {
   DashboardMetricsEquation,
   DashboardMetricsExpression,

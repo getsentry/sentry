@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -237,13 +237,13 @@ function TeamReleases({
         isEmpty={projects.length === 0}
         emptyMessage={t('No releases were setup for this team’s projects')}
         emptyAction={
-          <Button
+          <LinkButton
             size="sm"
             external
             href="https://docs.sentry.io/product/releases/setup/"
           >
             {t('Learn More')}
-          </Button>
+          </LinkButton>
         }
         headers={[
           t('Releases Per Project'),

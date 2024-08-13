@@ -13,6 +13,7 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -152,19 +153,20 @@ export function DefaultGroupEventDetailsContent({
   return (
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
-
-      {hasActionableItems && (
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
@@ -358,6 +360,9 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {hasStreamlinedUI && (
+        <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}

@@ -1,7 +1,7 @@
 import type {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -68,12 +68,12 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
       <SettingsPageHeader
         title={t('Replays')}
         action={
-          <Button
+          <LinkButton
             external
             href="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
           >
             {t('Read the Docs')}
-          </Button>
+          </LinkButton>
         }
       />
       <PermissionAlert project={project} />

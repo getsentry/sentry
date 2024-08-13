@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
@@ -102,14 +102,14 @@ function DebugFileRow({
                 )}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="xs"
                   icon={<IconDownload />}
                   href={downloadUrl}
                   disabled={!hasRole}
                 >
                   {t('Download')}
-                </Button>
+                </LinkButton>
               </Tooltip>
             )}
           </Role>
