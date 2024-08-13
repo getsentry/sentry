@@ -8,6 +8,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconAdd, IconClose} from 'sentry/icons';
 
 import {
+  buttonRightCss,
   panelHeadingRightCss,
   panelInsetContentCss,
   panelSectionCss,
@@ -39,15 +40,7 @@ export default function FeatureFlagsPanel() {
             title="Add Flag Override"
             onClick={() => setIsAddFlagActive(!isAddFlagActive)}
           >
-            <span
-              css={{
-                display: 'flex',
-                gap: 'var(--space75)',
-                alignItems: 'center',
-                color: 'var(--purple300)',
-                fontWeight: 'bold',
-              }}
-            >
+            <span css={buttonRightCss}>
               <IconAdd size="xs" />
               Add Flag
             </span>

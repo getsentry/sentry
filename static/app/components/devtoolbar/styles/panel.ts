@@ -51,3 +51,11 @@ export const panelDescCss = css`
   text-align: left;
   padding-top: var(--space200);
 `;
+
+export const buttonRightCss = css`
+  display: flex;
+  gap: var(--space75);
+  align-items: center;
+  color: var(--purple300);
+  font-weight: bold;
+`;
