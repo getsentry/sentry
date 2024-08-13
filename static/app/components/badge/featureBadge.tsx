@@ -40,7 +40,7 @@ const labels: Record<BadgeType, string> = {
   beta: t('beta'),
   new: t('new'),
   experimental: t('experimental'),
-  internal: t('internal only'),
+  internal: t('internal'),
 };
 
 const shortLabels: Record<BadgeType, string> = {
