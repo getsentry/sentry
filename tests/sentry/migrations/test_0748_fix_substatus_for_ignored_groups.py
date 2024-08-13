@@ -7,11 +7,11 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-class BackfillMissingUnresolvedSubstatus(TestMigrations):
+class FixSubstatusForIgnoreedGroupsTest(TestMigrations):
     migrate_from = "0747_create_datasecrecywaiver_table"
     migrate_to = "0748_fix_substatus_for_ignored_groups"
 
-    def setup_initial_state(self):
+    def setup_before_migration(self, app):
         self.organization = Organization.objects.create(name="test", slug="test")
         self.project = self.create_project(organization=self.organization)
         self.do_not_update = Group.objects.create(
