@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable
 from typing import Any
 
 from sentry import eventstore, eventstream, models, nodestore
@@ -12,6 +12,7 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
+from ..manager import DeletionTaskManager
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
@@ -55,7 +56,9 @@ class EventDataDeletionTask(BaseDeletionTask):
     # Number of events fetched from eventstore per chunk() call.
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(self, manager: Any, groups: Sequence[Group], **kwargs: Any) -> None:
+    def __init__(
+        self, manager: DeletionTaskManager, groups: Iterable[Group], **kwargs: Any
+    ) -> None:
         self.groups = groups
         self.last_event: Event | None = None
         super().__init__(manager, **kwargs)
@@ -123,7 +126,7 @@ class GroupDeletionTask(ModelDeletionTask):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = 1000
 
-    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
+    def delete_bulk(self, instance_list: Iterable[Group]) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -159,7 +162,7 @@ class GroupDeletionTask(ModelDeletionTask):
 
         return super().delete_instance(instance)
 
-    def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
+    def mark_deletion_in_progress(self, instance_list: Iterable[Group]) -> None:
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
