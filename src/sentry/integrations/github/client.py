@@ -23,6 +23,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -187,7 +188,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, CommitContextClient):
+class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -638,10 +639,12 @@ class GitHubBaseClient(GithubProxyClient, CommitContextClient):
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content

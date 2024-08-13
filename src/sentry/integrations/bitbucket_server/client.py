@@ -9,6 +9,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError
@@ -100,7 +101,7 @@ class BitbucketServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class BitbucketServerClient(ApiClient):
+class BitbucketServerClient(ApiClient, RepositoryClient):
     """
     Contains the BitBucket Server specifics in order to communicate with bitbucket
 
@@ -255,7 +256,7 @@ class BitbucketServerClient(ApiClient):
         )
         return values
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         raise IntegrationFeatureNotImplementedError
 
     def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from time import time
 from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
@@ -21,16 +21,15 @@ from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration as IntegrationModel
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
@@ -115,7 +114,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(RepositoryIntegration, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -127,6 +126,10 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         super().__init__(*args, **kwargs)
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
+
+    @property
+    def integration_name(self) -> str:
+        return "vsts"
 
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()
@@ -146,7 +149,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             )
         return data
 
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         repos = repository_service.get_repositories(
             organization_id=self.organization_id, providers=["visualstudio"]
         )
@@ -333,7 +336,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(self.model.metadata["domain_name"])
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         filepath = filepath.lstrip("/")
         project = quote(repo.config["project"])
         repo_id = quote(repo.config["name"])
