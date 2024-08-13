@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -201,13 +201,13 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
         </Header>
         <Body>
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
-          <Button
+          <LinkButton
             priority="primary"
             icon={<IconDownload />}
             href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
           >
             {t('Download CSV')}
-          </Button>
+          </LinkButton>
           <p>
             {t("That link won't last forever — it expires:")}
             <br />
