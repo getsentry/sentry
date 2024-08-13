@@ -53,7 +53,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
           </StyledTitle>
           {isLoading && <StyledLoadingIndicator size={16} mini />}
         </StyledTitleRow>
-        <StyledContent>
+        <div>
           {error ? <div>{t('Error loading summary')}</div> : null}
           {data && (
             <Content>
@@ -72,7 +72,7 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
               </ImpactContent>
             </Content>
           )}
-        </StyledContent>
+        </div>
       </Wrapper>
     </SidebarSection.Wrap>
   );
@@ -109,12 +109,7 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin-top: -1px;
 `;
 
-const StyledContent = styled('div')`
-  margin: 0;
-`;
-
 const SummaryContent = styled('div')`
-  margin: 0;
   p {
     margin: 0;
   }
