@@ -23,7 +23,7 @@ sentry_sdk.init(
     ],
 
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     # We recommend adjusting this value in production,
     traces_sample_rate=1.0,
 )`;

@@ -108,7 +108,7 @@ const getConfigurationPropertiesSnippet = (params: Params) => `
 sentry.dsn=${params.dsn.public}${
   params.isPerformanceSelected
     ? `
-# Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
 # We recommend adjusting this value in production.
 sentry.traces-sample-rate=1.0`
     : ''
@@ -119,7 +119,7 @@ sentry:
   dsn: ${params.dsn.public}${
     params.isPerformanceSelected
       ? `
-  # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+  # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
   # We recommend adjusting this value in production.
   traces-sample-rate: 1.0`
       : ''
@@ -291,7 +291,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
       ),

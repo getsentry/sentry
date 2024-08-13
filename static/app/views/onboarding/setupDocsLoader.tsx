@@ -210,7 +210,7 @@ Sentry.onLoad(function() {
   }${
     hasPerformance
       ? `
-    // Performance Monitoring
+    // Tracing
     tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }${
@@ -316,7 +316,7 @@ Sentry.onLoad(function() {
           {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
             <li>
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/">
-                {t('Performance Monitoring')}
+                {t('Tracing')}
               </ExternalLink>
               {': '}
               {t(

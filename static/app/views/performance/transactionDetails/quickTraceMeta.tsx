@@ -43,7 +43,7 @@ export default function QuickTraceMeta({
   const organization = useOrganization();
   const features = ['performance-view'];
 
-  const noFeatureMessage = t('Requires performance monitoring.');
+  const noFeatureMessage = t('Requires tracing.');
 
   const docsLink = getConfigurePerformanceDocsLink(project);
 

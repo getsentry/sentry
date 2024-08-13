@@ -180,9 +180,7 @@ describe('QuickTraceMeta', function () {
       throw new Error('child is null');
     }
     await userEvent.hover(child as HTMLElement);
-    expect(
-      await screen.findByText('Requires performance monitoring.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Requires tracing.')).toBeInTheDocument();
   });
 
   it('does not render when platform does not support tracing', function () {

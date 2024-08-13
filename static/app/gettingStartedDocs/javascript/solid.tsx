@@ -62,7 +62,7 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 ],${
   params.isPerformanceSelected
     ? `
-      // Performance Monitoring
+      // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -195,7 +195,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),

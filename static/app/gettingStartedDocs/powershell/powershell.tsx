@@ -108,7 +108,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),
