@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Sequence
 from typing import Any
 
 from sentry import eventstore, eventstream, models, nodestore
@@ -57,7 +57,7 @@ class EventDataDeletionTask(BaseDeletionTask):
     DEFAULT_CHUNK_SIZE = 10000
 
     def __init__(
-        self, manager: DeletionTaskManager, groups: Iterable[Group], **kwargs: Any
+        self, manager: DeletionTaskManager, groups: Sequence[Group], **kwargs: Any
     ) -> None:
         self.groups = groups
         self.last_event: Event | None = None
@@ -126,7 +126,7 @@ class GroupDeletionTask(ModelDeletionTask):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = 1000
 
-    def delete_bulk(self, instance_list: Iterable[Group]) -> bool:
+    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -162,7 +162,7 @@ class GroupDeletionTask(ModelDeletionTask):
 
         return super().delete_instance(instance)
 
-    def mark_deletion_in_progress(self, instance_list: Iterable[Group]) -> None:
+    def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)

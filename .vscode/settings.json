@@ -59,7 +59,7 @@
     "editor.detectIndentation": false,
     "editor.tabSize": 2,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "biomejs.biome",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
       "quickfix.biome": "explicit"
     }
