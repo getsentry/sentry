@@ -8,8 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import marked from 'sentry/utils/marked';
-import {useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 interface GroupSummaryProps {
   group: Group;
@@ -21,14 +20,12 @@ interface GroupSummaryData {
   summary: string;
 }
 
-const useGroupSummary = (groupId: string) => {
-  const api = useApi();
+const makeGroupSummaryQueryKey = (groupId: string): ApiQueryKey => [
+  `/issues/${groupId}/summarize/`,
+];
 
-  return useQuery<GroupSummaryData>({
-    queryKey: ['groupSummary', groupId],
-    queryFn: () => {
-      return api.requestPromise(`/issues/${groupId}/summarize/`);
-    },
+const useGroupSummary = (groupId: string) => {
+  return useApiQuery<GroupSummaryData>(makeGroupSummaryQueryKey(groupId), {
     staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
   });
 };
