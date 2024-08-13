@@ -399,7 +399,6 @@ module = [
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.group_plugin_action",
     "sentry.web.frontend.idp_email_verification",
-    "sentry.web.frontend.js_sdk_loader",
     "sentry.web.frontend.newest_issue",
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
