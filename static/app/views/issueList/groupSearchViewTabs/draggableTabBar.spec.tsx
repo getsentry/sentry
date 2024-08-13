@@ -1,9 +1,12 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   DraggableTabBar,
   type Tab,
 } from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('DraggableTabBar', () => {
   const mockOnTabRenamed = jest.fn();
@@ -15,28 +18,37 @@ describe('DraggableTabBar', () => {
   const mockOnDiscardTempView = jest.fn();
   const mockOnSaveTempView = jest.fn();
 
-  const defaultNewTab: Tab = {
-    key: 'new-view',
-    label: 'New View',
-    content: <div>This is a New View</div>,
-  };
-
-  const tempTab: Tab = {
-    key: 'temporary-tab',
-    label: 'Unsaved',
-    content: <div>This is the Temporary view</div>,
-  };
+  const router = RouterFixture({
+    location: {
+      pathname: 'test',
+    },
+  });
 
   const tabs: Tab[] = [
     {
+      id: '1',
       key: '1',
       label: 'Prioritized',
       queryCount: 20,
-      hasUnsavedChanges: true,
-      content: <div>Tab 1 Content</div>,
+      query: 'priority:high',
+      querySort: IssueSortOptions.DATE,
+      unsavedChanges: ['priority:low', IssueSortOptions.DATE],
     },
-    {key: '2', label: 'For Review', queryCount: 1001, content: <div>Tab 2 Content</div>},
-    {key: '3', label: 'Regressed', content: <div>Tab 3 Content</div>},
+    {
+      id: '2',
+      key: '2',
+      label: 'For Review',
+      queryCount: 1001,
+      query: 'is:unassigned',
+      querySort: IssueSortOptions.DATE,
+    },
+    {
+      id: '3',
+      key: '3',
+      label: 'Regressed',
+      query: 'is:regressed',
+      querySort: IssueSortOptions.DATE,
+    },
   ];
 
   describe('Tabs render as expected', () => {
@@ -46,9 +58,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab={false}
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       expect(screen.getAllByRole('tab').length).toBe(tabs.length);
@@ -56,22 +67,6 @@ describe('DraggableTabBar', () => {
       expect(screen.getByRole('tab', {name: 'Prioritized 20'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'For Review 1000+'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'Regressed'})).toBeInTheDocument();
-
-      expect(screen.getByRole('tabpanel')).toHaveTextContent('Tab 1 Content');
-    });
-
-    it('should render temp tab if showTempTab = true', () => {
-      render(
-        <DraggableTabBar
-          tabs={tabs}
-          setTabs={jest.fn()}
-          onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
-        />
-      );
-      expect(screen.getByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
     });
   });
   // Skipping this and next tests due to excessive unexplainable flakiness
@@ -83,9 +78,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
 
@@ -116,9 +110,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       // We need to explicitly click on the For Review tab since it is not the default (first) tab in props
@@ -152,9 +145,8 @@ describe('DraggableTabBar', () => {
           tabs={[tabs[1]]}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
 
@@ -178,9 +170,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       // We need to explicitly click on the For Review tab since it is not the default (first) tab in props
@@ -206,9 +197,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'For Review 1000+'}));
@@ -232,9 +222,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'For Review 1000+'}));
@@ -258,9 +247,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onTabRenamed={mockOnTabRenamed}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'For Review 1000+'}));
@@ -282,9 +270,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onSave={mockOnSave}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'Prioritized 20'}));
@@ -304,9 +291,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onDiscard={mockOnDiscard}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'Prioritized 20'}));
@@ -326,9 +312,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onDelete={mockOnDelete}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'For Review 1000+'}));
@@ -346,9 +331,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onDuplicate={mockOnDuplicate}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'For Review 1000+'}));
@@ -368,9 +352,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onDiscardTempView={mockOnDiscardTempView}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'Unsaved'}));
@@ -388,9 +371,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onSaveTempView={mockOnSaveTempView}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('tab', {name: 'Unsaved'}));
@@ -410,9 +392,8 @@ describe('DraggableTabBar', () => {
           tabs={tabs}
           setTabs={jest.fn()}
           onAddView={mockOnAddView}
-          showTempTab
-          tempTab={tempTab}
-          defaultNewTab={defaultNewTab}
+          orgSlug={'test-org'}
+          router={router}
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Add View'}));
