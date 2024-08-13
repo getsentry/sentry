@@ -134,7 +134,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 }
                 choices={
                   showTempNoneOption && Array.isArray(props.choices)
-                    ? [[NONE_SELECTED_LABEL, props.value], ...props.choices]
+                    ? [[props.value, NONE_SELECTED_LABEL], ...props.choices]
                     : props.choices
                 }
                 placeholder={placeholder}
