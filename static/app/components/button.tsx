@@ -57,10 +57,6 @@ interface CommonButtonProps {
    */
   disabled?: boolean;
   /**
-   * The button is an external link. Similar to the `Link` `external` property.
-   */
-  external?: boolean;
-  /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
    */
@@ -105,6 +101,12 @@ interface CommonButtonProps {
 type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 'title'>;
 
 interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   *
+   * @deprecated Use LinkButton instead
+   */
+  external?: boolean;
   /**
    * @internal Used in the Button forwardRef
    */
@@ -162,6 +164,10 @@ interface HrefLinkButtonProps extends BaseLinkButtonProps {
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    */
   download?: HTMLAnchorElement['download'];
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   */
+  external?: boolean;
 }
 
 interface ToLinkButtonPropsWithChildren extends ToLinkButtonProps {
