@@ -1435,7 +1435,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://us.sentry.io"}],
+        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
