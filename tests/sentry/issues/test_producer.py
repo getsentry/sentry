@@ -163,6 +163,9 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         self.group = self.event.group
         assert self.group
+        self.group.substatus = GroupSubStatus.ONGOING
+        self.group.save()
+
         self.initial_status = self.group.status
         self.initial_substatus = self.group.substatus
 
