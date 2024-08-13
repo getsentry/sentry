@@ -9,13 +9,13 @@ import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
-import type {
-  Action,
+import {
+  type Action,
   AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  MetricActionTemplate,
-  Trigger,
-  UnsavedMetricRule,
+  type AlertRuleThresholdType,
+  type MetricActionTemplate,
+  type Trigger,
+  type UnsavedMetricRule,
 } from '../types';
 
 type Props = {
@@ -117,22 +117,26 @@ class Triggers extends Component<Props> {
       <Fragment>
         <Panel>
           <PanelBody>
-            <TriggerForm
-              disabled={disabled}
-              errors={errors}
-              organization={organization}
-              projects={projects}
-              triggers={triggers}
-              aggregate={aggregate}
-              resolveThreshold={resolveThreshold}
-              thresholdType={thresholdType}
-              thresholdPeriod={thresholdPeriod}
-              comparisonType={comparisonType}
-              onChange={this.handleChangeTrigger}
-              onThresholdTypeChange={onThresholdTypeChange}
-              onResolveThresholdChange={onResolveThresholdChange}
-              onThresholdPeriodChange={onThresholdPeriodChange}
-            />
+            {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
+              <div>{'This is where the anomaly detection alert field choices go'}</div>
+            ) : (
+              <TriggerForm
+                disabled={disabled}
+                errors={errors}
+                organization={organization}
+                projects={projects}
+                triggers={triggers}
+                aggregate={aggregate}
+                resolveThreshold={resolveThreshold}
+                thresholdType={thresholdType}
+                thresholdPeriod={thresholdPeriod}
+                comparisonType={comparisonType}
+                onChange={this.handleChangeTrigger}
+                onThresholdTypeChange={onThresholdTypeChange}
+                onResolveThresholdChange={onResolveThresholdChange}
+                onThresholdPeriodChange={onThresholdPeriodChange}
+              />
+            )}
           </PanelBody>
         </Panel>
 

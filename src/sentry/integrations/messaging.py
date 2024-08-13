@@ -44,7 +44,7 @@ class MessagingIdentityLinkViewSet:
     link_personal_identity: type[View]
     unlink_personal_identity: type[View]
 
-    # TODO: Allow these to be optional? Require for all messaging integrations?
+    # Optional until supported on all messaging integrations
     link_team_identity: type[View] | None = None
     unlink_team_identity: type[View] | None = None
 
@@ -176,23 +176,6 @@ class MessagingIntegrationSpec(ABC):
         class-level properties.
         """
         raise NotImplementedError
-
-    # Requirements for messaging feature per tech spec
-
-    @property
-    def help_view(self) -> type[View] | None:
-        """TODO?"""
-        return None
-
-    @property
-    def support(self) -> type[View] | None:
-        """TODO?"""
-        return None
-
-    @property
-    def documentation(self) -> type[View] | None:
-        """TODO?"""
-        return None
 
 
 class MessagingActionHandler(DefaultActionHandler):

@@ -336,7 +336,7 @@ class EventUser:
 
     def serialize(self):
         return {
-            "id": str(self.id),
+            "id": str(self.id) if self.id else str(self.user_ident),
             "username": self.username,
             "email": self.email,
             "name": self.get_display_name(),

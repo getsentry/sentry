@@ -54,7 +54,7 @@ describe('EventEntries', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId(/event-section/)).toHaveLength(5); //  event tags + 3 entries + event grouping
+      expect(screen.getAllByTestId(/event-section/)).toHaveLength(4); //  event tags + 2 entries + event grouping
     });
 
     const sections = screen.getAllByTestId(/event-section/);

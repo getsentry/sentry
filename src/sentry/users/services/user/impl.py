@@ -25,9 +25,9 @@ from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.signals import user_signup
+from sentry.users.models.user import User
 from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,

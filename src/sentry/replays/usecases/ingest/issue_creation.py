@@ -158,6 +158,7 @@ def _make_clicked_element(node):
     element = node.get("tagName", "")
     if "attributes" in node:
         for key, value in node["attributes"].items():
+            value = value.strip()
             if key == "id":
                 element += f"#{value}"
             elif key == "class":

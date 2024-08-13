@@ -190,7 +190,7 @@ Sentry.init({
   }${
     params.isPerformanceSelected
       ? `
-      // Performance Monitoring
+      // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions\n`
       : ''
   }${
@@ -225,7 +225,7 @@ export function getProductInitParams({
 }) {
   const params: string[] = [];
   if (productSelection['performance-monitoring']) {
-    params.push(`// Performance Monitoring`);
+    params.push(`// Tracing`);
     params.push(`tracesSampleRate: 1.0,`);
   }
 
