@@ -55,7 +55,7 @@ class EventDataDeletionTask(BaseDeletionTask):
     # Number of events fetched from eventstore per chunk() call.
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(self, manager: Any, groups: Sequence[Group], **kwargs) -> None:
+    def __init__(self, manager: Any, groups: Sequence[Group], **kwargs: Any) -> None:
         self.groups = groups
         self.last_event: Event | None = None
         super().__init__(manager, **kwargs)
