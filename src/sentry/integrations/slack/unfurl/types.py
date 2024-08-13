@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Callable, Mapping
 from re import Pattern
-from typing import Any, NamedTuple, Optional, Protocol, cast
+from typing import Any, NamedTuple, Optional, Protocol
 
 from django.http.request import HttpRequest
 
@@ -52,26 +52,3 @@ def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
         return {k: type_map[k](v) if v is not None else None for k, v in args.items()}
 
     return type_coercer
-
-
-from sentry.integrations.slack.unfurl.discover import discover_handler
-from sentry.integrations.slack.unfurl.issues import issues_handler
-from sentry.integrations.slack.unfurl.metric_alerts import metric_alert_handler
-
-link_handlers: dict[LinkType, Handler] = {
-    LinkType.DISCOVER: cast(Handler, discover_handler),
-    LinkType.METRIC_ALERT: cast(Handler, metric_alert_handler),
-    LinkType.ISSUES: cast(Handler, issues_handler),
-}
-
-
-def match_link(link: str) -> tuple[LinkType | None, Mapping[str, Any] | None]:
-    for link_type, handler in link_handlers.items():
-        match = next(filter(bool, map(lambda matcher: matcher.match(link), handler.matcher)), None)
-
-        if not match:
-            continue
-
-        args = handler.arg_mapper(link, match.groupdict())
-        return link_type, args
-    return None, None

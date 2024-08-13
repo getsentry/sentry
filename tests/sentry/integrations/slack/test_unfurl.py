@@ -13,12 +13,8 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.integrations.slack.unfurl.types import (
-    LinkType,
-    UnfurlableUrl,
-    link_handlers,
-    match_link,
-)
+from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
+from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase

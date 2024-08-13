@@ -24,12 +24,8 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.unfurl.types import (
-    LinkType,
-    UnfurlableUrl,
-    link_handlers,
-    match_link,
-)
+from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
+from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.utils import metrics
