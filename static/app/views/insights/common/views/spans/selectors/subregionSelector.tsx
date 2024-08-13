@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {
@@ -7,10 +8,11 @@ import {
   type SelectProps,
 } from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, subregionCodeToName} from 'sentry/views/insights/types';
@@ -18,6 +20,7 @@ import {SpanMetricsField, subregionCodeToName} from 'sentry/views/insights/types
 export default function SubregionSelector() {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const hasGeoSelectorFeature = organization.features.includes('insights-region-filter');
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
@@ -48,8 +51,8 @@ export default function SubregionSelector() {
       triggerProps={{
         prefix: (
           <Fragment>
-            <FeatureBadge type="experimental" />
-            {t(' Geo region')}
+            <StyledFeatureBadge type="experimental" />
+            {t('Geo region')}
           </Fragment>
         ),
       }}
@@ -66,7 +69,7 @@ export default function SubregionSelector() {
           browsers: selectedOptions.map(v => v.value),
         });
 
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
@@ -79,3 +82,7 @@ export default function SubregionSelector() {
     />
   );
 }
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-right: ${space(2)};
+`;
