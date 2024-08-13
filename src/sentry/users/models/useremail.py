@@ -93,8 +93,9 @@ class UserEmail(ControlOutboxProducingModel):
         self.validation_hash = get_secure_token()
 
     def hash_is_valid(self) -> bool:
-        assert self.validation_hash, "Validation hash can't be empty"
-        return self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)
+        return bool(
+            self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)
+        )
 
     def is_primary(self) -> bool:
         return self.user.email == self.email
