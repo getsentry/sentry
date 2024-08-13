@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -150,14 +150,14 @@ function SearchDropdown({
               </Button>
             ))}
         </ButtonBar>
-        <Button
+        <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
           onClick={() => onDocsOpen?.()}
         >
           {t('Read the docs')}
-        </Button>
+        </LinkButton>
       </DropdownFooter>
     </SearchDropdownOverlay>
   );

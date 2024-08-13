@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -58,12 +58,12 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
                   {t('Fill out a report')}
                 </Button>
               )}
-              <Button priority="link" external href="https://status.sentry.io/">
+              <LinkButton priority="link" external href="https://status.sentry.io/">
                 {t('Service status')}
-              </Button>
-              <Button priority="link" external href="https://sentry.io/support/">
+              </LinkButton>
+              <LinkButton priority="link" external href="https://sentry.io/support/">
                 {t('Contact support')}
-              </Button>
+              </LinkButton>
             </ButtonBar>
           )}
         </ErrorFooter>

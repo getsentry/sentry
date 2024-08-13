@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
@@ -274,7 +274,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   return (
     <Wrapper>
       <Actions>
-        <Button
+        <LinkButton
           size="sm"
           icon={<IconOpen />}
           href={eventJsonUrl}
@@ -286,7 +286,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           }
         >
           {t('JSON')} (<FileSize bytes={detail.event?.size} />)
-        </Button>
+        </LinkButton>
       </Actions>
 
       <Title>

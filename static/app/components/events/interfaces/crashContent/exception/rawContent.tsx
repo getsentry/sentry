@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -106,12 +106,12 @@ class RawContent extends Component<Props, State> {
 
         downloadButton = (
           <DownloadBtnWrapper>
-            <Button
+            <LinkButton
               size="xs"
               href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
             >
               {t('Download')}
-            </Button>
+            </LinkButton>
           </DownloadBtnWrapper>
         );
       }

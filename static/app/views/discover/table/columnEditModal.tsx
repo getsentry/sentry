@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
@@ -141,9 +141,9 @@ function ColumnEditModal(props: Props) {
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button priority="default" href={DISCOVER2_DOCS_URL} external>
+          <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
-          </Button>
+          </LinkButton>
           <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
             {t('Apply')}
           </Button>

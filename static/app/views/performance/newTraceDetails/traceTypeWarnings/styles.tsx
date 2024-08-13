@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -53,13 +53,13 @@ function Banner(props: BannerProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button
+            <LinkButton
               onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
               external
             >
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>

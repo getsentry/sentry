@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
@@ -141,9 +141,9 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
           {codeownersFile.filepath}
-          <Button size="sm" href={codeownersFile.html_url} external>
+          <LinkButton size="sm" href={codeownersFile.html_url} external>
             {t('Preview File')}
-          </Button>
+          </LinkButton>
         </SourceFileBody>
       </Panel>
     );

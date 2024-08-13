@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
@@ -83,13 +83,13 @@ function TeamMisery({
             isEmpty={projects.length === 0 || periodTableData?.data?.length === 0}
             emptyMessage={t('No key transactions starred by this team')}
             emptyAction={
-              <Button
+              <LinkButton
                 size="sm"
                 external
                 href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
               >
                 {t('Learn More')}
-              </Button>
+              </LinkButton>
             }
             headers={[
               <FlexCenter key="transaction">

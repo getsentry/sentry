@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -167,7 +167,7 @@ const ModalHeader = styled('div')`
   }
 `;
 
-const SignUpButton = styled(Button)`
+const SignUpButton = styled(LinkButton)`
   background-color: ${p => p.theme.purple300};
   border: none;
   color: ${p => p.theme.white};

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -179,9 +179,9 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert type="warning">{data.config_error}</Alert>
-          <Button priority="primary" href={authUrl}>
+          <LinkButton priority="primary" href={authUrl}>
             {t('Associate Identity')}
-          </Button>
+          </LinkButton>
         </div>
       );
     }

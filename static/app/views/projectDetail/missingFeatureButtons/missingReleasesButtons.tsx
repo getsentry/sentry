@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -47,7 +47,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
 
   return (
     <ButtonBar gap={1}>
-      <Button
+      <LinkButton
         size="sm"
         priority="primary"
         external
@@ -56,7 +56,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
         title={setupDisabled ? setupDisabledTooltip : undefined}
       >
         {t('Start Setup')}
-      </Button>
+      </LinkButton>
       {!health && (
         <FeatureTourModal
           steps={RELEASES_TOUR_STEPS}

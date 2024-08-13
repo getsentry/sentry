@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -42,7 +42,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
         </TextBlock>
       </Body>
       <Footer>
-        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+        <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
       </Footer>
     </div>
   );

@@ -1,7 +1,7 @@
 import type {InjectedRouter} from 'react-router';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -70,7 +70,7 @@ function AlertHeader({router, activeTab}: Props) {
             {t('Create Alert')}
           </CreateAlertButton>
           <FeedbackWidgetButton />
-          <Button
+          <LinkButton
             size="sm"
             onClick={handleNavigateToSettings}
             href="#"

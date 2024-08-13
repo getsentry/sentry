@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -275,7 +275,7 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
-        <Button
+        <LinkButton
           href={
             allMobileProj
               ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
@@ -284,7 +284,7 @@ export function SetupReplaysCTA({
           external
         >
           {t('Read Docs')}
-        </Button>
+        </LinkButton>
       </ButtonList>
       <StyledWidgetContainer>
         <StyledHeaderContainer>
