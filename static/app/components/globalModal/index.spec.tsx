@@ -7,6 +7,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
+import {Tooltip} from 'sentry/components/tooltip';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', function () {
@@ -189,5 +191,26 @@ describe('GlobalModal', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
+  });
+
+  it('renders interactive tooltip inside the modal', async function () {
+    renderGlobalModal();
+
+    const buttonClick = jest.fn();
+
+    act(() =>
+      openModal(({Body}) => (
+        <Body>
+          <Tooltip title={<Button onClick={buttonClick}>Click me</Button>} isHoverable>
+            Hi
+          </Tooltip>
+        </Body>
+      ))
+    );
+
+    await userEvent.hover(screen.getByText('Hi'));
+    await userEvent.click(await screen.findByText('Click me'));
+
+    expect(buttonClick).toHaveBeenCalled();
   });
 });
