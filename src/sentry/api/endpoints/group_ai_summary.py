@@ -16,6 +16,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -112,7 +113,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
         if group.data.get("issue_summary"):
-            return Response(group.data["issue_summary"], status=200)
+            return Response(
+                convert_dict_key_case(group.data["issue_summary"], snake_to_camel_case), status=200
+            )
 
         serialized_event = self._get_event(group, request.user)
 
@@ -124,4 +127,6 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         group.data.update({"issue_summary": issue_summary.dict()})
         group.save()
 
-        return Response(issue_summary.dict(), status=200)
+        return Response(
+            convert_dict_key_case(issue_summary.dict(), snake_to_camel_case), status=200
+        )

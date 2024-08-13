@@ -1,6 +1,7 @@
 from unittest.mock import ANY, Mock, patch
 
 from sentry.api.endpoints.group_ai_summary import SummarizeIssueResponse
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -28,7 +29,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
-        assert response.data == existing_summary
+        assert response.data == convert_dict_key_case(existing_summary, snake_to_camel_case)
         mock_call_seer.assert_not_called()
 
     @patch("sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event")
@@ -59,7 +60,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
-        assert response.data == mock_summary.dict()
+        assert response.data == convert_dict_key_case(mock_summary.dict(), snake_to_camel_case)
         mock_get_event.assert_called_once_with(group, ANY)
         mock_call_seer.assert_called_once_with(group, mock_event)
 
@@ -81,5 +82,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
-        assert response.data == mock_response.json.return_value
+        assert response.data == convert_dict_key_case(
+            mock_response.json.return_value, snake_to_camel_case
+        )
         mock_post.assert_called_once()
