@@ -1,7 +1,6 @@
 import {Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import NoStackTraceMessage from 'sentry/components/events/interfaces/noStackTraceMessage';
@@ -18,6 +17,8 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
@@ -113,9 +114,9 @@ export function AnrRootCause({event, organization}: Props) {
   }
 
   return (
-    <EventDataSection
+    <InterimSection
       title={t('Suspect Root Cause')}
-      type="suspect-root-cause"
+      type={FoldSectionKey.SUSPECT_ROOT_CAUSE}
       help={helpText}
     >
       {potentialAnrRootCause?.map(issue => {
@@ -149,7 +150,7 @@ export function AnrRootCause({event, organization}: Props) {
         );
       })}
       {organization.features.includes('anr-analyze-frames') && renderAnrCulprit()}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

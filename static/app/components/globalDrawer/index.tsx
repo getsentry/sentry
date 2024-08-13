@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -46,6 +47,10 @@ export interface DrawerOptions {
    * other elements.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  //
+  // Custom framer motion transition for the drawer
+  //
+  transitionProps?: AnimationProps['transition'];
 }
 
 interface DrawerRenderProps {
@@ -144,6 +149,7 @@ export function GlobalDrawer({children}) {
               onClose={handleClose}
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
+              transitionProps={currentDrawerConfig?.options?.transitionProps}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

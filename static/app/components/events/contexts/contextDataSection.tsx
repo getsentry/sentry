@@ -36,6 +36,10 @@ export default function ContextDataSection({
     )
   );
 
+  if (!cards.length) {
+    return null;
+  }
+
   return (
     <InterimSection
       key={'context'}
