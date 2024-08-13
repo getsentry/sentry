@@ -527,9 +527,6 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
   if (isTombstone(event) || isGroup(event)) {
     return false;
   }
-  if (event.issueCategory === IssueCategory.PROFILE) {
-    return true;
-  }
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return evidenceData.templateName === 'profile';
 }

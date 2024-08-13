@@ -31,11 +31,7 @@ from sentry.db.postgres.transactions import (
     enforce_constraints,
     in_test_assert_no_transaction,
 )
-from sentry.hybridcloud.outbox.category import (  # noqa - imports used by getsentry
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
@@ -65,7 +61,7 @@ class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
 
-    def should_skip_shard(self):
+    def should_skip_shard(self) -> bool:
         if self.shard_scope == OutboxScope.ORGANIZATION_SCOPE:
             return self.shard_identifier in options.get(
                 "hybrid_cloud.authentication.disabled_organization_shards"
@@ -86,7 +82,7 @@ class OutboxBase(Model):
         return outbox_model
 
     @classmethod
-    def next_object_identifier(cls):
+    def next_object_identifier(cls) -> int:
         using = router.db_for_write(cls)
         with transaction.atomic(using=using):
             with connections[using].cursor() as cursor:
@@ -149,13 +145,13 @@ class OutboxBase(Model):
 
     def selected_messages_in_shard(
         self, latest_shard_row: OutboxBase | None = None
-    ) -> models.QuerySet:
+    ) -> models.QuerySet[Self]:
         filters: Mapping[str, Any] = (
             {} if latest_shard_row is None else dict(id__lte=latest_shard_row.id)
         )
         return self.objects.filter(**self.key_from(self.sharding_columns), **filters)
 
-    def select_coalesced_messages(self) -> models.QuerySet:
+    def select_coalesced_messages(self) -> models.QuerySet[Self]:
         return self.objects.filter(**self.key_from(self.coalesced_columns))
 
     class Meta:
@@ -283,7 +279,7 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
-    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
+    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
         span.set_data("outbox_id", message.id)
@@ -388,7 +384,7 @@ class OutboxBase(Model):
 
 # Outboxes bound from region silo -> control silo
 class RegionOutboxBase(OutboxBase):
-    def send_signal(self):
+    def send_signal(self) -> None:
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
@@ -444,7 +440,7 @@ class ControlOutboxBase(OutboxBase):
 
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
-    def send_signal(self):
+    def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,

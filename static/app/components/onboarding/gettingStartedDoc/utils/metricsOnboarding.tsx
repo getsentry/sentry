@@ -12,7 +12,7 @@ import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStar
 
 const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // integrations: [
   //   Sentry.metrics.metricsAggregatorIntegration(),
@@ -150,7 +150,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
 
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,
@@ -229,7 +229,7 @@ const getJvmKotlinConfigureSnippet = (params: DocsParams) => `
 import io.sentry.Sentry
 
 Sentry.init(this) { options ->
-  options.dsn = "${params.dsn}",
+  options.dsn = "${params.dsn.public}",
   options.enableMetrics = true
 }`;
 
@@ -237,7 +237,7 @@ const getJvmJavaConfigureSnippet = (params: DocsParams) => `
 import io.sentry.Sentry;
 
 Sentry.init(this, options -> {
-  options.setDsn("${params.dsn}");
+  options.setDsn("${params.dsn.public}");
   options.setEnableMetrics(true);
 });`;
 
@@ -245,7 +245,7 @@ const getAndroidKotlinConfigureSnippet = (params: DocsParams) => `
 import io.sentry.android.core.SentryAndroid
 
 SentryAndroid.init(this) { options ->
-  options.dsn = "${params.dsn}",
+  options.dsn = "${params.dsn.public}",
   options.enableMetrics = true
 }`;
 
@@ -253,14 +253,14 @@ const getAndroidJavaConfigureSnippet = (params: DocsParams) => `
 import io.sentry.android.core.SentryAndroid;
 
 SentryAndroid.init(this, options -> {
-  options.setDsn("${params.dsn}");
+  options.setDsn("${params.dsn.public}");
   options.setEnableMetrics(true);
 });`;
 
 const getAndroidXmlConfigureSnippet = (params: DocsParams) => `
 <manifest>
     <application>
-        <meta-data android:name="io.sentry.dsn" android:value="${params.dsn}" />
+        <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
         <meta-data android:name="io.sentry.enable-metrics" android:value="true" />
     </application>
 </manifest>`;
@@ -562,7 +562,7 @@ const getPythonConfigureSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 sentry_sdk.init(
-  dsn="${params.dsn}",
+  dsn="${params.dsn.public}",
   # ...
 )`;
 
@@ -678,7 +678,7 @@ export const getPythonMetricsOnboarding = ({
 const getDotnetConfigureSnippet = (params: DocsParams) => `
 SentrySdk.Init(options =>
 {
-  options.Dsn = "${params.dsn}";
+  options.Dsn = "${params.dsn.public}";
   options.ExperimentalMetrics = new ExperimentalMetricsOptions
   {
     EnableCodeLocations = true

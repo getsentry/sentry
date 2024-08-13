@@ -13,6 +13,7 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -30,6 +31,7 @@ import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreensho
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -62,8 +64,7 @@ import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resources
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceDataSection} from 'sentry/views/issueDetails/traceTimeline/traceDataSection';
-import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
@@ -151,18 +152,21 @@ export function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
-      {hasActionableItems && (
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
+        {!hasStreamlinedUI && <TraceDataSection event={event} />}
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
@@ -356,6 +360,9 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {hasStreamlinedUI && (
+        <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}
