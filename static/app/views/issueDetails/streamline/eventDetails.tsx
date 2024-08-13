@@ -1,4 +1,4 @@
-import {createContext, useContext, useRef, useState} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -14,74 +14,8 @@ import {
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
-
-export const enum SectionKey {
-  TRACE = 'trace',
-
-  USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
-
-  UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
-
-  HIGHLIGHTS = 'highlights',
-  RESOURCES = 'resources', // Position controlled by flag
-
-  EXCEPTION = 'exception',
-  STACKTRACE = 'stacktrace',
-  SPANS = 'spans',
-  EVIDENCE = 'evidence',
-  MESSAGE = 'message',
-
-  SPAN_EVIDENCE = 'span-evidence',
-  HYDRATION_DIFF = 'hydration-diff',
-  REPLAY = 'replay',
-
-  HPKP = 'hpkp',
-  CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  TEMPLATE = 'template',
-
-  BREADCRUMBS = 'breadcrumbs',
-  DEBUGMETA = 'debugmeta',
-  REQUEST = 'request',
-
-  TAGS = 'tags',
-  SCREENSHOT = 'screenshot',
-
-  CONTEXTS = 'contexts',
-  EXTRA = 'extra',
-  PACKAGES = 'packages',
-  DEVICE = 'device',
-  VIEW_HIERARCHY = 'view-hierarchy',
-  ATTACHMENTS = 'attachments',
-  SDK = 'sdk',
-  GROUPING_INFO = 'grouping-info',
-  PROCESSING_ERROR = 'processing-error',
-  RRWEB = 'rrweb', // Legacy integration prior to replays
-}
-
-export interface SectionConfig {
-  key: SectionKey;
-  isBlank?: () => boolean;
-}
-
-export interface EventDetailsContextType {
-  searchQuery: string;
-  sectionData: {
-    [key in SectionKey]?: SectionConfig & {isOpen: boolean};
-  };
-}
-
-const EventDetailsContext = createContext<EventDetailsContextType>({
-  searchQuery: '',
-  sectionData: {},
-});
-
-export function useEventDetailsContext() {
-  return useContext(EventDetailsContext);
-}
+import {EventDetailsContext} from 'sentry/views/issueDetails/streamline/context';
+import {useEventDetailsState} from 'sentry/views/issueDetails/streamline/useEventDetailsState';
 
 export function EventDetails({
   group,
@@ -91,13 +25,10 @@ export function EventDetails({
   const navRef = useRef<HTMLDivElement>(null);
   const {selection} = usePageFilters();
   const {environments} = selection;
-  const [eventDetails, setEventDetails] = useState<EventDetailsContextType>({
-    searchQuery: '',
-    sectionData: {},
-  });
+  const {state, dispatch} = useEventDetailsState();
 
   return (
-    <EventDetailsContext.Provider value={eventDetails}>
+    <EventDetailsContext.Provider value={{...state, dispatch}}>
       <SuspectCommits
         project={project}
         eventId={event.id}
@@ -108,11 +39,11 @@ export function EventDetails({
         <EnvironmentPageFilter />
         <SearchFilter
           group={group}
-          handleSearch={searchQuery => {
-            setEventDetails(details => ({...details, searchQuery}));
-          }}
+          handleSearch={searchQuery =>
+            dispatch({type: 'UPDATE_SEARCH_QUERY', searchQuery})
+          }
           environments={environments}
-          query={eventDetails.searchQuery}
+          query={state.searchQuery}
         />
         <DatePageFilter />
       </FilterContainer>

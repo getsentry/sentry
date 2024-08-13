@@ -18,7 +18,7 @@ import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForI
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 

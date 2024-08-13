@@ -1,4 +1,4 @@
-import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
+import {type CSSProperties, forwardRef, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -8,7 +8,10 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {SectionConfig} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {
+  useEventDetails,
+  type SectionConfig,
+} from 'sentry/views/issueDetails/streamline/context';
 
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
 
@@ -48,14 +51,28 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   ref
 ) {
   const organization = useOrganization();
+  const {sectionData, dispatch} = useEventDetails();
   const {key: sectionKey, isBlank} = config;
-  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+  // Does not control open/close state. Controls what state is persisted to local storage
+  const [isInitiallyCollapsed, setIsInitiallyCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
   );
+  const isCollapsed = !sectionData[sectionKey]?.isOpen;
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
   // want selecting an action to appear as though it'll fold/unfold the section.
   const [isLayerEnabled, setIsLayerEnabled] = useState(true);
+
+  useEffect(() => {
+    dispatch({
+      type: 'UPDATE_SECTION_CONFIG',
+      key: sectionKey,
+      config: {
+        ...config,
+        isOpen: isInitiallyCollapsed,
+      },
+    });
+  }, []);
 
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
@@ -65,12 +82,17 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         organization,
         open: !isCollapsed,
       });
-      setIsCollapsed(collapsed => !collapsed);
+      dispatch({
+        type: 'UPDATE_SECTION_CONFIG',
+        key: sectionKey,
+        config: {isOpen: isCollapsed},
+      });
+      setIsInitiallyCollapsed(collapsed => !collapsed);
     },
-    [setIsCollapsed, organization, sectionKey, isCollapsed]
+    [organization, sectionKey, isCollapsed]
   );
 
-  if (isBlank?.() ?? false) {
+  if (isBlank) {
     return null;
   }
 

@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export default storyBook('FoldSection', story => {

@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import DeprecatedLine from './frame/deprecatedLine';

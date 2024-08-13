@@ -35,7 +35,7 @@ import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -250,6 +250,7 @@ export default function HighlightsDataSection({
           link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
         }
       )}
+      isBlank={false}
       isHelpHoverable
       data-test-id="event-highlights"
       actions={

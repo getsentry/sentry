@@ -8,7 +8,7 @@ import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type EvidenceProps = {event: Event; project: Project; group?: Group};

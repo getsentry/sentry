@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {
   SectionConfig,
   SectionKey,
-} from 'sentry/views/issueDetails/streamline/eventDetails';
+} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
