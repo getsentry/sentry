@@ -1,4 +1,8 @@
+import re
+
 import pytest
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 
 from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization
@@ -30,16 +34,57 @@ class InIexactQueryTest(TestCase):
 class RangeQuerySetWrapperTest(TestCase):
     range_wrapper = RangeQuerySetWrapper
 
-    def test_basic(self):
+    def test_limit(self):
         total = 10
 
-        for _ in range(total):
-            self.create_user()
+        expected = []
+        for i in range(total):
+            email = f"{i}@email.com"
+            self.create_user(email=email)
+            expected.append(email)
 
         qs = User.objects.all()
 
-        assert len(list(self.range_wrapper(qs, step=2))) == total
-        assert len(list(self.range_wrapper(qs, limit=5))) == 5
+        # limit to 5
+        results = list(self.range_wrapper(qs, limit=5))
+        assert len(results) == 5
+
+        actual = [r.email for r in results]
+        assert actual == expected[:5]
+
+    def test_step(self):
+        total = 10
+
+        expected = []
+        for i in range(total):
+            email = f"{i}@email.com"
+            self.create_user(email=email)
+            expected.append(email)
+
+        qs = User.objects.all()
+        next_id = qs.order_by("id").first().id
+
+        with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
+            results = list(self.range_wrapper(qs, step=3))
+            assert len(results) == total
+
+            actual = [r.email for r in results]
+            assert actual == expected
+
+            captured_queries = context.captured_queries
+            assert len(captured_queries) == 5
+
+            # sliding windows of step - 1 = 2
+            expected_conditions = [
+                'ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 3} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 4} ORDER BY "auth_user"."id" ASC LIMIT 3',
+            ]
+
+            for i, query in enumerate(captured_queries):
+                assert expected_conditions[i] in query["sql"], f"{i} {query['sql']}"
 
     def test_loop_and_delete(self):
         total = 10
@@ -71,15 +116,110 @@ class RangeQuerySetWrapperTest(TestCase):
         self.range_wrapper(qs, order_by="username")
         assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
 
+    def test_result_value_getter(self):
+        total = 10
+
+        expected = []
+        for i in range(total):
+            email = f"{i}@email.com"
+            self.create_user(email=email)
+            expected.append(email)
+
+        qs = User.objects.all().values("id", "email")
+
+        results = list(
+            self.range_wrapper(
+                queryset=qs,
+                step=-500,
+                order_by="id",
+                result_value_getter=lambda item: item.get("id", None),
+            )
+        )
+
+        expected = list(reversed(expected))
+
+        actual = [r["email"] for r in results]
+        assert actual == expected
+
 
 @no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
+    def test_step(self):
+        total = 10
+
+        expected = []
+        for i in range(total):
+            email = f"{i}@email.com"
+            self.create_user(email=email)
+            expected.append(email)
+
+        qs = User.objects.all()
+        next_id = qs.order_by("id").first().id
+
+        with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
+            results = list(self.range_wrapper(qs, step=3))
+            assert len(results) == total
+
+            actual = [r.email for r in results]
+            assert actual == expected
+
+            captured_queries = context.captured_queries
+            assert len(captured_queries) == 6
+
+            # sliding windows of step - 1 = 2
+            expected_conditions = [
+                'SELECT COUNT(*) AS "__count" FROM "auth_user"',
+                'ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 3} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 4} ORDER BY "auth_user"."id" ASC LIMIT 3',
+            ]
+
+            for i, query in enumerate(captured_queries):
+                assert expected_conditions[i] in query["sql"], f"{i} {query['sql']}"
+
 
 @no_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
+
+    def test_step(self):
+        total = 10
+
+        expected = []
+        for i in range(total):
+            email = f"{i}@email.com"
+            self.create_user(email=email)
+            expected.append(email)
+
+        qs = User.objects.all()
+        next_id = qs.order_by("id").first().id
+
+        with CaptureQueriesContext(connections[router.db_for_read(User)]) as context:
+            results = list(self.range_wrapper(qs, step=3))
+            assert len(results) == total
+
+            actual = [r.email for r in results]
+            assert actual == expected
+
+            captured_queries = context.captured_queries
+            assert len(captured_queries) == 6
+
+            # sliding windows of step - 1 = 2
+            expected_conditions = [
+                "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = 'auth_user'",
+                'ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 2} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 3} ORDER BY "auth_user"."id" ASC LIMIT 3',
+                f'WHERE "auth_user"."id" >= {next_id + 2 * 4} ORDER BY "auth_user"."id" ASC LIMIT 3',
+            ]
+
+            for i, query in enumerate(captured_queries):
+                assert expected_conditions[i] in query["sql"], f"{i} {query['sql']}"
 
 
 class BulkDeleteObjectsTest(TestCase):
