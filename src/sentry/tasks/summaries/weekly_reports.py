@@ -255,7 +255,6 @@ class OrganizationReportBatch:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
-
         if self.email_override:
             target_user_id = (
                 self.target_user.id if self.target_user else None
@@ -476,8 +475,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         if len(user_projects) == 0:
             return None
     else:
-        # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
-        user_projects = ctx.projects_context_map.values()
+        return None
 
     notification_uuid = str(uuid.uuid4())
 
