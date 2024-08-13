@@ -119,20 +119,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    args["metric_id"],
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_avg,
+                    snql_gauge=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
@@ -1147,6 +1135,26 @@ class MetricsDatasetConfig(DatasetConfig):
                     [
                         metric_condition,
                         condition,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        args["metric_id"],
                     ],
                 ),
             ],
