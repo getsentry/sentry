@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 import orjson
@@ -302,11 +303,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
-        # Check the URL of the webhook of the self.published_app
-        self.published_app.refresh_from_db()
         assert (
             self.published_app.webhook_url == "https://newurl.com"
         ), f"Unexpected webhook URL: {self.published_app.webhook_url}"
+        # flaky test requires sleep
+        time.sleep(1)
         # Check service hooks for each organization
         with assume_test_silo_mode(SiloMode.REGION):
             service_hooks_org1 = ServiceHook.objects.filter(
