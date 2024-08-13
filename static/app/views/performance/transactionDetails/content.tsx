@@ -3,7 +3,7 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
@@ -162,7 +162,7 @@ function EventDetailsContent(props: Props) {
                         <EventTitle>{transaction.title}</EventTitle>
                       </Tooltip>
                       {originatingUrl && (
-                        <Button
+                        <LinkButton
                           aria-label={t('Go to originating URL')}
                           size="zero"
                           icon={<IconOpen />}
@@ -183,14 +183,14 @@ function EventDetailsContent(props: Props) {
                         {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                       </Button>
                       {results && (
-                        <Button
+                        <LinkButton
                           size="sm"
                           icon={<IconOpen />}
                           href={eventJsonUrl}
                           external
                         >
                           {t('JSON')} (<FileSize bytes={transaction.size} />)
-                        </Button>
+                        </LinkButton>
                       )}
                       {hasProfilingFeature && isTransaction(transaction) && (
                         <TransactionToProfileButton

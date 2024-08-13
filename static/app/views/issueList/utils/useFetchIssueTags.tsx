@@ -219,6 +219,7 @@ function builtInIssuesFields(
         IssueCategory.PERFORMANCE,
         IssueCategory.REPLAY,
         IssueCategory.CRON,
+        IssueCategory.UPTIME,
       ],
       predefined: true,
     },

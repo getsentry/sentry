@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -268,13 +268,13 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar gap={1}>
-            <Button
+            <LinkButton
               size="sm"
               priority="default"
               href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
-            </Button>
+            </LinkButton>
             <DataExport
               payload={{
                 queryType: ExportQueryType.ISSUES_BY_TAG,

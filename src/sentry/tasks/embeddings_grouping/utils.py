@@ -172,7 +172,7 @@ def get_current_batch_groups_from_postgres(
         group_id_filter, project.id, batch_size
     )
 
-    total_groups_to_backfill_length = len(groups_to_backfill_batch_raw)
+    total_groups_to_backfill_length = groups_to_backfill_batch_raw.count()
     batch_end_group_id = (
         groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
         if total_groups_to_backfill_length
@@ -192,7 +192,7 @@ def get_current_batch_groups_from_postgres(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": len(groups_to_backfill_batch),
+            "batch_len": total_groups_to_backfill_length,
             "last_processed_group_id": batch_end_group_id,
         },
     )
