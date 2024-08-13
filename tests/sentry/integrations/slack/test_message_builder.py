@@ -1212,7 +1212,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&detection_type={alert_rule.detection_type}"
+            + f"?detection_type={alert_rule.detection_type}&alert={incident.identifier}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
             "color": LEVEL_TO_COLOR["_incident_resolved"],
@@ -1281,7 +1281,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&detection_type={alert_rule.detection_type}"
+            + f"?detection_type={alert_rule.detection_type}&alert={incident.identifier}"
         )
         assert SlackMetricAlertMessageBuilder(
             alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
@@ -1356,7 +1356,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&detection_type={alert_rule.detection_type}"
+            + f"?detection_type={alert_rule.detection_type}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
             "color": LEVEL_TO_COLOR["fatal"],

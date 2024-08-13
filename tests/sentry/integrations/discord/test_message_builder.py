@@ -48,7 +48,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "title": title,
                     "description": "",
-                    "url": f"{link}&referrer=discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
+                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
             ],
@@ -63,17 +63,14 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {self.alert_rule.name}"
-        link = (
-            absolute_uri(
-                reverse(
-                    "sentry-metric-alert-details",
-                    kwargs={
-                        "organization_slug": self.alert_rule.organization.slug,
-                        "alert_rule_id": self.alert_rule.id,
-                    },
-                )
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
+                },
             )
-            + f"?alert={incident.identifier}"
         )
 
         uuid = "uuid"
@@ -86,7 +83,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "title": title,
                     "description": get_started_at(incident.date_started),
-                    "url": f"{link}&referrer=discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
+                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                 }
             ],
@@ -120,7 +117,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
                     "description": "0 events in the last 10 minutes",
-                    "url": f"{link}&referrer=discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
+                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
                 }
             ],
             "components": [],
@@ -193,7 +190,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "title": title,
                     "description": get_started_at(incident.date_started),
-                    "url": f"{link}?alert={incident.identifier}&referrer=discord&detection_type={self.alert_rule.detection_type}&notification_uuid={uuid}",
+                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&alert={incident.identifier}&referrer=discord&notification_uuid={uuid}",
                     "color": LEVEL_TO_COLOR["_incident_resolved"],
                     "image": {"url": "chart_url"},
                 }
@@ -226,7 +223,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
                     "description": "0 events in the last 10 minutes",
-                    "url": f"{link}&referrer=discord&detection_type={self.alert_rule.detection_type}",
+                    "url": f"{link}?detection_type={self.alert_rule.detection_type}&referrer=discord",
                 }
             ],
             "components": [],
@@ -269,7 +266,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     "color": LEVEL_TO_COLOR["fatal"],
                     "title": title,
                     "description": f"0 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}",
-                    "url": f"{link}&referrer=discord&detection_type={alert_rule.detection_type}&notification_uuid={uuid}",
+                    "url": f"{link}?detection_type={alert_rule.detection_type}&referrer=discord&notification_uuid={uuid}",
                 }
             ],
             "components": [],
