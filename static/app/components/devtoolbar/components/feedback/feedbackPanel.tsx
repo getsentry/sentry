@@ -7,7 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconAdd, IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/icons';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useConfiguration from '../../hooks/useConfiguration';
@@ -68,7 +68,18 @@ export default function FeedbackPanel() {
             ref={buttonRef}
             title="Submit Feedback"
           >
-            <IconAdd size="xs" />
+            <span
+              css={{
+                display: 'flex',
+                gap: 'var(--space75)',
+                alignItems: 'center',
+                color: 'var(--purple300)',
+                fontWeight: 'bold',
+              }}
+            >
+              <IconMegaphone size="xs" />
+              Report Bug
+            </span>
           </button>
         ) : null
       }

@@ -6,20 +6,18 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {PlatformKey} from 'sentry/types/project';
 
 import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
-import {resetDialogCss, resetFlexColumnCss} from '../styles/reset';
+import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/reset';
 
 interface Props {
   children?: React.ReactNode;
   showProjectBadge?: boolean;
   title?: string;
-  titleLeft?: React.ReactNode;
   titleRight?: React.ReactNode;
 }
 
 export default function PanelLayout({
   children,
   title,
-  titleLeft,
   titleRight,
   showProjectBadge,
 }: Props) {
@@ -46,10 +44,15 @@ export default function PanelLayout({
           />
         )}
         {title ? (
-          <header css={panelSectionCss}>
-            {titleLeft}
-            {titleRight}
+          <header
+            css={[
+              panelSectionCss,
+              resetFlexRowCss,
+              {alignItems: 'center', marginRight: 'var(--space100)'},
+            ]}
+          >
             <h1 css={[buttonCss]}>{title}</h1>
+            {titleRight}
           </header>
         ) : null}
       </span>
