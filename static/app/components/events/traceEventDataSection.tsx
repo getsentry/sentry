@@ -1,6 +1,6 @@
 import {createContext, useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -386,7 +386,7 @@ export function TraceEventDataSection({
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -400,7 +400,7 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{

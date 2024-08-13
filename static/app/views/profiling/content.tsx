@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -215,9 +215,9 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                     >
                       {t('Set Up Profiling')}
                     </ProfilingUpgradeButton>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                    <LinkButton href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
-                    </Button>
+                    </LinkButton>
                   </ProfilingOnboardingPanel>
                 </Fragment>
               ) : (
@@ -583,9 +583,9 @@ function ProfilingOnboardingCTA() {
         >
           {t('Set Up Profiling')}
         </ProfilingUpgradeButton>
-        <Button href="https://docs.sentry.io/product/profiling/" external>
+        <LinkButton href="https://docs.sentry.io/product/profiling/" external>
           {t('Read Docs')}
-        </Button>
+        </LinkButton>
       </ProfilingOnboardingPanel>
     </Fragment>
   );

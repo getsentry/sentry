@@ -5,7 +5,7 @@ import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
 import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DropdownLink from 'sentry/components/dropdownLink';
@@ -99,14 +99,14 @@ function Actions({
               </StyledDropdownLink>
               <StyledButtonBar gap={1}>
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-                  <Button
+                  <LinkButton
                     size="xs"
                     icon={<IconDownload />}
                     href={downloadUrl}
                     disabled={!hasRole}
                   >
                     {t('Download')}
-                  </Button>
+                  </LinkButton>
                 </Tooltip>
                 <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
                   <Confirm

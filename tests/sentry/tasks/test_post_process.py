@@ -19,8 +19,8 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
