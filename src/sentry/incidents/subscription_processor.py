@@ -562,7 +562,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags={"type": detection_type},
+                                tags={"detection_type": detection_type},
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
@@ -579,7 +579,7 @@ class SubscriptionProcessor:
                         ):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.resolve",
-                                tags={"type": detection_type},
+                                tags={"detection_type": detection_type},
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -596,7 +596,8 @@ class SubscriptionProcessor:
                         # If the value has breached our threshold (above/below)
                         # And the trigger is not yet active
                         metrics.incr(
-                            "incidents.alert_rules.threshold.alert", tags={"type": detection_type}
+                            "incidents.alert_rules.threshold.alert",
+                            tags={"detection_type": detection_type},
                         )
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
@@ -613,7 +614,8 @@ class SubscriptionProcessor:
                         and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                     ):
                         metrics.incr(
-                            "incidents.alert_rules.threshold.resolve", tags={"type": detection_type}
+                            "incidents.alert_rules.threshold.resolve",
+                            tags={"detection_type": detection_type},
                         )
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
