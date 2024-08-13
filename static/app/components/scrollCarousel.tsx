@@ -1,9 +1,10 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Button} from 'sentry/components/button';
-import {IconArrow} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, type ValidSize} from 'sentry/styles/space';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
@@ -39,8 +40,8 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
     visibleRatio: DEFAULT_VISIBLE_RATIO,
   });
 
-  const isAtStart = visibility.at(0);
-  const isAtEnd = visibility.at(-1);
+  const isAtStart = visibility.at(0) ?? true;
+  const isAtEnd = visibility.at(-1) ?? true;
 
   const scrollLeft = useCallback(() => {
     const scrollIndex = visibility.findIndex(Boolean);
@@ -83,7 +84,9 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
           onClick={scrollLeft}
           style={{left: 0}}
           aria-label={t('Scroll left')}
-          icon={<IconArrow direction="left" />}
+          icon={<StyledIconChevron direction="left" />}
+          size="zero"
+          borderless
         />
       )}
       {!isAtEnd && (
@@ -91,7 +94,9 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
           onClick={scrollRight}
           style={{right: 0}}
           aria-label={t('Scroll right')}
-          icon={<IconArrow direction="right" />}
+          icon={<StyledIconChevron direction="right" />}
+          size="zero"
+          borderless
         />
       )}
     </ScrollCarouselWrapper>
@@ -117,25 +122,31 @@ const ScrollContainer = styled('div')`
 `;
 
 const StyledArrowButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  min-height: 24px;
-  height: 24px;
-  width: 24px;
+  min-height: 16px;
+  height: 16px;
+  width: 16px;
   border-radius: 100%;
-  border: none;
-  padding: 0;
-  background-color: ${p => p.theme.background};
   z-index: 1;
   color: ${p => p.theme.subText};
+  opacity: 0.8;
+  background-color: ${p => p.theme.background};
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const Mask = css`
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 50px;
+  width: 34px;
   pointer-events: none;
   z-index: 1;
 `;
@@ -143,11 +154,23 @@ const Mask = css`
 const LeftMask = styled('div')`
   ${Mask}
   left: 0;
-  background: linear-gradient(90deg, #fff 50%, rgba(255, 255, 255, 0.09) 100%);
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.background} 50%,
+    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  );
 `;
 
 const RightMask = styled('div')`
   ${Mask}
   right: 0;
-  background: linear-gradient(270deg, #fff 50%, rgba(255, 255, 255, 0.09) 100%);
+  background: linear-gradient(
+    270deg,
+    ${p => p.theme.background} 50%,
+    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  );
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: 1px;
 `;
