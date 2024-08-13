@@ -4,7 +4,6 @@ import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
-import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -79,9 +78,8 @@ export function StreamlinedExternalIssueList({
               </Tooltip>
             </ErrorBoundary>
           ))}
-          {integrations.length ? (
-            <ScrollCarousel>
-              {integrations.map(integration => {
+          {integrations.length
+            ? integrations.map(integration => {
                 const sharedButtonProps: ButtonProps = {
                   size: 'zero',
                   icon: integration.displayIcon,
@@ -118,9 +116,8 @@ export function StreamlinedExternalIssueList({
                     />
                   </ErrorBoundary>
                 );
-              })}
-            </ScrollCarousel>
-          ) : null}
+              })
+            : null}
         </IssueActionWrapper>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
