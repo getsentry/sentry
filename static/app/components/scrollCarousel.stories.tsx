@@ -12,7 +12,7 @@ export default storyBook(ScrollCarousel, story => {
   story('Default', () => (
     <Fragment>
       <p>
-        <JSXNode name="SegmentedControl" /> will detect if the content overflows and show
+        <JSXNode name="ScrollCarousel" /> will detect if the content overflows and show
         arrows to scroll left and right. Native scrollbars are hidden.
       </p>
       <div style={{width: '375px', display: 'block'}}>
