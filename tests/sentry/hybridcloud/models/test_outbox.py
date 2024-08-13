@@ -146,7 +146,7 @@ class ControlOutboxTest(TestCase):
 
 
 class OutboxDrainTest(TransactionTestCase):
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_draining_with_disabled_shards(self, mock_send: Mock) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -196,7 +196,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert RegionOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_not_flush_all__concurrent_processing(
         self, mock_process_region_outbox: Mock
     ) -> None:
@@ -265,7 +265,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
         self, mock_process_region_outbox: Mock
     ) -> None:
@@ -375,7 +375,9 @@ class RegionOutboxTest(TestCase):
             raise
 
     def test_outbox_rescheduling(self) -> None:
-        with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:
+        with patch(
+            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+        ) as mock_process_region_outbox:
 
             def raise_exception(**kwargs: Any) -> None:
                 raise ValueError("This is just a test mock exception")
@@ -436,7 +438,7 @@ class RegionOutboxTest(TestCase):
 
     def test_outbox_converges(self) -> None:
         with patch(
-            "sentry.models.outbox.process_region_outbox.send"
+            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
         ) as mock_process_region_outbox, outbox_context(flush=False):
             Organization(id=10001).outbox_for_update().save()
             Organization(id=10001).outbox_for_update().save()
