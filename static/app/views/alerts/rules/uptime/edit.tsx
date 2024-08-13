@@ -113,7 +113,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
     >
       <Alert type="info" showIcon icon={<IconLab />}>
         {t(
-          'Uptime Monitoring is currently in Early Access. More configuration will be available in the future'
+          'Uptime Monitoring is currently in Early Access. Additional configuration options will be available soon.'
         )}
       </Alert>
       <List symbol="colored-numeric">
