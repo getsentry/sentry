@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import time
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from packaging.version import Version
 from rest_framework.request import Request
 
@@ -22,10 +24,10 @@ CACHE_CONTROL = (
 
 class SdkConfig(TypedDict):
     dsn: str
-    tracesSampleRate: float | None
-    replaysSessionSampleRate: float | None
-    replaysOnErrorSampleRate: float | None
-    debug: bool | None
+    tracesSampleRate: NotRequired[float]
+    replaysSessionSampleRate: NotRequired[float]
+    replaysOnErrorSampleRate: NotRequired[float]
+    debug: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -37,10 +39,10 @@ class LoaderInternalConfig(TypedDict):
 
 
 class LoaderContext(TypedDict):
-    config: SdkConfig
-    jsSdkUrl: str | None
-    publicKey: str | None
     isLazy: bool
+    config: NotRequired[SdkConfig]
+    jsSdkUrl: NotRequired[str]
+    publicKey: NotRequired[str | None]
 
 
 @region_silo_view
@@ -50,11 +52,11 @@ class JavaScriptSdkLoader(BaseView):
     # Do not let an organization load trigger session, breaking Vary header.
     # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
     # large amount of organization related support utilities, but that ends up being a large refactor.
-    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
+    def determine_active_organization(self, request: HttpRequest, organization_slug=None) -> None:
         pass
 
     def _get_loader_config(
-        self, key: ProjectKey | None, sdk_version: str | None
+        self, key: ProjectKey | None, sdk_version: Version | None
     ) -> LoaderInternalConfig:
         """Returns a string that is used to modify the bundle name"""
 
@@ -112,7 +114,7 @@ class JavaScriptSdkLoader(BaseView):
     def _get_context(
         self,
         key: ProjectKey | None,
-        sdk_version: str | None,
+        sdk_version: Version | None,
         loader_config: LoaderInternalConfig,
     ) -> tuple[LoaderContext, str | None]:
         """Sets context information needed to render the loader"""
