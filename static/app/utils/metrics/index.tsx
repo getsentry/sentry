@@ -32,7 +32,7 @@ import type {
 } from 'sentry/types/metrics';
 import {isMeasurement} from 'sentry/utils/discover/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
+import {DEFAULT_AGGREGATES, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricsQuery,
@@ -44,7 +44,6 @@ import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
 } from 'sentry/utils/metrics/useMetricsQuery';
-import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
@@ -349,6 +348,10 @@ export function isTransactionDuration({mri}: {mri: MRI}) {
 
 export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
+}
+
+export function isPerformanceMetric({mri}: {mri: MRI}) {
+  return mri.includes(':spans/') || mri.includes(':transactions/');
 }
 
 export function isVirtualMetric({mri}: {mri: MRI}) {

@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import type {MRI} from 'sentry/types/metrics';
 import type {
   MetricsEquationWidget,
   MetricsQueryWidget,
@@ -12,6 +11,7 @@ import {
 } from 'sentry/utils/metrics/types';
 
 export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
+export const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
 
 export const metricDisplayTypeOptions = [
   {
@@ -38,7 +38,7 @@ export const NO_QUERY_ID = -1;
 export const emptyMetricsQueryWidget: MetricsQueryWidget = {
   type: MetricExpressionType.QUERY,
   id: NO_QUERY_ID,
-  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  mri: SPAN_DURATION_MRI,
   aggregation: 'avg',
   condition: undefined,
   query: '',
