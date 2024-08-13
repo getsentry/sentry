@@ -16,9 +16,13 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -183,7 +187,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient):
+class GitHubBaseClient(GithubProxyClient, CommitContextClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"

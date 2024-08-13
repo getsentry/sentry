@@ -18,7 +18,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -93,7 +93,7 @@ metadata = IntegrationMetadata(
 
 
 class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
+    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextIntegration
 ):
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]

@@ -14,9 +14,13 @@ from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.integration import GitlabIntegration
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiUnauthorized
