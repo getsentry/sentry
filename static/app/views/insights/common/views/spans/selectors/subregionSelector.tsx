@@ -48,7 +48,7 @@ export default function SubregionSelector() {
       triggerProps={{
         prefix: (
           <Fragment>
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="experimental" />
             {t(' Geo region')}
           </Fragment>
         ),
