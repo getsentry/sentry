@@ -95,7 +95,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
 }
 
 function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
-  const defaultValue = getDefaultFilterValue({key, fieldDefinition});
+  const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
 
