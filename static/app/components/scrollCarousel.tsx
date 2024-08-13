@@ -1,10 +1,11 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface ScrollCarouselProps {
   children: React.ReactNode;
@@ -30,43 +31,13 @@ const DEFAULT_JUMP_ITEM_COUNT = 2;
 
 export function ScrollCarousel({children, className}: ScrollCarouselProps) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [childrenEls, setChildrenEls] = useState<HTMLElement[]>([]);
-  const [visibility, setVisibility] = useState<boolean[]>([]);
+  const {visibility, childrenEls} = useRefChildrenVisibility({
+    ref,
+    visibleRatio: DEFAULT_VISIBLE_RATIO,
+  });
 
   const isAtStart = visibility.at(0);
   const isAtEnd = visibility.at(-1);
-
-  useLayoutEffect(
-    () => setChildrenEls(Array.from(ref.current?.children ?? []) as HTMLElement[]),
-    [children]
-  );
-
-  useLayoutEffect(() => {
-    if (!ref.current) {
-      return () => {};
-    }
-
-    const observer = new IntersectionObserver(
-      entries => {
-        setVisibility(currentVisibility => {
-          return childrenEls.map((child, idx) => {
-            const entry = entries.find(e => e.target === child);
-            return entry !== undefined
-              ? entry.intersectionRatio > DEFAULT_VISIBLE_RATIO
-              : currentVisibility[idx] ?? false;
-          });
-        });
-      },
-      {
-        root: ref.current,
-        threshold: [DEFAULT_VISIBLE_RATIO],
-      }
-    );
-
-    childrenEls.forEach(child => observer.observe(child));
-
-    return () => observer.disconnect();
-  }, [childrenEls]);
 
   const scrollLeft = useCallback(() => {
     const scrollIndex = visibility.findIndex(Boolean);
