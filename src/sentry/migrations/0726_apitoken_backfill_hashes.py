@@ -31,7 +31,7 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         logger.exception("Cannot execute migration. Required symbols could not be imported")
         return
 
-    # copied from src/sentry/models/outbox.py
+    # copied from src/sentry/hybridcloud/outbox/category.py
     class OutboxCategory(IntEnum):
         USER_UPDATE = 0
         UNUSED_TWO = 4
@@ -40,11 +40,11 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         AUTH_IDENTITY_UPDATE = 25
         API_TOKEN_UPDATE = 32
 
-    # copied from src/sentry/models/outbox.py
+    # copied from src/sentry/hybridcloud/outbox/category.py
     _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
     _used_categories: set[OutboxCategory] = set()
 
-    # copied from src/sentry/models/outbox.py
+    # copied from src/sentry/hybridcloud/outbox/category.py
     def scope_categories(enum_value: int, categories: set[OutboxCategory]) -> int:
         _outbox_categories_for_scope[enum_value] = categories
         inter = _used_categories.intersection(categories)
@@ -52,7 +52,7 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         _used_categories.update(categories)
         return enum_value
 
-    # copied from src/sentry/models/outbox.py
+    # copied from src/sentry/hybridcloud/outbox/category.py
     class OutboxScope(IntEnum):
         USER_SCOPE = scope_categories(
             1,

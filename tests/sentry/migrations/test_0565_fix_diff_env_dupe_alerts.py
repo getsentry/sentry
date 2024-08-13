@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.testutils.cases import TestMigrations
 
 
