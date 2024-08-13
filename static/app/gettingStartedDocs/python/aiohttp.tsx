@@ -47,26 +47,13 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />,
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
         code: <code />,
       }),
       configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
         {
           description: tct(
             "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
@@ -84,7 +71,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'If you have the [code:aiohttp] package in your dependencies, the AIOHTTO integration will be enabled automatically. There is nothing to do for you except initializing the Sentry SDK before initializing your application:',
+        'If you have the [code:aiohttp] package in your dependencies, the AIOHTTO integration will be enabled automatically. You only need to ensure you initialize the Sentry SDK before initializing your application:',
         {
           code: <code />,
         }
@@ -94,11 +81,15 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
-async def hello(request):
-   return web.Response(text="Hello, world")
+###the following lines of code
+###are for testing
+async def debug(request):
+   1/0  # raises an error
+   return web.Response(text="Debug with Sentry")
 
 app = web.Application()
-app.add_routes([web.get('/', hello)])
+###this one too
+app.add_routes([web.get('/sentry-debug', sentry-debug)])
 
 web.run_app(app)
         `,
@@ -106,44 +97,31 @@ web.run_app(app)
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
+      description: tct(
+        'You can easily verify your Sentry installation by creating a route that triggers an error. The above snippet includes an endpoint [codeDebug:GET /sentry-debug].',
         {
-          language: 'python',
-
-          code: `
-          ${getSdkSetupSnippet(params)}
-async def hello(request):
-  1/0  # raises an error
-  return web.Response(text="Hello, world")
-
-app = web.Application()
-app.add_routes([web.get('/', hello)])
-
-web.run_app(app)`,
-        },
-      ],
+          codeDebug: <code />,
+        }
+      ),
       additionalInfo: (
         <span>
           <p>
             {tct(
-              `When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.`,
+              `When you point your browser to [link:http://localhost:8080/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.`,
               {
-                localhostLInk: <ExternalLink href="http://localhost:8080/" />,
+                link: <ExternalLink href="http://localhost:8080/sentry-debug/" />,
               }
             )}
           </p>
+          <br />
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
         </span>
       ),
     },

@@ -62,21 +62,14 @@ const onboarding: OnboardingConfig = {
         ),
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {code: <code />}),
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -95,14 +88,6 @@ const onboarding: OnboardingConfig = {
           code: getSdkSetupSnippet(params),
         },
       ],
-      additionalInfo: tct(
-        "Check out Sentry's [link:AWS sample apps] for detailed examples.",
-        {
-          link: (
-            <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
-          ),
-        }
-      ),
     },
     {
       title: t('Timeout Warning'),
@@ -132,10 +117,10 @@ const onboarding: OnboardingConfig = {
       additionalInfo: (
         <AlertWithMarginBottom type="info">
           {tct(
-            'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
+            'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Many of our framework specific integration are enabled automatically, if it exists. See our [link:Integrations docs] for more information.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
+                <ExternalLink href="https://docs.sentry.io/platforms/python/integrations/" />
               ),
             }
           )}

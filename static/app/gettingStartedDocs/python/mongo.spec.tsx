@@ -14,9 +14,7 @@ describe('mongo onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[pymongo\]'/)
-      )
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
 });

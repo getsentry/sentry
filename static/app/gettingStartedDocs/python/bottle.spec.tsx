@@ -15,9 +15,7 @@ describe('bottle onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[bottle\]'/)
-      )
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
 

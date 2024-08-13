@@ -17,9 +17,7 @@ describe('celery onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[celery\]'/)
-      )
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
 

@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[celery]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -46,26 +46,14 @@ const onboarding: OnboardingConfig = {
     tct('The celery integration adds support for the [link:Celery Task Queue System].', {
       link: <ExternalLink href="https://docs.celeryq.dev/en/stable/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:celery] extra:',
-        {
-          code: <code />,
-        }
-      ),
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

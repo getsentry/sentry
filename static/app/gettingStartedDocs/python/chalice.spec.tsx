@@ -15,9 +15,7 @@ describe('chalice onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[chalice\]'/)
-      )
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
 

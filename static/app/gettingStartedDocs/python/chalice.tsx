@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[chalice]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -45,22 +46,18 @@ const getVerifySnippet = () => `
 def every_minute(event):
     1/0  # raises an error
 
-@app.route("/")
+@app.route("/sentry-debug")
 def index():
     1/0  # raises an error
-    return {"hello": "world"}`;
+    return {"sentry": "debug"}`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryBotteCode:chalice] extra:',
-        {
-          sentrySdkCode: <code />,
-          sentryBotteCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk] from PyPI:', {
+        sentrySdkCode: <code />,
+      }),
       configurations: [
         {
           description: params.isProfilingSelected
@@ -102,14 +99,27 @@ const onboarding: OnboardingConfig = {
           code: getVerifySnippet(),
         },
       ],
-      additionalInfo: tct(
-        'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
-        {
-          code: <code />,
-        }
+      additionalInfo: (
+        <div>
+          <p>
+            {tct(
+              `When you point your browser to [link:http://localhost:8080/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.`,
+              {
+                link: <ExternalLink href="http://localhost:8080/sentry-debug/" />,
+              }
+            )}
+          </p>
+          <br />
+          <p>
+            {t(
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
+            )}
+          </p>
+        </div>
       ),
     },
   ],
+  nextSteps: () => [],
 };
 
 const docs: Docs = {

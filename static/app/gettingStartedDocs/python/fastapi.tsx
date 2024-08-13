@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[fastapi]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from fastapi import FastAPI
@@ -43,27 +43,14 @@ const onboarding: OnboardingConfig = {
     tct('The FastAPI integration adds support for the [link:FastAPI Framework].', {
       link: <ExternalLink href="https://fastapi.tiangolo.com/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFastApiCode:fastapi] extra:',
-        {
-          sentrySdkCode: <code />,
-          sentryFastApiCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk] from PyPI:', {
+        sentrySdkCode: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -85,37 +72,26 @@ const onboarding: OnboardingConfig = {
           code: `
 ${getSdkSetupSnippet(params)}
 app = FastAPI()
-      `,
-        },
-      ],
-      additionalInfo: tct(
-        'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-        {
-          code: <code />,
-        }
-      ),
-    },
-  ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
-        {
-          language: 'python',
 
-          code: `
-${getSdkSetupSnippet(params)}
-app = FastAPI()
-
+###the following lines of code
+###are for testing
 @app.get("/sentry-debug")
 async def trigger_error():
     division_by_zero = 1 / 0
       `,
         },
       ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'You can easily verify your Sentry installation by creating a route that triggers an error. The above snippet includes an endpoint [codeDebug:GET /sentry-debug]',
+        {
+          codeDebug: <code />,
+        }
+      ),
       additionalInfo: (
         <div>
           <p>
@@ -126,12 +102,12 @@ async def trigger_error():
               }
             )}
           </p>
+          <br />
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
         </div>
       ),
     },

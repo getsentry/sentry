@@ -28,7 +28,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )`;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[pymongo]'`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdkpymongo`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -38,27 +38,15 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://www.mongodb.com/docs/drivers/pymongo/" />,
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [pymongoCode:pymongo] extra:',
-        {
-          sentrySdkCode: <code />,
-          pymongoCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk]:', {
+        sentrySdkCode: <code />,
+        pymongoCode: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

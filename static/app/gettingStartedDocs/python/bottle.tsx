@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[bottle]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -42,27 +42,14 @@ const onboarding: OnboardingConfig = {
     tct('The Bottle integration adds support for the [link:Bottle Web Framework].', {
       link: <ExternalLink href="https://bottlepy.org/docs/dev/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryBotteCode:bottle] extra:',
-        {
-          sentrySdkCode: <code />,
-          sentryBotteCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk] from PyPI:', {
+        sentrySdkCode: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -84,51 +71,46 @@ const onboarding: OnboardingConfig = {
           code: `from bottle import Bottle
 ${getSdkSetupSnippet(params)}
 app = Bottle()
-      `,
-        },
-      ],
-    },
-  ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'To verify that everything is working, trigger an error on purpose:'
-      ),
-      configurations: [
-        {
-          language: 'python',
 
-          code: `from bottle import Bottle, run
-${getSdkSetupSnippet(params)}
-app = Bottle()
-
-@app.route('/')
-def hello():
+###the following lines of code
+###are for testing purposes
+@app.route('/sentry-debug')
+def sentry_debug():
     1/0
-    return "Hello World!"
+    return "Debug with Sentry"
 
 run(app, host='localhost', port=8000)
       `,
         },
       ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error. The above snippet includes an endpoint [codeDebug:GET /sentry-debug]',
+        {
+          codeDebug: <code />,
+        }
+      ),
       additionalInfo: (
-        <span>
+        <div>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
               {
-                link: <ExternalLink href="http://localhost:8000/" />,
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
             )}
           </p>
+          <br />
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </span>
+        </div>
       ),
     },
   ],

@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[quart]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -45,27 +45,15 @@ const onboarding: OnboardingConfig = {
     tct('The Quart integration adds support for the [link:Quart Web Framework].', {
       link: <ExternalLink href="https://quart.palletsprojects.com/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryQuartCode:quart] extra:',
-        {
-          sentrySdkCode: <code />,
-          sentryQuartCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk] from PyPI:', {
+        sentrySdkCode: <code />,
+        sentryQuartCode: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

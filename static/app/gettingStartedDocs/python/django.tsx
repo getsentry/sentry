@@ -39,6 +39,10 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('The Django integration adds support for the [link:Django Web Framework].', {
+      link: <ExternalLink href="https://www.djangoproject.com/" />,
+    }),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -80,7 +84,6 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-
           code: `# urls.py
 from django.urls import path
 

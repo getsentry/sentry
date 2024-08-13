@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[falcon]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import falcon
@@ -43,27 +43,14 @@ const onboarding: OnboardingConfig = {
     tct('The Falcon integration adds support for the [link:Falcon Web Framework].', {
       link: <ExternalLink href="https://falconframework.org/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFalconCode:falcon] extra:',
-        {
-          sentrySdkCode: <code />,
-          sentryFalconCode: <code />,
-        }
-      ),
+      description: tct('Install [sentrySdkCode:sentry-sdk] from PyPI:', {
+        sentrySdkCode: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -84,54 +71,50 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: `
 ${getSdkSetupSnippet(params)}
-api = falcon.API()
-      `,
-        },
-      ],
-    },
-  ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'To verify that everything is working, trigger an error on purpose:'
-      ),
-      configurations: [
-        {
-          language: 'python',
-
-          code: `
-${getSdkSetupSnippet(params)}
-class HelloWorldResource:
+###the following lines of code
+###are for testing
+class DebugSentry:
     def on_get(self, req, resp):
         message = {
-            'hello': "world",
+            'debug': "sentry",
         }
         1 / 0  # raises an error
         resp.media = message
 
 app = falcon.App()
-app.add_route('/', HelloWorldResource())
+###this one too
+app.add_route('/sentry-debug', SentryDebug())
       `,
         },
       ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'You can easily verify your Sentry installation by creating a route that triggers an error. The above snippet includes an endpoint [codeDebug:GET /sentry-debug].',
+        {
+          codeDebug: <code />,
+        }
+      ),
       additionalInfo: (
-        <div>
+        <span>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+              `When you point your browser to [link:http://localhost:8080/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.`,
               {
-                link: <ExternalLink href="http://localhost:8000/" />,
+                link: <ExternalLink href="http://localhost:8080/sentry-debug/" />,
               }
             )}
           </p>
+          <br />
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
+        </span>
       ),
     },
   ],
