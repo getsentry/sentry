@@ -5,9 +5,15 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
+from urllib3.response import HTTPResponse
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+)
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
@@ -36,7 +42,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo.base import SiloMode
@@ -48,6 +53,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -129,7 +135,7 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "mrkdwn",
-                "text": f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+                "text": f"State: *New*   First Seen: *{time_since(group.first_seen)}*",
             }
         ],
     }
@@ -848,7 +854,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -861,7 +867,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
@@ -892,7 +898,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -905,7 +911,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
@@ -930,7 +936,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -943,7 +949,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -998,7 +1004,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1011,7 +1017,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -1038,7 +1044,7 @@ class BuildIncidentAttachmentTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1051,7 +1057,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
@@ -1078,7 +1084,7 @@ class BuildIncidentAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
             incident.date_started.timestamp(), "{date_pretty}", "{time}"
         )
         link = (
@@ -1091,7 +1097,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
             action, incident, IncidentStatus.CLOSED, chart_url="chart-url"
@@ -1107,6 +1113,54 @@ class BuildIncidentAttachmentTest(TestCase):
                 {"alt_text": "Metric Alert Chart", "image_url": "chart-url", "type": "image"},
             ],
             "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "text": f"<{link}|*{title}*>",
+        }
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule, alert_threshold=0)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Critical: {alert_rule.name}"
+        timestamp = "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
+            incident.date_started.timestamp(), "{date_pretty}", "{time}"
+        )
+        detection_type = alert_rule.detection_type
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={detection_type}"
+        )
+        assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CRITICAL).build() == {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"0 events in the last 30 minutes\n{timestamp}\nThreshold: {detection_type.title()}",
+                    },
+                },
+            ],
+            "color": LEVEL_TO_COLOR["fatal"],
             "text": f"<{link}|*{title}*>",
         }
 
@@ -1468,10 +1522,11 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         context_without_error_user_count = get_context(group)
         assert (
             context_without_error_user_count
-            == f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+            == f"State: *New*   First Seen: *{time_since(group.first_seen)}*"
         )
 
         group.times_seen = 3
+        group.substatus = GroupSubStatus.ONGOING
         group.save()
 
         context_with_error_user_count = get_context(group)

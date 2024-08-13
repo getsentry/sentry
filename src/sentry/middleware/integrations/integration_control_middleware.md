@@ -22,7 +22,7 @@ The parsers vary per integration but they follow the same basic steps:
 - Lastly, identify the relevant Region Silos we need to forward to from looking at the `OrganizationMapping`s.
 - Now, depending on the payload we can choose how to respond to the initial request:
   - Some requests will require synchronous responses with an expected response pattern, (e.g. Slack).
-  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/models/outbox.py), (e.g. GitHub).
+  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/hybridcloud/models/outbox.py), (e.g. GitHub).
   - And others may require fanning out identical webhooks to multiple regions where the integration is installed on an organization, (e.g. Jira).
 
 ## Adding Integration Parsers

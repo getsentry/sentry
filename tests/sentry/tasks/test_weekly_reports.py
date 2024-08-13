@@ -378,8 +378,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.substatus = None
         group2.resolved_at = self.two_days_ago
         group2.save()
-        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
-        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
+        perf_event_1 = self.create_performance_issue(
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1"
+        )
+        perf_event_2 = self.create_performance_issue(
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2"
+        )
+        perf_event_1.group.update(substatus=GroupSubStatus.ONGOING)
+        perf_event_2.group.update(substatus=GroupSubStatus.ONGOING)
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorIncidentType.type_id)
@@ -476,8 +482,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert context["organization"] == self.organization
             assert context["issue_summary"] == {
                 "escalating_substatus_count": 0,
-                "new_substatus_count": 0,
-                "ongoing_substatus_count": 4,
+                "new_substatus_count": 4,
+                "ongoing_substatus_count": 0,
                 "regression_substatus_count": 0,
                 "total_substatus_count": 4,
             }
@@ -548,8 +554,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert context["organization"] == self.organization
             assert context["issue_summary"] == {
                 "escalating_substatus_count": 0,
-                "new_substatus_count": 0,
-                "ongoing_substatus_count": 2,
+                "new_substatus_count": 2,
+                "ongoing_substatus_count": 0,
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
@@ -613,12 +619,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         #  batch IDs are also used to prevent duplicate sends
         batch_id = UUID("ea18c80c-d44f-48a4-8973-b0daa3169c44")
 
-        with mock.patch(
-            "sentry.tasks.summaries.weekly_reports.prepare_template_context",
-            side_effect=ValueError("oh no!"),
-        ), mock.patch(
-            "sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email"
-        ) as mock_send_email:
+        with (
+            mock.patch(
+                "sentry.tasks.summaries.weekly_reports.prepare_template_context",
+                side_effect=ValueError("oh no!"),
+            ),
+            mock.patch(
+                "sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email"
+            ) as mock_send_email,
+        ):
             with pytest.raises(Exception):
                 prepare_organization_report(
                     self.now.timestamp(), ONE_DAY * 7, self.organization.id, batch_id
@@ -1002,24 +1011,26 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(0, 0, self.organization)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
+        batch1_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
+        batch2_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1")
         self._set_option_value("always")
 
         # First send
-        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        OrganizationReportBatch(ctx, batch1_id).deliver_reports()
         assert mock_send_email.call_count == 1
         mock_logger.error.assert_not_called()
 
         # Duplicate send
-        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        OrganizationReportBatch(ctx, batch2_id).deliver_reports()
         assert mock_send_email.call_count == 1
         assert mock_logger.error.call_count == 1
         mock_logger.error.assert_called_once_with(
             "weekly_report.delivery_record.duplicate_detected",
             extra={
-                "batch_id": str(batch_id),
+                "batch_id": str(batch2_id),
                 "organization": self.organization.id,
                 "user_id": self.user.id,
                 "has_email_override": False,
+                "report_date": "1970-01-01",
             },
         )

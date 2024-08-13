@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, cast
 
@@ -21,7 +21,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -42,6 +41,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -293,7 +293,7 @@ class OrganizationReportBatch:
         template_context: Mapping[str, Any] | None = user_template_context.get("context")
         user_id: int | None = user_template_context.get("user_id")
         if template_context and user_id:
-            dupe_check = _DuplicateDeliveryCheck(self, user_id)
+            dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
             if not dupe_check.check_for_duplicate_delivery():
                 self.send_email(template_ctx=template_context, user_id=user_id)
                 dupe_check.record_delivery()
@@ -337,9 +337,13 @@ class OrganizationReportBatch:
 
 
 class _DuplicateDeliveryCheck:
-    def __init__(self, batch: OrganizationReportBatch, user_id: int):
+    def __init__(self, batch: OrganizationReportBatch, user_id: int, timestamp: float):
         self.batch = batch
         self.user_id = user_id
+        # note that if the timestamps between batches cross a UTC day boundary,
+        # this will not work correctly. but we always start reports at midnight UTC,
+        # so that is unlikely to be an issue.
+        self.report_date = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
 
         # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
         self.count: int | None = None
@@ -349,7 +353,11 @@ class _DuplicateDeliveryCheck:
 
     @property
     def _redis_name(self) -> str:
-        name_parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
+        name_parts = (
+            self.report_date,
+            self.batch.ctx.organization.id,
+            self.user_id,
+        )
         return ":".join(str(part) for part in name_parts)
 
     def _get_log_extras(self) -> dict[str, Any]:
@@ -358,6 +366,7 @@ class _DuplicateDeliveryCheck:
             "organization": self.batch.ctx.organization.id,
             "user_id": self.user_id,
             "has_email_override": bool(self.batch.email_override),
+            "report_date": self.report_date,
         }
 
     def check_for_duplicate_delivery(self) -> bool:
