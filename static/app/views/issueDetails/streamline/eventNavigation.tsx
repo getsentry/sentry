@@ -335,11 +335,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           <JumpTo>
             <div>{t('Jump to:')}</div>
-            <ScrollCarousel
-              css={css`
-                gap: ${space(0.25)};
-              `}
-            >
+            <ScrollCarousel gap={0.25}>
               {jumpToSections.map(jump => (
                 <Button
                   key={jump.section}

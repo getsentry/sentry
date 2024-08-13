@@ -5,11 +5,13 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space, type ValidSize} from 'sentry/styles/space';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface ScrollCarouselProps {
   children: React.ReactNode;
   className?: string;
+  gap?: ValidSize;
 }
 
 /**
@@ -29,7 +31,7 @@ const DEFAULT_VISIBLE_RATIO = 0.85;
  */
 const DEFAULT_JUMP_ITEM_COUNT = 2;
 
-export function ScrollCarousel({children, className}: ScrollCarouselProps) {
+export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     ref,
@@ -66,7 +68,7 @@ export function ScrollCarousel({children, className}: ScrollCarouselProps) {
 
   return (
     <ScrollCarouselWrapper>
-      <ScrollContainer ref={ref} className={className}>
+      <ScrollContainer ref={ref} className={className} style={{gap: space(gap)}}>
         {children}
       </ScrollContainer>
       {!isAtStart && <LeftMask />}

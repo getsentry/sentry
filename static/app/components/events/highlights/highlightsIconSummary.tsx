@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
@@ -33,11 +32,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   return items.length ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel
-          css={css`
-            gap: ${space(4)};
-          `}
-        >
+        <ScrollCarousel gap={4}>
           {items.map((item, index) => (
             <IconSummary key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
