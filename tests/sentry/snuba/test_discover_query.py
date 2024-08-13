@@ -70,7 +70,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="discover",
@@ -95,7 +94,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="test_discover_query",
@@ -119,7 +117,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["-project"],
             referrer="test_discover_query",
@@ -143,7 +140,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.name", "message", "project"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project.name"],
             referrer="test_discover_query",
@@ -176,7 +172,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["message", "project"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="test_discover_query",
@@ -198,7 +193,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query=query,
                 referrer="discover",
-                params={},
                 snuba_params=self.params,
             )
             data = result["data"]
@@ -219,7 +213,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["issue", "issue.id"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -254,7 +247,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query="",
-                params={},
                 snuba_params=self.params,
                 orderby=[orderby],
                 referrer="test_discover_query",
@@ -303,7 +295,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=[column],
                 referrer="test_discover_query",
@@ -337,7 +328,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=[column],
                 referrer="test_discover_query",
@@ -370,7 +360,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 result = discover.query(
                     selected_columns=[column],
                     query="",
-                    params={},
                     snuba_params=self.params,
                     orderby=[f"{direction}{column}"],
                     referrer="discover",
@@ -386,7 +375,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -419,7 +407,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -474,7 +461,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["user.display"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -504,7 +490,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["user.display"],
             query="has:user.display user.display:bruce@example.com",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -534,7 +519,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["message"],
                 query="",
-                params={},
                 snuba_params=self.params,
                 orderby=[orderby],
                 referrer="test_discover_query",
@@ -574,7 +558,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["message"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=["message"],
                 referrer="test_discover_query",
@@ -630,7 +613,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "team_key_transaction"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -708,7 +690,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "transaction", "project_threshold_config"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -740,7 +721,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "transaction", "project_threshold_config"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -793,7 +773,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=cols,
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -848,7 +827,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=cols,
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -895,7 +873,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=cols,
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -942,7 +919,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_count()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1018,7 +994,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 orderby=["transaction"],
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1109,7 +1084,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 orderby=["transaction"],
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1203,7 +1177,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 referrer="discover",
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1241,7 +1214,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "count()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1299,7 +1271,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=selected,
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1339,7 +1310,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 referrer="discover",
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1370,7 +1340,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             orderby=["transaction"],
             referrer="discover",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -1416,7 +1385,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_rate()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1466,7 +1434,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1502,7 +1469,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1536,7 +1502,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1571,7 +1536,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1606,7 +1570,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1641,7 +1604,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1685,7 +1647,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1713,7 +1674,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["count_unique(user.display)", "count_unique(foo)"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1746,7 +1706,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "max(transaction.duration)",
             ],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1792,7 +1751,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query="",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1824,7 +1782,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "count_at_least(transaction.duration,120000)",
             ],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1873,7 +1830,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1927,7 +1883,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1966,7 +1921,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["transaction.status"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -1994,7 +1948,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction.status"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -2051,7 +2004,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["error.handled"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2095,7 +2047,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["error.unhandled"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2133,7 +2084,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["stack.filename"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2154,7 +2104,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["stack.filename"],
             query="stack.filename:[raven.js]",
             referrer="discover",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=12),
                 end=before_now(minutes=8),
@@ -2194,7 +2143,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["spans_op"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2233,7 +2181,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "error.unhandled"],
                 query="",
                 orderby=orderby,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2283,7 +2230,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_count()"],
                 query="",
                 orderby=orderby,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -2299,7 +2245,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2324,7 +2269,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user", "user.email"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2345,7 +2289,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "count_unique(user.email)"],
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
             referrer="discover",
@@ -2359,7 +2302,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user.email"],
             query="user.email:bruce@example.com",
-            params={},
             snuba_params=self.params,
             referrer="discover",
             auto_fields=True,
@@ -2374,7 +2316,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["user.email", "release"],
             referrer="discover",
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
         )
@@ -2398,7 +2339,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["count_unique(user.email)"],
             referrer="discover",
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
         )
@@ -2410,7 +2350,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.create_release(self.project).version}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2419,7 +2358,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.release.version}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2462,7 +2400,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2475,7 +2412,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>=1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2490,7 +2426,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:<1.2.4",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2498,7 +2433,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"!{SEMVER_ALIAS}:1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2562,7 +2496,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2574,7 +2507,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2587,7 +2519,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2619,7 +2550,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             referrer="discover",
             query=f"{SEMVER_PACKAGE_ALIAS}:test",
-            params={},
             snuba_params=self.params,
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2630,7 +2560,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_PACKAGE_ALIAS}:test2",
             referrer="discover",
-            params={},
             snuba_params=self.params,
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2657,7 +2586,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:123",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2668,7 +2596,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:124",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2678,7 +2605,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:>=123",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2688,7 +2614,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query="release:latest",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2702,7 +2627,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.create_environment(self.project).name}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2711,7 +2635,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.environment.name}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2736,7 +2659,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query=f"project:{self.project.slug} OR project:{project2.slug}",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -2775,7 +2697,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="(release:{} OR release:{}) AND project:{}".format(
                 "a" * 32, "b" * 32, self.project.slug
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -2802,7 +2723,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["title", "message"],
             query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2822,7 +2742,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
                 "a" * 32, "a" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2854,7 +2773,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
                 "a" * 32, "b" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2887,7 +2805,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
                 "b" * 32, "b" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2910,7 +2827,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                     "b" * 32, "b" * 32
                 ),
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     projects=[self.project],
                     start=self.two_min_ago,
@@ -2936,7 +2852,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 iso_format(self.now - timedelta(seconds=5)),
                 iso_format(self.now - timedelta(seconds=3)),
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2959,7 +2874,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.id", "user", "release"],
             query="timestamp.to_hour:" + iso_format(event_hour),
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2984,7 +2898,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (count():<1 OR count():>0)",
-            params={},
             snuba_params=self.params,
             orderby=["transaction"],
             use_aggregate_conditions=True,
@@ -3008,7 +2921,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["array_join(measurements_key)"],
             query="",
-            params={},
             snuba_params=self.params,
             functions_acl=["array_join"],
             referrer="discover",
@@ -3023,7 +2935,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             discover.query(
                 selected_columns=["array_join(tags.key)"],
                 query="",
-                params={},
                 snuba_params=SnubaParams(
                     projects=[self.project],
                     start=self.two_min_ago,
@@ -3038,7 +2949,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=[f"histogram({array_column}_value, 1,0,1)"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={},
                     snuba_params=SnubaParams(
                         projects=[self.project],
                         start=self.two_min_ago,
@@ -3055,7 +2965,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=["count()"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={},
                     snuba_params=SnubaParams(
                         projects=[self.project],
                         start=self.two_min_ago,
@@ -3078,7 +2987,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["sumArray(measurements_value)"],
             query="",
-            params={},
             snuba_params=self.params,
             # make sure to opt in to gain access to the function
             functions_acl=["sumArray"],
@@ -3095,7 +3003,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["count()", "any(transaction)", "any(user.id)"],
             query="event.type:transaction",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=before_now(minutes=5),
@@ -3124,7 +3031,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["message"],
             limit=1,
@@ -3145,7 +3051,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "p50(spans.foo)",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             use_aggregate_conditions=True,
             referrer="discover",
@@ -3171,7 +3076,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "measurements.does_not_exist",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3199,7 +3103,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "spans.does_not_exist",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3223,7 +3126,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project"],
             query=f"project:{self.project.slug} or event.type:transaction",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -3265,7 +3167,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             equations=["spans.http / transaction.duration"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3285,7 +3186,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 "1500 + transaction.duration",
             ],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3305,7 +3205,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 # while transaction_status is a uint8, there's no reason we should allow arith on it
                 equations=["spans.http / transaction.status"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3319,7 +3218,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["p50(transaction.duration) / last_seen()"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3332,7 +3230,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["spans.http / transaction.duration"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3345,7 +3242,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["p50(transaction.duration) / p100(transaction.duration)"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3370,7 +3266,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3389,7 +3284,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[1]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3408,7 +3302,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["-equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3424,7 +3317,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 orderby=["equation[1]"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3440,7 +3332,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "5 + 5",
                 ],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -3452,7 +3343,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             equations=["p50(transaction.duration) / 2"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3468,7 +3358,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3490,7 +3379,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 "count() + count() / count() * count() - count()",
             ],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3527,7 +3415,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3545,7 +3432,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[1]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3563,7 +3449,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["-equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
