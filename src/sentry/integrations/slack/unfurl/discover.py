@@ -17,6 +17,7 @@ from sentry.discover.arithmetic import is_equation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
+from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.search.events.filter import to_list
@@ -30,7 +31,6 @@ from sentry.utils.dates import (
 )
 
 from ..utils import logger
-from . import Handler, UnfurlableUrl, UnfurledUrl
 
 # The display modes on the frontend are defined in app/utils/discover/types.tsx
 display_modes: Mapping[str, ChartType] = {
@@ -320,7 +320,7 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler = Handler(
+discover_handler = Handler(
     fn=unfurl_discover,
     matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,
