@@ -147,7 +147,9 @@ function TagFacetsDistributionMeter({
     return (
       <LegendAnimateContainer
         expanded={expanded}
-        animate={expanded ? {height: '100%', opacity: 1} : {height: '0', opacity: 0}}
+        animate={
+          expanded ? {height: ['100%', 'auto'], opacity: 1} : {height: '0', opacity: 0}
+        }
       >
         <LegendContainer>
           {topSegments.map((segment, index) => {
