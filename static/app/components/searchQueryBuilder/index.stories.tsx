@@ -101,7 +101,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_4',
     label: 'Category 4',
-    children: [FieldKey.LAST_SEEN],
+    children: [FieldKey.LAST_SEEN, FieldKey.TIMES_SEEN],
   },
   {
     value: 'cat_5',

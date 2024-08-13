@@ -9,7 +9,6 @@ import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filt
 import type {FilterKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearchFilters';
 import {
-  createItem,
   createRecentFilterOptionKey,
   createSection,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
@@ -64,39 +63,37 @@ function findNextMatchingItem(
 function useFilterKeyItems() {
   const {filterKeySections, getFieldDefinition, filterKeys} = useSearchQueryBuilder();
 
-  const flatItems = useMemo(() => {
-    return Object.values(filterKeys).map(filterKey =>
-      createItem(filterKey, getFieldDefinition(filterKey.key))
-    );
-  }, [filterKeys, getFieldDefinition]);
+  const sectionedItems = useMemo(() => {
+    const flatFilterKeys = Object.keys(filterKeys);
 
-  const categorizedItems = useMemo(() => {
-    return filterKeySections
+    const categorizedItems = filterKeySections
       .flatMap(section => section.children)
       .reduce<
         Record<string, boolean>
       >((acc, nextFilterKey) => ({...acc, [nextFilterKey]: true}), {});
-  }, [filterKeySections]);
 
-  const uncategorizedItems = useMemo(() => {
-    return flatItems.filter(item => !categorizedItems[item.value]);
-  }, [categorizedItems, flatItems]);
+    const uncategorizedFilterKeys = flatFilterKeys.filter(
+      filterKey => !categorizedItems[filterKey]
+    );
 
-  const sectionedItems = useMemo(() => {
     const sections = filterKeySections.map(section =>
       createSection(section, filterKeys, getFieldDefinition)
     );
-    if (uncategorizedItems.length) {
-      sections.push({
-        key: 'uncategorized',
-        value: 'uncategorized',
-        label: '',
-        options: uncategorizedItems,
-        type: 'section',
-      });
+    if (uncategorizedFilterKeys.length) {
+      sections.push(
+        createSection(
+          {
+            value: 'uncategorized',
+            label: '',
+            children: uncategorizedFilterKeys,
+          },
+          filterKeys,
+          getFieldDefinition
+        )
+      );
     }
     return sections;
-  }, [filterKeySections, filterKeys, getFieldDefinition, uncategorizedItems]);
+  }, [filterKeySections, filterKeys, getFieldDefinition]);
 
   return {sectionedItems};
 }
