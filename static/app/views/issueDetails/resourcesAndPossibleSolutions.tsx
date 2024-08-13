@@ -16,7 +16,7 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -48,7 +48,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-  const isSampleError = isSampleEvent();
+  const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&

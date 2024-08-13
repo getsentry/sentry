@@ -62,12 +62,12 @@ import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
-  isSampleEvent,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
+  useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
@@ -830,7 +830,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-  const isSampleError = isSampleEvent();
+  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';

@@ -24,7 +24,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isSampleEvent, useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -107,7 +107,7 @@ export function Threads({
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
-  const isSampleError = isSampleEvent();
+  const isSampleError = useIsSampleEvent();
 
   const stackTraceNotFound = !threads.length;
 

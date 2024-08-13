@@ -283,7 +283,7 @@ export function useHasStreamlinedUI() {
   );
 }
 
-export function isSampleEvent(): boolean {
+export function useIsSampleEvent(): boolean {
   const params = useParams();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();

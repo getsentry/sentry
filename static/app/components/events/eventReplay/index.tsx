@@ -9,7 +9,7 @@ import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowRepla
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import {isSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   event: Event;
@@ -27,7 +27,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
     group,
     projectSlug,
   });
-  const isSampleError = isSampleEvent();
+  const isSampleError = useIsSampleEvent();
 
   const {setParamValue: setProjectId} = useUrlParams('project');
 
