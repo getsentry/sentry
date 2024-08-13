@@ -54,7 +54,10 @@ import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -149,6 +152,8 @@ export function DefaultGroupEventDetailsContent({
 
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
+
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <Fragment>
@@ -291,7 +296,9 @@ export function DefaultGroupEventDetailsContent({
         />
       )}
       <EventHydrationDiff event={event} group={group} />
-      <EventReplay event={event} group={group} projectSlug={project.slug} />
+      {issueTypeConfig.replays.enabled && (
+        <EventReplay event={event} group={group} projectSlug={project.slug} />
+      )}
       <GroupEventEntry
         sectionKey={FoldSectionKey.HPKP}
         entryType={EntryType.HPKP}
