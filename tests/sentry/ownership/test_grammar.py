@@ -1015,6 +1015,13 @@ codeowners:docs-ui/ docs-sentry ecosystem
         ),
         (
             [
+                {"filename": "foo/test.py"},
+                {"abs_path": "/usr/local/src/foo/test.py"},
+            ],
+            True,
+        ),
+        (
+            [
                 {"filename": "foo/test.py", "in_app": False},
                 {"abs_path": "/usr/local/src/foo/test.py", "in_app": True},
             ],
