@@ -106,15 +106,6 @@ type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 't
 
 interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
-   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
-   * download the contents.
-   *
-   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
-   *
-   * @deprecated Use LinkButton instead
-   */
-  download?: HTMLAnchorElement['download'];
-  /**
    * @internal Used in the Button forwardRef
    */
   forwardRef?: React.Ref<ButtonElement>;
