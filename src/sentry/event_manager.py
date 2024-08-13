@@ -56,7 +56,7 @@ from sentry.grouping.api import (
 from sentry.grouping.ingest.config import (
     is_in_transition,
     project_uses_optimized_grouping,
-    update_grouping_config_if_permitted,
+    update_grouping_config_if_needed,
 )
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
@@ -80,6 +80,7 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -117,7 +118,6 @@ from sentry.signals import (
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
@@ -1403,7 +1403,7 @@ def _save_aggregate(
     # hashes, we're free to perform a config update if permitted. Future events will use the new
     # config, but will also be grandfathered into the current config for a month, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_needed(project, "ingest")
 
     _materialize_metadata_many([job])
     metadata = dict(job["event_metadata"])
@@ -1747,7 +1747,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
     # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
@@ -1761,7 +1761,7 @@ def _save_aggregate_new(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_needed(project, "ingest")
 
     return group_info
 
@@ -1931,6 +1931,17 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
+    # Temporary log to debug events seeming to disappear after being sent to Seer
+    if event.data.get("seer_similarity"):
+        logger.info(
+            "seer.similarity.pre_create_group",
+            extra={
+                "event_id": event.event_id,
+                "hash": event.get_primary_hash(),
+                "project": project.id,
+            },
+        )
+
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
@@ -1941,6 +1952,7 @@ def _create_group(
         if first_release
         else None
     )
+    group_creation_kwargs["substatus"] = GroupSubStatus.NEW
 
     group_data = group_creation_kwargs.pop("data", {})
 
@@ -2003,6 +2015,18 @@ def _create_group(
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
+
+    # Temporary log to debug events seeming to disappear after being sent to Seer
+    if event.data.get("seer_similarity"):
+        logger.info(
+            "seer.similarity.post_create_group",
+            extra={
+                "event_id": event.event_id,
+                "hash": event.get_primary_hash(),
+                "project": project.id,
+                "group_id": group.id,
+            },
+        )
 
     return group
 
@@ -2348,8 +2372,11 @@ def _get_severity_metadata_for_group(
     seer_based_priority_enabled = features.has(
         "organizations:seer-based-priority", event.project.organization, actor=None
     )
+    if not seer_based_priority_enabled:
+        return {}
+
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not seer_based_priority_enabled and not feature_enabled:
+    if not feature_enabled:
         return {}
 
     is_supported_platform = (

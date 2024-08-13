@@ -6,7 +6,7 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -480,8 +480,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
       <ActionsWrapper>
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
-          {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -498,9 +503,9 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button href="https://docs.sentry.io/product/performance/" external>
+            <LinkButton href="https://docs.sentry.io/product/performance/" external>
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>

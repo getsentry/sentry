@@ -17,9 +17,9 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.metrics import (
     SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
     SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
@@ -331,7 +331,7 @@ class SlackService:
         integration: Integration,
         shared_context: Mapping[str, Any],
     ) -> None:
-        from sentry.tasks.integrations.slack.post_message import post_message, post_message_control
+        from sentry.integrations.slack.tasks.post_message import post_message, post_message_control
 
         """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
         This is used in the send_notification_as_slack function."""

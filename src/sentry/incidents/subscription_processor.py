@@ -28,6 +28,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
@@ -58,6 +59,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import json, metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.json import JSONDecodeError
@@ -482,13 +484,9 @@ class SubscriptionProcessor:
 
         if not hasattr(self, "alert_rule"):
             # QuerySubscriptions must _always_ have an associated AlertRule
-            # If the alert rule has been removed then just skip
+            # If the alert rule has been removed then clean up associated tables and return
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
-            logger.error(
-                "Received an update for a subscription, but no associated alert rule exists"
-            )
-            # TODO: Delete QuerySubscription here
-            # TODO: Delete SnubaQuery here
+            delete_snuba_subscription(self.subscription)
             return
 
         if subscription_update["timestamp"] <= self.last_update:
@@ -544,16 +542,28 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                if (
-                    self.has_anomaly_detection
-                    and trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
-                ):
+                detection_type = trigger.alert_rule.detection_type
+                if self.has_anomaly_detection and detection_type == AlertRuleDetectionType.DYNAMIC:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
+                        # check to see if we have enough data for the dynamic alert rule now
+                        if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
+                            if self.anomaly_has_confidence(potential_anomaly):
+                                # NOTE: this means "enabled," and it's the default alert rule status.
+                                # TODO: change these status labels to be less confusing
+                                self.alert_rule.status = AlertRuleStatus.PENDING.value
+                                self.alert_rule.save()
+                            else:
+                                # we don't need to check if the alert should fire if the alert can't fire yet
+                                continue
+
                         if self.has_anomaly(
                             potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                            metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                            metrics.incr(
+                                "incidents.alert_rules.threshold.alert",
+                                tags={"detection_type": detection_type},
+                            )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
                             )
@@ -568,7 +578,8 @@ class SubscriptionProcessor:
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
                             metrics.incr(
-                                "incidents.alert_rules.threshold", tags={"type": "resolve"}
+                                "incidents.alert_rules.threshold.resolve",
+                                tags={"detection_type": detection_type},
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -584,7 +595,10 @@ class SubscriptionProcessor:
                     ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                         # If the value has breached our threshold (above/below)
                         # And the trigger is not yet active
-                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                        metrics.incr(
+                            "incidents.alert_rules.threshold.alert",
+                            tags={"detection_type": detection_type},
+                        )
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                         if incident_trigger is not None:
@@ -599,7 +613,10 @@ class SubscriptionProcessor:
                         and self.active_incident
                         and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                     ):
-                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
+                        metrics.incr(
+                            "incidents.alert_rules.threshold.resolve",
+                            tags={"detection_type": detection_type},
+                        )
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
                         )
@@ -627,7 +644,6 @@ class SubscriptionProcessor:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
-        TODO: replace the anomaly types with constants (once they're added to Sentry)
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
@@ -636,6 +652,14 @@ class SubscriptionProcessor:
         ):
             return True
         return False
+
+    def anomaly_has_confidence(self, anomaly) -> bool:
+        """
+        Helper function to determine whether we have the 7+ days of data necessary
+        to detect anomalies/send alerts for dynamic alert rules.
+        """
+        anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+        return anomaly_type != AnomalyType.NO_DATA.value
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
         try:

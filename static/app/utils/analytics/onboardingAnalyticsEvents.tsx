@@ -28,6 +28,13 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.messaging_integration_external_install_clicked': {
+    provider_key: string;
+  };
+  'onboarding.messaging_integration_modal_rendered': {
+    project_id: string;
+  };
+  'onboarding.messaging_integration_steps_refreshed': {};
   'onboarding.nextjs-dsn-copied': {};
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
@@ -80,4 +87,10 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
   'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
+  'onboarding.messaging_integration_modal_rendered':
+    'Onboarding: Messaging Integration Modal Rendered',
+  'onboarding.messaging_integration_external_install_clicked':
+    'Onboarding: Messaging Integration External Install Clicked',
+  'onboarding.messaging_integration_steps_refreshed':
+    'Onboarding: Messaging Integration Steps Refreshed',
 };

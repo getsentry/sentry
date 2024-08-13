@@ -16,12 +16,12 @@ const getInstallSnippet = (params: Params) =>
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'${
+  config.dsn = '${params.dsn.public}'${
     params.isPerformanceSelected
       ? `
 
   # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
+  # of transactions for tracing.
   # We recommend adjusting this value in production.
   config.traces_sample_rate = 1.0
   # or
@@ -54,10 +54,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'The Sentry SDK for Ruby comes as a gem and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
+        'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
         {
           gemfileCode: <code />,
-          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -76,6 +75,11 @@ const onboarding: OnboardingConfig = {
             : undefined,
           language: 'ruby',
           code: getInstallSnippet(params),
+        },
+        {
+          description: t('After adding the gems, run the following to install the SDK:'),
+          language: 'ruby',
+          code: 'bundle install',
         },
       ],
     },
@@ -98,11 +102,12 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t('You can then report errors or messages to Sentry:'),
+      description: t(
+        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+      ),
       configurations: [
         {
           language: 'ruby',
-
           code: getVerifySnippet(),
         },
       ],

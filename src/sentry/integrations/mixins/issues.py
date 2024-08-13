@@ -9,16 +9,18 @@ from typing import Any, ClassVar
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.tasks.sync_status_inbound import (
+    sync_status_inbound as sync_status_inbound_task,
+)
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
-from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri

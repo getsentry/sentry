@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 
-import Alert from 'sentry/components/alert';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -82,17 +82,11 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [
-      FieldKey.ASSIGNED,
-      FieldKey.BROWSER_NAME,
-      FieldKey.IS,
-      FieldKey.LAST_SEEN,
-      FieldKey.TIMES_SEEN,
-    ],
+    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -102,6 +96,16 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_3',
     label: 'Category 3',
+    children: [FieldKey.TIMES_SEEN],
+  },
+  {
+    value: 'cat_4',
+    label: 'Category 4',
+    children: [FieldKey.LAST_SEEN],
+  },
+  {
+    value: 'cat_5',
+    label: 'Category 5',
     children: ['custom_tag_name'],
   },
 ];
@@ -284,7 +288,7 @@ export default storyBook(SearchQueryBuilder, story => {
       <Fragment>
         <p>
           A special menu can be displayed when no text is entered in the search input,
-          allowing for better oranization and discovery of filter keys.
+          allowing for better organization and discovery of filter keys.
         </p>
         <p>
           This menu is defined by <code>filterKeySections</code>, which accepts a list of
@@ -293,10 +297,22 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
+        />
+        <p>
+          If you wish to modify the size of the filter key menu, use
+          <code>filterKeyMenuWidth</code> to define the width in pixels.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          filterKeyMenuWidth={600}
         />
       </Fragment>
     );
@@ -322,7 +338,7 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           fieldDefinitionGetter={() => {
             return {
-              desc: 'Customized field defintion',
+              desc: 'Customized field definition',
               kind: FieldKind.FIELD,
               valueType: FieldValueType.BOOLEAN,
             };
@@ -457,12 +473,58 @@ export default storyBook(SearchQueryBuilder, story => {
 
     return (
       <Fragment>
-        <Alert type="warning">Aggregate filter functionality is still in progress.</Alert>
         <p>
           Filter keys can be defined as aggregate filters, which allow for more complex
-          operations. They may accept any number of parameters, which are be defined in
-          the field definition.
+          operations. They may accept any number of parameters, which are defined in the
+          field definition.
         </p>
+        <p>
+          To define an aggregate filter, set the <code>kind</code> to{' '}
+          <code>FieldKind.FUNCTION</code>, and the <code>valueType</code> to the return
+          type of the function. Then define the <code>parameters</code>, which is an array
+          of acceptable column types or a predicate function.
+        </p>
+        <ul>
+          <li>
+            <strong>
+              <code>name</code>
+            </strong>
+            : The name of the parameter.
+            <li>
+              <strong>
+                <code>kind</code>
+              </strong>
+              : Parameters may be defined as either a column parameter or a value
+              parameter.
+              <ul>
+                <li>
+                  <code>'value'</code>: If this parameter is a value it also requires a{' '}
+                  <code>dataType</code> and, optionally, a list of <code>options</code>{' '}
+                  that will be displayed as suggestions.
+                </li>
+                <li>
+                  <code>'column'</code>: Column parameters suggest other existing filter
+                  keys. This also requires <code>columnTypes</code> to be defined, which
+                  may be a list of data types that the column may be or a predicate
+                  function.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>
+                <code>required</code>
+              </strong>
+              : Whether or not the parameter is required.
+            </li>
+            <li>
+              <strong>
+                <code>defaultValue</code>
+              </strong>
+              : The default value that the parameter will be set to when the filter is
+              first added.
+            </li>
+          </li>
+        </ul>
         <SearchQueryBuilder
           initialQuery=""
           filterKeys={aggregateFilterKeys}
@@ -506,7 +568,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -552,7 +614,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </MultipleCheckbox>
         <SearchQueryBuilder
           initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -571,7 +633,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery="AND"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -591,6 +653,21 @@ export default storyBook(SearchQueryBuilder, story => {
         searchSource="storybook"
         disabled
       />
+    );
+  });
+
+  story('FormattedQuery', () => {
+    return (
+      <Fragment>
+        <p>
+          If you just need to render a formatted query outside of the search bar,{' '}
+          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+        </p>
+        <FormattedQuery
+          query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
+          filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
     );
   });
 

@@ -44,6 +44,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
   const organization = useOrganization();
   const metricsNewInputs = hasMetricsNewInputs(organization);
   const formulaDependencies = useFormulaDependencies();
+
   const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
     useMetricsContext();
   const createDashboard = useCreateDashboard(
@@ -115,13 +116,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             query.type === MetricExpressionType.QUERY
         )
         .map((widget, index) => {
-          const createAlert = getCreateAlert(organization, {
-            query: widget.query,
-            mri: widget.mri,
-            groupBy: widget.groupBy,
-            aggregation: widget.aggregation,
-            condition: widget.condition,
-          });
+          const createAlert = getCreateAlert(organization, widget);
           return {
             leadingItems: showQuerySymbols
               ? [<span key="symbol">{getQuerySymbol(widget.id, metricsNewInputs)}:</span>]
@@ -143,7 +138,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             },
           };
         }),
-    [organization, showQuerySymbols, widgets, metricsNewInputs]
+    [widgets, showQuerySymbols, metricsNewInputs, organization]
   );
 
   return (
@@ -152,7 +147,12 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => openExtractionRuleCreateModal({})}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                organization,
+                source: 'ddm.header.create-metric',
+              })
+            }
             size="sm"
           >
             {t('Create Metric')}

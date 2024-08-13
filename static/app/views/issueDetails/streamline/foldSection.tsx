@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -12,8 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
 
 export const enum FoldSectionKey {
-  // View Full Trace
-  // Suspect Commits
+  TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
@@ -29,13 +28,8 @@ export const enum FoldSectionKey {
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
-  STACK_TRACE = 'stack-trace',
 
-  THREADS = 'threads',
-  THREAD_STATE = 'thread-state',
-  THREAD_TAGS = 'thread-tags',
-
-  // QuickTraceQuery?
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
 
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
@@ -62,6 +56,7 @@ export const enum FoldSectionKey {
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
+  PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 
@@ -79,6 +74,7 @@ interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  className?: string;
   /**
    * Should this section be initially open, gets overridden by user preferences
    */
@@ -87,17 +83,21 @@ interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  style?: CSSProperties;
 }
 
-export function FoldSection({
-  children,
-  title,
-  actions,
-  sectionKey,
-  initialCollapse = false,
-  preventCollapse = false,
-  ...props
-}: FoldSectionProps) {
+export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
+  {
+    children,
+    title,
+    actions,
+    sectionKey,
+    initialCollapse = false,
+    preventCollapse = false,
+    ...props
+  },
+  ref
+) {
   const organization = useOrganization();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
@@ -121,7 +121,7 @@ export function FoldSection({
   );
 
   return (
-    <section {...props}>
+    <Section {...props} ref={ref} id={sectionKey}>
       <details open={!isCollapsed || preventCollapse}>
         <Summary
           preventCollapse={preventCollapse}
@@ -150,9 +150,11 @@ export function FoldSection({
           <Content>{children}</Content>
         </ErrorBoundary>
       </details>
-    </section>
+    </Section>
   );
-}
+});
+
+export const Section = styled('section')``;
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
@@ -168,6 +170,11 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
+  overflow: hidden;
+  &::marker,
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`

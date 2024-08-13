@@ -19,6 +19,7 @@ import {
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   hasCustomMetricsExtractionRules,
   hasMetricsNewInputs,
@@ -42,6 +43,7 @@ type MRISelectProps = {
   onTagClick: (mri: MRI, tag: string) => void;
   projects: number[];
   value: MRI;
+  isModal?: boolean;
 };
 
 const isVisibleTransactionMetric = (metric: MetricMeta) =>
@@ -79,7 +81,7 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   for (const metric of metrics) {
     const parsedMri = parseMRI(metric.mri);
     // Include the use case to avoid warning of conflicts between different use cases
-    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
+    const metricName = `${parsedMri.type}_${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);
@@ -117,6 +119,7 @@ const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
   ignoreLocation: true,
   includeScore: false,
   includeMatches: false,
+  minMatchCharLength: 1,
 };
 
 function useFilteredMRIs(
@@ -157,6 +160,7 @@ export const MRISelect = memo(function MRISelect({
   metricsMeta,
   isLoading,
   value,
+  isModal,
 }: MRISelectProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -168,6 +172,14 @@ export const MRISelect = memo(function MRISelect({
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
+
+  // If the mri is not in the list of metrics, set it to the default metric
+  const selectedMeta = metricsMeta.find(metric => metric.mri === value);
+  useEffect(() => {
+    if (!selectedMeta) {
+      onChange(emptyMetricsQueryWidget.mri);
+    }
+  }, [onChange, selectedMeta]);
 
   const handleFilterOption = useCallback(
     (option: ComboBoxOption<MRI>) => {
@@ -265,14 +277,15 @@ export const MRISelect = memo(function MRISelect({
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parsedMRI.useCase === 'custom' && !mriMode) {
+        if (
+          parsedMRI.useCase === 'custom' &&
+          parsedMRI.type !== 'v' &&
+          !isUnresolvedExtractedMetric &&
+          !mriMode
+        ) {
           trailingItems.push(
             <CustomMetricInfoText key="text">
-              {parsedMRI.type === 'v' ||
-              !hasExtractionRules ||
-              isUnresolvedExtractedMetric
-                ? t('Custom')
-                : t('Deprecated')}
+              {hasExtractionRules ? t('Deprecated') : t('Custom')}
             </CustomMetricInfoText>
           );
         }
@@ -328,6 +341,15 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
+        css={
+          !isModal
+            ? css`
+                @media (min-width: ${theme.breakpoints.xxlarge}) {
+                  max-width: min(500px, 100%);
+                }
+              `
+            : undefined
+        }
         menuFooter={
           isLoading
             ? undefined
@@ -338,7 +360,10 @@ export const MRISelect = memo(function MRISelect({
                     priority="primary"
                     onClick={() => {
                       closeOverlay();
-                      openExtractionRuleCreateModal({});
+                      openExtractionRuleCreateModal({
+                        organization,
+                        source: 'ddm.metric-select.create-metric',
+                      });
                     }}
                     size="xs"
                   >

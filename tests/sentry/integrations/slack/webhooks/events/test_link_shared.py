@@ -6,7 +6,7 @@ import pytest
 import responses
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.slack.unfurl import Handler, make_type_coercer
+from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 

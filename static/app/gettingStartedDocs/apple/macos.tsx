@@ -29,12 +29,12 @@ import Sentry
 func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
-        options.dsn = "${params.dsn}"
+        options.dsn = "${params.dsn.public}"
         options.debug = true // Enabling debug when first installing is always helpful${
           params.isPerformanceSelected
             ? `
 
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
         // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0`
             : ''
@@ -59,12 +59,12 @@ import Sentry
 struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
-            options.dsn = "${params.dsn}"
+            options.dsn = "${params.dsn.public}"
             options.debug = true // Enabling debug when first installing is always helpful${
               params.isPerformanceSelected
                 ? `
 
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0`
                 : ''
@@ -278,7 +278,7 @@ userFeedback.name = @"John Doe";
               code: `import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "${params.dsn}"
+    options.dsn = "${params.dsn.public}"
     options.onCrashedLastRun = { event in
         // capture user feedback
     }
@@ -292,7 +292,7 @@ SentrySDK.start { options in
               code: `@import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    options.dsn = @"${params.dsn}";
+    options.dsn = @"${params.dsn.public}";
     options.onCrashedLastRun = ^void(SentryEvent * _Nonnull event) {
         // capture user feedback
     };

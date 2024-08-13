@@ -8,6 +8,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -44,12 +45,11 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {
   getGroupDetailsQueryData,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
-
-import {ParticipantList} from './participantList';
 
 type Props = {
   environments: string[];
@@ -262,6 +262,11 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      {hasStreamlinedUI && event && (
+        <ErrorBoundary mini>
+          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        </ErrorBoundary>
+      )}
       {!hasStreamlinedUI && (
         <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       )}
@@ -275,12 +280,12 @@ export default function GroupSidebar({
           currentRelease={currentRelease}
         />
       )}
-      {event && (
+      {!hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {renderPluginIssue()}
+      {!hasStreamlinedUI && renderPluginIssue()}
       {issueTypeConfig.tags.enabled && (
         <TagFacets
           environments={environments}

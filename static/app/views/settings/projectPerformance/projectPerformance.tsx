@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
@@ -945,12 +945,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                   disabled={!hasAccess}
                   renderFooter={() => (
                     <Actions>
-                      <Button
+                      <LinkButton
                         external
                         href="https://docs.sentry.io/product/performance/performance-at-scale/"
                       >
                         {t('Read docs')}
-                      </Button>
+                      </LinkButton>
                     </Actions>
                   )}
                 />

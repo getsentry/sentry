@@ -97,6 +97,11 @@ function renderMockRequests({
       },
     ],
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/meta/`,
+    method: 'GET',
+    body: [],
+  });
 }
 
 describe('Metric Query Select', function () {

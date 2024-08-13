@@ -17,11 +17,12 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -224,5 +225,22 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 users_map = {user["id"]: user for user in users}
 
                 response_state["users"] = users_map
+
+            project = group.project
+            repositories = []
+            if project:
+                code_mappings = get_sorted_code_mapping_configs(project=project)
+                for mapping in code_mappings:
+                    repo = mapping.repository
+                    repositories.append(
+                        {
+                            "url": repo.url,
+                            "external_id": repo.external_id,
+                            "name": repo.name,
+                            "provider": repo.provider,
+                            "default_branch": mapping.default_branch,
+                        }
+                    )
+            response_state["repositories"] = repositories
 
         return Response({"autofix": response_state})

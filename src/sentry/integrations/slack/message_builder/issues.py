@@ -12,7 +12,7 @@ from sentry_relay.processing import parse_release
 from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -23,7 +23,9 @@ from sentry.integrations.message_builder import (
     format_actor_options,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import (
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
@@ -31,8 +33,6 @@ from sentry.integrations.slack.message_builder import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
@@ -60,6 +60,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -80,9 +81,7 @@ USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
-    ),
+    "Users Affected": lambda group: get_group_users_count(group),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
     "Approx. Start Time": lambda group: datetime.fromtimestamp(
@@ -99,6 +98,13 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_users_count(group: Group) -> int:
+    metrics.incr("slack.get_group_users_count", tags={"group": group.id}, sample_rate=1.0)
+    return group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
+    )
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -147,7 +153,7 @@ def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | Non
     return f"*Issue {status} by <@{identity.external_id}>*"
 
 
-def format_release_tag(value: str, event: GroupEvent | None) -> str:
+def format_release_tag(value: str, event: Event | GroupEvent | None) -> str:
     """Format the release tag using the short version and make it a link"""
     if not event:
         return ""
@@ -159,7 +165,7 @@ def format_release_tag(value: str, event: GroupEvent | None) -> str:
 
 
 def get_tags(
-    event_for_tags: GroupEvent | None,
+    event_for_tags: Event | GroupEvent | None,
     tags: set[str] | list[tuple[str]] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
@@ -251,7 +257,7 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
 
 
 def get_suggested_assignees(
-    project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
+    project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
     suggested_assignees = []
@@ -412,7 +418,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: GroupEvent | None = None,
+        event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
@@ -449,7 +455,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_title_block(
         self,
-        event_or_group: GroupEvent | Group,
+        event_or_group: Event | GroupEvent | Group,
         has_action: bool,
         rule_id: int | None = None,
         notification_uuid: str | None = None,
@@ -486,7 +492,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
-    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+    def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
@@ -552,7 +558,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
 
-        event_or_group: Group | GroupEvent = self.event if self.event is not None else self.group
+        event_or_group: Group | Event | GroupEvent = (
+            self.event if self.event is not None else self.group
+        )
 
         action_text = ""
 
@@ -588,10 +596,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
+        # set up block id
+        block_id = {"issue": self.group.id}
+        if rule_id:
+            block_id["rule"] = rule_id
+
         # build tags block
-        tags = get_tags(event_for_tags, self.tags)
+        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
         if tags:
-            blocks.append(self.get_tags_block(tags))
+            blocks.append(self.get_tags_block(tags, block_id))
 
         # add event count, user count, substate, first seen
         context = get_context(self.group)
@@ -645,10 +658,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build footer block
         blocks.append(self.get_footer())
         blocks.append(self.get_divider())
-
-        block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:

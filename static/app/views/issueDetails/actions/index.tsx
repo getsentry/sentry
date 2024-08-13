@@ -11,7 +11,6 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ActionButton from 'sentry/components/actions/button';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -28,16 +27,11 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupStatusResolution,
-  MarkReviewed,
-  Organization,
-  Project,
-  SavedQueryVersions,
-} from 'sentry/types';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
+import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -378,7 +372,7 @@ export function Actions(props: Props) {
               {isResolved ? t('Resolved') : t('Archived')}
             </ResolvedWrapper>
             <Divider />
-            <ActionButton
+            <Button
               size="sm"
               disabled={disabled || isAutoResolved}
               onClick={() =>
@@ -392,7 +386,7 @@ export function Actions(props: Props) {
               }
             >
               {isResolved ? t('Unresolve') : t('Unarchive')}
-            </ActionButton>
+            </Button>
           </ResolvedActionWapper>
         ) : (
           <Fragment>
@@ -419,7 +413,9 @@ export function Actions(props: Props) {
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            <EnvironmentPageFilter position="bottom-end" size="sm" />
+            {!hasStreamlinedUI && (
+              <EnvironmentPageFilter position="bottom-end" size="sm" />
+            )}
             <SubscribeAction
               className="hidden-xs"
               disabled={disabled}
@@ -533,7 +529,7 @@ export function Actions(props: Props) {
               features="discover-basic"
               organization={organization}
             >
-              <ActionButton
+              <Button
                 className="hidden-xs"
                 disabled={disabled}
                 to={disabled ? '' : getDiscoverUrl()}
@@ -543,11 +539,11 @@ export function Actions(props: Props) {
                 <GuideAnchor target="open_in_discover">
                   {t('Open in Discover')}
                 </GuideAnchor>
-              </ActionButton>
+              </Button>
             </Feature>
           )}
           {isResolved || isIgnored ? (
-            <ActionButton
+            <Button
               priority="primary"
               title={
                 isAutoResolved
@@ -567,7 +563,7 @@ export function Actions(props: Props) {
               }
             >
               {isIgnored ? t('Archived') : t('Resolved')}
-            </ActionButton>
+            </Button>
           ) : (
             <Fragment>
               <ArchiveActions

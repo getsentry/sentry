@@ -1,8 +1,10 @@
+import os
 import secrets
 from typing import Any, ClassVar, Self
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import petname
+import sentry_sdk
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -18,7 +20,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.region import find_all_region_names
 
 
@@ -101,11 +104,29 @@ class ApiApplication(Model):
         return value in ("code", "token")
 
     def is_valid_redirect_uri(self, value):
-        v_netloc = urlparse(value).netloc
+        parts = urlparse(value)
+        normalized_path = os.path.normpath(parts.path)
+        if value.endswith("/"):
+            normalized_path += "/"
+        value = urlunparse(parts._replace(path=normalized_path))
+
         for ruri in self.redirect_uris.split("\n"):
-            if v_netloc != urlparse(ruri).netloc:
+            if parts.netloc != urlparse(ruri).netloc:
                 continue
+            if value == ruri:
+                return True
             if value.startswith(ruri):
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_context(
+                        "api_application",
+                        {
+                            "client_id": self.client_id,
+                            "redirect_uri": value,
+                            "allowed_redirect_uris": self.redirect_uris,
+                        },
+                    )
+                    message = "oauth.prefix-matched-redirect-uri"
+                    sentry_sdk.capture_message(message, level="info")
                 return True
         return False
 

@@ -450,6 +450,20 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Globally disables replay-video.
+register(
+    "replay.replay-video.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Disables replay-video for a specific organization.
+register(
+    "replay.replay-video.slug-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -473,6 +487,13 @@ register(
     "relay.span-extraction.sample-rate",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow the Relay to skip normalization of spans for certain hosts.
+register(
+    "relay.span-normalization.allowed_hosts",
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Analytics
@@ -731,13 +752,6 @@ register(
 )
 
 register(
-    "issues.severity.high-priority-alerts-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
@@ -769,13 +783,6 @@ register(
     "issues.severity.seer-timout",
     type=Float,
     default=0.2,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.default-high-priority-alerts-orgs-allowlist",
-    type=Sequence,
-    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -900,7 +907,7 @@ register(
 register(
     "seer.similarity.ingest.use_reranking",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -908,6 +915,15 @@ register(
     "seer.similarity.similar_issues.use_reranking",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
+# favor of the default 10% sample rate
+register(
+    "seer.similarity.metrics_sample_rate",
+    type=Float,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2398,6 +2414,24 @@ register(
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
 
+# TODO: For now, only a small number of projects are going through a grouping config transition at
+# any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
+# transitioned to the optimized logic, and before the next config change, we probably either want to
+# turn this down or get rid of it in favor of the default 10% sample rate
+register(
+    "grouping.config_transition.metrics_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "grouping.config_transition.killswitch_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
@@ -2668,6 +2702,11 @@ register(
 register(
     "similarity.backfill_use_reranking",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.delete_task_EA_rollout_percentage",
+    default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

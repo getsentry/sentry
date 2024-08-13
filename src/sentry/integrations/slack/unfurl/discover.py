@@ -17,11 +17,12 @@ from sentry.discover.arithmetic import is_equation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
+from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.search.events.filter import to_list
 from sentry.snuba.referrer import Referrer
+from sentry.users.models.user import User
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -30,7 +31,6 @@ from sentry.utils.dates import (
 )
 
 from ..utils import logger
-from . import Handler, UnfurlableUrl, UnfurledUrl
 
 # The display modes on the frontend are defined in app/utils/discover/types.tsx
 display_modes: Mapping[str, ChartType] = {
@@ -41,6 +41,12 @@ display_modes: Mapping[str, ChartType] = {
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
+}
+
+dataset_map: Mapping[str, str] = {
+    "discover": "discover",
+    "error-events": "errors",
+    "transaction-like": "transactions",
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
@@ -155,6 +161,13 @@ def unfurl_discover(
             or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+
+        saved_query_dataset = dataset_map.get(saved_query.get("queryDataset"))
+        params.setlist(
+            "dataset",
+            params.getlist("dataset")
+            or (to_list(saved_query_dataset) if saved_query_dataset else []),
+        )
 
         fields = params.getlist("field") or to_list(saved_query.get("fields"))
         # Mimic Discover to pick the first aggregate as the yAxis option if
@@ -307,7 +320,7 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler = Handler(
+discover_handler = Handler(
     fn=unfurl_discover,
     matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,

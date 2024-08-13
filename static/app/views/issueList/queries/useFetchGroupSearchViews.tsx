@@ -6,22 +6,17 @@ type FetchGroupSearchViewsParameters = {
   orgSlug: string;
 };
 
-type FetchGroupSearchViewsResponse = GroupSearchView[];
-
 export const makeFetchGroupSearchViewsKey = ({
   orgSlug,
 }: FetchGroupSearchViewsParameters) =>
   [`/organizations/${orgSlug}/group-search-views/`] as const;
 
-export const useFetchGroupSearchViewsForOrg = (
+export const useFetchGroupSearchViews = (
   {orgSlug}: FetchGroupSearchViewsParameters,
-  options: Partial<UseApiQueryOptions<FetchGroupSearchViewsResponse>> = {}
+  options: Partial<UseApiQueryOptions<GroupSearchView[]>> = {}
 ) => {
-  return useApiQuery<FetchGroupSearchViewsResponse>(
-    makeFetchGroupSearchViewsKey({orgSlug}),
-    {
-      staleTime: Infinity,
-      ...options,
-    }
-  );
+  return useApiQuery<GroupSearchView[]>(makeFetchGroupSearchViewsKey({orgSlug}), {
+    staleTime: Infinity,
+    ...options,
+  });
 };

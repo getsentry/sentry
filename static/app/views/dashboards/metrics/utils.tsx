@@ -8,16 +8,10 @@ import {
   isVirtualMetric,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
-import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {
-  formatMRIField,
-  isExtractedCustomMetric,
-  MRIToField,
-  parseField,
-} from 'sentry/utils/metrics/mri';
+import {NO_QUERY_ID, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
+import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
-import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
 import type {
   DashboardMetricsEquation,
   DashboardMetricsExpression,
@@ -124,8 +118,8 @@ export function getMetricQueries(
     let mri = parsed.mri;
     let condition: number | undefined = undefined;
     let aggregation = parsed.aggregation;
-    if (isExtractedCustomMetric({mri})) {
-      const resolved = getVirtualMRIQuery(mri, aggregation);
+    const resolved = getVirtualMRIQuery(mri, aggregation);
+    if (resolved) {
       if (resolved) {
         aggregation = resolved.aggregation;
         mri = resolved.mri;

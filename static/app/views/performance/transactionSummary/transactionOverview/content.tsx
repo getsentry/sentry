@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -11,6 +11,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -103,20 +104,23 @@ function SummaryContent({
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
 
-  function handleSearch(query: string) {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      query,
-    });
+  const handleSearch = useCallback(
+    (query: string) => {
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        query,
+      });
 
-    // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+      // do not propagate pagination when making a new search
+      const searchQueryParams = omit(queryParams, 'cursor');
 
-    browserHistory.push({
-      pathname: location.pathname,
-      query: searchQueryParams,
-    });
-  }
+      browserHistory.push({
+        pathname: location.pathname,
+        query: searchQueryParams,
+      });
+    },
+    [location]
+  );
 
   function generateTagUrl(key: string, value: string) {
     const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
@@ -194,19 +198,7 @@ function SummaryContent({
         {
           key: 'alert',
           makeAction: () => ({
-            Button: () => (
-              <Tooltip
-                title={t(
-                  'Based on your search criteria and sample rate, the events available may be limited.'
-                )}
-              >
-                <StyledIconWarning
-                  data-test-id="search-metrics-fallback-warning"
-                  size="sm"
-                  color="warningText"
-                />
-              </Tooltip>
-            ),
+            Button: () => <MetricsWarningIcon />,
             menuItem: {
               key: 'alert',
             },
@@ -218,11 +210,22 @@ function SummaryContent({
     return items;
   }
 
+  const trailingItems = useMemo(() => {
+    if (!canUseTransactionMetricsData(organization, mepDataContext)) {
+      return <MetricsWarningIcon />;
+    }
+
+    return null;
+  }, [organization, mepDataContext]);
+
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
   );
 
-  const query = decodeScalar(location.query.query, '');
+  const query = useMemo(() => {
+    return decodeScalar(location.query.query, '');
+  }, [location]);
+
   const totalCount = totalValues === null ? null : totalValues['count()'];
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
@@ -344,6 +347,37 @@ function SummaryContent({
     organization.features.includes('performance-spans-new-ui') &&
     organization.features.includes('insights-initial-modules');
 
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
+
+  function renderSearchBar() {
+    if (organization.features.includes('search-query-builder-performance')) {
+      return (
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="transaction_summary"
+          disableLoadingTags // already loaded by the parent component
+          filterKeyMenuWidth={420}
+          trailingItems={trailingItems}
+        />
+      );
+    }
+
+    return (
+      <SearchBar
+        searchSource="transaction_summary"
+        organization={organization}
+        projectIds={eventView.project}
+        query={query}
+        fields={eventView.fields}
+        onSearch={handleSearch}
+        maxQueryLength={MAX_QUERY_LENGTH}
+        actionBarItems={generateActionBarItems(organization, location, mepDataContext)}
+      />
+    );
+  }
+
   return (
     <Fragment>
       <Layout.Main>
@@ -357,20 +391,7 @@ function SummaryContent({
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          <StyledSearchBar
-            searchSource="transaction_summary"
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-            actionBarItems={generateActionBarItems(
-              organization,
-              location,
-              mepDataContext
-            )}
-          />
+          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
         <PerformanceAtScaleContextProvider>
           <TransactionSummaryCharts
@@ -565,6 +586,22 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
+function MetricsWarningIcon() {
+  return (
+    <Tooltip
+      title={t(
+        'Based on your search criteria and sample rate, the events available may be limited.'
+      )}
+    >
+      <StyledIconWarning
+        data-test-id="search-metrics-fallback-warning"
+        size="sm"
+        color="warningText"
+      />
+    </Tooltip>
+  );
+}
+
 const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
@@ -579,7 +616,7 @@ const FilterActions = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/4;

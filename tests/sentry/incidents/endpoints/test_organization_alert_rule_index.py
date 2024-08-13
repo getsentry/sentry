@@ -7,12 +7,16 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
+from httpx import HTTPError
 from rest_framework import status
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -24,20 +28,20 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import outbox_context
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
-    find_channel_id_for_alert_rule,
-)
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -82,6 +86,39 @@ class AlertRuleBase(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
+        }
+
+    @cached_property
+    def dynamic_alert_rule_dict(self):
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -177,7 +214,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
 
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -238,44 +275,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_anomaly_detection_alert(self, mock_seer_request):
-        data = {
-            "aggregate": "count()",
-            "query": "",
-            "time_window": 30,
-            "detection_type": AlertRuleDetectionType.DYNAMIC,
-            "sensitivity": AlertRuleSensitivity.LOW,
-            "seasonality": AlertRuleSeasonality.AUTO,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-            "projects": [self.project.slug],
-            "owner": self.user.id,
-            "name": "JustAValidTestRule",
-            "activations": [],
-        }
+        data = self.dynamic_alert_rule_dict
         mock_seer_request.return_value = HTTPResponse(status=200)
-        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(day_ago + timedelta(minutes=1)),
+                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                 },
@@ -286,7 +294,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                 },
@@ -306,6 +314,82 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_timeout(self, mock_seer_request):
+        data = self.dynamic_alert_rule_dict
+        mock_seer_request.side_effect = TimeoutError
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=408,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_max_retry(self, mock_seer_request):
+        data = self.dynamic_alert_rule_dict
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=408,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_other_error(self, mock_seer_request):
+        """
+        Test the catch-all in case Seer returns something that we don't expect.
+        """
+        data = self.dynamic_alert_rule_dict
+        mock_seer_request.side_effect = HTTPError
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert resp.data["detail"]["message"] == "Invalid request"
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_anomaly_detection_alert_validation_error(self):
+        data = self.dynamic_alert_rule_dict
+        data["time_window"] = 10
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert (
+            resp.data[0]
+            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
+        )
 
     def test_monitor_type_with_condition(self):
         data = {

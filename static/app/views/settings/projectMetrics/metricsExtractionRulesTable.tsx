@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMembers} from 'sentry/utils/useMembers';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -59,29 +60,39 @@ export function MetricsExtractionRulesTable({project}: Props) {
             {metricsExtractionRules: [rule]},
             {
               onSuccess: () => {
-                addSuccessMessage(t('Metric extraction rule deleted'));
+                addSuccessMessage(t('Metric deleted'));
+                trackAnalytics('metrics_extractions.delete', {organization});
               },
               onError: () => {
-                addErrorMessage(t('Failed to delete metric extraction rule'));
+                addErrorMessage(t('Failed to delete metric'));
               },
             }
           ),
-        message: t('Are you sure you want to delete this extraction rule?'),
-        confirmText: t('Delete Extraction Rule'),
+        message: t('Are you sure you want to delete this metric?'),
+        confirmText: t('Delete Metric'),
       });
     },
-    [deleteMetricsExtractionRules]
+    [deleteMetricsExtractionRules, organization]
   );
 
-  const handleEdit = useCallback((rule: MetricsExtractionRule) => {
-    openExtractionRuleEditModal({
-      metricExtractionRule: rule,
-    });
-  }, []);
+  const handleEdit = useCallback(
+    (rule: MetricsExtractionRule) => {
+      openExtractionRuleEditModal({
+        organization,
+        metricExtractionRule: rule,
+        source: 'settings',
+      });
+    },
+    [organization]
+  );
 
   const handleCreate = useCallback(() => {
-    openExtractionRuleCreateModal({projectId: project.id});
-  }, [project]);
+    openExtractionRuleCreateModal({
+      organization,
+      projectId: project.id,
+      source: 'settings',
+    });
+  }, [organization, project.id]);
 
   return (
     <Fragment>

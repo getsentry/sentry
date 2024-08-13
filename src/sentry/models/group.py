@@ -388,7 +388,7 @@ class GroupManager(BaseManager["Group"]):
     def get_groups_by_external_issue(
         self,
         integration: RpcIntegration,
-        organizations: Sequence[Organization],
+        organizations: Iterable[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
         from sentry.integrations.models.external_issue import ExternalIssue
@@ -983,6 +983,10 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
 
         if instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus is None:
+                logger.warning(
+                    "no_substatus: Found UNRESOLVED group with no substatus",
+                    extra={"group_id": instance.id},
+                )
                 instance.substatus = GroupSubStatus.ONGOING
 
             # UNRESOLVED groups must have a substatus

@@ -384,7 +384,6 @@ function BaseGroupRow({
   const groupCategoryCountTitles: Record<IssueCategory, string> = {
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
-    [IssueCategory.PROFILE]: t('Profile Events'),
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
@@ -531,7 +530,7 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper leftMargin={space(0)}>{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper leftMargin="0px">{groupCount}</EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
