@@ -1148,6 +1148,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         event_id: str | None,
         detailed: bool = False,
         use_spans: bool = False,
+        query_source: QuerySource | None = None,
     ) -> Any:
         raise NotImplementedError
 

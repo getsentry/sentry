@@ -586,7 +586,7 @@ class Endpoint(APIView):
         self.add_cursor_headers(request, response, cursor_result)
         return response
 
-    def get_request_source(request: Request) -> QuerySource:
+    def get_request_source(self, request: Request) -> QuerySource:
         """
         This is an estimate of query source. Treat it more like a good guess and
         don't write logic that depends on it. Used for monitoring only atm.
