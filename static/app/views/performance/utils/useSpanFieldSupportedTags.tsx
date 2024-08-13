@@ -59,23 +59,12 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   );
 }
 
-export function useSpanFieldSupportedTags(options?: {
-  excludedTags?: string[];
+export function useSpanFieldCustomTags(options?: {
   projects?: PageFilters['projects'];
 }): TagCollection {
-  const {excludedTags = [], projects} = options || {};
+  const {projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags = getSpanFieldSupportedTags(
-    [
-      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_GROUP,
-      ...excludedTags,
-    ],
-    DiscoverDatasets.SPANS_INDEXED
-  );
 
   const {data} = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(
@@ -91,15 +80,40 @@ export function useSpanFieldSupportedTags(options?: {
 
   const tags = useMemo(() => {
     if (!data) {
-      return staticTags;
+      return {};
     }
+    return Object.fromEntries(
+      data.map(entry => [entry.key, {key: entry.key, name: entry.name}])
+    );
+  }, [data]);
+
+  return tags;
+}
+
+export function useSpanFieldSupportedTags(options?: {
+  excludedTags?: string[];
+  projects?: PageFilters['projects'];
+}): TagCollection {
+  const {excludedTags = [], projects} = options || {};
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
+  const staticTags = getSpanFieldSupportedTags(
+    [
+      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+      SpanIndexedField.SPAN_CATEGORY,
+      SpanIndexedField.SPAN_GROUP,
+      ...excludedTags,
+    ],
+    DiscoverDatasets.SPANS_INDEXED
+  );
+
+  const customTags = useSpanFieldCustomTags({projects});
+
+  const tags = useMemo(() => {
     return {
-      ...Object.fromEntries(
-        data.map(entry => [entry.key, {key: entry.key, name: entry.name}])
-      ),
+      ...customTags,
       ...staticTags,
     };
-  }, [data, staticTags]);
+  }, [customTags, staticTags]);
 
   return tags;
 }

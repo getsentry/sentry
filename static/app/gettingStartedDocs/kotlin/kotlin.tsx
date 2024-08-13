@@ -114,7 +114,7 @@ const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry
 
 Sentry.init { options ->
-  options.dsn = "${params.dsn}"${
+  options.dsn = "${params.dsn.public}"${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.

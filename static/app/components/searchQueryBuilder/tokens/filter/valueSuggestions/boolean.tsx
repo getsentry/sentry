@@ -3,6 +3,6 @@ import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/token
 export const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
   {
     sectionText: '',
-    suggestions: [{value: 'true'}, {value: 'false'}],
+    suggestions: [{value: 'True'}, {value: 'False'}],
   },
 ];

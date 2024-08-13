@@ -5,16 +5,17 @@ import {space} from 'sentry/styles/space';
 import FieldControlState from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
-type FieldControlProps = Pick<
-  FieldGroupProps,
-  | 'alignRight'
-  | 'controlState'
-  | 'flexibleControlStateSize'
-  | 'hideControlState'
-  | 'inline'
-> & {
+interface FieldControlProps
+  extends Pick<
+    FieldGroupProps,
+    | 'alignRight'
+    | 'controlState'
+    | 'flexibleControlStateSize'
+    | 'hideControlState'
+    | 'inline'
+  > {
   children: React.ReactNode;
-};
+}
 
 function FieldControl({
   inline,

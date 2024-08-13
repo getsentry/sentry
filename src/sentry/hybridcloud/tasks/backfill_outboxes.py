@@ -12,8 +12,8 @@ from django.db import router, transaction
 from django.db.models import Max, Min, Model
 
 from sentry import options
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel, RegionOutboxProducingModel
-from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics, redis
@@ -69,7 +69,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 def find_replication_version(
     model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
-    force_synchronous=False,
+    force_synchronous: bool = False,
 ) -> int:
     """
     :param model: Model for finding the current replication version
@@ -91,7 +91,7 @@ def _chunk_processing_batch(
     model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
     *,
     batch_size: int,
-    force_synchronous=False,
+    force_synchronous: bool = False,
 ) -> BackfillBatch | None:
     lower, version = get_processing_state(model._meta.db_table)
     target_version = find_replication_version(model, force_synchronous=force_synchronous)
@@ -112,7 +112,7 @@ def _chunk_processing_batch(
 
 
 def process_outbox_backfill_batch(
-    model: type[Model], batch_size: int, force_synchronous=False
+    model: type[Model], batch_size: int, force_synchronous: bool = False
 ) -> BackfillBatch | None:
     if (
         not issubclass(model, RegionOutboxProducingModel)
@@ -152,7 +152,7 @@ def backfill_outboxes_for(
     silo_mode: SiloMode,
     scheduled_count: int = 0,
     max_batch_rate: int = OUTBOX_BACKFILLS_PER_MINUTE,
-    force_synchronous=False,
+    force_synchronous: bool = False,
 ) -> bool:
     # Maintain a steady state of outbox processing by subtracting any regularly scheduled rows
     # from an expected rate.

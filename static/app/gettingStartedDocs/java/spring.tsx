@@ -132,7 +132,7 @@ import io.sentry.spring${
   params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
 }.EnableSentry;
 
-@EnableSentry(dsn = "${params.dsn}")
+@EnableSentry(dsn = "${params.dsn.public}")
 @Configuration
 class SentryConfiguration {
 }`;
@@ -144,7 +144,7 @@ import io.sentry.spring${
 import org.springframework.core.Ordered
 
 @EnableSentry(
-  dsn = "${params.dsn}",
+  dsn = "${params.dsn.public}",
   exceptionResolverOrder = Ordered.LOWEST_PRECEDENCE
 )`;
 

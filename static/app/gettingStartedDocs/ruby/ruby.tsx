@@ -16,7 +16,7 @@ const getInstallSnippet = (params: Params) =>
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'${
+  config.dsn = '${params.dsn.public}'${
     params.isPerformanceSelected
       ? `
 

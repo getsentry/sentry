@@ -97,28 +97,31 @@ function FieldGroup({
       hasControlState={!flexibleControlStateSize}
       style={style}
     >
-      {(shouldRenderLabel || helpElement) && (
-        <FieldDescription inline={inline} htmlFor={id} aria-label={ariaLabel}>
-          {shouldRenderLabel && (
-            <FieldLabel disabled={isDisabled}>
-              <span>
-                {label}
-                {required && <FieldRequiredBadge />}
-              </span>
-              {helpElement && showHelpInTooltip && (
-                <FieldQuestion>
-                  <QuestionTooltip position="top" size="sm" title={helpElement} />
-                </FieldQuestion>
-              )}
-            </FieldLabel>
-          )}
-          {helpElement && !showHelpInTooltip && (
-            <FieldHelp id={helpId} stacked={stacked} inline={inline}>
-              {helpElement}
-            </FieldHelp>
-          )}
-        </FieldDescription>
-      )}
+      <FieldDescription
+        displayNone={!shouldRenderLabel && !helpElement}
+        inline={inline}
+        htmlFor={id}
+        aria-label={ariaLabel}
+      >
+        {shouldRenderLabel && (
+          <FieldLabel disabled={isDisabled}>
+            <span>
+              {label}
+              {required && <FieldRequiredBadge />}
+            </span>
+            {helpElement && showHelpInTooltip && (
+              <FieldQuestion>
+                <QuestionTooltip position="top" size="sm" title={helpElement} />
+              </FieldQuestion>
+            )}
+          </FieldLabel>
+        )}
+        {helpElement && !showHelpInTooltip && (
+          <FieldHelp id={helpId} stacked={stacked} inline={inline}>
+            {helpElement}
+          </FieldHelp>
+        )}
+      </FieldDescription>
       {control}
     </FieldWrapper>
   );

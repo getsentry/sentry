@@ -57,7 +57,7 @@ type Params = DocsParams<PlatformOptions>;
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
     ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     integrations: [${
       params.isPerformanceSelected
         ? `
@@ -346,7 +346,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

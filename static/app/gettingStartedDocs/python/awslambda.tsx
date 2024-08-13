@@ -22,7 +22,7 @@ import sentry_sdk
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[AwsLambdaIntegration()],${
       params.isPerformanceSelected
         ? `
@@ -46,7 +46,7 @@ def my_function(event, context):
 
 const getTimeoutWarningSnippet = (params: Params) => `
 sentry_sdk.init(
-  dsn="${params.dsn}",
+  dsn="${params.dsn.public}",
   integrations=[
       AwsLambdaIntegration(timeout_warning=True),
   ],

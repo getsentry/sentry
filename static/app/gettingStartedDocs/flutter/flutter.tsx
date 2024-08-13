@@ -25,7 +25,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';${
+      options.dsn = '${params.dsn.public}';${
         params.isPerformanceSelected
           ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -94,7 +94,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';
+      options.dsn = '${params.dsn.public}';
       options.enableMetrics = true;
     },
     appRunner: initApp, // Init your App.

@@ -1236,7 +1236,7 @@ function buildRoutes() {
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
           >
             <Route
-              path=":uptimeRuleId/"
+              path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
@@ -1716,7 +1716,9 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (

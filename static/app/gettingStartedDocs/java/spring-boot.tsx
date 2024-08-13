@@ -105,7 +105,7 @@ const getMavenInstallSnippet = (params: Params) => `
 </build>`;
 
 const getConfigurationPropertiesSnippet = (params: Params) => `
-sentry.dsn=${params.dsn}${
+sentry.dsn=${params.dsn.public}${
   params.isPerformanceSelected
     ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -116,7 +116,7 @@ sentry.traces-sample-rate=1.0`
 
 const getConfigurationYamlSnippet = (params: Params) => `
 sentry:
-  dsn: ${params.dsn}${
+  dsn: ${params.dsn.public}${
     params.isPerformanceSelected
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.

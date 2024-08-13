@@ -1277,6 +1277,31 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ],
         )
 
+    def get_unassigned_condition(
+        self,
+        search_filter: SearchFilter,
+        attr_entity: Entity,
+    ) -> Condition:
+        is_assigned = search_filter.value.raw_value is False
+        is_negation = search_filter.is_negation
+
+        check_assigned = (is_assigned and not is_negation) or (not is_assigned and is_negation)
+        if check_assigned:
+            return BooleanCondition(
+                op=BooleanOp.OR,
+                conditions=[
+                    Condition(Column("assignee_user_id", attr_entity), Op.IS_NOT_NULL),
+                    Condition(Column("assignee_team_id", attr_entity), Op.IS_NOT_NULL),
+                ],
+            )
+        return BooleanCondition(
+            op=BooleanOp.AND,
+            conditions=[
+                Condition(Column("assignee_user_id", attr_entity), Op.IS_NULL),
+                Condition(Column("assignee_team_id", attr_entity), Op.IS_NULL),
+            ],
+        )
+
     def get_suggested(self, search_filter: SearchFilter) -> Condition:
         """
         Returns the suggested lookup for a search filter.
@@ -1451,7 +1476,26 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 ),
                 0,
             ],
-            alias="score",
+            alias="last_seen_score",
+        )
+
+    def get_first_seen_aggregation(self) -> Function:
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "toUInt64",
+                            [Function("max", [Column("group_first_seen", self.entities["attrs"])])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias="first_seen_score",
         )
 
     def get_handled_condition(
@@ -1554,6 +1598,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
         "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
         "assigned_to": (get_assigned, Clauses.WHERE),
+        "unassigned": (get_unassigned_condition, Clauses.WHERE),
         "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
@@ -1563,20 +1608,19 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "first_release": (get_first_release_condition, Clauses.WHERE),
         "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
-    first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
     def get_sort_defs(self, entity):
         return {
             "date": self.get_last_seen_aggregation(entity),
-            "new": self.first_seen,
+            "new": self.get_first_seen_aggregation(),
             "freq": self.times_seen_aggregation,
             "user": Function("uniq", [Column("tags[sentry:user]", entity)], "user_count"),
         }
 
     sort_strategies = {
-        "new": "g.group_first_seen",
-        "date": "score",
+        "new": "first_seen_score",
+        "date": "last_seen_score",
         "freq": "times_seen",
         "user": "user_count",
     }
@@ -1741,6 +1785,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 elif search_filter.key.name in FIRST_RELEASE_FILTERS:
                     where_conditions.append(
                         self.get_first_release_condition(search_filter, projects)
+                    )
+                elif search_filter.key.name == "unassigned":
+                    where_conditions.append(
+                        self.get_unassigned_condition(search_filter, attr_entity)
                     )
                 elif fn:
                     # dynamic lookup of what clause to use
