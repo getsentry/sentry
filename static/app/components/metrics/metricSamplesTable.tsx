@@ -751,7 +751,12 @@ function ProfileId({
   if (!defined(profileId)) {
     return (
       <Container>
-        <Button disabled size="xs" icon={<IconProfiling />} aria-label={t('Open Profile')} />
+        <Button
+          disabled
+          size="xs"
+          icon={<IconProfiling />}
+          aria-label={t('Open Profile')}
+        />
       </Container>
     );
   }
