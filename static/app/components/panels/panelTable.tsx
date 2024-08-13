@@ -22,12 +22,12 @@ type PanelTableProps = {
   className?: string;
   /**
    * If true, disables the border-bottom on the header.
-   * Pass in headers as an array of `undefined` so that the
-   * columns still display appropriately.
    */
   disableHeaderBorderBottom?: boolean;
   /**
-   * If true, disables the headers
+   * If true, disables the headers.
+   * Pass in headers as an array of `undefined` so that the
+   * columns still display appropriately.
    */
   disableHeaders?: boolean;
   /**
