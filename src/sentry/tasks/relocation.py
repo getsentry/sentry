@@ -1585,7 +1585,7 @@ def notifying_users(uuid: UUID) -> None:
         for control_chunk in chunks:
             imported_user_ids = imported_user_ids.union(set(control_chunk.inserted_map.values()))
 
-        imported_org_slugs: set[int] = set()
+        imported_org_slugs: set[str] = set()
         for region_chunk in RegionImportChunk.objects.filter(
             import_uuid=uuid_str, model="sentry.organization"
         ):

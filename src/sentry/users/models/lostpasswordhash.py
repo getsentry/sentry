@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -10,6 +11,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
@@ -51,11 +53,13 @@ class LostPasswordHash(Model):
         cls._send_email("recover_password", user, hash, extra)
 
     @classmethod
-    def send_relocate_account_email(cls, user: User, hash: str, orgs: list[str]) -> None:
+    def send_relocate_account_email(
+        cls, user: User | RpcUser, hash: str, orgs: Iterable[str]
+    ) -> None:
         cls._send_email("relocate_account", user, hash, {"orgs": orgs})
 
     @classmethod
-    def _send_email(cls, mode: str, user: User, hash: str, extra: dict[str, Any]) -> None:
+    def _send_email(cls, mode: str, user: User | RpcUser, hash: str, extra: dict[str, Any]) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
