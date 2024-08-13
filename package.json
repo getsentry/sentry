@@ -58,7 +58,6 @@
     "@sentry-internal/rrweb": "2.25.0",
     "@sentry-internal/rrweb-player": "2.25.0",
     "@sentry-internal/rrweb-snapshot": "2.25.0",
-    "@sentry/babel-plugin-component-annotate": "^2.16.1",
     "@sentry/core": "^8.24.0",
     "@sentry/node": "^8.24.0",
     "@sentry/react": "^8.24.0",
@@ -264,9 +263,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"
