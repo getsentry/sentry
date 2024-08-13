@@ -5,6 +5,7 @@ from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
@@ -173,9 +174,10 @@ def metric_alert_attachment_info(
     else:
         status = INCIDENT_STATUS[IncidentStatus.CLOSED]
 
-    url_query = None
+    url_query = {"detection_type": alert_rule.detection_type}
     if selected_incident:
-        url_query = parse.urlencode({"alert": str(selected_incident.identifier)})
+        url_query["alert"] = str(selected_incident.identifier)
+
     title = f"{status}: {alert_rule.name}"
     title_link = alert_rule.organization.absolute_url(
         reverse(
@@ -185,7 +187,7 @@ def metric_alert_attachment_info(
                 "alert_rule_id": alert_rule.id,
             },
         ),
-        query=url_query,
+        query=parse.urlencode(url_query),
     )
 
     if metric_value is None:
@@ -205,6 +207,9 @@ def metric_alert_attachment_info(
     text = ""
     if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
         text = get_incident_status_text(alert_rule, metric_value)
+
+    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+        text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None
     activation = None
