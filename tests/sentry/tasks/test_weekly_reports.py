@@ -1011,24 +1011,26 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(0, 0, self.organization)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
+        batch1_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
+        batch2_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1")
         self._set_option_value("always")
 
         # First send
-        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        OrganizationReportBatch(ctx, batch1_id).deliver_reports()
         assert mock_send_email.call_count == 1
         mock_logger.error.assert_not_called()
 
         # Duplicate send
-        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        OrganizationReportBatch(ctx, batch2_id).deliver_reports()
         assert mock_send_email.call_count == 1
         assert mock_logger.error.call_count == 1
         mock_logger.error.assert_called_once_with(
             "weekly_report.delivery_record.duplicate_detected",
             extra={
-                "batch_id": str(batch_id),
+                "batch_id": str(batch2_id),
                 "organization": self.organization.id,
                 "user_id": self.user.id,
                 "has_email_override": False,
+                "report_date": "1970-01-01",
             },
         )
