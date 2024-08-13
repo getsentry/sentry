@@ -54,7 +54,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <FluidHeight>
-              <CanvasSupportNotice projectId={replay?.getReplay()?.project_id} />
+              <CanvasSupportNotice />
               <Panel>
                 <ReplayPlayer />
               </Panel>

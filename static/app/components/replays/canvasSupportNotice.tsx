@@ -17,10 +17,11 @@ const LOCAL_STORAGE_KEY = 'replay-canvas-supported';
 /**
  * Displays a notice about canvas support if a <canvas> element is detected in the replay, but not recorded
  */
-export function CanvasSupportNotice({projectId}: {projectId: string | undefined}) {
+export function CanvasSupportNotice() {
   const organization = useOrganization();
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {isFetching, replay} = useReplayContext();
+  const projectId = replay?.getReplay().project_id;
   const {needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion: '7.98.0',
     organization,
@@ -61,7 +62,7 @@ export function CanvasSupportNotice({projectId}: {projectId: string | undefined}
     >
       {needsUpdate
         ? tct(
-            'This replay contains a [code:canvas] element. Please update your SDK to the latest version to enable [code:canvas] recording. [link:Learn more in our docs].',
+            'This replay contains a [code:canvas] element. Please update your SDK to 7.98.0 or higher to enable [code:canvas] recording. [link:Learn more in our docs].',
             {
               code: <code />,
               link: (
