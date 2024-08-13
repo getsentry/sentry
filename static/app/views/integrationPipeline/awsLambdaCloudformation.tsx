@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
@@ -284,6 +284,6 @@ const StyledList = styled(List)`
   padding: 100px 50px 50px 50px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-bottom: 20px;
 `;

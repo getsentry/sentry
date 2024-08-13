@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint

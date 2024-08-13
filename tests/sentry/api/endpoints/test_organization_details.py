@@ -32,7 +32,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -41,6 +40,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
