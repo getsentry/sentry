@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import FieldControlState from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
-interface FieldControlProps
+interface ControlWrapperProps
   extends Pick<
     FieldGroupProps,
     | 'alignRight'
@@ -14,17 +14,17 @@ interface FieldControlProps
     | 'hideControlState'
     | 'inline'
   > {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-function FieldControl({
+function ControlWrapper({
   inline,
   alignRight,
   controlState,
   children,
   hideControlState,
   flexibleControlStateSize,
-}: FieldControlProps) {
+}: ControlWrapperProps) {
   return (
     <FieldControlWrapper inline={inline}>
       <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
@@ -38,7 +38,7 @@ function FieldControl({
   );
 }
 
-export default FieldControl;
+export default ControlWrapper;
 
 const FieldControlWrapper = styled('div')<{inline?: boolean}>`
   display: flex;

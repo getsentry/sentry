@@ -1952,6 +1952,7 @@ def _create_group(
         if first_release
         else None
     )
+    group_creation_kwargs["substatus"] = GroupSubStatus.NEW
 
     group_data = group_creation_kwargs.pop("data", {})
 

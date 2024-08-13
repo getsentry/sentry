@@ -1786,6 +1786,51 @@ describe('WidgetBuilder', function () {
           )
         ).toBeInTheDocument();
       });
+
+      it('persists the query state for tables when switching between errors and transactions', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['p99(transaction.duration)'],
+                  columns: [],
+                  aggregates: ['p99(transaction.duration)'],
+                  conditions: 'testFilter:value',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+
+        // Switch to errors
+        await userEvent.click(screen.getByRole('radio', {name: /errors/i}));
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).not.toBeChecked();
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+
+        // The state is still the same
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+      });
     });
 
     describe('events-stats', function () {
@@ -1879,6 +1924,51 @@ describe('WidgetBuilder', function () {
             "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
           )
         ).toBeInTheDocument();
+      });
+
+      it('persists the query state for timeseries when switching between errors and transactions', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['p99(transaction.duration)'],
+                  columns: [],
+                  aggregates: ['p99(transaction.duration)'],
+                  conditions: 'testFilter:value',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+
+        // Switch to errors
+        await userEvent.click(screen.getByRole('radio', {name: /errors/i}));
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).not.toBeChecked();
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+
+        // The state is still the same
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
       });
     });
 

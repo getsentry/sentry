@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -29,19 +29,19 @@ function LoginProviders({
     <ProviderWrapper>
       <ProviderHeading>{t('External Account Login')}</ProviderHeading>
       {googleLoginLink && (
-        <Button size="sm" icon={<IconGoogle />} href={googleLoginLink}>
+        <LinkButton size="sm" icon={<IconGoogle />} href={googleLoginLink}>
           {t('Sign in with Google')}
-        </Button>
+        </LinkButton>
       )}
       {githubLoginLink && (
-        <Button size="sm" icon={<IconGithub />} href={githubLoginLink}>
+        <LinkButton size="sm" icon={<IconGithub />} href={githubLoginLink}>
           {t('Sign in with GitHub')}
-        </Button>
+        </LinkButton>
       )}
       {vstsLoginLink && (
-        <Button size="sm" icon={<IconVsts />} href={vstsLoginLink}>
+        <LinkButton size="sm" icon={<IconVsts />} href={vstsLoginLink}>
           {t('Sign in with Azure DevOps')}
-        </Button>
+        </LinkButton>
       )}
     </ProviderWrapper>
   );

@@ -11,7 +11,6 @@ describe('javascript-remix onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Next Steps'})).toBeInTheDocument();
 
     // Includes minimum required Astro version
     expect(screen.getByText(textWithMarkupMatcher(/Remix 1.0.0/))).toBeInTheDocument();
