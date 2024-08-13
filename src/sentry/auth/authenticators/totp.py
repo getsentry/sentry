@@ -1,9 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 
-from .base import AuthenticatorInterface, OtpMixin
+from .base import OtpMixin
 
 
-class TotpInterface(OtpMixin, AuthenticatorInterface):
+class TotpInterface(OtpMixin):
     """This interface uses TOTP with an authenticator."""
 
     type = 1
