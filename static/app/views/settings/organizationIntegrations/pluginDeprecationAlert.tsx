@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import type {Organization, PluginWithProjectList} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -55,7 +55,7 @@ class PluginDeprecationAlert extends Component<Props, State> {
   }
 }
 
-const UpgradeNowButton = styled(Button)`
+const UpgradeNowButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
   float: right;
 `;

@@ -31,6 +31,7 @@ describe('FeatureTourModal', function () {
           steps={steps}
           onAdvance={onAdvance}
           onCloseModal={onCloseModal}
+          doneUrl="/done"
           {...props}
         >
           {({showModal}) => (
