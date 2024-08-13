@@ -6,12 +6,12 @@ import Panel from 'sentry/components/panels/panel';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface GroupSummaryProps {
-  group: Group;
+  groupId: string;
 }
 
 interface GroupSummaryData {
@@ -20,18 +20,19 @@ interface GroupSummaryData {
   summary: string;
 }
 
-const makeGroupSummaryQueryKey = (groupId: string): ApiQueryKey => [
-  `/issues/${groupId}/summarize/`,
-];
+const makeGroupSummaryQueryKey = (
+  organizationSlug: string,
+  groupId: string
+): ApiQueryKey => [`/organizations/${organizationSlug}/issues/${groupId}/summarize/`];
 
-const useGroupSummary = (groupId: string) => {
-  return useApiQuery<GroupSummaryData>(makeGroupSummaryQueryKey(groupId), {
-    staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-  });
-};
-
-export function GroupSummary({group}: GroupSummaryProps) {
-  const {data, isLoading, error} = useGroupSummary(group.id);
+export function GroupSummary({groupId}: GroupSummaryProps) {
+  const organization = useOrganization();
+  const {data, isLoading, error} = useApiQuery<GroupSummaryData>(
+    makeGroupSummaryQueryKey(organization.slug, groupId),
+    {
+      staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
+    }
+  );
 
   return (
     <SidebarSection.Wrap>
@@ -91,7 +92,6 @@ const Wrapper = styled(Panel)`
 
 const StyledTitleRow = styled('div')`
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
 `;
@@ -103,14 +103,13 @@ const StyledTitle = styled('div')`
   font-weight: 600;
   align-items: center;
   display: flex;
-  flex-direction: row;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-top: -1px;
 `;
 
-const StyledContent = styled(SidebarSection.Content)`
+const StyledContent = styled('div')`
   margin: 0;
 `;
 
