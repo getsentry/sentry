@@ -20,12 +20,25 @@ const mockUseSpanMetrics = jest.mocked(useSpanMetrics);
 describe('DatabaseSystemSelector', function () {
   const organization = OrganizationFixture();
 
-  beforeEach(() => {
-    mockUseLocalStorageState.mockReturnValue(['', jest.fn()]);
-  });
-
   afterAll(() => {
     jest.clearAllMocks();
+  });
+
+  it('is disabled and does not select a system if there are none available', async function () {
+    const mockSetState = jest.fn();
+    mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
+    mockUseSpanMetrics.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as any);
+
+    render(<DatabaseSystemSelector />, {organization});
+
+    expect(mockSetState).not.toHaveBeenCalled();
+    const dropdownButton = await screen.findByRole('button');
+    expect(dropdownButton).toBeInTheDocument();
+    expect(dropdownButton).toHaveTextContent('DB SystemNone');
   });
 
   it('is disabled when only one database system is present and shows that system as selected', async function () {
