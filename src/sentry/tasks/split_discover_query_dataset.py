@@ -5,7 +5,7 @@ from sentry import options
 from sentry.discover.dataset_split import save_split_decision_for_query
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.tasks.base import instrumented_task
-from sentry.utils.snuba import RateLimitExceeded
+from sentry.utils import snuba
 
 
 @instrumented_task(
@@ -46,7 +46,13 @@ def schedule_discover_query_dataset_split():
                     "organization_id": saved_query.organization.id,
                 },
             )
-        except RateLimitExceeded as e:
+        except (
+            snuba.RateLimitExceeded,
+            snuba.QueryConnectionFailed,
+            snuba.QueryTooManySimultaneous,
+        ) as e:
+            # These are errors that should be okay to be retried on the next batch, so not setting
+            # a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
             sentry_sdk.capture_exception(
                 e,
                 contexts={
