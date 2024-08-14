@@ -14,7 +14,6 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -210,12 +209,12 @@ const TitleWrapper = styled('h3')`
 const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
-  gap: ${space(1)};
-  padding-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   margin-bottom: 0;
   border-color: ${p => p.theme.border};
 `;
@@ -223,19 +222,19 @@ const StyledBreak = styled('hr')`
 const MessageWrapper = styled('div')`
   display: flex;
   color: ${p => p.theme.gray300};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   background: ${p =>
     p.isResolvedOrIgnored
       ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))'
       : p.theme.background};
   color: ${p => p.theme.gray300};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space(1)} 24px;
   margin-right: 0;
   margin-left: 0;
   flex-wrap: wrap;
@@ -243,20 +242,20 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
 
 const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space(2)};
   flex-wrap: wrap;
 `;
 
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   a {
     color: ${p => p.theme.gray300};
     text-decoration: underline;
@@ -277,5 +276,5 @@ const Header = styled('div')`
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;

@@ -5,7 +5,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
@@ -129,9 +128,9 @@ type FunctionsField = (typeof functionsFields)[number];
 const TableHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space(1)};
 `;

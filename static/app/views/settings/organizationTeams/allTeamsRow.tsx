@@ -264,8 +264,8 @@ const TeamLink = styled(Link)`
   display: inline-block;
 
   &:focus-visible {
-    margin: -${space(1)};
-    padding: ${space(1)};
+    margin: -${p => p.theme.space(1)};
+    padding: ${p => p.theme.space(1)};
     background: #f2eff5;
     border-radius: 3px;
     outline: none;

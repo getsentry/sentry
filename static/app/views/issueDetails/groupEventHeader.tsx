@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -22,10 +21,10 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
 }
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(1)} ${space(2)} 0;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} 0;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1.5)} ${space(4)} 0;
+    padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(4)} 0;
   }
 `;
 

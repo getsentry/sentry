@@ -766,7 +766,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const HeadCellContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
@@ -790,7 +790,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const SubTitle = styled('div')`
-  margin-left: ${space(3)};
+  margin-left: ${p => p.theme.space(3)};
 `;
 
 const TitleSpace = styled('div')`
@@ -844,5 +844,5 @@ const TrendText = styled('div')<{color: string}>`
 
 const StyledIconArrow = styled(IconArrow)<{color: string}>`
   color: ${p => p.theme[p.color]};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;

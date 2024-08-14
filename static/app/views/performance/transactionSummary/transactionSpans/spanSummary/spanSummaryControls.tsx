@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {space} from 'sentry/styles/space';
 
 export default function SpanDetailsControls() {
   return (
@@ -19,7 +18,7 @@ export default function SpanDetailsControls() {
 const FilterActions = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   flex-direction: column;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

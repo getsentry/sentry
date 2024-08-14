@@ -25,7 +25,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
@@ -435,7 +434,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 2fr 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -446,7 +445,7 @@ const Details = styled('div')`
 
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.textColor};
 `;
 

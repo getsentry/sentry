@@ -11,7 +11,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -240,7 +239,7 @@ export default PageWithProviders;
 
 const FilterContainer = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space(1)};
   grid-template-rows: auto;
   grid-template-columns: auto 1fr;
 `;
@@ -249,7 +248,7 @@ const SampleContainer = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const SampleContainerItem = styled('div')`

@@ -8,7 +8,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
@@ -317,13 +316,13 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 export default withOrganization(IssueAlertOptions);
 
 const Content = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: ${space(4)};
+  padding-top: ${p => p.theme.space(2)};
+  padding-bottom: ${p => p.theme.space(4)};
 `;
 
 const CustomizeAlert = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
   align-items: center;
 `;
@@ -337,7 +336,7 @@ const InlineSelectControl = styled(SelectControl)`
 `;
 
 const RadioGroupWithPadding = styled(RadioGroup)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const RadioItemWrapper = styled('div')`

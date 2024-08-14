@@ -13,7 +13,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -278,5 +277,5 @@ export default withApi(withOrganization(withProjects(ProjectContextProvider)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;
-  margin: ${space(2)} ${space(4)};
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
 `;

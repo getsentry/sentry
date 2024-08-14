@@ -336,8 +336,8 @@ const AggregateFlamegraphToolbar = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  padding: ${space(1)};
-  padding-left: ${space(1)};
+  padding: ${p => p.theme.space(1)};
+  padding-left: ${p => p.theme.space(1)};
   background-color: rgba(255, 255, 255, 0.6);
   width: 100%;
 `;

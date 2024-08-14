@@ -10,7 +10,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 
@@ -132,7 +131,7 @@ function RepositoryRow({
 
 const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} ${p => p.theme.space(2)};
   justify-content: space-between;
   align-items: center;
   flex: 1;
@@ -150,7 +149,7 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 `;
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const RepositoryTitleAndUrl = styled('div')`

@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -95,13 +94,13 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin: ${space(3)} 0 0 0;
+  margin: ${p => p.theme.space(3)} 0 0 0;
 `;
 
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 export default Pagination;

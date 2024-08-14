@@ -13,7 +13,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 
@@ -145,17 +144,17 @@ function DebugFileRow({
 
 const DescriptionText = styled('span')`
   display: inline-flex;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space(1)} ${p => p.theme.space(1)} 0;
 `;
 
 const FeatureTags = styled('div')`
   display: inline-flex;
   flex-wrap: wrap;
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space(0.5)};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 `;
 
 const Column = styled('div')`
@@ -168,7 +167,7 @@ const RightColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const DebugId = styled('code')`
@@ -179,28 +178,28 @@ const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
   align-items: center;
 `;
 
 const StyledFileSize = styled(FileSize)`
   flex: 1;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
 `;
 
 const Name = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Description = styled('div')`
@@ -213,7 +212,7 @@ const Description = styled('div')`
 
 const DetailsItem = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-top: ${space(1)}
+  margin-top: ${p => p.theme.space(1)}
 `;
 
 export default DebugFileRow;

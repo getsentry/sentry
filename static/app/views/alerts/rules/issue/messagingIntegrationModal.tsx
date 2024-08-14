@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useApiQueries} from 'sentry/utils/queryClient';
@@ -90,7 +89,7 @@ function MessagingIntegrationModal({
 const IntegrationsWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 export default MessagingIntegrationModal;

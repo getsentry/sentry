@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -304,5 +303,5 @@ const Wrapper = styled('div')`
 const ListContainer = styled('div')`
   display: grid;
   grid-template-columns: minmax(75px, 1fr) auto minmax(75px, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

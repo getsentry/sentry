@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -118,7 +117,7 @@ const StyledHeaderItem = styled('div', {
   }
 >`
   display: flex;
-  padding: 0 ${space(4)};
+  padding: 0 ${p => p.theme.space(4)};
   align-items: center;
   cursor: ${p => (p.loading ? 'progress' : p.locked ? 'text' : 'pointer')};
   color: ${getColor};
@@ -132,7 +131,7 @@ const Content = styled('div')`
   width: 0;
   white-space: nowrap;
   overflow: hidden;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space(1.5)};
 `;
 
 const StyledContent = styled('div')`
@@ -142,30 +141,30 @@ const StyledContent = styled('div')`
 
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space(1.5)};
   display: flex;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Hint = styled('div')`
   position: relative;
-  top: ${space(0.25)};
-  margin-right: ${space(1)};
+  top: ${p => p.theme.space(0.25)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
-  height: ${space(1.5)};
-  width: ${space(1.5)};
+  height: ${p => p.theme.space(1.5)};
+  width: ${p => p.theme.space(1.5)};
   stroke-width: 1.5;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   box-sizing: content-box;
-  margin: -${space(1)} 0px -${space(1)} -${space(1)};
+  margin: -${p => p.theme.space(1)} 0px -${p => p.theme.space(1)} -${p => p.theme.space(1)};
 `;
 
 const ChevronWrapper = styled('div')`
-  width: ${space(2)};
-  height: ${space(2)};
+  width: ${p => p.theme.space(2)};
+  height: ${p => p.theme.space(2)};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -182,8 +181,8 @@ const SettingsIconLink = styled(Link)`
   align-items: center;
   display: inline-flex;
   justify-content: space-between;
-  margin-right: ${space(1.5)};
-  margin-left: ${space(1.0)};
+  margin-right: ${p => p.theme.space(1.5)};
+  margin-left: ${p => p.theme.space(1)};
   transition: 0.5s opacity ease-out;
 
   &:hover {
@@ -192,7 +191,7 @@ const SettingsIconLink = styled(Link)`
 `;
 
 const StyledLock = styled(IconLock)`
-  margin-top: ${space(0.75)};
+  margin-top: ${p => p.theme.space(0.75)};
   stroke-width: 1.5;
 `;
 

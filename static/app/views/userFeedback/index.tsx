@@ -22,7 +22,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -183,8 +182,8 @@ const Filters = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) max-content;
   justify-content: start;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(0, 1fr) max-content;
@@ -196,5 +195,5 @@ const Filters = styled('div')`
 `;
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space(2)} 0;
 `;

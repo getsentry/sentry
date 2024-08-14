@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -197,7 +196,7 @@ const StyledTeamsLabel = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   font-size: 0.875em;
-  padding: ${space(0.5)} 0px;
+  padding: ${p => p.theme.space(0.5)} 0px;
   text-transform: uppercase;
 `;
 

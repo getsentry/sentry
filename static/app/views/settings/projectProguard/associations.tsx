@@ -9,7 +9,6 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
@@ -96,7 +95,7 @@ const NoAssociations = styled('div')`
 const ReleaseContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

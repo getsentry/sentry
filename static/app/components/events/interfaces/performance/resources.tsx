@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
@@ -56,9 +55,9 @@ export function Resources({configResources, eventPlatform, groupId}: Props) {
 const LinkSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 
   a {
     display: flex;
@@ -67,6 +66,6 @@ const LinkSection = styled('div')`
   }
 
   svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;

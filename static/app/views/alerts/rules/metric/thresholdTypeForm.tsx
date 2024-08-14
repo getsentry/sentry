@@ -105,7 +105,7 @@ const FormRow = styled('div')`
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const ComparisonContainer = styled('div')`

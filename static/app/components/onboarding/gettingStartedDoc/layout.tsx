@@ -13,7 +13,6 @@ import type {NextStep} from 'sentry/components/onboarding/gettingStartedDoc/type
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -88,7 +87,7 @@ export function Layout({
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
@@ -96,7 +95,7 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   width: 100%;
   background: ${p => p.theme.border};
   border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
+  ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space(3)}`}
 `;
 
 const Steps = styled('div')`
@@ -108,7 +107,7 @@ const Steps = styled('div')`
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Wrapper = styled('div')`

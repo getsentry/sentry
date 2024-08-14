@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {EventId} from '../../types';
 import {EventIdStatus} from '../../types';
@@ -150,7 +149,7 @@ const StyledInput = styled(Input)`
   flex: 1;
   font-weight: ${p => p.theme.fontWeightNormal};
   input {
-    padding-right: ${space(1.5)};
+    padding-right: ${p => p.theme.space(1.5)};
   }
   margin-bottom: 0;
 `;
@@ -158,7 +157,7 @@ const StyledInput = styled(Input)`
 const Status = styled('div')`
   height: 100%;
   position: absolute;
-  right: ${space(1.5)};
+  right: ${p => p.theme.space(1.5)};
   top: 0;
   display: flex;
   align-items: center;

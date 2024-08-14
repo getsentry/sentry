@@ -39,7 +39,6 @@ import {
 import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -2215,11 +2214,11 @@ const Container = styled('div')<{inputHasFocus: boolean}>`
       ? `0 0 0 1px ${p.theme.focusBorder}`
       : `inset ${p.theme.dropShadowMedium}`};
   background: ${p => p.theme.background};
-  padding: 6px ${space(1)};
+  padding: 6px ${p => p.theme.space(1)};
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: start;
 
   border-radius: ${p => p.theme.borderRadius};
@@ -2231,14 +2230,14 @@ const Container = styled('div')<{inputHasFocus: boolean}>`
 
 const SearchIconContainer = styled('div')`
   display: flex;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   margin: 0;
   color: ${p => p.theme.gray300};
 `;
 
 const SearchLabel = styled('label')`
   display: flex;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   margin: 0;
   color: ${p => p.theme.gray300};
 `;

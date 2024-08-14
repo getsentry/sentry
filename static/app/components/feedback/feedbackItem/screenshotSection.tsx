@@ -11,7 +11,6 @@ import ScreenshotsModal, {
 import useFeedbackScreenshot from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
@@ -78,14 +77,14 @@ export function ScreenshotSection({event, organization, projectSlug}: Props) {
 const ScreenshotWrapper = styled('ul')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   margin: 0;
   padding: 0;
   list-style: none;
 
   & > li {
     display: flex;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 `;
 

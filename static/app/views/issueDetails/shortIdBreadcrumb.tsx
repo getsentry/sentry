@@ -6,7 +6,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -101,7 +100,7 @@ export function ShortIdBreadcrumb({
 
 const Wrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -113,7 +112,7 @@ const StyledShortId = styled(ShortId)`
 
 const ShortIdCopyable = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   align-items: center;
 
   button[aria-haspopup] {

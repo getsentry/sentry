@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
@@ -282,20 +281,20 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 `;
 
 const AvatarForm = styled('div')`
-  line-height: ${space(3)};
-  padding: ${space(1.5)} ${space(2)};
-  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
+  line-height: ${p => p.theme.space(3)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(1.5)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
   align-items: center;
-  margin-top: ${space(4)};
-  padding-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(4)};
+  padding-top: ${p => p.theme.space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 export default withApi(AvatarChooser);

@@ -2,7 +2,6 @@ import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {space} from 'sentry/styles/space';
 
 export interface StyleProps {
   display?: 'block' | 'flex';
@@ -13,7 +12,7 @@ const SizingWindow = styled(NegativeSpaceContainer)<StyleProps>`
   border-radius: ${p => p.theme.borderRadius};
 
   resize: both;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   ${p =>
     p.display === 'block'

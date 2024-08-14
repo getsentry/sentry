@@ -5,7 +5,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, UpdateSdkSuggestion} from 'sentry/types/event';
 
 type Props = {
@@ -143,5 +142,5 @@ function getSdkUpdateSuggestion({
 export default getSdkUpdateSuggestion;
 
 const StyledList = styled(List)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

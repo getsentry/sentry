@@ -7,7 +7,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -71,7 +70,8 @@ function SharedGroupHeader({group}: Props) {
 export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
-  padding: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)} ${p => p.theme.space(3)}
+    ${p => p.theme.space(4)};
   border-bottom: 1px solid ${p => p.theme.border};
   position: relative;
 `;
@@ -89,14 +89,14 @@ const TitleWrap = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('h3')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: ${p => p.theme.text.lineHeightHeading};
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 
@@ -109,10 +109,10 @@ const TimeStamp = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: ${p => p.theme.text.lineHeightHeading};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const EventTimeLabel = styled('span')`
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space(0.25)};
 `;

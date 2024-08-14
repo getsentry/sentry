@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import toArray from 'sentry/utils/array/toArray';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 
@@ -94,6 +93,6 @@ const HotkeysContainer = styled('div')`
   align-items: center;
 
   > * {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;

@@ -11,7 +11,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -246,7 +245,7 @@ function DashboardEditFeature({
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space(1)};
     width: 100%;
   }
 `;

@@ -7,7 +7,6 @@ import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
@@ -689,8 +688,8 @@ const TabsHeightContainer = styled('div')<{
 const TabsLayout = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  padding-left: ${space(0.25)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.25)};
+  padding-right: ${p => p.theme.space(0.5)};
 `;
 
 const TabsContainer = styled('ul')`
@@ -699,7 +698,7 @@ const TabsContainer = styled('ul')`
   width: 100%;
   align-items: center;
   justify-content: left;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   padding-left: 0;
   margin-bottom: 0;
 `;
@@ -711,14 +710,14 @@ const TabActions = styled('ul')`
   flex: none;
 
   button {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space(0.5)};
   }
 `;
 
 const TabSeparator = styled('span')`
   display: inline-block;
-  margin-left: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   height: 16px;
   width: 1px;
   background-color: ${p => p.theme.border};
@@ -742,7 +741,7 @@ const Tab = styled('li')`
   display: flex;
   align-items: center;
   border-bottom: 2px solid transparent;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   position: relative;
 
   &.Static + li:not(.Static) {
@@ -780,7 +779,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
   height: 12px;
   min-width: 12px;
   border-radius: 2px;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
   background-color: ${p => p.backgroundColor};
 `;
 
@@ -795,7 +794,7 @@ const TabButton = styled('button')`
 
   border-radius: 0;
   margin: 0;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   background: transparent;
@@ -804,7 +803,7 @@ const TabButton = styled('button')`
 const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer right'}>`
   position: relative;
   overflow: auto;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   flex: 1;
 
   td {
@@ -822,7 +821,7 @@ const TabIconButton = styled(Button)<{active: boolean}>`
   max-height: 24px;
 
   &:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 
   &:hover {
@@ -849,7 +848,7 @@ function TabPinButton(props: {
 }
 
 const PinButton = styled(Button)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   margin: 0;
   background-color: transparent;
   border: none;
@@ -865,6 +864,6 @@ const StyledIconPin = styled(IconPin)`
 `;
 
 const ContentWrapper = styled('div')`
-  inset: ${space(1)};
+  inset: ${p => p.theme.space(1)};
   position: absolute;
 `;

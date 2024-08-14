@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
 import Checkbox from 'sentry/components/checkbox';
-import {space} from 'sentry/styles/space';
 
 type Props<T> = {
   children: ReactNode;
@@ -123,7 +122,7 @@ const Label = styled('label')`
 `;
 
 const CheckboxLabel = styled('span')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const LabelContainer = styled('div')`

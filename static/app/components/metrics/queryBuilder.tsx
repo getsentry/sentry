@@ -16,7 +16,6 @@ import {MRISelect} from 'sentry/components/metrics/mriSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -524,7 +523,7 @@ function FullWidthGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
 }
 
 const TooltipIconWrapper = styled('span')`
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const QueryBuilderWrapper = styled('div')<{
@@ -534,7 +533,7 @@ const QueryBuilderWrapper = styled('div')<{
 }>`
   display: flex;
   flex-grow: 1;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 
   ${p =>
@@ -542,7 +541,7 @@ const QueryBuilderWrapper = styled('div')<{
     css`
       display: grid;
       grid-template-columns: subgrid;
-      gap: ${space(1)};
+      gap: ${p.theme.space(1)};
       align-items: flex-start;
       grid-column-start: ${p.hasSymbols ? '2' : '1'};
 
@@ -607,7 +606,7 @@ const fixedWidthLabelCss = css`
 
 const FlexBlock = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -69,7 +68,7 @@ const SettingsHeading = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 export default SettingsNavigationGroup;

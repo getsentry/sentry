@@ -8,7 +8,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -130,7 +129,7 @@ const FeatureDisabledMessage = styled('div')`
 `;
 
 const HelpDescription = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 
   pre,
   code {
@@ -139,12 +138,12 @@ const HelpDescription = styled('div')`
   }
 
   button {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space(0.5)};
   }
 `;
 
 const HelpText = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ToggleButton = styled(Button)`
@@ -159,7 +158,7 @@ const ToggleButton = styled(Button)`
   ${ButtonLabel} {
     display: grid;
     grid-auto-flow: column;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 `;
 

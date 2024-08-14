@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -101,7 +100,7 @@ function DoubleAxisDisplay(props: Props) {
 const DoubleChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   min-height: 282px;
 `;
 

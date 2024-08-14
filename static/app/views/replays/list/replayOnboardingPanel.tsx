@@ -16,7 +16,6 @@ import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -342,17 +341,17 @@ const ButtonList = styled(ButtonBar)`
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
-  margin: ${space(4)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(4)} 0 ${p => p.theme.space(1)} 0;
 `;
 
 const CenteredContent = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;
 
 const AnswerContent = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const QuestionContent = styled('div')`
@@ -365,6 +364,6 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;

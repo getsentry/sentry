@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {MetricChart} from 'sentry/components/metrics/chart/chart';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -62,6 +61,6 @@ export function MetricChartContainer({
 const MetricWidgetChartWrapper = styled('div')`
   height: 100%;
   width: 100%;
-  padding: ${space(3)};
-  padding-top: ${space(0.25)};
+  padding: ${p => p.theme.space(3)};
+  padding-top: ${p => p.theme.space(0.25)};
 `;

@@ -22,7 +22,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
@@ -261,11 +260,11 @@ export const MetricsLayout = memo(() => {
 });
 
 const FilterContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const EmptyStateImage = styled('img')`
@@ -295,5 +294,5 @@ const EmptyStateImage = styled('img')`
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

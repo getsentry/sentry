@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -96,7 +95,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const SortLink = styled(Link)`
@@ -112,7 +111,7 @@ const SortLink = styled(Link)`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 export default SortableHeader;

@@ -15,7 +15,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedMQL} from 'sentry/utils/metrics';
@@ -218,7 +217,7 @@ const HeaderContentBar = styled('div')`
 const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledAlert = styled(Alert)`

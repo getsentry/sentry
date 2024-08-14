@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -126,13 +125,13 @@ function ResourceTypeSelector({value}: {value?: string}) {
 }
 
 export const SpanTimeChartsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const DropdownContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   flex-wrap: wrap;
 `;
 

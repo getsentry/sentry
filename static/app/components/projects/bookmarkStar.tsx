@@ -6,7 +6,6 @@ import {update} from 'sentry/actionCreators/projects';
 import {Button} from 'sentry/components/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
@@ -55,7 +54,7 @@ const BookmarkStarButton = styled(Button)`
   border-radius: 50%;
   width: 24px;
   height: 24px;
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space(0.5)};
 
   svg {
     /* Negative margin for visual centering within the button */

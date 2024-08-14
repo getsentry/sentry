@@ -12,7 +12,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -265,23 +264,23 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
 const Header = styled(PanelHeader)`
   background: transparent;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   align-items: center;
   color: ${p => p.theme.gray300};
 `;
 
 const Feedback = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   display: grid;
   grid-template-columns: 1fr;
   align-items: center;
   text-align: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr max-content;
     text-align: right;
-    gap: ${space(2)};
+    gap: ${p => p.theme.space(2)};
   }
 `;
 
@@ -290,31 +289,31 @@ const SuggestionLoadingError = styled(LoadingError)`
   border: none;
   /* This is just to be consitent with other */
   /* padding-top and padding-bottom we are using in the empty state component */
-  padding-top: ${space(4)};
-  padding-bottom: ${space(4)};
+  padding-top: ${p => p.theme.space(4)};
+  padding-bottom: ${p => p.theme.space(4)};
 `;
 
 const LoaderWrapper = styled('div')`
-  padding: ${space(4)} 0;
+  padding: ${p => p.theme.space(4)} 0;
   text-align: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   display: flex;
   flex-direction: column;
 `;
 
 const Content = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   /* hack until we update backend to send us other heading */
   h4 {
     font-size: ${p => p.theme.fontSizeExtraLarge};
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 
 const Title = styled('div')`
   /* to be consistent with the feature badge size */
-  height: ${space(2)};
-  line-height: ${space(2)};
+  height: ${p => p.theme.space(2)};
+  line-height: ${p => p.theme.space(2)};
   display: flex;
   align-items: center;
 `;

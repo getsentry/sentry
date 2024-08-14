@@ -11,7 +11,6 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -47,7 +46,7 @@ const Heading = styled(motion.div)`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 Heading.defaultProps = {
@@ -254,8 +253,9 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
-  margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(4)} ${p => p.theme.space(4)}
+    ${p => p.theme.space(4)};
 `;
 
 const CompleteList = styled('div')`

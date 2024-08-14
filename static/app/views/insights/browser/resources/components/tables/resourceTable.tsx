@@ -8,7 +8,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -246,5 +245,5 @@ export default ResourceTable;
 const DescriptionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

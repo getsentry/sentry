@@ -16,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -178,13 +177,13 @@ export default withOrganization(TeamNotificationSettings);
 
 const NotDisabledText = styled('div')`
   color: ${p => p.theme.textColor};
-  line-height: ${space(2)};
+  line-height: ${p => p.theme.space(2)};
 `;
 const NotDisabledSubText = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 const FormFieldWrapper = styled('div')`
   display: flex;
@@ -195,6 +194,6 @@ const StyledFormField = styled(TextField)`
   flex: 1;
 `;
 const DeleteButtonWrapper = styled('div')`
-  margin-right: ${space(4)};
-  padding-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(4)};
+  padding-right: ${p => p.theme.space(0.5)};
 `;

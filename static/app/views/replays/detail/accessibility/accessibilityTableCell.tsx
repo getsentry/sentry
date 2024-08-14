@@ -7,7 +7,6 @@ import {Cell, Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -137,7 +136,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
 export default AccessibilityTableCell;
 
 const StyledTextOverflow = styled(TextOverflow)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const StyledCell = styled(Cell)<{

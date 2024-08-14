@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
 
 export const Card = styled(PanelItem)`
   display: grid;
@@ -11,7 +10,7 @@ export const Card = styled(PanelItem)`
 `;
 
 export const CardSection = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;
 
 export const CardSummary = styled(CardSection)`

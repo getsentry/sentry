@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import {space} from 'sentry/styles/space';
 
 import FieldDescription from '../fieldGroup/fieldDescription';
 import FieldHelp from '../fieldGroup/fieldHelp';
@@ -87,7 +86,7 @@ function CheckboxField(props: Props) {
 const ControlWrapper = styled('span')`
   align-self: flex-start;
   display: flex;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const FieldLayout = styled('div')`

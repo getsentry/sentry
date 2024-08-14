@@ -244,7 +244,7 @@ const SidebarDropdownActor = styled('button')`
 `;
 
 const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
-  margin: ${space(0.25)} 0;
+  margin: ${p => p.theme.space(0.25)} 0;
   margin-right: ${p => (p.collapsed ? '0' : space(1.5))};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   border-radius: 6px; /* Fixes background bleeding on corners */
@@ -262,5 +262,5 @@ const OrgAndUserMenu = styled('div')`
 `;
 
 const StyledChevron = styled(Chevron)`
-  transform: translateY(${space(0.25)});
+  transform: translateY(${p => p.theme.space(0.25)});
 `;

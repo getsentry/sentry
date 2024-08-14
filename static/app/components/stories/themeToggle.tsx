@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 
 interface Props {
@@ -41,14 +40,14 @@ export default function ThemeToggle({children}: Props) {
 }
 
 const Inset = styled('div')`
-  padding-inline: ${space(1)};
+  padding-inline: ${p => p.theme.space(1)};
 `;
 const Background = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: column;
   background: ${p => p.theme.background};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;

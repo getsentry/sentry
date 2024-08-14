@@ -290,11 +290,11 @@ export default function HighlightsDataSection({
 
 const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
   margin-top: 0;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const EmptyHighlights = styled('div')`
-  padding: ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px dashed ${p => p.theme.translucentBorder};
   background: ${p => p.theme.bodyBackground};
@@ -316,7 +316,7 @@ const HighlightsLoadingIndicator = styled(LoadingIndicator)`
 
 const AddHighlightsButton = styled(Button)`
   display: block;
-  margin: ${space(1)} auto 0;
+  margin: ${p => p.theme.space(1)} auto 0;
 `;
 
 const HighlightColumn = styled(TreeColumn)`

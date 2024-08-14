@@ -6,7 +6,6 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   tags: Record<string, string>;
@@ -47,6 +46,6 @@ export default function TagsSection({tags}: Props) {
 }
 
 const StyledButton = styled(Button)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   width: 150px;
 `;

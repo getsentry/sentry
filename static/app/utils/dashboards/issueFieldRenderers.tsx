@@ -12,7 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -279,7 +278,7 @@ const StyledLink = styled(Link)`
 const SecondaryCount = styled(Count)`
   :before {
     content: '/';
-    padding-left: ${space(0.25)};
+    padding-left: ${p => p.theme.space(0.25)};
     padding-right: 2px;
   }
 `;
@@ -292,7 +291,7 @@ const WrappedCount = styled(({value, ...p}) => (
   text-align: right;
   font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
   color: ${p => p.theme.subText};
 `;
 

@@ -182,9 +182,9 @@ export default Form;
 
 const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    gap: ${space(2)};
+    gap: ${p => p.theme.space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
     margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
   }
@@ -197,13 +197,13 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
   ${p =>
     p.isExpanded &&
     `
-    border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowMedium};
-    margin: ${space(2)} 0 ${space(3)} 0;
-    padding: ${space(2)};
-    height: 180px;
-  `}
+border-radius: ${p.theme.borderRadius};
+border: 1px solid ${p.theme.border};
+box-shadow: ${p.theme.dropShadowMedium};
+margin: ${p.theme.space(2)} 0 ${p.theme.space(3)} 0;
+padding: ${p.theme.space(2)};
+height: 180px;
+`}
 `;
 
 const RegularExpression = styled(Input)`
@@ -224,7 +224,7 @@ const Toggle = styled(Button)`
   }
   > *:first-child {
     display: grid;
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space(0.5)};
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }

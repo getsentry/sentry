@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {EventOrGroupType, type Level} from 'sentry/types/event';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -74,7 +73,7 @@ function EventMessage({
 
 const LevelMessageContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   position: relative;
   line-height: 1.2;

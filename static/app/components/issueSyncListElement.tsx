@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
@@ -128,16 +127,16 @@ export const IssueSyncListElementContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-right: -${space(1)};
+  margin-right: -${p => p.theme.space(1)};
 
   &:not(:last-child) {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space(2)};
   }
 `;
 
 export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   cursor: pointer;
   line-height: 1.2;

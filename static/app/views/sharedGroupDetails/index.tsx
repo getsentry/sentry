@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import withApi from 'sentry/utils/withApi';
 
@@ -166,7 +165,7 @@ class SharedGroupDetails extends Component<Props, State> {
 }
 
 const Container = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 export {SharedGroupDetails};

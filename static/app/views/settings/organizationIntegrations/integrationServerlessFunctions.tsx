@@ -11,7 +11,6 @@ import type {
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {space} from 'sentry/styles/space';
 import {Alert} from 'sentry/components/alert';
 import withOrganization from 'sentry/utils/withOrganization';
 import {t} from 'sentry/locale';
@@ -107,9 +106,9 @@ class IntegrationServerlessFunctions extends DeprecatedAsyncComponent<Props, Sta
 export default withOrganization(IntegrationServerlessFunctions);
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
   grid-template-columns: 2fr 1fr 0.5fr;
   grid-template-areas: 'function-name layer-status enable-switch';

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconInfo} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type BaseRecord = Record<string, unknown>;
 interface SortConfig<RecordType extends BaseRecord> {
@@ -69,10 +68,11 @@ const HeaderButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)}
+    ${p => p.theme.space(1.5)};
 
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space(0.25)};
   }
 `;
 

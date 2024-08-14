@@ -14,7 +14,6 @@ import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {decodeList} from 'sentry/utils/queryString';
@@ -480,13 +479,13 @@ export function ProductSelection({
 }
 
 const SkipLazyLoaderButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const Products = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProductButtonWrapper = styled(Button)`
@@ -529,14 +528,14 @@ const PermanentDisabledProductWrapper = styled(Button)`
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const TooltipDescription = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: flex-start;
 `;
 

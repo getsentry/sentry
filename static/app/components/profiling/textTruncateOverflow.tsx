@@ -1,8 +1,6 @@
 import type {ComponentProps, ElementType} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type TextOverflowProps<T extends ElementType> = ComponentProps<T> & {
   children: string;
   as?: T;
@@ -23,5 +21,5 @@ export const TextTruncateOverflow = styled(TextOverflow)`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 ` as typeof TextOverflow; // styled wasn't inferring the passed component properly this assertion is sufficient for now

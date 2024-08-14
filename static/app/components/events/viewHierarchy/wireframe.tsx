@@ -13,7 +13,6 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
@@ -360,11 +359,11 @@ const InteractionContainer = styled('div')`
 
 const Controls = styled('div')`
   position: absolute;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space(2)};
+  right: ${p => p.theme.space(2)};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const InteractionOverlayCanvas = styled('canvas')`

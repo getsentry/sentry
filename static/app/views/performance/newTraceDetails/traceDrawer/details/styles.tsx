@@ -23,7 +23,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -57,8 +56,8 @@ import type {
 const DetailContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)};
+  gap: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(1)};
 
   ${DataSection} {
     padding: 0;
@@ -71,13 +70,13 @@ const FlexBox = styled('div')`
 `;
 
 const Actions = styled(FlexBox)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: end;
   width: 100%;
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-grow: 1;
   overflow: hidden;
   > span {
@@ -135,7 +134,7 @@ const Table = styled('table')`
 `;
 
 const IconTitleWrapper = styled(FlexBox)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   min-width: 30px;
 `;
 
@@ -159,7 +158,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
 
 const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   container-type: inline-size;
 
   @container (max-width: 780px) {
@@ -333,7 +332,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 
 const DurationContainer = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
@@ -348,7 +347,7 @@ const Flex = styled('div')`
 const TableValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   border-radius: 4px;
   background-color: ${p => p.theme.surface200};
@@ -356,7 +355,7 @@ const TableValueRow = styled('div')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const StyledPre = styled('pre')`
@@ -541,7 +540,7 @@ function NodeActions(props: {
 
 const ActionsButtonTrigger = styled(Button)`
   svg {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space(0.5)};
     width: 10px;
     height: 10px;
   }
@@ -551,7 +550,7 @@ const ActionsContainer = styled('div')`
   display: flex;
   justify-content: end;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
@@ -676,7 +675,7 @@ const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
 
 const CardValueContainer = styled(FlexBox)`
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 

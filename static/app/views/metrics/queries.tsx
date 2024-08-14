@@ -13,7 +13,6 @@ import SwitchButton from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
@@ -361,8 +360,8 @@ const QueryWrapper = styled('div')<{hasMetricsNewInput: boolean; hasSymbol: bool
     !p.hasMetricsNewInput &&
     css`
       display: grid;
-      gap: ${space(1)};
-      padding-bottom: ${space(1)};
+      gap: ${p.theme.space(1)};
+      padding-bottom: ${p.theme.space(1)};
       grid-template-columns: 1fr max-content;
       ${p.hasSymbol && `grid-template-columns: min-content 1fr max-content;`}
     `}
@@ -383,7 +382,7 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
     p.hasMetricsNewInput &&
     css`
       display: grid;
-      gap: ${space(1)};
+      gap: ${p.theme.space(1)};
       grid-template-columns: ${p.showQuerySymbols
         ? 'min-content 1fr max-content'
         : '1fr max-content'};
@@ -438,21 +437,21 @@ const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  padding: ${space(2)} 0;
-  gap: ${space(2)};
+  padding: ${p => p.theme.space(2)} 0;
+  gap: ${p => p.theme.space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
-    padding-left: ${space(1)};
-    margin-left: 38px;
-  `}
+padding-left: ${p.theme.space(1)};
+margin-left: 38px;
+`}
 `;
 
 const SwitchWrapper = styled('label')`
   display: flex;
   margin: 0;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   white-space: nowrap;
 `;

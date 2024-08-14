@@ -12,7 +12,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -216,7 +215,7 @@ const ScreenshotGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(2, max-content);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));

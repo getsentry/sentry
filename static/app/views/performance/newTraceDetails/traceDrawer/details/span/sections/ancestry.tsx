@@ -16,7 +16,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
@@ -252,18 +251,18 @@ export function getSpanAncestryAndGroupingItems({
 
 const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space(0.75)};
+  right: ${p => p.theme.space(0.5)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
+  height: ${p => p.theme.space(2)};
   margin: 0;
 `;
 
 const SpanChildValueWrapper = styled(TraceDrawerComponents.FlexBox)`
   justify-content: space-between;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;

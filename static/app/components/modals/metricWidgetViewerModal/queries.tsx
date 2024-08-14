@@ -28,7 +28,6 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -575,7 +574,7 @@ const ExpressionsWrapper = styled('div')<{
     p.hasMetricsNewInput &&
     css`
       display: grid;
-      gap: ${space(1)};
+      gap: ${p.theme.space(1)};
       grid-template-columns: ${p.showQuerySymbols
         ? 'min-content 1fr max-content'
         : '1fr max-content'};
@@ -590,8 +589,8 @@ const ExpressionsWrapper = styled('div')<{
 
 const ExpressionWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
-  gap: ${space(1)};
-  padding-bottom: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
   ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
@@ -599,13 +598,13 @@ const ExpressionFormWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
   flex-grow: 1;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
 const ExpressionFormRowWrapper = styled('div')<{hasMetricsNewInput: boolean}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   ${p => p.hasMetricsNewInput && 'display: contents;'}
 `;
 
@@ -620,15 +619,15 @@ const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  gap: ${space(2)};
-  padding: ${space(2)} 0;
+  gap: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(2)} 0;
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
-    padding-left: ${space(1)};
-    margin-left: 38px;
-  `}
+padding-left: ${p.theme.space(1)};
+margin-left: 38px;
+`}
 `;
 
 const ExpressionAliasWrapper = styled('div')<{
@@ -638,7 +637,7 @@ const ExpressionAliasWrapper = styled('div')<{
   display: flex;
   flex-basis: 50%;
   align-items: center;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 
   /* Add padding for the context menu */
   ${p => p.hasOwnRow && `padding-right: 56px;`}
@@ -655,7 +654,7 @@ const ExpressionAliasWrapper = styled('div')<{
 const StyledLabel = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
 
   color: ${p => p.theme.subText};
 

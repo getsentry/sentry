@@ -7,7 +7,6 @@ import Alert from 'sentry/components/alert';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -138,5 +137,5 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-top: -${space(1)};
+  margin-top: -${p => p.theme.space(1)};
 `;

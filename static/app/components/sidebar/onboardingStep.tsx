@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -55,7 +54,7 @@ const Wrapper = styled('div')`
 
 const TaskCheckBox = styled('div')`
   float: left;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space(1.5)};
   height: 27px;
   display: flex;
   align-items: center;
@@ -67,7 +66,7 @@ export const DocumentationWrapper = styled('div')`
   line-height: 1.5;
 
   .gatsby-highlight {
-    margin-bottom: ${space(3)};
+    margin-bottom: ${p => p.theme.space(3)};
 
     &:last-child {
       margin-bottom: 0;
@@ -75,12 +74,12 @@ export const DocumentationWrapper = styled('div')`
   }
 
   .alert {
-    margin-bottom: ${space(3)};
+    margin-bottom: ${p => p.theme.space(3)};
     border-radius: ${p => p.theme.borderRadius};
   }
 
   blockquote {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
     margin-left: 0;
     background: ${p => p.theme.alert.info.backgroundLight};
     border-left: 2px solid ${p => p.theme.alert.info.border};

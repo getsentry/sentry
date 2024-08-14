@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
@@ -179,7 +178,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
 const ContentWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   max-height: 70vh;
   overflow-y: scroll;
 `;

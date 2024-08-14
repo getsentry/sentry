@@ -19,7 +19,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {
   setApiQueryData,
@@ -162,11 +161,11 @@ const TagPanelItem = styled(PanelItem)`
 
 const TagName = styled('div')`
   flex: 1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const Actions = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;

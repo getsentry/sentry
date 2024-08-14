@@ -21,7 +21,6 @@ import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -581,7 +580,7 @@ const AddWidgetWrapper = styled('div')`
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
-  margin: -${space(2)};
+  margin: -${p => p.theme.space(2)};
 
   .react-grid-item.react-grid-placeholder {
     background: ${p => p.theme.purple200};
@@ -592,8 +591,8 @@ const GridLayout = styled(WidthProvider(Responsive))`
 const ResizeHandle = styled(Button)`
   position: absolute;
   z-index: 2;
-  bottom: ${space(0.5)};
-  right: ${space(0.5)};
+  bottom: ${p => p.theme.space(0.5)};
+  right: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
   cursor: nwse-resize;
 

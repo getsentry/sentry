@@ -82,10 +82,10 @@ const Blockquote = styled('blockquote')`
 
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   border-left: 2px solid ${p => p.theme.purple300};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   & > pre {
     margin-bottom: 0;

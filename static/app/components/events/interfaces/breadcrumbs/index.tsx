@@ -11,7 +11,6 @@ import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -342,7 +341,7 @@ export {BreadcrumbsContainer as Breadcrumbs};
 export const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;

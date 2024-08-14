@@ -11,7 +11,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -176,7 +175,7 @@ const Path = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
 
   & strong {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -184,7 +183,7 @@ const Path = styled('span')`
 // doesn't quite get it in place.
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
   position: relative;
   top: 1px;

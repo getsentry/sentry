@@ -6,12 +6,11 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Matrix from 'sentry/components/stories/matrix';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 import {ComboBox} from './';
 
 const Divider = styled('hr')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

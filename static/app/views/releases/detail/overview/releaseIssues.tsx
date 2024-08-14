@@ -14,7 +14,6 @@ import QueryCount from 'sentry/components/queryCount';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -429,7 +428,7 @@ const ControlsWrapper = styled('div')`
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 const StyledPagination = styled(Pagination)`

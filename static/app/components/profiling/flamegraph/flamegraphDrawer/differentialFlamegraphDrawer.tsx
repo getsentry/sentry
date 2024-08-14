@@ -278,7 +278,7 @@ const ResizableVerticalDrawer = styled('div')`
 
 const InvisibleHandler = styled('div')`
   opacity: 0;
-  width: ${space(1)};
+  width: ${p => p.theme.space(1)};
   position: absolute;
   inset: 0;
   cursor: ew-resize;
@@ -293,7 +293,7 @@ const FrameDrawerLabel = styled('label')`
   margin-bottom: 0;
   height: 100%;
   font-weight: ${p => p.theme.fontWeightNormal};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
@@ -327,7 +327,7 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
   background: 1px solid ${p => p.theme.border};
   transform: translateY(29%);
 `;
@@ -335,7 +335,7 @@ const Separator = styled('li')`
 export const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
   background-color: ${props => props.theme.surface200};
@@ -390,7 +390,7 @@ const StyledButton = styled(Button)<{active: boolean}>`
   opacity: ${p => (p.active ? 0.7 : 0.5)};
 
   &:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 
   &:hover {

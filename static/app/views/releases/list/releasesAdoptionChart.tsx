@@ -36,7 +36,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
@@ -314,7 +313,7 @@ class ReleasesAdoptionChart extends Component<Props> {
 export default withApi(ReleasesAdoptionChart);
 
 const ChartHeader = styled(HeaderTitleLegend)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ChartTitle = styled('header')`
@@ -325,5 +324,5 @@ const ChartTitle = styled('header')`
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space(1)} 20px;
 `;

@@ -602,6 +602,7 @@ function BaseChartUnwrapped({
           handleClick(props, instance);
           onClick?.(props, instance);
         },
+
         highlight: (props, instance) => onHighlight?.(props, instance),
         mouseout: (props, instance) => onMouseOut?.(props, instance),
         mouseover: (props, instance) => onMouseOver?.(props, instance),
@@ -609,8 +610,10 @@ function BaseChartUnwrapped({
         restore: (props, instance) => onRestore?.(props, instance),
         finished: (props, instance) => onFinished?.(props, instance),
         rendered: (props, instance) => onRendered?.(props, instance),
+
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
+
         brush: (props, instance) => onBrushStart?.(props, instance),
         brushend: (props, instance) => onBrushEnd?.(props, instance),
         brushselected: (props, instance) => onBrushSelected?.(props, instance),

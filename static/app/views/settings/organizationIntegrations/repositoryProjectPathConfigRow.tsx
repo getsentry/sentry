@@ -8,7 +8,6 @@ import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 
@@ -84,7 +83,7 @@ const ProjectRepoHolder = styled('div')`
 `;
 
 const RepoName = styled(`span`)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const ProjectAndBranch = styled('div')`
@@ -118,5 +117,5 @@ export const InputPathColumn = styled(Column)`
 
 export const ButtonWrapper = styled(Column)`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

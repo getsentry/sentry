@@ -9,7 +9,6 @@ import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -220,14 +219,14 @@ export function Entries({
 }
 
 const LatestEventNotAvailable = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
 `;
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding: ${space(3)} 0 0 0;
+    padding: ${p => p.theme.space(3)} 0 0 0;
   }
   & ${DataSection}:first-child {
     padding-top: 0;

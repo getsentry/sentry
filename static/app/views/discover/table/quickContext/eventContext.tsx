@@ -7,7 +7,6 @@ import {
   StackTracePreviewContent,
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -156,7 +155,7 @@ function EventContext(props: EventContextProps) {
   );
 }
 const ErrorTitleContainer = styled(ContextContainer)`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const ErrorTitleBody = styled(ContextBody)`
@@ -174,7 +173,7 @@ const EventContextBody = styled(ContextBody)`
 
 const EventContextContainer = styled(ContextContainer)`
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space(2)};
   }
 `;
 
@@ -191,7 +190,7 @@ const StackTraceWrapper = styled('div')`
 `;
 
 const HttpStatusWrapper = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 export default EventContext;

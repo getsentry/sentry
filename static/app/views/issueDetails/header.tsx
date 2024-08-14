@@ -18,7 +18,6 @@ import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -303,15 +302,15 @@ const BreadcrumbActionWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   justify-content: space-between;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;
@@ -327,7 +326,7 @@ const TitleWrapper = styled('div')`
 const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
@@ -336,7 +335,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 
 const StatsWrapper = styled('div')`
   display: flex;
-  gap: calc(${space(3)} + ${space(3)});
+  gap: calc(${p => p.theme.space(3)} + ${p => p.theme.space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;
@@ -346,11 +345,11 @@ const StatsWrapper = styled('div')`
 const IconBadge = styled(Badge)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const StyledTabList = styled(TabList)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const PriorityContainer = styled('div')`

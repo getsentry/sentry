@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
@@ -85,7 +84,7 @@ function ProjectScoreCards({
 const CardWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
-    grid-column-gap: ${space(2)};
+    grid-column-gap: ${p => p.theme.space(2)};
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

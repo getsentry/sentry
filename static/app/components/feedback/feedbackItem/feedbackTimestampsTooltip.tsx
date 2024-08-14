@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 type Props = {
@@ -51,7 +50,7 @@ export default function FeedbackTimestampsTooltip({feedbackItem}: Props) {
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   text-align: left;
   margin: 0;
   white-space: nowrap;

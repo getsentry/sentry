@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {space} from 'sentry/styles/space';
 
 export interface CodeSnippetTab {
   code: string;
@@ -42,5 +41,5 @@ const StyledCodeSnippet = styled(CodeSnippet)`
   pre {
     height: 213px;
   }
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

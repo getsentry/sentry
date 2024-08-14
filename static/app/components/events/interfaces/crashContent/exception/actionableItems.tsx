@@ -18,7 +18,6 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -463,13 +462,13 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
 }
 
 const Description = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 const StyledAlert = styled(Alert)`
   margin: 0 30px;
 `;
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const ToggleButton = styled(Button)`
@@ -486,7 +485,7 @@ const ErrorTitleFlex = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const HiddenDiv = styled('div')`

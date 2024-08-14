@@ -5,7 +5,6 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 const toCamelCase = function camalize(str) {
   return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_m, chr) => chr.toUpperCase());
@@ -86,7 +85,7 @@ const Grid = styled('ul')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   grid-template-rows: masonry;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: flex-start;
 
   margin: 0;

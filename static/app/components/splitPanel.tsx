@@ -2,7 +2,6 @@ import {createContext, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 export type DividerProps = {
@@ -35,12 +34,12 @@ export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${space(2)};
+    width: ${p => p.theme.space(2)};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;
     width: 100%;
-    height: ${space(2)};
+    height: ${p => p.theme.space(2)};
 
     & > svg {
       transform: rotate(90deg);

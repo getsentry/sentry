@@ -5,7 +5,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -122,8 +121,8 @@ function Filter({
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space(1)};
+  height: ${p => p.theme.space(1)};
   border-radius: 100%;
 
   background-color: ${p => p.backgroundColor};

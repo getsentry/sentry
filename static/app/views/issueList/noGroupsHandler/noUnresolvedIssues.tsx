@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
-import {space} from 'sentry/styles/space';
-
 function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
   return (
     <Fragment>
@@ -30,7 +28,7 @@ function NoUnresolvedIssues({title, subtitle}: Props) {
 
 const Wrapper = styled('div')`
   display: flex;
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(4)};
   flex-direction: column;
   align-items: center;
   text-align: center;

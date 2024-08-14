@@ -8,7 +8,6 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   label: React.ReactNode;
@@ -103,7 +102,7 @@ const StyledBadge = styled(Badge)`
   height: auto;
   line-height: 1;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 3px ${space(0.75)};
+  padding: 3px ${p => p.theme.space(0.75)};
   vertical-align: middle;
 `;
 

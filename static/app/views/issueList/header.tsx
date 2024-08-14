@@ -15,7 +15,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
@@ -181,11 +180,11 @@ export default IssueListHeader;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space(2)};
     margin-bottom: 0;
   }
 `;

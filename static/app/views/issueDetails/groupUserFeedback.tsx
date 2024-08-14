@@ -8,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {space} from 'sentry/styles/space';
 import type {Group, UserReport} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -126,7 +125,7 @@ class GroupUserFeedback extends Component<Props, State> {
 }
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default withOrganization(GroupUserFeedback);

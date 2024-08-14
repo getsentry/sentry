@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 function ObjectView({obj}: {obj: object}) {
   if (Array.isArray(obj)) {
     return (
@@ -41,9 +39,9 @@ export function GeneralSpanDetailsValue({value}: {value: any}) {
 const ListContainer = styled('ul')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   padding: 0;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   list-style-type: '-';
   flex-grow: 1;
   flex-basis: full;
@@ -52,8 +50,8 @@ const ListContainer = styled('ul')`
 const ObjectContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  margin-left: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-left: ${p => p.theme.space(1)};
   flex-grow: 1;
   flex-basis: full;
 `;

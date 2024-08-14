@@ -264,7 +264,7 @@ export default withLatestContext(SettingsIndex);
 const GridLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const GridPanel = styled(Panel)`
@@ -276,7 +276,7 @@ const HomePanelHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   align-items: center;
   text-transform: unset;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 const HomePanelBody = styled(PanelBody)`

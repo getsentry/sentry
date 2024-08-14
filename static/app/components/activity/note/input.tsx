@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/button';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
@@ -291,8 +290,8 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 };
 
 const StyledTabList = styled(TabList)`
-  padding: 0 ${space(2)};
-  padding-top: ${space(0.5)};
+  padding: 0 ${p => p.theme.space(2)};
+  padding-top: ${p => p.theme.space(0.5)};
 `;
 
 const NoteInputForm = styled('form')<{error?: string}>`
@@ -309,7 +308,7 @@ const Footer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
   justify-content: space-between;
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space(1.5)};
 `;
 
 const FooterButton = styled(Button)<{error?: boolean}>`
@@ -337,7 +336,7 @@ const ErrorMessage = styled('span')`
 const MarkdownIndicator = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
 `;
 

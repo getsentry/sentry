@@ -4,7 +4,6 @@ import queryString from 'query-string';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
@@ -53,22 +52,22 @@ const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
 
   & > li {
     margin-right: 0;
-    padding-right: ${space(3)};
+    padding-right: ${p => p.theme.space(3)};
     background: ${p => p.theme.surface400};
     z-index: ${p => p.theme.zIndex.initial};
   }
   & > li:first-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
   }
   & > li:last-child {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space(1)};
   }
 
   & > li > a {
-    padding-top: ${space(1)};
-    padding-bottom: ${space(0.5)};
+    padding-top: ${p => p.theme.space(1)};
+    padding-bottom: ${p => p.theme.space(0.5)};
     height: 100%;
-    border-bottom: ${space(0.5)} solid transparent;
+    border-bottom: ${p => p.theme.space(0.5)} solid transparent;
   }
 `;
 

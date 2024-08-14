@@ -10,7 +10,7 @@ export const Page = styled('main')<{withPadding?: boolean}>`
   display: flex;
   flex-direction: column;
   flex: 1;
-  ${p => p.withPadding && `padding: ${space(3)} ${space(4)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space(3)} ${p.theme.space(4)}`};
 `;
 
 /**
@@ -27,12 +27,12 @@ export const Header = styled('header')<{noActionWrap?: boolean}>`
   grid-template-columns: ${p =>
     !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
 
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)};
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)} ${space(4)} 0 ${space(4)};
+    padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)} 0 ${p => p.theme.space(4)};
     grid-template-columns: minmax(0, 1fr) auto;
   }
 `;
@@ -45,12 +45,12 @@ export const HeaderContent = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   overflow: hidden;
   max-width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 
@@ -63,11 +63,11 @@ export const HeaderActions = styled('div')`
   flex-direction: column;
   justify-content: normal;
   min-width: max-content;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     width: max-content;
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space(2)};
   }
 `;
 
@@ -87,7 +87,7 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   line-height: 40px;
 
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -99,13 +99,13 @@ export const HeaderNavTabs = styled(NavTabs)`
   border-bottom: 0 !important;
 
   & > li {
-    margin-right: ${space(3)};
+    margin-right: ${p => p.theme.space(3)};
   }
   & > li > a {
     display: flex;
     align-items: center;
     height: 1.25rem;
-    padding: ${space(1)} 0;
+    padding: ${p => p.theme.space(1)} 0;
     margin-bottom: 4px;
     box-sizing: content-box;
   }
@@ -118,21 +118,23 @@ export const HeaderNavTabs = styled(NavTabs)`
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')<{noRowGap?: boolean}>`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${p =>
-      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
+      !p.noRowGap
+        ? `${p.theme.space(3)} ${p.theme.space(4)}`
+        : `${p.theme.space(2)} ${p.theme.space(4)}`};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    gap: ${p => (!p.noRowGap ? `${p.theme.space(3)}` : `0 ${p.theme.space(3)}`)};
   }
 `;
 

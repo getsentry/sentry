@@ -12,7 +12,6 @@ import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -360,12 +359,12 @@ const AlignCenter = styled('span')`
 
 const SearchBarContainer = styled('div')`
   display: flex;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TooltipHeader = styled('span')`

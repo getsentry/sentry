@@ -18,7 +18,6 @@ import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -516,7 +515,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.alert.error.border};
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export const WidgetCardPanel = styled(Panel, {
@@ -534,18 +533,18 @@ export const WidgetCardPanel = styled(Panel, {
 `;
 
 const StoredDataAlert = styled(Alert)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   margin-bottom: 0;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 export const WidgetTitleRow = styled('span')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`
@@ -559,7 +558,7 @@ const WidgetTitle = styled(HeaderTitle)`
 `;
 
 const WidgetHeaderWrapper = styled('div')`
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1)} 0 ${p => p.theme.space(3)};
   min-height: 36px;
   width: 100%;
   display: flex;
@@ -570,5 +569,5 @@ const WidgetHeaderWrapper = styled('div')`
 const WidgetHeaderDescription = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;

@@ -14,7 +14,6 @@ import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -480,7 +479,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
 export default withProjects(UsageStatsProjects);
 
 const Container = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Title = styled('div')`
@@ -494,6 +493,6 @@ const Title = styled('div')`
 
 const PanelHeading = styled('div')`
   display: flex;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   align-items: center;
 `;

@@ -14,7 +14,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -195,7 +194,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-bottom: 0;
@@ -228,7 +227,7 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-top: 0;

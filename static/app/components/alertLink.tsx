@@ -4,7 +4,6 @@ import omit from 'lodash/omit';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Size = 'small' | 'normal';
 type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
@@ -90,8 +89,9 @@ const StyledLink = styled(
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.06em;
   border: 1px solid ${p => p.theme.alert[p.priority].border};
-  padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
-  margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
+  padding: ${p =>
+    p.size === 'small' ? `${p.theme.space(1)} ${p.theme.space(1.5)}` : p.theme.space(2)};
+  margin-bottom: ${p => (p.withoutMarginBottom ? 0 : p.theme.space(3))};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
@@ -118,13 +118,13 @@ const StyledLink = styled(
 const IconWrapper = styled('span')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const IconLink = styled(IconWrapper)`
   margin-right: 0;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const AlertLinkText = styled('div')`

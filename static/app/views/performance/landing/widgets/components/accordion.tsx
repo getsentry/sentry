@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
   content: React.ReactNode;
@@ -53,7 +52,7 @@ const AccordionItem = styled('li')`
 `;
 
 const AccordionContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+  padding: ${p => p.theme.space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
 `;
@@ -61,12 +60,12 @@ const AccordionContainer = styled('ul')`
 const AccordionHeader = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const AccordionContent = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
 `;
 
 export {Accordion};

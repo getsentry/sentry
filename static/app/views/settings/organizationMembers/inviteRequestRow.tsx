@@ -161,7 +161,7 @@ const JoinRequestIndicator = styled(Tag)`
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
 `;
 
@@ -194,7 +194,7 @@ const TeamSelectControl = styled(TeamSelector)`
 const ButtonGroup = styled('div')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default InviteRequestRow;

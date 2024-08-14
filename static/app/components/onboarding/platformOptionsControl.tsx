@@ -7,7 +7,6 @@ import type {
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
 /**
@@ -103,5 +102,5 @@ export function PlatformOptionsControl({platformOptions}: PlatformOptionsControl
 const Options = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

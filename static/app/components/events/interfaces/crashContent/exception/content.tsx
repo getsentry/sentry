@@ -13,7 +13,6 @@ import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
@@ -240,12 +239,12 @@ export function Content({
 }
 
 const StyledPre = styled('pre')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   margin-top: 0;
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;

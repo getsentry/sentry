@@ -4,7 +4,6 @@ import {Button} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
@@ -93,7 +92,7 @@ const ButtonHolder = styled('div')`
   flex-direction: row;
   display: flex;
   & > * {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space(0.5)};
   }
 `;
 

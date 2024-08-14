@@ -20,7 +20,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -238,7 +237,7 @@ const StyledShortId = styled(ShortId)`
 
 const RowPlaceholder = styled('div')`
   grid-column: 1 / -1;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.innerBorder};

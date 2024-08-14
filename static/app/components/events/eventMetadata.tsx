@@ -6,7 +6,6 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -56,7 +55,7 @@ function EventMetadata({event, organization, projectId}: Props) {
 }
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const MetadataContainer = styled('div')`
@@ -70,7 +69,7 @@ const MetadataJSON = styled(ExternalLink)`
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default EventMetadata;

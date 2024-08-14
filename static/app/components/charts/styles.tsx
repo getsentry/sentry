@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightNormal};
@@ -15,17 +13,17 @@ export const SubHeading = styled('h3')`
 export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export const InlineContainer = styled('div')`
@@ -34,12 +32,13 @@ export const InlineContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: column;
-    grid-column-gap: ${space(1)};
+    grid-column-gap: ${p => p.theme.space(1)};
   }
 `;
 
 export const ChartControls = styled('div')`
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)} ${p => p.theme.space(1)}
+    ${p => p.theme.space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -53,7 +52,7 @@ export const ChartControls = styled('div')`
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   align-items: center;
@@ -72,7 +71,7 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
 export const HeaderValue = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: baseline;
   background-color: ${p => p.theme.background};
   position: absolute;
@@ -82,5 +81,5 @@ export const HeaderValue = styled('div')`
 `;
 
 export const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;

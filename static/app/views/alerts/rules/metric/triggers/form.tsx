@@ -6,7 +6,6 @@ import type {Client} from 'sentry/api';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
@@ -298,7 +297,7 @@ const TriggerLabel = styled('div')`
 `;
 
 const StyledIconDiamond = styled(IconDiamond)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;
 
 const StyledField = styled(FieldGroup)`

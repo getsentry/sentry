@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -86,7 +85,7 @@ const StyledSidebarSection = styled(SidebarSection)`
 
 const StyledLink = styled(Link)`
   display: block;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 export default ProjectTeamAccess;

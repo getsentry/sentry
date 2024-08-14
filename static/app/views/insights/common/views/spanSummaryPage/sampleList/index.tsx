@@ -9,7 +9,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -248,13 +247,13 @@ export function SampleList({
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
+  padding-bottom: ${p => p.theme.space(2)};
+  padding-top: ${p => p.theme.space(1)};
 
   display: grid;
   grid-template-rows: auto auto auto;
@@ -274,5 +273,5 @@ const Title = styled('h4')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space(2)} 0;
 `;

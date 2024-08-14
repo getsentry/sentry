@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const Layout = styled('div')`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 export const Quarter = styled('div')`

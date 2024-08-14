@@ -4,7 +4,6 @@ import {Button} from 'sentry/components/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Image, ImageStatus} from 'sentry/types/debugImage';
 
 import layout from '../layout';
@@ -76,7 +75,7 @@ const Wrapper = styled('div')`
 `;
 
 const Column = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   display: flex;
   align-items: center;
 `;
@@ -90,7 +89,7 @@ const FileName = styled('span')`
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   white-space: pre-wrap;
   word-break: break-all;
 `;

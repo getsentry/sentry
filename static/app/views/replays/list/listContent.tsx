@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -93,7 +92,7 @@ export default function ListContent() {
 const FiltersContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   flex-wrap: wrap;
 `;
 

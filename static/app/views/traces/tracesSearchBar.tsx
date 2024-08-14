@@ -5,7 +5,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -107,14 +106,14 @@ const TraceSearchBarsContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TraceBar = styled('div')`
   display: flex;
   flex-direction: row;
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SpanLetter = styled('div')`

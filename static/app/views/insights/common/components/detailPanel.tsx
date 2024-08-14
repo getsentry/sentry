@@ -7,7 +7,6 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -146,9 +145,9 @@ const PanelButton = styled(Button)`
 const CloseButtonWrapper = styled('div')`
   justify-content: flex-end;
   display: flex;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const DetailWrapper = styled('div')`
-  padding: 0 ${space(4)} ${space(4)};
+  padding: 0 ${p => p.theme.space(4)} ${p => p.theme.space(4)};
 `;

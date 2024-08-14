@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
@@ -117,5 +116,5 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray300};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;

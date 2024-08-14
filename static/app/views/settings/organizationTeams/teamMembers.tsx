@@ -26,7 +26,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
@@ -382,7 +381,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
 const StyledUserListElement = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;
 
@@ -401,7 +400,7 @@ const StyledAvatar = styled(props => <UserAvatar {...props} />)`
 const StyledMembersLabel = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
 `;

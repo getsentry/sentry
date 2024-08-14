@@ -18,7 +18,6 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -248,7 +247,7 @@ function CommitRow({
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const AvatarWrapper = styled('div')`
@@ -285,7 +284,7 @@ const CommitMessage = styled('div')`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const Message = styled(TextOverflow)`
@@ -309,13 +308,13 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)};
 `;
 
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

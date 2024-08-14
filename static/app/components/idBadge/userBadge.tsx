@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
 
 import Link from '../links/link';
@@ -61,7 +60,7 @@ const Name = styled('span')<{hideEmail: boolean}>`
 
 const Email = styled('div')`
   font-size: 0.875em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
   color: ${p => p.theme.gray300};
   ${p => p.theme.overflowEllipsis};
 `;

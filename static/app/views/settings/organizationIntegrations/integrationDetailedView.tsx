@@ -12,7 +12,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
@@ -470,5 +469,5 @@ const CapitalizedLink = styled('a')`
 `;
 
 const StyledIntegrationButton = styled(IntegrationButton)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

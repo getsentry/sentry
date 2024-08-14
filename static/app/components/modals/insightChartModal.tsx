@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {space} from 'sentry/styles/space';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 
 export type InsightChartModalOptions = {
@@ -32,7 +31,7 @@ export default function InsightChartModal({Header, title, children}: Props) {
 const Container = styled('div')<{height?: number | null}>`
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space(3)};
   z-index: 1000;
 `;
 

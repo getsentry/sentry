@@ -35,7 +35,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -587,8 +586,8 @@ const Row = styled('div')`
     [data-hidden-text='true']::before {
       content: '';
       position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
+      left: ${p => p.theme.space(0.5)};
+      right: ${p => p.theme.space(0.5)};
       top: 0;
       bottom: 0;
       background-color: ${p => p.theme.gray100};
@@ -610,7 +609,7 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space(0.5)};
     min-width: 9px;
     width: 100%;
   }
@@ -626,7 +625,7 @@ const PositionedTooltip = styled(InvalidTokenTooltip)`
 const InvisibleText = styled('div')`
   position: relative;
   color: transparent;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   min-width: 9px;
   height: 100%;
 `;

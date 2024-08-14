@@ -16,16 +16,15 @@ import categoryList, {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   &.centered {
     justify-content: center;
@@ -231,9 +230,9 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 }
 
 const NavContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
@@ -247,7 +246,7 @@ const NavContainer = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   min-width: 6rem;
   max-width: 12rem;
-  margin-top: -${space(0.25)};
+  margin-top: -${p => p.theme.space(0.25)};
   margin-left: auto;
   flex-shrink: 0;
   flex-basis: 0;
@@ -266,7 +265,7 @@ const CategoryNav = styled(NavTabs)`
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space(2)};
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -329,7 +328,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;
     margin: 0;
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space(0.5)};
     line-height: 1.2;
   }
 `;

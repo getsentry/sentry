@@ -5,7 +5,6 @@ import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMouseTracking from 'sentry/utils/useMouseTracking';
@@ -345,7 +344,7 @@ const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.gray200};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   width: 200px;
   height: 60px;
   display: flex;
@@ -377,7 +376,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
 
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   border-radius: 10px;
   width: 10px;
   height: 10px;

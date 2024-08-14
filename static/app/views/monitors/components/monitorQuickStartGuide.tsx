@@ -4,7 +4,6 @@ import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -193,5 +192,5 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
 const Container = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;

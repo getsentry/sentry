@@ -55,12 +55,12 @@ const EmptyMessage = styled(
 
 const IconWrapper = styled('div')`
   color: ${p => p.theme.gray200};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('strong')<{noMargin: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => !p.noMargin && `margin-bottom: ${space(1)};`}
+  ${p => !p.noMargin && `margin-bottom: ${p.theme.space(1)};`}
 `;
 
 const Description = styled(TextBlock)`
@@ -68,7 +68,7 @@ const Description = styled(TextBlock)`
 `;
 
 const Action = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 export default EmptyMessage;

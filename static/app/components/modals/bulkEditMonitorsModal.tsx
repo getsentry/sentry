@@ -14,7 +14,6 @@ import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import Text from 'sentry/components/text';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -218,8 +217,8 @@ export const modalCss = css`
 const Actions = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const ActionButtons = styled(ButtonBar)`
@@ -233,13 +232,13 @@ const StyledPanelTable = styled(PanelTable)`
 
 const RowPlaceholder = styled('div')`
   grid-column: 1 / -1;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const MonitorSlug = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

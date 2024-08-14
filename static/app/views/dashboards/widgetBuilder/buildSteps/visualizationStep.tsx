@@ -151,7 +151,7 @@ const StyledBuildStep = styled(BuildStep)`
 `;
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
   ${WidgetCardPanel} {
     height: initial;
   }

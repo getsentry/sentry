@@ -74,9 +74,9 @@ const StyledLi = styled('li')`
     justify-content: end;
     height: 100%;
     text-align: right;
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
-    margin-right: ${space(1.5)};
+    padding-left: ${p => p.theme.space(2)};
+    padding-right: ${p => p.theme.space(2)};
+    margin-right: ${p => p.theme.space(1.5)};
     background: transparent;
     z-index: 1;
     min-width: 58px;
@@ -128,5 +128,5 @@ const padding = space(2);
 const LineContent = styled('div')`
   display: grid;
   grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${padding});
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;

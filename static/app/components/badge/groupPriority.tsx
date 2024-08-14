@@ -17,7 +17,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
@@ -270,7 +269,7 @@ const StyledTag = styled(Tag)`
   span {
     display: flex;
     align-items: center;
-    gap: ${space(0.25)};
+    gap: ${p => p.theme.space(0.25)};
   }
 
   & > div {
@@ -315,7 +314,7 @@ const LearnMoreWrapper = styled('div')`
   max-width: 230px;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -326,14 +325,14 @@ const LearnMoreWrapper = styled('div')`
   );
 
   p {
-    margin: 0 0 ${space(0.5)} 0;
+    margin: 0 0 ${p => p.theme.space(0.5)} 0;
   }
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1.5)};
+  top: ${p => p.theme.space(1)};
+  right: ${p => p.theme.space(1.5)};
   color: ${p => p.theme.subText};
 `;
 

@@ -4,7 +4,6 @@ import type {SpanBarType} from 'sentry/components/performance/waterfall/constant
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getToggleTheme} from 'sentry/components/performance/waterfall/utils';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 export const TOGGLE_BUTTON_MAX_WIDTH = 30;
@@ -75,7 +74,7 @@ export const TreeToggle = styled('div')<SpanTreeTogglerAndDivProps>`
   align-items: center;
   justify-content: center;
   border-radius: 99px;
-  padding: 0px ${space(0.5)};
+  padding: 0px ${p => p.theme.space(0.5)};
   transition: all 0.15s ease-in-out;
   font-size: 10px;
   line-height: 0;
@@ -90,7 +89,7 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
   height: ${ROW_HEIGHT}px;
   width: ${TREE_TOGGLE_CONTAINER_WIDTH}px;
   min-width: ${TREE_TOGGLE_CONTAINER_WIDTH}px;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   z-index: ${p => p.theme.zIndex.traceView.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
@@ -99,5 +98,5 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
 
 export const TreeToggleIcon = styled(IconChevron)`
   width: 7px;
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space(0.25)};
 `;

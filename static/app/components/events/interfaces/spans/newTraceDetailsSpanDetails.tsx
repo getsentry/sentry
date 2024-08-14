@@ -19,7 +19,6 @@ import {TransactionToProfileButton} from 'sentry/components/profiling/transactio
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
@@ -633,8 +632,8 @@ function RowTimingPrefix({timing}: {timing: SubTimingInfo}) {
 
 const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space(0.75)};
+  right: ${p => p.theme.space(0.5)};
 `;
 
 const StyledButton = styled(Button)``;
@@ -661,13 +660,13 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
+  height: ${p => p.theme.space(2)};
   margin: 0;
 `;
 
 const StyledText = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space(2)} 0;
 `;
 
 function TextTr({children}) {
@@ -770,13 +769,13 @@ const Flex = styled('div')`
 export const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 export const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   border-radius: 4px;
   background-color: ${p => p.theme.surface200};
@@ -793,7 +792,7 @@ export const ButtonContainer = styled('div')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const SpanDescriptionWrapper = styled('div')`
@@ -802,8 +801,8 @@ const SpanDescriptionWrapper = styled('div')`
   }
 
   ${FrameContainer} {
-    padding: ${space(2)} 0 0 0;
-    margin-top: ${space(2)};
+    padding: ${p => p.theme.space(2)} 0 0 0;
+    margin-top: ${p => p.theme.space(2)};
   }
 
   pre {

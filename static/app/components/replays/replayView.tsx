@@ -9,7 +9,6 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {space} from 'sentry/styles/space';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -89,7 +88,7 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const PlayerContainer = styled('div')`
@@ -108,7 +107,7 @@ const PlayerBreadcrumbContainer = styled('div')`
   display: flex;
   flex-direction: row;
   height: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default ReplayView;

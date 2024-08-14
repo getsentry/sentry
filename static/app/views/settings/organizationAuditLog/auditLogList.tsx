@@ -12,7 +12,6 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {shouldUse24Hours} from 'sentry/utils/dates';
@@ -324,7 +323,7 @@ function AuditLogList({
 }
 
 const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Name = styled('strong')`
@@ -332,7 +331,7 @@ const Name = styled('strong')`
 `;
 
 const StaffTag = styled(Tag)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const EventSelector = styled(SelectControl)`
@@ -356,7 +355,7 @@ const NameContainer = styled('div')`
 const Note = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const FlexCenter = styled('div')`
@@ -377,7 +376,7 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

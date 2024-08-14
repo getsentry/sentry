@@ -15,7 +15,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -218,7 +217,7 @@ const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
   justify-content: start;
 `;
@@ -230,7 +229,7 @@ const StyledTextOverflow = styled(TextOverflow)`
 const TooltipContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SelectorScroll = styled('div')`
@@ -248,19 +247,19 @@ const Title = styled('div')`
 const MessageContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-items: center;
   text-align: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 const WidgetProjectContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 const IndexProjectContainer = styled(WidgetProjectContainer)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {TreeLabelPart} from 'sentry/types/event';
 import {getTreeLabelPartDetails} from 'sentry/utils/events';
 
@@ -78,5 +77,5 @@ const RemainingLabels = styled('div')`
 export const Divider = styled('div')`
   color: ${p => p.theme.gray200};
   display: inline-block;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;

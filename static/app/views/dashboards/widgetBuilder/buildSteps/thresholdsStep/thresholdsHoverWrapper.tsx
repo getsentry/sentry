@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import theme from 'sentry/utils/theme';
 
@@ -70,12 +69,12 @@ const StyledHoverCard = styled(Hovercard)`
 const BodyWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Row = styled('span')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;
 
@@ -85,7 +84,7 @@ const ContextTitle = styled('h6')`
 `;
 
 const StyledIndicator = styled(CircleIndicator)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default ThresholdsHoverWrapper;

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 
@@ -94,7 +93,7 @@ const ToolbarPanel = styled('div')`
 
 const IconContainer = styled('div')`
   display: flex;
-  margin: ${space(1)};
+  margin: ${p => p.theme.space(1)};
   touch-action: none;
 `;
 
@@ -105,7 +104,7 @@ const GrabbableButton = styled(Button)`
 export const WidgetTitleRow = styled('span')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`

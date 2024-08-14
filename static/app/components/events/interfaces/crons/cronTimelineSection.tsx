@@ -9,7 +9,6 @@ import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -164,11 +163,11 @@ const EventLineTick = styled('div')<{left: number}>`
 
 const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   position: absolute;
-  bottom: ${space(1)};
+  bottom: ${p => p.theme.space(1)};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));
   transform: translateX(-50%);
 `;

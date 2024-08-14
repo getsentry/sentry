@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -58,7 +57,7 @@ const NoMarginPanel = styled(Panel)`
 `;
 
 const Container = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   position: relative;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -91,11 +90,11 @@ const IlloBox = styled(StyledBox)`
   min-height: 100px;
   max-width: 300px;
   min-width: 150px;
-  margin: ${space(2)} auto;
+  margin: ${p => p.theme.space(2)} auto;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 1;
-    margin: ${space(3)};
+    margin: ${p => p.theme.space(3)};
     max-width: auto;
   }
 `;

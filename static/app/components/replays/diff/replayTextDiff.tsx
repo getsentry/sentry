@@ -6,7 +6,6 @@ import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
@@ -76,6 +75,6 @@ const DiffHeader = styled('div')`
   }
 
   div:last-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
   }
 `;

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Tag from 'sentry/components/badge/tag';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricAggregation, MetricMeta, ParsedMRI} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
@@ -176,7 +175,7 @@ export default MriField;
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: 1fr 1fr;
 `;
 

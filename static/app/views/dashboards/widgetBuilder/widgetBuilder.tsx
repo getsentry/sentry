@@ -19,7 +19,6 @@ import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -1346,11 +1345,11 @@ function WidgetBuilder({
 export default withPageFilters(withTags(WidgetBuilder));
 
 const TitleInput = styled(TextField)`
-  padding: 0 ${space(2)} 0 0;
+  padding: 0 ${p => p.theme.space(2)} 0 0;
 `;
 
 const BuildSteps = styled(List)`
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
   max-width: 100%;
 `;
 
@@ -1379,21 +1378,21 @@ const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
 
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(4)};
+    padding: ${p => p.theme.space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${p => p.theme.space(4)})) {
     ${ListItem} {
-      width: calc(100% - ${space(4)});
+      width: calc(100% - ${p => p.theme.space(4)});
     }
   }
 `;
 
 const Side = styled(Layout.Side)`
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-top: 1px solid ${p => p.theme.gray200};
@@ -1406,7 +1405,7 @@ const Side = styled(Layout.Side)`
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
-    padding-right: ${space(4)};
+    padding-right: ${p => p.theme.space(4)};
     max-width: 400px;
   }
 `;
@@ -1422,11 +1421,11 @@ const MainWrapper = styled('div')`
 
 const NameWidgetStep = styled(BuildStep)`
   ${FieldWrapper} {
-    padding: 0 ${space(2)} 0 0;
+    padding: 0 ${p => p.theme.space(2)} 0 0;
     border-bottom: none;
   }
 `;
 
 const StyledTextAreaField = styled(TextareaField)`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;

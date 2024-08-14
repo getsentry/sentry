@@ -8,7 +8,6 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -89,7 +88,7 @@ export function StaticReplayPreview({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   background: ${p => p.theme.background};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;
 

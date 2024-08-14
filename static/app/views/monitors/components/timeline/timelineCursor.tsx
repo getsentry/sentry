@@ -4,7 +4,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
@@ -150,7 +149,7 @@ Cursor.defaultProps = {
 const CursorLabel = styled(Overlay)`
   font-variant-numeric: tabular-nums;
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;

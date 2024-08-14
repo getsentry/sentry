@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type Props = {
@@ -197,7 +196,7 @@ const COLORS = [
 ];
 
 const TagSummary = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SegmentBar = styled('div')`
@@ -210,7 +209,7 @@ const Title = styled('div')`
   display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
   justify-content: space-between;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
   line-height: 1.1;
 `;
 
@@ -234,7 +233,7 @@ const Label = styled('div')`
 const Percent = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.textColor};
 `;
 

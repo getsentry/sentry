@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -330,5 +329,5 @@ const AddToProjectButton = styled(Button)`
 `;
 
 const ValueWrapper = styled('a')`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;

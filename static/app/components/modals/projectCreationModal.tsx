@@ -21,7 +21,6 @@ import PlatformPicker, {
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -221,8 +220,8 @@ const Footer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: right;
-  gap: ${space(1)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
@@ -247,12 +246,12 @@ export const modalCss = css`
 const ProjectNameTeamSection = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TeamInput = styled(TeamSelector)`
@@ -260,7 +259,7 @@ const TeamInput = styled(TeamSelector)`
 `;
 
 const Subtitle = styled('p')`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

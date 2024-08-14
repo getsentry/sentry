@@ -27,7 +27,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
@@ -295,7 +294,7 @@ const docs: Docs = {
 export default docs;
 
 const DSNText = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const ManualSetupTitle = styled('p')`
@@ -306,5 +305,5 @@ const ManualSetupTitle = styled('p')`
 const AdditionalInfoWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;

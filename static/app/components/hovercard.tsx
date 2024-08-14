@@ -6,7 +6,6 @@ import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
@@ -159,7 +158,7 @@ const StyledHovercard = styled(Overlay)`
   h6 {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeExtraSmall};
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
     text-transform: uppercase;
   }
 `;
@@ -171,32 +170,32 @@ const Header = styled('div')`
   border-radius: 8px 8px 0 0;
   font-weight: ${p => p.theme.fontWeightBold};
   word-wrap: break-word;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const Body = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   min-height: 30px;
 `;
 
 const Divider = styled('div')`
   position: relative;
-  margin-top: ${space(1.5)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space(1.5)};
+  margin-bottom: ${p => p.theme.space(1)};
   &:before {
     display: block;
     position: absolute;
     content: '';
     height: 1px;
     top: 50%;
-    left: ${space(2)};
-    right: ${space(2)};
+    left: ${p => p.theme.space(2)};
+    right: ${p => p.theme.space(2)};
     background: ${p => p.theme.innerBorder};
     z-index: -1;
   }
   h6 {
     display: inline;
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space(1)};
     background: ${p => p.theme.background};
   }
 `;

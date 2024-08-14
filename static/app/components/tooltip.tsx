@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
@@ -85,7 +84,7 @@ function Tooltip({
 }
 
 const TooltipContent = styled(Overlay)`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   overflow-wrap: break-word;
   max-width: 225px;
   color: ${p => p.theme.textColor};

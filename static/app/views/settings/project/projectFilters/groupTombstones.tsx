@@ -16,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -169,7 +168,7 @@ const StyledBox = styled('div')`
 `;
 
 const AvatarContainer = styled('div')`
-  margin: 0 ${space(3)};
+  margin: 0 ${p => p.theme.space(3)};
   flex-shrink: 1;
   align-items: center;
 `;

@@ -1,8 +1,6 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   text?: string | number | null;
   type?: keyof Theme['badge'];
@@ -17,7 +15,7 @@ const Badge = styled(({children, text, ...props}: Props) => (
   line-height: 20px;
   border-radius: 20px;
   padding: 0 5px;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   font-size: 75%;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   command: string;
@@ -14,11 +13,11 @@ function Terminal({command}: Props) {
 export default Terminal;
 
 const StyledCodeSnippet = styled(CodeSnippet)`
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
   &:before {
     content: '\u0024';
     position: absolute;
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space(1)};
     color: var(--prism-comment);
     font-size: ${p => p.theme.codeFontSize};
   }

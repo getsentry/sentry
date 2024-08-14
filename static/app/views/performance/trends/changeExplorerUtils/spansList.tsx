@@ -542,7 +542,7 @@ export function NumberedSpansList(props: NumberedSpansListProps) {
 }
 
 export const ListLink = styled(Link)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis}
 `;
 export const ListItemWrapper = styled('div')`
@@ -552,8 +552,8 @@ export const ListItemWrapper = styled('div')`
 
 export const ErrorWrapper = styled('div')`
   display: flex;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
   flex-direction: column;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;

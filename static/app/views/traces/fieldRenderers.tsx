@@ -14,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
@@ -141,7 +140,7 @@ const CollapsedProjects = styled('div')`
   width: 200px;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const AvatarStyle = p => css`
@@ -376,8 +375,8 @@ const FlexContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const BreakdownSlice = styled('div')<{
@@ -600,5 +599,5 @@ export const Description = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

@@ -37,7 +37,7 @@ export function TextCondition({
     return (
       // This text does not translate well and should match the alert builder
       <Fragment>
-        {subject} more than {condition.value} in {condition.interval}
+        {subject}more than {condition.value} in {condition.interval}
       </Fragment>
     );
   }

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 
 type Props = {
@@ -68,8 +67,8 @@ export default Headers;
 
 const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 160px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
+  margin-right: ${p => p.theme.space(2)};
 
   /* prettier-ignore */
   @media (max-width: ${p =>
@@ -88,7 +87,7 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
 
 const GraphToggle = styled('a')<{active: boolean}>`
   font-size: 13px;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
 
   &,
   &:hover,
@@ -104,7 +103,7 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   justify-content: flex-end;
   text-align: right;
   width: 60px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
@@ -115,7 +114,7 @@ const PriorityLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 70px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
 
   /* prettier-ignore */
   @media (max-width: ${p =>
@@ -128,8 +127,8 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
   width: 60px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
+  margin-right: ${p => p.theme.space(2)};
 
   /* prettier-ignore */
   @media (max-width: ${p =>
@@ -140,7 +139,7 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
 
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
 
@@ -150,7 +149,7 @@ const StartedColumn = styled(ToolbarHeader)`
 `;
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
 
@@ -160,7 +159,7 @@ const EventsReprocessedColumn = styled(ToolbarHeader)`
 `;
 
 const ProgressColumn = styled(ToolbarHeader)`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
 
   display: none;
 

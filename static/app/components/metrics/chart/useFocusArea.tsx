@@ -22,7 +22,6 @@ import type {ValueRect} from 'sentry/components/metrics/chart/utils';
 import {getValueRect} from 'sentry/components/metrics/chart/utils';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -373,8 +372,8 @@ const FocusAreaRectActions = styled('div')<{
   top: calc(${p => p.top} + ${p => p.rectHeight});
   left: ${p => p.left};
   display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   z-index: 2;
   pointer-events: auto;
 `;
@@ -400,7 +399,7 @@ const FocusAreaRect = styled('div')<{
   width: ${p => p.width};
   height: ${p => p.height};
 
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   pointer-events: none;
   z-index: 1;
 

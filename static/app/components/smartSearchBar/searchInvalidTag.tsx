@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   message: React.ReactNode;
@@ -38,7 +37,7 @@ const Invalid = styled(`span`)`
     padding: 0;
   }
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   width: 100%;
 `;
 

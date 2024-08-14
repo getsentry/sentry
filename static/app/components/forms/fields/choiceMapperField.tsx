@@ -11,7 +11,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
@@ -266,7 +265,7 @@ const Header = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   flex: 1 0 0;
   align-items: center;
   justify-content: space-between;
@@ -274,13 +273,13 @@ const Heading = styled('div')`
 
 const Row = styled('div')`
   display: flex;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const Column = styled('div')`
   display: flex;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   align-items: center;
   flex: 1 0 0;
 `;
@@ -300,5 +299,5 @@ const HeadingItem = styled('div')`
 `;
 
 const Actions = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;

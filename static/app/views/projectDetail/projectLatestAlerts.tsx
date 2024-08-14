@@ -12,7 +12,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Incident} from 'sentry/views/alerts/types';
@@ -188,15 +187,15 @@ const AlertRowLink = styled(Link)`
   display: flex;
   align-items: center;
   height: 40px;
-  margin-bottom: ${space(3)};
-  margin-left: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(3)};
+  margin-left: ${p => p.theme.space(0.5)};
   &,
   &:hover,
   &:focus {
     color: inherit;
   }
   &:first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 
@@ -219,7 +218,7 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space(1.5)};
   ${p => p.theme.overflowEllipsis}
   line-height: 1.35;
 `;

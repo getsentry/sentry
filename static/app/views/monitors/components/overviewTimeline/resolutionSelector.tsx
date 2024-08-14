@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
 import type {TimeWindow} from '../timeline/types';
@@ -42,5 +41,5 @@ export function ResolutionSelector({className}: Props) {
 
 const ListFilters = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

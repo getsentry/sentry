@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -284,17 +283,17 @@ const getFileNameFromDescription = (description: string) => {
 const ImageWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, ${imageWidth});
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
   gap: 30px;
 `;
 
 const ButtonContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: center;
   align-items: center;
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 `;
 
 const ChartPanelTextContainer = styled('div')`

@@ -19,7 +19,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
@@ -732,8 +731,8 @@ function getTransactionsListSort(location: Location): {
 const ReleaseDetailsPageFilters = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) 1fr;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;

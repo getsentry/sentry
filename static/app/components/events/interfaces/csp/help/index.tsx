@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import effectiveDirectives from './effectiveDirectives';
 
@@ -64,7 +63,7 @@ const StyledP = styled('p')`
   text-align: right;
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

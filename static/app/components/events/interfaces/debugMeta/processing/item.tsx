@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   icon: React.ReactElement;
@@ -37,7 +36,7 @@ export default Item;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space(0.5)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;

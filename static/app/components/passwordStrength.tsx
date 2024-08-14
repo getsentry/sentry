@@ -6,7 +6,6 @@ import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 
 /**
@@ -89,7 +88,7 @@ const StrengthProgressBar = styled('div')`
 
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
   color: ${theme.gray400};
 `;
 

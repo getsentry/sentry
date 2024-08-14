@@ -2,7 +2,6 @@ import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -256,5 +255,5 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   };
 }
 export const SidebarSpacer = styled('div')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;

@@ -8,7 +8,6 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -144,7 +143,7 @@ const truncateStyles = css`
 `;
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
@@ -178,7 +177,7 @@ function Location(props) {
 
 const StyledEventMessage = styled(EventMessage)`
   margin: 0 0 5px;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const IconWrapper = styled('span')`

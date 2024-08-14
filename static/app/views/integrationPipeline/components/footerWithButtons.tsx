@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import type {ButtonProps} from 'sentry/components/button';
 import {Button, LinkButton} from 'sentry/components/button';
-import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps {
   buttonText: string;
@@ -58,5 +57,5 @@ const Footer = styled('form')`
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
   border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;

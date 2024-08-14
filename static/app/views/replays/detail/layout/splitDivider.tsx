@@ -2,7 +2,6 @@ import type {DOMAttributes, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   'data-is-held': boolean;
@@ -35,7 +34,7 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${space(2)};
+    width: ${p => p.theme.space(2)};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;

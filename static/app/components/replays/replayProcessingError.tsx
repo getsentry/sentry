@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {useReplayContext} from './replayContext';
 
@@ -75,5 +74,5 @@ const StyledAlert = styled(Alert)`
 const Heading = styled('h1')`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.4;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

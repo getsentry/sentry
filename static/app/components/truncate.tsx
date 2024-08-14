@@ -1,8 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface TruncateProps {
   value: string;
   className?: string;
@@ -99,10 +97,10 @@ export const FullValue = styled('span')<{
   display: none;
   position: absolute;
   background: ${p => p.theme.background};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   border: 1px solid ${p => p.theme.innerBorder};
   white-space: nowrap;
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space(0.5)};
   top: -5px;
   ${p => p.expandDirection === 'left' && 'right: -5px;'}
   ${p => p.expandDirection === 'right' && 'left: -5px;'}

@@ -11,7 +11,6 @@ import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNew
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
@@ -96,9 +95,10 @@ const HeaderPanel = styled('div')`
 `;
 
 const HeaderPanelItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)} ${space(1)} 18px;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(1)}
+    18px;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
@@ -108,5 +108,5 @@ const RefreshContainer = styled('div')`
   align-items: center;
   justify-content: center;
   flex-grow: 1;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 `;

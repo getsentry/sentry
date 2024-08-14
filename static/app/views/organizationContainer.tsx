@@ -7,7 +7,6 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 
 import {useEnsureOrganization} from './organizationContext';
 
@@ -67,7 +66,7 @@ function OrganizationContainer({children}: Props) {
 }
 
 const ErrorWrapper = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;
 
 export default OrganizationContainer;

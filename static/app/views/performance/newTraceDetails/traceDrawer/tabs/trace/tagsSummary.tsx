@@ -9,7 +9,6 @@ import {TagFacetsList} from 'sentry/components/group/tagFacets';
 import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -63,13 +62,13 @@ function TagsSummaryPlaceholder() {
 const StyledPlaceholder = styled(Placeholder)`
   border-radius: ${p => p.theme.borderRadius};
   height: 16px;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const StyledPlaceholderTitle = styled(Placeholder)`
   width: 100px;
   height: 12px;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 type TagProps = {

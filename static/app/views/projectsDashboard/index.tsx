@@ -21,7 +21,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
@@ -224,10 +223,10 @@ function OrganizationDashboard(props: Props) {
 
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   justify-content: flex-end;
   align-items: flex-end;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
@@ -242,13 +241,13 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 
 const ProjectCards = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   grid-template-columns: repeat(auto-fill, minmax(1fr, 400px));
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

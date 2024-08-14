@@ -7,7 +7,6 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -91,7 +90,7 @@ const ParticipantListWrapper = styled('div')`
 const ListTitle = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
   text-transform: uppercase;
@@ -102,8 +101,8 @@ const ListTitle = styled('div')`
 const UserRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
+  gap: ${p => p.theme.space(1)};
   line-height: 1.2;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -115,5 +114,5 @@ const SubText = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space(0.75)};
 `;

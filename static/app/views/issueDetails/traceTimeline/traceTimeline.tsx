@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -84,12 +83,12 @@ const TimelineWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
-  gap: ${space(2)};
-  margin-top: ${space(0.25)};
+  gap: ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const QuestionTooltipWrapper = styled('div')`
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 /**

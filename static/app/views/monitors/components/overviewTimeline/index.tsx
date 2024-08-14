@@ -8,7 +8,6 @@ import {
 } from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -225,12 +224,12 @@ const HeaderControlsLeft = styled('div')`
   grid-column: 1/3;
   display: flex;
   justify-content: space-between;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;

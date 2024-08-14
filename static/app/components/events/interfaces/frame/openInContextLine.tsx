@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
@@ -64,7 +63,7 @@ const fadeIn = keyframes`
 
 const OpenInContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   z-index: 1;
   font-family: ${p => p.theme.text.family};
@@ -76,7 +75,7 @@ const OpenInContainer = styled('div')`
 
 const OpenInLink = styled(ExternalLink)`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
   color: ${p => p.theme.gray300};
 `;

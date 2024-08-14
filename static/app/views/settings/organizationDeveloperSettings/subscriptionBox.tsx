@@ -4,7 +4,6 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Checkbox from 'sentry/components/checkbox';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
@@ -91,8 +90,8 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   opacity: ${p => (p.disabled ? 0.3 : 1)};
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(1.5)};
-  padding: ${space(1.5)};
+  margin: ${p => p.theme.space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   box-sizing: border-box;
 `;
 
@@ -113,5 +112,5 @@ const SubscriptionTitle = styled('div')`
   line-height: 1;
   color: ${p => p.theme.textColor};
   white-space: nowrap;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;

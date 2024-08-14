@@ -7,7 +7,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function NewTokenHandler({
   token,
@@ -60,7 +59,7 @@ const ButtonWrapper = styled('div')`
   flex-direction: column;
   align-items: flex-end;
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default NewTokenHandler;

@@ -22,7 +22,6 @@ import {
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -154,7 +153,7 @@ export function OnboardingLayout({
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
@@ -162,7 +161,7 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   width: 100%;
   background: ${p => p.theme.border};
   border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
+  ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space(3)}`}
 `;
 
 const Steps = styled('div')`

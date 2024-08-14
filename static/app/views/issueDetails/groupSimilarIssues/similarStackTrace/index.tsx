@@ -13,7 +13,6 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -246,11 +245,11 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   small {
     color: ${p => p.theme.subText};

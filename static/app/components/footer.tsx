@@ -8,7 +8,6 @@ import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -77,7 +76,7 @@ const LeftLinks = styled('div')`
   grid-auto-columns: max-content;
   align-items: center;
   justify-self: flex-start;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const RightLinks = styled('div')`
@@ -86,7 +85,7 @@ const RightLinks = styled('div')`
   grid-auto-columns: max-content;
   align-items: center;
   justify-self: flex-end;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const FooterLink = styled(ExternalLink)`
@@ -108,7 +107,7 @@ const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const Footer = styled(BaseFooter)`
@@ -118,11 +117,11 @@ const Footer = styled(BaseFooter)`
   font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.border};
   align-content: center;
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space(2)};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

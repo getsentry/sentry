@@ -5,7 +5,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Meta} from 'sentry/types/group';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
@@ -66,11 +65,11 @@ const StyledTooltip = styled(Tooltip)`
 
 const InlinePre = styled('pre')`
   margin: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   display: inline-grid;
   line-height: 1rem;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   text-align: left;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

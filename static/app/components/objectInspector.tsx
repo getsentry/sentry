@@ -11,7 +11,6 @@ import {
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 
 type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   onCopy?: (copiedCode: string) => void;
@@ -73,7 +72,7 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
 }
 
 const InspectorWrapper = styled('div')`
-  margin-right: ${space(4)};
+  margin-right: ${p => p.theme.space(4)};
 `;
 
 const Wrapper = styled('div')`
@@ -83,13 +82,13 @@ const Wrapper = styled('div')`
   We need some minimum vertical height so the copy button has room.
   But don't try to use min-height because then whitespace would be inconsistent.
   */
-  padding-bottom: ${space(1.5)};
+  padding-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
   top: 0;
-  right: ${space(0.5)};
+  right: ${p => p.theme.space(0.5)};
 `;
 
 export type OnExpandCallback = (

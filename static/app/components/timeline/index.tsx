@@ -3,7 +3,6 @@ import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
@@ -66,7 +65,7 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
-  grid-row-gap: ${space(0.5)};
+  grid-row-gap: ${p => p.theme.space(0.5)};
 
   &:last-child {
     /* Show/hide connecting line from the last element of the timeline */
@@ -82,7 +81,7 @@ const IconWrapper = styled('div')`
   z-index: 10;
   svg {
     display: block;
-    margin: ${space(0.5)};
+    margin: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -104,7 +103,7 @@ const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.subText};
-  margin: ${space(0.25)} 0 0;
+  margin: ${p => p.theme.space(0.25)} 0 0;
   font-size: ${p => p.theme.fontSizeSmall};
   word-wrap: break-word;
 `;
@@ -118,10 +117,10 @@ export const Text = styled('div')`
 `;
 
 export const Data = styled('div')`
-  border-radius: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   border: 1px solid ${p => p.theme.translucentInnerBorder};
-  margin: ${space(0.75)} 0 0 -${space(0.75)};
+  margin: ${p => p.theme.space(0.75)} 0 0 -${p => p.theme.space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   background: ${p => p.theme.backgroundSecondary};
@@ -135,8 +134,8 @@ export const Container = styled('div')`
   position: relative;
   display: grid;
   grid-template: auto auto / 22px 1fr auto;
-  grid-row-gap: ${space(1)};
-  grid-column-gap: ${space(1)};
+  grid-row-gap: ${p => p.theme.space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   /* vertical line connecting items */
   &::before {
     content: '';

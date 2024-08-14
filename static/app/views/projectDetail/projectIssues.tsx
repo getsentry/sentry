@@ -18,7 +18,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -297,12 +296,12 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;

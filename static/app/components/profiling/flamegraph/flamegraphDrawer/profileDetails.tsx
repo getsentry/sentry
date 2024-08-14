@@ -10,7 +10,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -523,7 +522,7 @@ const FlexRow = styled('span')`
   align-items: center;
 
   > div {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -543,12 +542,12 @@ const DetailsRow = styled('div')`
   }
 
   > strong {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;
 
 const DetailsContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   margin: 0;
   overflow: auto;
   position: absolute;

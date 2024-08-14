@@ -4,7 +4,6 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 
 import type {CommonSidebarProps} from './types';
 
@@ -32,8 +31,9 @@ export const TaskSidebarList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(4)} ${p => p.theme.space(4)}
+    ${p => p.theme.space(4)};
 `;
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;
@@ -68,5 +68,5 @@ export const EventIndicator = styled(
 
 export const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;

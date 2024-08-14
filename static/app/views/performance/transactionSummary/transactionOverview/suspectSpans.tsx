@@ -7,7 +7,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -125,10 +124,10 @@ function SuspectSpansHeader(props: HeaderProps) {
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space(1)};
 `;

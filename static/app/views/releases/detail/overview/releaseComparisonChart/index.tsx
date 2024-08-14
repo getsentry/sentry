@@ -16,7 +16,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type Organization,
   type SessionApiResponse,
@@ -1062,7 +1061,7 @@ const ShowMoreWrapper = styled('div')`
     cursor: pointer;
   }
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 `;
 
@@ -1075,7 +1074,7 @@ const ShowMoreTitle = styled('div')`
   align-items: center;
   justify-content: flex-start;
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space(0.25)};
   }
 `;
 

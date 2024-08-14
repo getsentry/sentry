@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {QueryField as TableQueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -88,6 +87,6 @@ const QueryFieldWrapper = styled('div')`
   width: 100%;
 
   > * + * {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;

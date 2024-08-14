@@ -8,7 +8,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   ImageCandidate,
   ImageCandidateInternalOk,
@@ -257,7 +256,7 @@ const Wrapper = styled('div')`
 `;
 
 const FilenameOrLocation = styled('span')`
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -265,7 +264,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -274,12 +273,12 @@ const TimeSinceWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   font-variant-numeric: tabular-nums;
 `;
 
 const DateTimeWrapper = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -287,5 +286,5 @@ const StyledProcessingList = styled(ProcessingList)`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

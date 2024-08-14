@@ -36,7 +36,6 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -576,14 +575,14 @@ const StyledPreviewAvatar = styled(Avatar)`
 const AvatarPreviewTitle = styled('span')`
   display: block;
   grid-area: 1 / 2 / 2 / 3;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const AvatarPreviewText = styled('span')`
   display: block;
   grid-area: 2 / 2 / 3 / 3;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space(2)};
 `;
 
 const HiddenSecret = styled('span')`
