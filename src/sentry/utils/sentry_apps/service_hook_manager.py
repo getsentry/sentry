@@ -22,6 +22,7 @@ def create_or_update_service_hooks_for_installation(
         # possible we redundantly create service hooks in the face of two concurrent requests.
         # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
         # But I think, it should be fine.
+        print("calling create service hook")
         hook_service.create_service_hook(
             application_id=installation.sentry_app.application_id,
             actor_id=installation.id,
@@ -31,3 +32,4 @@ def create_or_update_service_hooks_for_installation(
             events=events,
             url=webhook_url,
         )
+        print("service hook created")

@@ -416,8 +416,10 @@ def send_webhooks(installation, event, **kwargs):
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
+    print("create_or_update_service_hooks_for_sentry_app")
     installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
     for installation in installations:
+        print("installation", installation)
         create_or_update_service_hooks_for_installation(
             installation=installation,
             events=events,
