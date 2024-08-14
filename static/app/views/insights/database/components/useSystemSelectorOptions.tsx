@@ -31,7 +31,7 @@ const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
 };
 
 export function useSystemSelectorOptions() {
-  const [selectedSystem, _setSelectedSystem] = useLocalStorageState<string>(
+  const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
     'insights-db-system-selector',
     ''
   );
@@ -59,18 +59,13 @@ export function useSystemSelectorOptions() {
 
   // Edge case: Invalid DB system was retrieved from localStorage
   if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
-    _setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0].value);
   }
 
   // Edge case: No current system is saved in localStorage
   if (!selectedSystem && options.length > 0) {
-    _setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0].value);
   }
-
-  // Wrap the setState call so the URL query param can be updated as well
-  const setSelectedSystem = (system: string) => {
-    _setSelectedSystem(system);
-  };
 
   return {selectedSystem, setSelectedSystem, options, isLoading, isError};
 }
