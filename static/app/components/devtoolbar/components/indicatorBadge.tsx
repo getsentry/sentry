@@ -1,4 +1,3 @@
-import type React from 'react';
 import {css} from '@emotion/react';
 
 import {smallCss} from '../styles/typography';
