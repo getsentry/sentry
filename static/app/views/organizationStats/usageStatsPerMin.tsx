@@ -11,6 +11,7 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
+  dataCategoryApiName: DataCategoryInfo['apiName'];
   organization: Organization;
   projectIds: number[];
 };
@@ -25,7 +26,12 @@ type Props = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
+function UsageStatsPerMin({
+  organization,
+  projectIds,
+  dataCategory,
+  dataCategoryApiName,
+}: Props) {
   const {
     data: orgStats,
     isLoading,
@@ -52,6 +58,9 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     return null;
   }
 
+  const category =
+    dataCategoryApiName === 'span_indexed' ? dataCategoryApiName : dataCategory;
+
   const minuteData = (): string | undefined => {
     // The last minute in the series is still "in progress"
     // Read data from 2nd last element for the latest complete minute
@@ -59,10 +68,11 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     const lastMin = Math.max(intervals.length - 2, 0);
 
     const eventsLastMin = groups.reduce((count, group) => {
-      const {outcome, category} = group.by;
-
       // HACK: The backend enum are singular, but the frontend enums are plural
-      if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
+      if (
+        !category.includes(`${group.by.category}`) ||
+        group.by.outcome !== Outcome.ACCEPTED
+      ) {
         return count;
       }
 
