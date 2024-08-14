@@ -31,7 +31,7 @@ const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
 };
 
 export function useSystemSelectorOptions() {
-  const [selectedOption, setSelectedOption] = useLocalStorageState<string>(
+  const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
     'insights-db-system-selector',
     ''
   );
@@ -57,9 +57,9 @@ export function useSystemSelectorOptions() {
     }
   });
 
-  if (!selectedOption && options.length > 0) {
-    setSelectedOption(options[0].value);
+  if (!selectedSystem && options.length > 0) {
+    setSelectedSystem(options[0].value);
   }
 
-  return {selectedOption, setSelectedOption, options, isLoading, isError};
+  return {selectedSystem, setSelectedSystem, options, isLoading, isError};
 }
