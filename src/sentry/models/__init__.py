@@ -1,6 +1,8 @@
 from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
+from sentry.users.models.lostpasswordhash import *  # NOQA
 from sentry.users.models.user import *  # NOQA
+from sentry.users.models.useremail import *  # NOQA
 from sentry.users.models.userrole import *  # NOQA
 
 from .activity import *  # NOQA
@@ -46,6 +48,7 @@ from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
 from .grouphash import *  # NOQA
+from .grouphashmetadata import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
@@ -65,7 +68,6 @@ from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .lostpasswordhash import *  # NOQA
 from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
@@ -120,7 +122,6 @@ from .team import *  # NOQA
 from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
-from .useremail import *  # NOQA
 from .userip import *  # NOQA
 from .userpermission import *  # NOQA
 from .userreport import *  # NOQA
