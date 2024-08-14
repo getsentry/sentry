@@ -188,7 +188,6 @@ def top_events_timeseries(
         top_events = query(
             selected_columns,
             query=user_query,
-            params={},
             snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,

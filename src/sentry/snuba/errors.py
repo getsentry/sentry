@@ -241,7 +241,6 @@ def top_events_timeseries(
             top_events = query(
                 selected_columns,
                 query=user_query,
-                params={},
                 equations=equations,
                 orderby=orderby,
                 limit=limit,

@@ -47,7 +47,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
                     count_null,
                     count_has_txn,
                 ],
-                params={},
                 snuba_params=snuba_params,
                 query=f"{count_null}:0 AND {count_has_txn}:>0",
                 referrer="api.organization-events-metrics-compatibility.compatible",
@@ -94,7 +93,6 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
         with handle_query_errors():
             sum_metrics = metrics_performance.query(
                 selected_columns=[COUNT_UNPARAM, COUNT_NULL, "count()"],
-                params={},
                 snuba_params=snuba_params,
                 query="",
                 referrer="api.organization-events-metrics-compatibility.sum_metrics",

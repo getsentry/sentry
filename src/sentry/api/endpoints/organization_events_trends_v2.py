@@ -146,7 +146,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params={},
                 snuba_params=pruned_snuba_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
