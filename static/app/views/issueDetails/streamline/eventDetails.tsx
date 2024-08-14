@@ -11,11 +11,11 @@ import {
   EventDetailsContent,
   type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
+import {EventDetailsContext} from 'sentry/views/issueDetails/streamline/context';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
-import {EventDetailsContext} from 'sentry/views/issueDetails/streamline/context';
-import {useEventDetailsState} from 'sentry/views/issueDetails/streamline/useEventDetailsState';
+import {useEventDetailsReducer} from 'sentry/views/issueDetails/streamline/useEventDetailsReducer';
 
 export function EventDetails({
   group,
@@ -25,7 +25,7 @@ export function EventDetails({
   const navRef = useRef<HTMLDivElement>(null);
   const {selection} = usePageFilters();
   const {environments} = selection;
-  const {state, dispatch} = useEventDetailsState();
+  const {state, dispatch} = useEventDetailsReducer();
 
   return (
     <EventDetailsContext.Provider value={{...state, dispatch}}>
@@ -75,7 +75,7 @@ const GroupContent = styled('div')<{navHeight?: number}>`
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
   & ${Section} {
-    scroll-margin-top: ${p => p.navHeight ?? 0}px;
+    scroll-margin-top: calc(${space(1)} + ${p => p.navHeight ?? 0}px);
   }
 `;
 

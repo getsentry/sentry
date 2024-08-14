@@ -1,30 +1,11 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
-import type {
-  FieldDefinitionGetter,
-  FocusOverride,
-} from 'sentry/components/searchQueryBuilder/types';
-import {
-  isDateToken,
-  makeTokenKey,
-  parseQueryBuilderValue,
-} from 'sentry/components/searchQueryBuilder/utils';
-import {
-  FilterType,
-  type ParseResultToken,
-  TermOperator,
-  Token,
-  type TokenResult,
-} from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {
   SectionConfig,
   SectionKey,
 } from 'sentry/views/issueDetails/streamline/context';
 
-interface EventDetailsState {
+export interface EventDetailsState {
   searchQuery: string;
   sectionData: {
     [key in SectionKey]?: SectionConfig;
@@ -53,7 +34,7 @@ function updateSectionConfig(
       ...state.sectionData,
     },
   };
-  const existingConfig = state.sectionData[sectionKey] ?? {key: sectionKey};
+  const existingConfig = nextState.sectionData[sectionKey] ?? {key: sectionKey};
   nextState.sectionData[sectionKey] = {...existingConfig, ...updatedConfig};
   return nextState;
 }
@@ -68,7 +49,11 @@ export type EventDetailsActions =
   | UpdateSectionConfigAction
   | UpdateSearchQueryAction;
 
-export function useEventDetailsState() {
+/**
+ * If trying to use the current state of the event page, you likely want to use `useEventDetails`
+ * instead. This hook is just meant to create state for the provider.
+ */
+export function useEventDetailsReducer() {
   const initialState: EventDetailsState = {
     searchQuery: '',
     sectionData: {},
@@ -78,10 +63,8 @@ export function useEventDetailsState() {
     (state, action): EventDetailsState => {
       switch (action.type) {
         case 'OPEN_SECTION':
-          console.log(JSON.stringify(action));
           return updateSectionConfig(state, action.key, {isOpen: true});
         case 'UPDATE_SECTION_CONFIG':
-          console.log(JSON.stringify(action));
           return updateSectionConfig(state, action.key, action.config);
         case 'UPDATE_SEARCH_QUERY':
           return {...state, searchQuery: action.searchQuery};

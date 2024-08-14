@@ -1,4 +1,4 @@
-import {type CSSProperties, forwardRef, useCallback, useMemo} from 'react';
+import {type CSSProperties, forwardRef} from 'react';
 import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -26,18 +26,12 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  type SectionConfig,
-  SectionKey,
-  useEventDetails,
-} from 'sentry/views/issueDetails/streamline/context';
-import {useEventDetailsState} from 'sentry/views/issueDetails/streamline/useEventDetailsState';
+import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
@@ -45,12 +39,6 @@ type EventNavigationProps = {
   group: Group;
   className?: string;
   style?: CSSProperties;
-};
-
-type SectionDefinition = {
-  condition: (event: Event) => boolean;
-  label: string;
-  section: SectionKey;
 };
 
 enum EventNavOptions {
@@ -74,54 +62,16 @@ const EventNavOrder = [
   EventNavOptions.CUSTOM,
 ];
 
-// const eventDataSections: SectionDefinition[] = [
-//   {
-//     section: SectionKey.HIGHLIGHTS,
-//     label: t('Event Highlights'),
-//     condition: () => true,
-//   },
-//   {
-//     section: SectionKey.STACKTRACE,
-//     label: t('Stack Trace'),
-//     condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
-//   },
-//   {
-//     section: SectionKey.EXCEPTION,
-//     label: t('Stack Trace'),
-//     condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
-//   },
-//   {
-//     section: SectionKey.BREADCRUMBS,
-//     label: t('Breadcrumbs'),
-//     condition: (event: Event) =>
-//       event.entries.some(entry => entry.type === 'breadcrumbs'),
-//   },
-//   {
-//     section: SectionKey.TAGS,
-//     label: t('Tags'),
-//     condition: (event: Event) => event.tags.length > 0,
-//   },
-//   {
-//     section: SectionKey.CONTEXTS,
-//     label: t('Context'),
-//     condition: (event: Event) => !!event.context,
-//   },
-//   {
-//     section: SectionKey.USER_FEEDBACK,
-//     label: t('User Feedback'),
-//     condition: (event: Event) => !!event.userReport,
-//   },
-//   {
-//     section: SectionKey.REPLAY,
-//     label: t('Replay'),
-//     condition: (event: Event) => !!getReplayIdFromEvent(event),
-//   },
-// ];
-
-function useSectionConfig(): SectionConfig[] {
-  const {sectionData} = useEventDetails();
-  return Object.values(sectionData ?? {});
-}
+const sectionLabels = {
+  [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
+  [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.EXCEPTION]: t('Stack Trace'),
+  [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
+  [SectionKey.TAGS]: t('Tags'),
+  [SectionKey.CONTEXTS]: t('Context'),
+  [SectionKey.USER_FEEDBACK]: t('User Feedback'),
+  [SectionKey.REPLAY]: t('Replay'),
+};
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
   function EventNavigation({event, group, ...props}, ref) {
@@ -130,8 +80,11 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const theme = useTheme();
     const params = useParams<{eventId?: string}>();
     const defaultIssueEvent = useDefaultIssueEvent();
-    const configs = useSectionConfig();
-    const {dispatch} = useEventDetailsState();
+    const {sectionData} = useEventDetails();
+    const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
+      config => sectionLabels[config.key]
+    );
+    const {dispatch} = useEventDetails();
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -160,8 +113,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const hasNextEvent = defined(event.nextEventID);
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
-    const jumpToSections = configs.filter(c => !c.isBlank);
 
     const grayText = css`
       color: ${theme.subText};
@@ -343,20 +294,20 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           <JumpTo>
             <div>{t('Jump to:')}</div>
             <StyledButtonBar>
-              {jumpToSections.map(jump => (
+              {eventSectionConfigs.map(config => (
                 <Button
-                  key={jump.key}
+                  key={config.key}
                   onClick={() => {
                     document
-                      .getElementById(jump.key)
+                      .getElementById(config.key)
                       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                    dispatch({type: 'OPEN_SECTION', key: jump.key});
+                    dispatch({type: 'OPEN_SECTION', key: config.key});
                   }}
                   borderless
                   size="xs"
                   css={grayText}
                 >
-                  {jump.key}
+                  {sectionLabels[config.key]}
                 </Button>
               ))}
             </StyledButtonBar>

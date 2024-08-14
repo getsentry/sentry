@@ -1,6 +1,9 @@
 import {createContext, type Dispatch, useContext} from 'react';
 
-import type {EventDetailsActions} from 'sentry/views/issueDetails/streamline/useEventDetailsState';
+import type {
+  EventDetailsActions,
+  EventDetailsState,
+} from 'sentry/views/issueDetails/streamline/useEventDetailsReducer';
 
 export const enum SectionKey {
   TRACE = 'trace',
@@ -51,27 +54,16 @@ export const enum SectionKey {
 
 export interface SectionConfig {
   key: SectionKey;
-  isBlank?: boolean;
   isOpen?: boolean;
-  onOpen?: () => void;
 }
 
-export interface EventDetailsContextType {
+export interface EventDetailsContextType extends EventDetailsState {
   dispatch: Dispatch<EventDetailsActions>;
-  searchQuery: string;
-  sectionData: {
-    [key in SectionKey]?: SectionConfig;
-  };
-  /**
-   * Merges provided config with existing config at that section key
-   */
-  updateSectionData?: (key: SectionKey, config: Partial<SectionConfig>) => void;
 }
 
 export const EventDetailsContext = createContext<EventDetailsContextType>({
   searchQuery: '',
   sectionData: {},
-  updateSectionData: () => {},
   dispatch: () => {},
 });
 

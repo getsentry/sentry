@@ -6,25 +6,18 @@ import {
   type EventDataSectionProps,
 } from 'sentry/components/events/eventDataSection';
 import {space} from 'sentry/styles/space';
-import type {
-  SectionConfig,
-  SectionKey,
-} from 'sentry/views/issueDetails/streamline/context';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-interface InterimSectionProps extends EventDataSectionProps {
-  isBlank?: SectionConfig['isBlank'];
-}
 
 /**
  * This section is meant to provide a shared component while the streamline UI
  * for issue details is being developed. Once GA'd, all occurances should be replaced
  * with just <FoldSection />
  */
-export const InterimSection = forwardRef<HTMLElement, InterimSectionProps>(
+export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
   function InterimSection(
-    {children, title, type, actions = null, isBlank, ...props}: InterimSectionProps,
+    {children, title, type, actions = null, ...props}: EventDataSectionProps,
     ref
   ) {
     const hasStreamlinedUI = useHasStreamlinedUI();
@@ -32,7 +25,7 @@ export const InterimSection = forwardRef<HTMLElement, InterimSectionProps>(
     return hasStreamlinedUI ? (
       <Fragment>
         <FoldSection
-          config={{key: type as SectionKey, isBlank}}
+          config={{key: type as SectionKey}}
           title={title}
           actions={actions}
           ref={ref}

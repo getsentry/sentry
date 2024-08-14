@@ -9,8 +9,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  useEventDetails,
   type SectionConfig,
+  useEventDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
@@ -52,17 +52,16 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 ) {
   const organization = useOrganization();
   const {sectionData, dispatch} = useEventDetails();
-  const {key: sectionKey, isBlank} = config;
+  const {key: sectionKey} = config;
   // Does not control open/close state. Controls what state is persisted to local storage
   const [isInitiallyCollapsed, setIsInitiallyCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
   );
   const isCollapsed = !sectionData[sectionKey]?.isOpen;
-  // This controls disabling the InteractionStateLayer when hovering over action items. We don't
-  // want selecting an action to appear as though it'll fold/unfold the section.
-  const [isLayerEnabled, setIsLayerEnabled] = useState(true);
 
+  // On initial load we want to reflect the local storage state.
+  // Afterward, it is written to, but ignored.
   useEffect(() => {
     dispatch({
       type: 'UPDATE_SECTION_CONFIG',
@@ -72,7 +71,12 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         isOpen: isInitiallyCollapsed,
       },
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // This controls disabling the InteractionStateLayer when hovering over action items. We don't
+  // want selecting an action to appear as though it'll fold/unfold the section.
+  const [isLayerEnabled, setIsLayerEnabled] = useState(true);
 
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
@@ -89,12 +93,8 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       });
       setIsInitiallyCollapsed(collapsed => !collapsed);
     },
-    [organization, sectionKey, isCollapsed]
+    [organization, sectionKey, isCollapsed, setIsInitiallyCollapsed, dispatch]
   );
-
-  if (isBlank) {
-    return null;
-  }
 
   return (
     <Section {...props} ref={ref} id={sectionKey}>
