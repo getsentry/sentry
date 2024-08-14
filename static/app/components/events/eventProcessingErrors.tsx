@@ -104,7 +104,7 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
     isShare,
   });
 
-  if (!actionableItems || !proguardErrors) {
+  if (!actionableItems || actionableItems.errors.length === 0 || !proguardErrors) {
     return null;
   }
 
