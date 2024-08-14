@@ -38,6 +38,7 @@ import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -53,6 +54,8 @@ export function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
+  const {selectedSystem} = useSystemSelectorOptions();
+  console.dir(selectedSystem);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');

@@ -1,6 +1,10 @@
+import {useEffect} from 'react';
+
 import type {SelectOption} from 'sentry/components/compactSelect';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -30,11 +34,23 @@ const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
   [SupportedDatabaseSystems.MONGODB]: 'MongoDB',
 };
 
+const {SPAN_SYSTEM} = SpanMetricsField;
+
 export function useSystemSelectorOptions() {
   const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
     'insights-db-system-selector',
     ''
   );
+
+  const location = useLocation();
+
+  // sync state with the system set in query params
+  useEffect(() => {
+    const system = decodeScalar(location.query?.[SPAN_SYSTEM]);
+    if (system) {
+      setSelectedSystem(system);
+    }
+  }, [location.query, setSelectedSystem]);
 
   const {data, isLoading, isError} = useSpanMetrics(
     {
