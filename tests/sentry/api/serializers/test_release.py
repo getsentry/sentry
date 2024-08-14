@@ -19,12 +19,12 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):
