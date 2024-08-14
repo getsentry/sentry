@@ -49,7 +49,6 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.interfaces.user import User
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -63,6 +62,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
 )
+from sentry.users.models.user import User
 from sentry.utils.cursors import Cursor, StringCursor
 
 
