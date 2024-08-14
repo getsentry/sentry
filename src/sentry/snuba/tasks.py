@@ -8,6 +8,7 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
@@ -56,7 +57,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # create a new one.
         query_dataset = Dataset(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
-            subscription.snuba_query, subscription.project.organization_id, subscription.project_id
+            subscription.snuba_query, subscription.project.organization, subscription.project
         )
         try:
             _delete_from_snuba(
@@ -126,9 +127,9 @@ def update_subscription_in_snuba(
         old_entity_key = get_entity_key_from_query_builder(
             old_entity_subscription.build_query_builder(
                 query,
-                [subscription.project_id],
+                [subscription.project],
                 None,
-                {"organization_id": subscription.project.organization_id},
+                SnubaParams(organization=subscription.project.organization),
             ),
         )
         _delete_from_snuba(
@@ -175,8 +176,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         query_dataset = Dataset(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query,
-            subscription.project.organization_id,
-            subscription.project_id,
+            subscription.project.organization,
+            subscription.project,
             skip_field_validation_for_entity_subscription_deletion=True,
         )
         _delete_from_snuba(
@@ -218,12 +219,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         query_string = build_query_strings(subscription, snuba_query).query_string
         snql_query = entity_subscription.build_query_builder(
             query=query_string,
-            project_ids=[subscription.project_id],
+            projects=[subscription.project],
             environment=snuba_query.environment,
-            params={
-                "organization_id": subscription.project.organization_id,
-                "project_id": [subscription.project_id],
-            },
+            params=SnubaParams(
+                organization=subscription.project.organization,
+                projects=[subscription.project],
+            ),
         ).get_snql_query()
 
         return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)

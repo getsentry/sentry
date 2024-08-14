@@ -13,7 +13,6 @@ from sentry_relay.processing import validate_rule_condition, validate_sampling_c
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
-from sentry.api.utils import get_date_range_from_params
 from sentry.features.rollout import in_random_rollout
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
@@ -33,7 +32,7 @@ from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
@@ -693,14 +692,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: ParamsType = {
-        "statsPeriod": "30m",
-        "project_objects": [project],
-        "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
-    }
-    start, end = get_date_range_from_params(params)
-    params["start"] = start
-    params["end"] = end
+    params = SnubaParams(
+        stats_period="30m",
+        projects=[project],
+        organization=project.organization,  # Organization id has to be specified to not violate allocation policy.
+    )
 
     metrics.incr("on_demand_metrics.cardinality_check")
 
@@ -732,7 +728,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        snuba_params=params,
         selected_columns=unique_columns,
         config=QueryBuilderConfig(
             transform_alias_to_input_format=True,

@@ -10,6 +10,7 @@ from sentry.search.events.builder.spans_indexed import (
     SPAN_UUID_FIELDS,
     SpansIndexedQueryBuilder,
 )
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -35,15 +36,14 @@ def params(now, today):
     user = Factories.create_user()
     Factories.create_team_membership(team=team, user=user)
 
-    return {
-        "start": now - timedelta(days=7),
-        "end": now - timedelta(seconds=1),
-        "project_id": [project1.id, project2.id],
-        "project_objects": [project1, project2],
-        "organization_id": organization.id,
-        "user_id": user.id,
-        "team_id": [team.id],
-    }
+    return SnubaParams(
+        start=now - timedelta(days=7),
+        end=now - timedelta(seconds=1),
+        projects=[project1, project2],
+        organization=organization,
+        user=user,
+        teams=[team],
+    )
 
 
 span_duration = Function(

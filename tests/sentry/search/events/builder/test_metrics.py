@@ -17,7 +17,7 @@ from sentry.search.events.builder.metrics import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
+from sentry.search.events.types import HistogramParams, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -105,12 +105,12 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
-        self.params: ParamsType = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-        }
+        self.params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+        )
         # These conditions should always be on a query when self.params is passed
         self.default_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
@@ -475,12 +475,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self):
         # Need to pick granularity based on the period
         def get_granularity(start, end):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": self.projects,
-                "start": start,
-                "end": end,
-            }
+            params = SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=start,
+                end=end,
+            )
             query = MetricsQueryBuilder(params)
             return query.granularity.granularity
 
@@ -538,12 +538,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity_boundaries(self):
         # Need to pick granularity based on the period
         def get_granularity(start, end):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": self.projects,
-                "start": start,
-                "end": end,
-            }
+            params = SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=start,
+                end=end,
+            )
             query = MetricsQueryBuilder(params)
             return query.granularity.granularity
 
@@ -831,7 +831,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 project=project.id,
                 timestamp=self.start + datetime.timedelta(minutes=5),
             )
-        self.params["project_id"] = [project_1.id, project_2.id]
+        self.params.projects = [project_1, project_2]
 
         query = MetricsQueryBuilder(
             self.params,
@@ -1714,12 +1714,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # Need to pick granularity based on the period and interval for timeseries
         def get_granularity(start, end, interval):
             query = TimeseriesMetricQueryBuilder(
-                {
-                    "organization_id": self.organization.id,
-                    "project_id": self.projects,
-                    "start": start,
-                    "end": end,
-                },
+                SnubaParams(
+                    organization=self.organization,
+                    projects=[self.project],
+                    start=start,
+                    end=end,
+                ),
                 interval=interval,
             )
             return query.granularity.granularity
@@ -1892,12 +1892,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             hour=15, minute=30, second=0, microsecond=0
         )
         self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
-        self.params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-        }
+        self.params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+        )
 
         for i in range(5):
             self.store_transaction_metric(
@@ -1934,12 +1934,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             hour=0, minute=0, second=0, microsecond=0
         )
         self.end = datetime.datetime.fromtimestamp(self.start.timestamp() + 86400, timezone.utc)
-        self.params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-        }
+        self.params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+        )
 
         for i in range(1, 5):
             self.store_transaction_metric(
@@ -2190,7 +2190,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             field=field, query=query_s, environment="prod", spec_type=MetricSpecType.SIMPLE_QUERY
         )
 
-        self.create_environment(project=self.project, name="prod")
+        prod = self.create_environment(project=self.project, name="prod")
 
         for hour in range(0, 5):
             self.store_transaction_metric(
@@ -2202,8 +2202,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
+        self.params.environments = [prod]
         query = TimeseriesMetricQueryBuilder(
-            {**self.params, "environment": ["prod"]},
+            self.params,
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,
@@ -2653,8 +2654,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         field = "count()"
         groupbys = ["customtag1", "customtag2"]
         query_s = "transaction.duration:>=100"
-        self.create_environment(project=self.project, name="prod")
-        self.create_environment(project=self.project, name="dev")
+        prod = self.create_environment(project=self.project, name="prod")
+        dev = self.create_environment(project=self.project, name="dev")
 
         spec = OnDemandMetricSpec(
             field=field,
@@ -2675,13 +2676,13 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 timestamp=self.start + datetime.timedelta(days=day),
             )
 
-        params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-            "environment": "dev",
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            environments=[dev],
+        )
 
         def create_query_builder(params):
             return TopMetricsQueryBuilder(
@@ -2711,7 +2712,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         empty_result = query_builder.run_query("test_query")
         assert empty_result["data"] == []
 
-        params["environment"] = "prod"
+        params.environments = [prod]
         query_builder = create_query_builder(params)
 
         # Asserting hash remains the same
@@ -2762,8 +2763,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         field = "count()"
         groupbys = ["customtag1", "customtag2"]
         query_s = "transaction.duration:>=100"
-        self.create_environment(project=self.project, name="prod")
-        self.create_environment(project=self.project, name="dev")
+        prod = self.create_environment(project=self.project, name="prod")
+        dev = self.create_environment(project=self.project, name="dev")
 
         spec = OnDemandMetricSpec(
             field=field,
@@ -2785,13 +2786,13 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 timestamp=self.start + datetime.timedelta(days=day),
             )
 
-        params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-            "environment": "dev",
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=self.start,
+            end=self.end,
+            environments=[dev],
+        )
 
         def create_query_builder(params):
             return TopMetricsQueryBuilder(
@@ -2821,7 +2822,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         empty_result = query_builder.run_query("test_query")
         assert empty_result["data"] == []
 
-        params["environment"] = "prod"
+        params.environments = [prod]
         query_builder = create_query_builder(params)
 
         # Asserting hash remains the same
@@ -3031,7 +3032,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self):
         builder = HistogramMetricQueryBuilder(
-            params=self.params,
+            snuba_params=self.params,
             dataset=Dataset.PerformanceMetrics,
             query="",
             selected_columns=[
@@ -3076,7 +3077,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
         query = HistogramMetricQueryBuilder(
-            params=self.params,
+            snuba_params=self.params,
             dataset=Dataset.PerformanceMetrics,
             query="",
             selected_columns=["histogram(transaction.duration)"],
@@ -3109,7 +3110,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
                 )
 
         query = HistogramMetricQueryBuilder(
-            params=self.params,
+            snuba_params=self.params,
             query="",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["histogram(transaction.duration)"],
@@ -3172,7 +3173,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         field = "count(measurements.fp)"
         query_s = "transaction.duration:>=100"
 
-        self.create_environment(project=self.project, name="prod")
+        prod = self.create_environment(project=self.project, name="prod")
+        dev = self.create_environment(project=self.project, name="dev")
 
         # We want to test also with "dev" that is not in the database, to check that we fallback to avoiding the
         # environment filter at all.
@@ -3195,15 +3197,11 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             )
             specs.append(spec)
 
-        expected_environments = ((None, 100), ("prod", 200), ("dev", 100))
-        for (environment, value), spec in zip(expected_environments, specs):
-            params = (
-                self.params
-                if environment is None
-                else {**self.params, "environment": [environment]}
-            )
+        expected_environments = ((None, 100), (prod, 200), (dev, 300))
+        for (environment_obj, value), spec in zip(expected_environments, specs):
+            self.params.environments = [environment_obj] if environment_obj is not None else []
             query = AlertMetricsQueryBuilder(
-                params,
+                self.params,
                 granularity=3600,
                 query=query_s,
                 dataset=Dataset.PerformanceMetrics,
@@ -3219,7 +3217,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 "count(measurements.fp)": OnDemandMetricSpec(
                     field=field,
                     query=query_s,
-                    environment=environment,
+                    environment=environment_obj.name if environment_obj else None,
                     spec_type=MetricSpecType.SIMPLE_QUERY,
                 )
             }
@@ -3322,10 +3320,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
     def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
-        params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+        )
 
         query = AlertMetricsQueryBuilder(
             params,
@@ -3349,10 +3347,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_snql_query_with_on_demand_distribution_and_time_range_not_required_and_not_supplied(
         self,
     ):
-        params = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+        )
         query = AlertMetricsQueryBuilder(
             params,
             granularity=3600,
@@ -3667,9 +3665,10 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             ("count_unique", "uniqIf", "s:custom/user@none", "count_unique_s_custom_user_none"),
         ):
             indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
+            self.params.environments = [self.environment]
 
             query = AlertMetricsQueryBuilder(
-                {**self.params, "environment": self.environment.name},
+                self.params,
                 granularity=3600,
                 query="phone:iPhone",
                 dataset=Dataset.PerformanceMetrics,
