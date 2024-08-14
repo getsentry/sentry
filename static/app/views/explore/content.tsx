@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -12,12 +11,10 @@ import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQu
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {useUserQuery} from './hooks/useUserQuery';
 import {ExploreCharts} from './charts';
 import {ExploreTables} from './tables';
 import {ExploreToolbar} from './toolbar';
@@ -27,25 +24,10 @@ interface ExploreContentProps {
 }
 
 export function ExploreContent({}: ExploreContentProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const query = decodeScalar(location.query.query, '');
-
-  const handleSearch = useCallback(
-    (searchQuery: string) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          query: searchQuery,
-        },
-      });
-    },
-    [location, navigate]
-  );
+  const [userQuery, setUserQuery] = useUserQuery();
 
   return (
     <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
@@ -62,8 +44,8 @@ export function ExploreContent({}: ExploreContentProps) {
                 </PageFilterBar>
                 <SpanSearchQueryBuilder
                   projects={selection.projects}
-                  initialQuery={query}
-                  onSearch={handleSearch}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
                   searchSource="explore"
                 />
               </FilterActions>
