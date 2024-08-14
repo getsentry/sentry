@@ -55,18 +55,17 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
 
         # prefer repo external ID to name
         # NOTE: We filter on Repository here instead of using get b/c sometimes,
-        # we may have multiple repos with the same external_id/name but diff
-        # provider names due to plugins vs integrations.
-        # (e.g "bitbucket" for the plugin vs "integrations:bitbucket" for the integration).
+        # we have have multiple repos for the same external_id/name that differ
+        # in other fields that differ such as 'provider' or 'config'.
         if repo_id:
             repos = Repository.objects.filter(
                 organization_id=organization_id, external_id=repo_id, status=ObjectStatus.ACTIVE
             ).order_by("-date_added")
 
-            if not repos.exists():
+            latest_repo = repos.first()
+            if latest_repo is None:
                 raise ResourceDoesNotExist
 
-            latest_repo = repos.first()
             queryset = queryset.filter(commit__repository_id=latest_repo.id)
 
         if repo_name:
@@ -74,10 +73,10 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
                 organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
             ).order_by("-date_added")
 
-            if not repos.exists():
+            latest_repo = repos.first()
+            if latest_repo is None:
                 raise ResourceDoesNotExist
 
-            latest_repo = repos.first()
             queryset = queryset.filter(commit__repository_id=latest_repo.id)
 
         return self.paginate(
