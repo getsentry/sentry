@@ -5,6 +5,7 @@ import type {Location, LocationDescriptor, LocationDescriptorObject} from 'histo
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
+import {LinkButton} from 'sentry/components/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -12,8 +13,10 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IssueAttachment, Organization} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -29,6 +32,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -46,6 +50,23 @@ import {
 
 import type {TitleProps} from './operationSort';
 import OperationSort from './operationSort';
+
+function shouldRenderColumn(containsSpanOpsBreakdown: boolean, col: string): boolean {
+  if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {
+    return false;
+  }
+
+  if (
+    col === 'profiler.id' ||
+    col === 'thread.id' ||
+    col === 'precise.start_ts' ||
+    col === 'precise.finish_ts'
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 function OperationTitle({onClick}: TitleProps) {
   return (
@@ -242,7 +263,15 @@ class EventsTable extends Component<Props, State> {
             handleCellAction={this.handleCellAction(column)}
             allowActions={allowActions}
           >
-            {target ? <Link to={target}>{rendered}</Link> : rendered}
+            <div>
+              <LinkButton
+                disabled={!target || isEmptyObject(target)}
+                to={target || {}}
+                size="xs"
+              >
+                <IconProfiling size="xs" />
+              </LinkButton>
+            </div>
           </CellAction>
         </Tooltip>
       );
@@ -379,7 +408,7 @@ class EventsTable extends Component<Props, State> {
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
-    const containsSpanOpsBreakdown = eventView
+    const containsSpanOpsBreakdown = !!eventView
       .getColumns()
       .find(
         (col: TableColumn<React.ReactText>) =>
@@ -388,9 +417,8 @@ class EventsTable extends Component<Props, State> {
 
     const columnOrder = eventView
       .getColumns()
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
+      .filter((col: TableColumn<React.ReactText>) =>
+        shouldRenderColumn(containsSpanOpsBreakdown, col.name)
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

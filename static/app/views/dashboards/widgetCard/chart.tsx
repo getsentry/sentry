@@ -23,13 +23,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -96,6 +97,7 @@ type WidgetCardChartProps = Pick<
     type: 'legendselectchanged';
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
+  shouldResize?: boolean;
   showSlider?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
@@ -305,6 +307,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       noPadding,
       chartZoomOptions,
       timeseriesResultsTypes,
+      shouldResize,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -349,9 +352,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
-
-    // Only allow height resizing for widgets that are on a dashboard
-    const autoHeightResize = Boolean(widget.id || widget.tempId);
 
     const legend = {
       left: 0,
@@ -398,7 +398,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     };
 
     const chartOptions = {
-      autoHeightResize,
+      autoHeightResize: shouldResize ?? true,
       grid: {
         left: 0,
         right: 4,
@@ -512,7 +512,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
+              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,

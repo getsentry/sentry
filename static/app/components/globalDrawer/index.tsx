@@ -6,11 +6,13 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import DrawerComponents from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -40,6 +42,15 @@ export interface DrawerOptions {
    * Callback for when the drawer opens
    */
   onOpen?: () => void;
+  /**
+   * Function to determine whether the drawer should close when interacting with
+   * other elements.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  //
+  // Custom framer motion transition for the drawer
+  //
+  transitionProps?: AnimationProps['transition'];
 }
 
 interface DrawerRenderProps {
@@ -58,6 +69,7 @@ export interface DrawerConfig {
 
 interface DrawerContextType {
   closeDrawer: () => void;
+  isDrawerOpen: boolean;
   openDrawer: (
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
@@ -66,6 +78,7 @@ interface DrawerContextType {
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
+  isDrawerOpen: false,
   closeDrawer: () => {},
 });
 
@@ -100,7 +113,17 @@ export function GlobalDrawer({children}) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
-  useOnClickOutside(panelRef, handleClickOutside);
+  const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
+  useOnClickOutside(panelRef, e => {
+    if (
+      defined(shouldCloseOnInteractOutside) &&
+      defined(e?.target) &&
+      !shouldCloseOnInteractOutside(e.target as Element)
+    ) {
+      return;
+    }
+    handleClickOutside();
+  });
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
@@ -117,7 +140,7 @@ export function GlobalDrawer({children}) {
     : null;
 
   return (
-    <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
+    <DrawerContext.Provider value={{closeDrawer, isDrawerOpen, openDrawer}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
@@ -126,6 +149,7 @@ export function GlobalDrawer({children}) {
               onClose={handleClose}
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
+              transitionProps={currentDrawerConfig?.options?.transitionProps}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

@@ -49,7 +49,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
         return {
             "id": str(obj.id),
             "projectSlug": obj.project.slug,
-            "name": obj.name,
+            "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
             "status": obj.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,

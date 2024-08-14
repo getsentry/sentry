@@ -1,12 +1,11 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {SavedQuery} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQuery} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -33,7 +32,7 @@ export function DatasetSelector(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const value = getSavedQueryDataset(location, savedQuery, splitDecision);
+  const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
 
   const options = [
     {
@@ -59,15 +58,12 @@ export function DatasetSelector(props: Props) {
       value={value}
       options={options}
       onChange={newValue => {
-        let nextEventView: EventView;
-        if (eventView.id) {
-          nextEventView = eventView.withDataset(
-            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
-          );
-        } else {
-          const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
-          nextEventView = EventView.fromNewQueryWithLocation(query, location);
+        if (newValue.value === value) {
+          return;
         }
+        const nextEventView = eventView.withDataset(
+          getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
+        );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
           isHomepage

@@ -268,9 +268,14 @@ def format_mri_field(field: str) -> str:
                 try:
                     condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
                     config = condition.config
-                    return f'{parsed.op}({config.span_attribute}) filtered by "{condition.value}"'
+                    if condition.value:
+                        filter_str = f' filtered by "{condition.value}"'
+                    else:
+                        filter_str = ""
+
+                    return f"{parsed.op}({config.span_attribute}){filter_str}"
                 except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.new_scope() as scope:
                         scope.set_tag("field", field)
                         sentry_sdk.capture_message(
                             "Trying to format MRI field for non-existent span metric."
@@ -304,7 +309,7 @@ def format_mri_field_value(field: str, value: str) -> str:
                 condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
                 unit = cast(MetricUnit, condition.config.unit)
             except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_tag("field", field)
                     sentry_sdk.capture_message(
                         "Trying to format MRI field for non-existent span metric."

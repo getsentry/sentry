@@ -6,8 +6,9 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -48,8 +49,10 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
@@ -73,7 +76,9 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
+  onWidgetSplitDecision,
   chartGroup,
+  shouldResize,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -145,6 +150,7 @@ export function WidgetCardChartContainer({
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
                 chartGroup={chartGroup}
+                shouldResize={shouldResize}
               />
             </Fragment>
           );
@@ -162,6 +168,7 @@ export function WidgetCardChartContainer({
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
       dashboardFilters={dashboardFilters}
+      onWidgetSplitDecision={onWidgetSplitDecision}
     >
       {({
         tableResults,
@@ -196,6 +203,7 @@ export function WidgetCardChartContainer({
               chartZoomOptions={chartZoomOptions}
               timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
+              shouldResize={shouldResize}
             />
           </Fragment>
         );

@@ -27,7 +27,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -36,7 +36,8 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
         def data_fn(offset: int, limit: int) -> Any:
             builder = DiscoverQueryBuilder(
                 dataset=Dataset.Discover,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 selected_columns=["spans_op", "count()"],
                 array_join="spans_op",
                 query=query,

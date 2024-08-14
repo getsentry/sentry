@@ -5,8 +5,10 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.integrations.slack.message_builder import SlackBlock
+import orjson
+
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.utils.actions import MessageAction
 
 
@@ -47,18 +49,28 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {"type": "section", "text": {"type": "mrkdwn", "text": markdown_text}}
 
     @staticmethod
-    def get_tags_block(tags) -> SlackBlock:
+    def get_tags_block(
+        tags: Sequence[Mapping[str, str | bool]], block_id: dict[str, Any] | None = None
+    ) -> SlackBlock:
         text = ""
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
             # remove backticks from value, otherwise it will break the markdown
-            value = value.replace("`", "")
+            value = value.replace("`", "") if isinstance(value, str) else value
             text += f"{title}: `{value}`  "
-        return {
+
+        block = {
             "type": "section",
             "text": {"type": "mrkdwn", "text": text},
         }
+
+        if block_id:
+            tags_block_id = block_id.copy()
+            tags_block_id["block"] = "tags"
+            block["block_id"] = orjson.dumps(tags_block_id).decode()
+
+        return block
 
     @staticmethod
     def get_divider() -> SlackBlock:
@@ -176,7 +188,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock,
         fallback_text: str | None = None,
         color: str | None = None,
-        block_id: dict[str, int] | None = None,
+        block_id: str | None = None,
         callback_id: str | None = None,
         skip_fallback: bool = False,
     ) -> SlackBlock:

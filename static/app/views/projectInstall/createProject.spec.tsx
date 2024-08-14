@@ -15,7 +15,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -24,7 +24,7 @@ function renderFrameworkModalMockRequests({
   organization,
   teamSlug,
 }: {
-  organization: TOrganization;
+  organization: Organization;
   teamSlug: string;
 }) {
   MockApiClient.addMockResponse({
@@ -106,6 +106,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -152,6 +153,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -178,6 +180,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -210,6 +213,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -250,6 +254,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -281,6 +286,7 @@ describe('CreateProject', function () {
       organization: {
         features: ['onboarding-sdk-selection', 'team-roles'],
         access: ['project:read', 'project:write'],
+        allowMemberProjectCreation: true,
       },
     });
 

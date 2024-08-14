@@ -2,7 +2,9 @@
 // The analytic events for the insights modules are stored separately in
 // analytics/insightAnalyticsEvents.tsx
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {Organization, PlatformKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import type {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;
@@ -76,6 +78,10 @@ export type PerformanceEventParameters = {
   'performance_views.overview.cellaction': {action?: string};
   'performance_views.overview.change_chart': {
     metric: string;
+  };
+  'performance_views.overview.has_data': {
+    table_data_state: 'has_data' | 'no_data' | 'onboarding';
+    tab?: LandingDisplayField;
   };
   'performance_views.overview.navigate.summary': {
     project_platforms: string;
@@ -260,6 +266,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landingv3.table_pagination':
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.overview.change_chart': 'Performance Views: Change Overview Chart',
+  'performance_views.overview.has_data':
+    'Performance Views: Transaction overview with data present',
   'performance_views.sample_spans.opened': 'Performance Views: Sample spans panel opened',
   'performance_views.sample_spans.span_clicked': 'Performance Views: Sample span clicked',
   'performance_views.sample_spans.try_different_samples_clicked':

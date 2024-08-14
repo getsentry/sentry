@@ -103,7 +103,7 @@ describe('PageOverview', function () {
             'performance_score(measurements.score.cls)',
             `performance_score(measurements.score.inp)`,
             'performance_score(measurements.score.ttfb)',
-            'avg(measurements.score.total)',
+            'performance_score(measurements.score.total)',
             'avg(measurements.score.weight.lcp)',
             'avg(measurements.score.weight.fcp)',
             'avg(measurements.score.weight.cls)',

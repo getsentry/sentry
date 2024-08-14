@@ -13,12 +13,12 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -31,7 +31,7 @@ from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitLabProxyApiClient, GitlabProxySetupClient
+from .client import GitLabApiClient, GitLabSetupApiClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
@@ -92,15 +92,16 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
-):
-    repo_search = True
+class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabIssueBasic):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "gitlab"
 
     def get_group_id(self):
         return self.model.metadata["group_id"]
@@ -112,7 +113,11 @@ class GitlabIntegration(
             except Identity.DoesNotExist:
                 raise IntegrationError("Identity not found.")
 
-        return GitLabProxyApiClient(self)
+        return GitLabApiClient(self)
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
@@ -123,7 +128,7 @@ class GitlabIntegration(
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 
@@ -334,7 +339,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         )
 
     def get_group_info(self, access_token, installation_data):
-        client = GitlabProxySetupClient(
+        client = GitLabSetupApiClient(
             base_url=installation_data["url"],
             access_token=access_token,
             verify_ssl=installation_data["verify_ssl"],

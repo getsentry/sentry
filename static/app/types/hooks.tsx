@@ -11,7 +11,6 @@ import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
@@ -20,6 +19,7 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
+import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
@@ -632,6 +632,10 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      */
     disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;

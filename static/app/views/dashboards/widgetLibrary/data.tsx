@@ -1,6 +1,8 @@
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
 import {DisplayType, WidgetType} from '../types';
@@ -9,7 +11,7 @@ export type WidgetTemplate = Widget & {
   description: string;
 };
 
-export const getDefaultWidgets = () => {
+export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const transactionsWidgets = [
     {
@@ -17,12 +19,14 @@ export const getDefaultWidgets = () => {
       title: t('Duration Distribution'),
       description: t('Compare transaction durations across different percentiles.'),
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.TRANSACTIONS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: [
             'p50(transaction.duration)',
             'p75(transaction.duration)',
@@ -43,12 +47,14 @@ export const getDefaultWidgets = () => {
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
       displayType: DisplayType.TOP_N,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.TRANSACTIONS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: ['transaction', 'count()'],
           aggregates: ['count()'],
           columns: ['transaction'],
@@ -98,7 +104,9 @@ export const getDefaultWidgets = () => {
       title: t('LCP by Country'),
       description: t('Table showing page load times by country.'),
       displayType: DisplayType.TABLE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.TRANSACTIONS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
@@ -116,7 +124,9 @@ export const getDefaultWidgets = () => {
       title: t('Miserable Users'),
       description: t('Unique users who have experienced slow load times.'),
       displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.TRANSACTIONS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
@@ -136,12 +146,14 @@ export const getDefaultWidgets = () => {
         'Percentage breakdown of transaction durations over and under 300ms.'
       ),
       displayType: DisplayType.BAR,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.TRANSACTIONS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
           name: '',
-          conditions: 'event.type:transaction',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:transaction',
           fields: [
             'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
             'equation|(count_if(transaction.duration,lessOrEquals,300) / count()) * 100',
@@ -180,7 +192,9 @@ export const getDefaultWidgets = () => {
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),
       displayType: DisplayType.TOP_N,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.ERRORS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
@@ -198,12 +212,14 @@ export const getDefaultWidgets = () => {
       title: t('Users Affected by Errors'),
       description: t('Footprint of unique users affected by errors.'),
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: organization.features.includes('performance-discover-dataset-selector')
+        ? WidgetType.ERRORS
+        : WidgetType.DISCOVER,
       interval: '5m',
       queries: [
         {
           name: '',
-          conditions: 'event.type:error',
+          conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
           fields: ['count_unique(user)', 'count()'],
           aggregates: ['count_unique(user)', 'count()'],
           columns: [],
@@ -217,8 +233,10 @@ export const getDefaultWidgets = () => {
     : [...transactionsWidgets, ...errorsWidgets];
 };
 
-export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
-  return getDefaultWidgets().map(widget => {
+export function getTopNConvertedDefaultWidgets(
+  organization: Organization
+): Readonly<Array<WidgetTemplate>> {
+  return getDefaultWidgets(organization).map(widget => {
     if (widget.displayType === DisplayType.TOP_N) {
       return {
         ...widget,

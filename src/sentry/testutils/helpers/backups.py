@@ -41,6 +41,7 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
+from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
@@ -52,12 +53,14 @@ from sentry.incidents.models.incident import (
     TimeSeriesSnapshot,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
@@ -75,9 +78,6 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
@@ -96,9 +96,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.user import User
 from sentry.models.userip import UserIP
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
@@ -113,6 +111,9 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 
 __all__ = [
@@ -610,12 +611,19 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             type=1,
         )
-        for group_model in {GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription}:
+        for group_model in (GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription):
             group_model.objects.create(
                 project=project,
                 group=group,
                 user_id=owner_id,
             )
+
+        # DataSecrecyWaiver
+        DataSecrecyWaiver.objects.create(
+            organization=org,
+            access_start=timezone.now(),
+            access_end=timezone.now() + timedelta(days=1),
+        )
 
         return org
 

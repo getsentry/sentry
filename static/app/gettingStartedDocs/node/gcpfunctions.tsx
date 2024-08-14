@@ -47,7 +47,7 @@ exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,

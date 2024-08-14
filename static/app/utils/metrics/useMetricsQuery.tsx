@@ -6,6 +6,7 @@ import {
   getMetricsInterval,
   isVirtualMetric,
 } from 'sentry/utils/metrics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -196,6 +197,7 @@ export function useMetricsQuery(
   enableRefetch = true
 ) {
   const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const {resolveVirtualMRI, isLoading} = useVirtualMetricsContext();
 
   const resolvedQueries = useMemo(
@@ -203,10 +205,13 @@ export function useMetricsQuery(
       queries
         .map(query => {
           if (isMetricFormula(query)) {
-            return {
-              ...query,
-              formula: query.formula.toUpperCase(),
-            };
+            if (metricsNewInputs) {
+              return {
+                ...query,
+                formula: query.formula.toUpperCase(),
+              };
+            }
+            return query;
           }
           if (!isVirtualMetric(query)) {
             return query;
@@ -223,7 +228,7 @@ export function useMetricsQuery(
           return {...query, mri, aggregation};
         })
         .filter(query => query !== null),
-    [queries, resolveVirtualMRI]
+    [queries, resolveVirtualMRI, metricsNewInputs]
   );
 
   const {query: queryToSend, body} = useMemo(

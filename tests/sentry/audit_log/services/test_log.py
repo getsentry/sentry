@@ -1,7 +1,8 @@
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_service
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.outbox import OutboxScope, RegionOutbox
 from sentry.models.userip import UserIP
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories

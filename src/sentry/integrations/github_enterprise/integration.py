@@ -13,16 +13,17 @@ from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
 )
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -32,7 +33,7 @@ from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubEnterpriseAppsClient
+from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
@@ -131,17 +132,20 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin
+    RepositoryIntegration, GitHubIssueBasic, CommitContextIntegration
 ):
-    repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+
+    @property
+    def integration_name(self) -> str:
+        return "github_enterprise"
 
     def get_client(self):
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
 
         base_url = self.model.metadata["domain_name"].split("/")[0]
-        return GitHubEnterpriseAppsClient(
+        return GitHubEnterpriseApiClient(
             base_url=base_url,
             integration=self.model,
             private_key=self.model.metadata["installation"]["private_key"],
@@ -172,15 +176,26 @@ class GitHubEnterpriseIntegration(
             for i in response.get("items", [])
         ]
 
+    def source_url_matches(self, url: str) -> bool:
+        raise IntegrationFeatureNotImplementedError
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
+        return f"{repo.url}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def reinstall(self):
-        installation_id = self.model.external_id.split(":")[1]
-        metadata = self.model.metadata
-        metadata["installation_id"] = installation_id
-        self.model.update(metadata=metadata)
-        self.reinstall_repositories()
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
@@ -190,11 +205,6 @@ class GitHubEnterpriseIntegration(
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
-
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
-        # Must format the url ourselves since `check_file` is a head request
-        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
-        return f"{repo.url}/blob/{branch}/{filepath}"
 
 
 class InstallationForm(forms.Form):

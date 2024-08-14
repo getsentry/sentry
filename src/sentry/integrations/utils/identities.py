@@ -4,13 +4,13 @@ from collections.abc import Iterable, Mapping
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.silo.base import control_silo_function
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 _logger = logging.getLogger(__name__)

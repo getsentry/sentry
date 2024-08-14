@@ -22,8 +22,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.savedsearch import SavedSearch, Visibility
-from sentry.models.user import User
 from sentry.signals import advanced_search_feature_gated
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -92,8 +92,10 @@ def build_query_params_from_request(
     query = query.strip()
 
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        if features.has("organizations:issue-stream-custom-views", organization):
-            selected_view_id = request.GET.get("searchId")
+        if features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
+            selected_view_id = request.GET.get("viewId")
             if selected_view_id:
                 default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:

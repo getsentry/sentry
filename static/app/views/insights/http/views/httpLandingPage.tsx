@@ -21,7 +21,6 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
@@ -142,8 +141,6 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
-  useHasDataTrackAnalytics(ModuleName.HTTP, 'insight.page_loads.http');
-
   const crumbs = useModuleBreadcrumbs('http');
 
   return (
@@ -240,7 +237,11 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="http"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.http"
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );

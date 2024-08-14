@@ -11,7 +11,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {IssueTitle} from 'sentry/types';
+import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
   allowedDurationValues,

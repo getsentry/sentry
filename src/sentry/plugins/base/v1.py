@@ -14,7 +14,7 @@ from sentry.auth import access
 from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
-from sentry.plugins.base.response import Response
+from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
@@ -321,7 +321,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if isinstance(response, HttpResponseRedirect):
             return response
 
-        if not isinstance(response, Response):
+        if not isinstance(response, DeferredResponse):
             raise NotImplementedError("Use self.render() when returning responses.")
 
         event = group.get_latest_event()
@@ -504,12 +504,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
-
-    def view_configure(self, request, project, **kwargs):
-        if request.method == "GET":
-            return Response(self.get_configure_plugin_fields(project=project, **kwargs))
-        self.configure(project, request.data)
-        return Response({"message": "Successfully updated configuration."})
 
 
 class Plugin(IPlugin, metaclass=PluginMount):

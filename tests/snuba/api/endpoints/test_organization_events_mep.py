@@ -3458,6 +3458,194 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    def test_cache_miss_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.75
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["cache_miss_rate()"] == "percentage"
+
+    def test_http_response_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "200"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "301"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "404"},
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "503"},
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "501"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(200)",  # By exact code
+                    "http_response_rate(3)",  # By code class
+                    "http_response_rate(4)",
+                    "http_response_rate(5)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(200)"] == 0.2
+        assert data[0]["http_response_rate(3)"] == 0.2
+        assert data[0]["http_response_rate(4)"] == 0.2
+        assert data[0]["http_response_rate(5)"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["http_response_rate(200)"] == "percentage"
+
+    def test_avg_span_self_time(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(span.self_time)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(span.self_time)"] == 3.2
+
+    def test_span_module_filter(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.redis"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "cache"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.sql.room"},
+        )
+        self.store_span_metric(
+            2,
+            timestamp=self.min_ago,
+            tags={"span.category": "db"},
+        )
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.category": "http"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    "span.module",
+                    "avg(span.self_time)",
+                ],
+                "orderby": "avg(span.self_time)",
+                "query": "span.module:[db, cache, other]",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0]["span.module"] == "db"
+        assert data[0]["avg(span.self_time)"] == 2
+        assert data[1]["span.module"] == "cache"
+        assert data[1]["avg(span.self_time)"] == 2.5
+        assert data[2]["span.module"] == "other"
+        assert data[2]["avg(span.self_time)"] == 4
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3791,6 +3979,61 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    @mock.patch("sentry.snuba.errors.query")
+    def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
+        mock_errors_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"], "", self.project, discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_errors_query.assert_called_once()
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
+    def test_metrics_enhanced_request_made_for_saved_transaction_like_dashboard_widget_type(
+        self, mock_mep_query
+    ):
+        mock_mep_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_mep_query.assert_called_once()
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -3891,3 +4134,19 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_on_demand_with_mep(self):
         super().test_on_demand_with_mep()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_cache_miss_rate(self):
+        super().test_cache_miss_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_response_rate(self):
+        super().test_http_response_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_span_self_time(self):
+        super().test_avg_span_self_time()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_module_filter(self):
+        super().test_span_module_filter()

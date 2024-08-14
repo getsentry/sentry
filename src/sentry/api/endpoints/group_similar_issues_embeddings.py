@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -14,10 +14,10 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import get_stacktrace_string, killswitch_enabled
+from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -86,12 +86,17 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
             "referrer": "similar_issues",
+            "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
         }
         # Add optional parameters
         if request.GET.get("k"):
             similar_issues_params["k"] = int(request.GET["k"])
         if request.GET.get("threshold"):
             similar_issues_params["threshold"] = float(request.GET["threshold"])
+
+        # Override `use_reranking` value if necessary
+        if request.GET.get("useReranking"):
+            similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
         extra: dict[str, Any] = dict(similar_issues_params.copy())
         extra["group_message"] = extra.pop("message")

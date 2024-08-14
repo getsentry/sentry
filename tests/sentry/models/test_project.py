@@ -1,10 +1,10 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
@@ -19,7 +19,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -31,6 +30,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -267,6 +267,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
         assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment is not None
         assert snuba_query.environment.id == environment.id
 
         project.transfer_to(organization=to_org)

@@ -21,7 +21,6 @@ from sentry.profiles.flamegraph import (
 )
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
-from sentry.snuba.dataset import Dataset
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
@@ -34,25 +33,28 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
     fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataset = serializers.ChoiceField(["profiles", "discover", "functions"], required=False)
+    dataSource = serializers.ChoiceField(["transactions", "profiles", "functions"], required=False)
     query = serializers.CharField(required=False)
+    expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
 
     def validate(self, attrs):
-        dataset = attrs.get("dataset")
+        source = attrs.get("dataSource")
 
-        if dataset is None:
+        if source is None:
             if attrs.get("fingerprint") is not None:
-                attrs["dataset"] = Dataset.Functions
+                attrs["dataSource"] = "functions"
             else:
-                attrs["dataset"] = Dataset.Discover
-        elif dataset == "functions":
-            attrs["dataset"] = Dataset.Functions
+                attrs["dataSource"] = "transactions"
+        elif source == "functions":
+            attrs["dataSource"] = "functions"
         elif attrs.get("fingerprint") is not None:
             raise ParseError(
-                detail='"fingerprint" is only permitted when using dataset: "functions"'
+                detail='"fingerprint" is only permitted when using dataSource: "functions"'
             )
+        elif source == "profiles":
+            attrs["dataSource"] = "profiles"
         else:
-            attrs["dataset"] = Dataset.Discover
+            attrs["dataSource"] = "transactions"
 
         return attrs
 
@@ -63,28 +65,29 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        if request.GET.get("compat") != "1" or not features.has(
+        if not features.has(
             "organizations:continuous-profiling-compat", organization, actor=request.user
         ):
-            params = self.get_snuba_params(request, organization)
-            project_ids = params["project_id"]
+            snuba_params = self.get_snuba_params(request, organization)
+
+            project_ids = snuba_params.project_ids
             if len(project_ids) > 1:
                 raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
 
             if request.query_params.get("fingerprint"):
-                sentry_sdk.set_tag("dataset", "functions")
+                sentry_sdk.set_tag("data source", "functions")
                 function_fingerprint = int(request.query_params["fingerprint"])
 
                 profile_ids = get_profiles_with_function(
                     organization.id,
                     project_ids[0],
                     function_fingerprint,
-                    params,
+                    snuba_params,
                     request.GET.get("query", ""),
                 )
             else:
-                sentry_sdk.set_tag("dataset", "profiles")
-                profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+                sentry_sdk.set_tag("data source", "profiles")
+                profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
 
             return proxy_profiling_service(
                 method="POST",
@@ -93,7 +96,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             )
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -105,11 +108,16 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         with handle_query_errors():
             executor = FlamegraphExecutor(
                 snuba_params=snuba_params,
-                dataset=serialized["dataset"],
+                data_source=serialized["dataSource"],
                 query=serialized.get("query", ""),
                 fingerprint=serialized.get("fingerprint"),
             )
             profile_candidates = executor.get_profile_candidates()
+
+        expand = serialized.get("expand") or []
+        if expand:
+            if "metrics" in expand:
+                profile_candidates["generate_metrics"] = True
 
         return proxy_profiling_service(
             method="POST",
@@ -125,9 +133,9 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             return Response(status=404)
 
         # We disable the date quantizing here because we need the timestamps to be precise.
-        params = self.get_snuba_params(request, organization, quantize_date_params=False)
+        snuba_params = self.get_snuba_params(request, organization, quantize_date_params=False)
 
-        project_ids = params.get("project_id")
+        project_ids = snuba_params.project_ids
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
@@ -135,7 +143,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if profiler_id is None:
             raise ParseError(detail="profiler_id must be specified.")
 
-        chunk_ids = get_chunk_ids(params, profiler_id, project_ids[0])
+        chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
 
         return proxy_profiling_service(
             method="POST",
@@ -143,8 +151,8 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             json_data={
                 "profiler_id": profiler_id,
                 "chunk_ids": chunk_ids,
-                "start": str(int(params["start"].timestamp() * 1e9)),
-                "end": str(int(params["end"].timestamp() * 1e9)),
+                "start": str(int(snuba_params.start_date.timestamp() * 1e9)),
+                "end": str(int(snuba_params.end_date.timestamp() * 1e9)),
             },
         )
 
@@ -155,10 +163,10 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization)
+        snuba_params = self.get_snuba_params(request, organization)
 
-        project_ids = params.get("project_id")
-        if project_ids is None or len(project_ids) != 1:
+        project_ids = snuba_params.project_ids
+        if len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
         span_group = request.query_params.get("span_group")
@@ -168,7 +176,7 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         spans = get_spans_from_group(
             organization.id,
             project_ids[0],
-            params,
+            snuba_params,
             span_group,
         )
 

@@ -12,14 +12,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {
-  NewQuery,
-  PageFilters,
-  Project,
-  SavedQuery,
-  SelectValue,
-  User,
-} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
@@ -38,11 +34,13 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -65,6 +63,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
 };
@@ -1189,12 +1188,17 @@ class EventView {
 
   getResultsViewUrlTarget(
     slug: string,
-    isHomepage: boolean = false
+    isHomepage: boolean = false,
+    queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
+    const query = this.generateQueryStringObject();
+    if (queryDataset) {
+      query.queryDataset = queryDataset;
+    }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: this.generateQueryStringObject(),
+      query: query,
     };
   }
 
@@ -1438,7 +1442,7 @@ class EventView {
 
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
-const isFieldsSimilar = (
+export const isFieldsSimilar = (
   currentValue: Array<string>,
   otherValue: Array<string>
 ): boolean => {

@@ -10,7 +10,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useRouter from 'sentry/utils/useRouter';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
@@ -23,7 +24,7 @@ import {isSessionAggregate} from 'sentry/views/alerts/utils';
 import type {TimePeriodType} from './constants';
 
 interface Props {
-  organization: OrganizationSummary;
+  organization: Organization;
   projects: Project[];
   rule: MetricRule;
   timePeriod: TimePeriodType;
@@ -51,7 +52,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
       !isSessionAggregate(rule.aggregate)
     ) {
       const {buttonText, to} = makeDefaultCta({
-        orgSlug: organization.slug,
+        organization,
         projects,
         rule,
         query,

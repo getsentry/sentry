@@ -33,7 +33,9 @@ export interface ImportOptions {
   activeThreadId?: string | null;
   continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
-  profileIds?: Readonly<string[]>;
+  profileIds?:
+    | Profiling.Schema['shared']['profiles']
+    | Profiling.Schema['shared']['profile_ids'];
 }
 
 export interface ProfileGroup {
@@ -245,7 +247,7 @@ export function importSchema(
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, {
         ...options,
-        profileIds: input.shared.profile_ids,
+        profileIds: input.shared.profile_ids ?? input.shared.profiles,
       })
     ),
   };
@@ -314,6 +316,7 @@ export function importSentryContinuousProfileChunk(
     measurements: input.measurements ?? {},
     metadata: {
       platform: input.platform,
+      projectID: input.project_id,
     },
   };
 }

@@ -644,7 +644,7 @@ class BaseTSDB(Service):
         limit: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, Iterable[dict[str, float]]]:
+    ) -> dict[str, list[tuple[int, dict[str, float]]]]:
         """
         Retrieve the most frequently seen items in a frequency table for each
         interval in a series. (This is in contrast with ``get_most_frequent``,

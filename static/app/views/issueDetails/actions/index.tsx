@@ -11,32 +11,32 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ActionButton from 'sentry/components/actions/button';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {IconEllipsis, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconEllipsis,
+  IconSubscribed,
+  IconUnsubscribed,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupStatusResolution,
-  MarkReviewed,
-  Organization,
-  Project,
-  SavedQueryVersions,
-} from 'sentry/types';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
+import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
@@ -45,7 +45,9 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -86,6 +88,8 @@ export function Actions(props: Props) {
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
 
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   const {
     actions: {
       archiveUntilOccurrence: archiveUntilOccurrenceCap,
@@ -119,7 +123,11 @@ export function Actions(props: Props) {
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(organization.slug);
+    return discoverView.getResultsViewUrlTarget(
+      organization.slug,
+      false,
+      hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+    );
   };
 
   const trackIssueAction = (
@@ -356,6 +364,69 @@ export function Actions(props: Props) {
   });
   return (
     <ActionWrapper>
+      {hasStreamlinedUI &&
+        (isResolved || isIgnored ? (
+          <ResolvedActionWapper>
+            <ResolvedWrapper>
+              <IconCheckmark />
+              {isResolved ? t('Resolved') : t('Archived')}
+            </ResolvedWrapper>
+            <Divider />
+            <Button
+              size="sm"
+              disabled={disabled || isAutoResolved}
+              onClick={() =>
+                onUpdate({
+                  status: GroupStatus.UNRESOLVED,
+
+                  statusDetails: {},
+
+                  substatus: GroupSubstatus.ONGOING,
+                })
+              }
+            >
+              {isResolved ? t('Unresolve') : t('Unarchive')}
+            </Button>
+          </ResolvedActionWapper>
+        ) : (
+          <Fragment>
+            <GuideAnchor target="resolve" position="bottom" offset={20}>
+              <ResolveActions
+                disableResolveInRelease={!resolveInReleaseCap.enabled}
+                disabled={disabled}
+                disableDropdown={disabled}
+                hasRelease={hasRelease}
+                latestRelease={project.latestRelease}
+                onUpdate={onUpdate}
+                projectSlug={project.slug}
+                isResolved={isResolved}
+                isAutoResolved={isAutoResolved}
+                size="sm"
+                priority="primary"
+              />
+            </GuideAnchor>
+            <ArchiveActions
+              className="hidden-xs"
+              size="sm"
+              isArchived={isIgnored}
+              onUpdate={onUpdate}
+              disabled={disabled}
+              disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+            />
+            {!hasStreamlinedUI && (
+              <EnvironmentPageFilter position="bottom-end" size="sm" />
+            )}
+            <SubscribeAction
+              className="hidden-xs"
+              disabled={disabled}
+              disablePriority
+              group={group}
+              onClick={handleClick(onToggleSubscribe)}
+              icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+              size="sm"
+            />
+          </Fragment>
+        ))}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -435,85 +506,91 @@ export function Actions(props: Props) {
           },
         ]}
       />
-      {organization.features.includes('issue-details-new-experience-toggle') ? (
-        <NewIssueExperienceButton />
-      ) : null}
-      <SubscribeAction
-        className="hidden-xs"
-        disabled={disabled}
-        disablePriority
-        group={group}
-        onClick={handleClick(onToggleSubscribe)}
-        icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-        size="sm"
-      />
-      <div className="hidden-xs">
-        <EnvironmentPageFilter position="bottom-end" size="sm" />
-      </div>
-      {discoverCap.enabled && (
-        <Feature
-          hookName="feature-disabled:open-in-discover"
-          features="discover-basic"
-          organization={organization}
-        >
-          <ActionButton
-            className="hidden-xs"
-            disabled={disabled}
-            to={disabled ? '' : getDiscoverUrl()}
-            onClick={() => trackIssueAction('open_in_discover')}
-            size="sm"
-          >
-            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-          </ActionButton>
-        </Feature>
-      )}
-      {isResolved || isIgnored ? (
-        <ActionButton
-          priority="primary"
-          title={
-            isAutoResolved
-              ? t(
-                  'This event is resolved due to the Auto Resolve configuration for this project'
-                )
-              : t('Change status to unresolved')
-          }
-          size="sm"
-          disabled={disabled || isAutoResolved}
-          onClick={() =>
-            onUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-        >
-          {isIgnored ? t('Archived') : t('Resolved')}
-        </ActionButton>
-      ) : (
+      {!hasStreamlinedUI && (
         <Fragment>
-          <ArchiveActions
+          {organization.features.includes('issue-details-new-experience-toggle') ? (
+            <NewIssueExperienceButton />
+          ) : null}
+          <SubscribeAction
             className="hidden-xs"
-            size="sm"
-            isArchived={isIgnored}
-            onUpdate={onUpdate}
             disabled={disabled}
-            disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+            disablePriority
+            group={group}
+            onClick={handleClick(onToggleSubscribe)}
+            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+            size="sm"
           />
-          <GuideAnchor target="resolve" position="bottom" offset={20}>
-            <ResolveActions
-              disableResolveInRelease={!resolveInReleaseCap.enabled}
-              disabled={disabled}
-              disableDropdown={disabled}
-              hasRelease={hasRelease}
-              latestRelease={project.latestRelease}
-              onUpdate={onUpdate}
-              projectSlug={project.slug}
-              isResolved={isResolved}
-              isAutoResolved={isAutoResolved}
-              size="sm"
+          <div className="hidden-xs">
+            <EnvironmentPageFilter position="bottom-end" size="sm" />
+          </div>
+          {discoverCap.enabled && (
+            <Feature
+              hookName="feature-disabled:open-in-discover"
+              features="discover-basic"
+              organization={organization}
+            >
+              <Button
+                className="hidden-xs"
+                disabled={disabled}
+                to={disabled ? '' : getDiscoverUrl()}
+                onClick={() => trackIssueAction('open_in_discover')}
+                size="sm"
+              >
+                <GuideAnchor target="open_in_discover">
+                  {t('Open in Discover')}
+                </GuideAnchor>
+              </Button>
+            </Feature>
+          )}
+          {isResolved || isIgnored ? (
+            <Button
               priority="primary"
-            />
-          </GuideAnchor>
+              title={
+                isAutoResolved
+                  ? t(
+                      'This event is resolved due to the Auto Resolve configuration for this project'
+                    )
+                  : t('Change status to unresolved')
+              }
+              size="sm"
+              disabled={disabled || isAutoResolved}
+              onClick={() =>
+                onUpdate({
+                  status: GroupStatus.UNRESOLVED,
+                  statusDetails: {},
+                  substatus: GroupSubstatus.ONGOING,
+                })
+              }
+            >
+              {isIgnored ? t('Archived') : t('Resolved')}
+            </Button>
+          ) : (
+            <Fragment>
+              <ArchiveActions
+                className="hidden-xs"
+                size="sm"
+                isArchived={isIgnored}
+                onUpdate={onUpdate}
+                disabled={disabled}
+                disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+              />
+              <GuideAnchor target="resolve" position="bottom" offset={20}>
+                <ResolveActions
+                  disableResolveInRelease={!resolveInReleaseCap.enabled}
+                  disabled={disabled}
+                  disableDropdown={disabled}
+                  hasRelease={hasRelease}
+                  latestRelease={project.latestRelease}
+                  onUpdate={onUpdate}
+                  projectSlug={project.slug}
+                  isResolved={isResolved}
+                  isAutoResolved={isAutoResolved}
+                  size="sm"
+                  priority="primary"
+                />
+              </GuideAnchor>
+            </Fragment>
+          )}
         </Fragment>
       )}
     </ActionWrapper>
@@ -524,6 +601,21 @@ const ActionWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const ResolvedWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  color: ${p => p.theme.green400};
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ResolvedActionWapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 export default withApi(withOrganization(Actions));

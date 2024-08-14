@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from sentry import features
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -23,7 +24,6 @@ from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     ActionTargetType,
@@ -33,6 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -262,7 +263,7 @@ def get_owner_reason(
     return None
 
 
-def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
+def get_suspect_commit_users(project: Project, event: Event | GroupEvent) -> list[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
 
@@ -285,7 +286,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
     return [committer for committer in suspect_committers if committer.id in in_project_user_ids]
 
 
-def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> Iterable[Actor]:
+def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> list[Actor]:
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
 

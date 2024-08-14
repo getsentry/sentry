@@ -23,7 +23,13 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import (
+    discover,
+    errors,
+    metrics_enhanced_performance,
+    metrics_performance,
+    transactions,
+)
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
@@ -37,6 +43,9 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+# TODO: Adjust this once we make a decision in the DACI for global views restriction
+# Do not add more referrers to this list as it is a temporary solution
+GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -102,6 +111,8 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_METRICS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE.value,
     Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
@@ -309,8 +320,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
+        referrer = request.GET.get("referrer")
+
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(
+                request,
+                organization,
+                # This is only temporary until we come to a decision on global views
+                # checking for referrer for an allowlist is a brittle check since referrer
+                # can easily be set by the caller
+                check_global_views=not (
+                    referrer in GLOBAL_VIEW_ALLOWLIST and bool(organization.flags.allow_joinleave)
+                ),
+            )
         except NoProjects:
             return Response(
                 {
@@ -324,8 +346,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         except InvalidParams as err:
             raise ParseError(err)
-
-        referrer = request.GET.get("referrer")
 
         batch_features = self.get_features(organization, request)
 
@@ -372,7 +392,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
-                params=params,
+                params={},
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
@@ -404,33 +424,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                 if does_widget_have_split and not has_override_feature:
                     # This is essentially cached behaviour and we skip the check
-                    split_query = scoped_query
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                        split_dataset = discover
-                        split_query = (
-                            f"({scoped_query}) AND !event.type:transaction"
-                            if scoped_query
-                            else "!event.type:transaction"
-                        )
+                        split_dataset = errors
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
                         split_dataset = scoped_dataset
                     else:
                         split_dataset = discover
 
-                    return _data_fn(split_dataset, offset, limit, split_query)
+                    return _data_fn(split_dataset, offset, limit, scoped_query)
 
                 try:
-                    error_results = _data_fn(
-                        discover,
-                        offset,
-                        limit,
-                        (
-                            f"({scoped_query}) AND !event.type:transaction"
-                            if scoped_query
-                            else "!event.type:transaction"
-                        ),
-                    )
+                    error_results = _data_fn(errors, offset, limit, scoped_query)
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                     has_errors = len(error_results["data"]) > 0
                 except SnubaError:
@@ -452,12 +457,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if has_errors and has_other_data and not using_metrics:
                     # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                     sentry_sdk.set_tag("third_split_query", True)
-                    transactions_only_query = (
-                        f"({scoped_query}) AND event.type:transaction"
-                        if scoped_query
-                        else "event.type:transaction"
-                    )
-                    transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
+                    transaction_results = _data_fn(transactions, offset, limit, scoped_query)
                     has_transactions = len(transaction_results["data"]) > 0
 
                 decision = self.save_split_decision(
@@ -621,7 +621,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
                         dataset=dataset,
@@ -634,7 +634,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         results,
                         standard_meta=True,
                         dataset=dataset,

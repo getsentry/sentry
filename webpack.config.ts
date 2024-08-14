@@ -2,6 +2,7 @@
 
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
@@ -269,8 +270,8 @@ const appConfig: webpack.Configuration = {
         },
       },
       {
-        test: /\.pegjs/,
-        use: {loader: 'pegjs-loader'},
+        test: /\.pegjs$/,
+        use: ['pegjs-loader?cache=false&optimize=speed'],
       },
       {
         test: /\.css/,
@@ -811,5 +812,24 @@ if (env.WEBPACK_CACHE_PATH) {
     },
   };
 }
+
+appConfig.plugins?.push(
+  sentryWebpackPlugin({
+    applicationKey: 'sentry-spa',
+    telemetry: false,
+    sourcemaps: {
+      disable: true,
+    },
+    release: {
+      create: false,
+    },
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+    bundleSizeOptimizations: {
+      excludeDebugStatements: IS_PRODUCTION,
+    },
+  })
+);
 
 export default appConfig;

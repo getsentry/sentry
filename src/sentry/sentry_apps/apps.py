@@ -20,9 +20,10 @@ from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
@@ -32,13 +33,12 @@ from sentry.models.integrations.sentry_app import (
 )
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.receivers.tokens import add_scope_hierarchy
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Schema = Mapping[str, Any]

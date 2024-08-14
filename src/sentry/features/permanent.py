@@ -96,6 +96,8 @@ def register_permanent_features(manager: FeatureManager):
         # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
         # must be installed to use this functionality.
         "organizations:sso-saml2": True,
+        # Enable 'spans' category on the stats page
+        "organizations:span-stats": False,
         # Enable team insights page
         "organizations:team-insights": True,
         # Enable setting team-level roles and receiving permissions from them
@@ -109,6 +111,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:org-ingest-subdomains": False,
         # Replace the footer Sentry logo with a Sentry pride logo
         "organizations:sentry-pride-logo-footer": False,
+        # Enable priority calculations using Seer's severity endpoint
+        "organizations:seer-based-priority": False,
     }
 
     permanent_project_features = {

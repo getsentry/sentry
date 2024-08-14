@@ -7,14 +7,14 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
 import type {
   NewQuery,
   Organization,
   OrganizationSummary,
-  Project,
-  SelectValue,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -48,16 +48,20 @@ import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import type {WidgetQuery} from '../dashboards/types';
-import {DashboardWidgetSource, DisplayType} from '../dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  type WidgetQuery,
+  WidgetType,
+} from '../dashboards/types';
 import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
 import {displayModeToDisplayType, getSavedQueryDataset} from './savedQuery/utils';
 import type {FieldValue, TableColumn} from './table/types';
 import {FieldValueKind} from './table/types';
-import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
+import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
 
 export type QueryWithColumnState =
   | Query
@@ -165,11 +169,11 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...ALL_VIEWS];
+  const views = [...getAllViews(organization)];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    views.splice(2, 0, ...TRANSACTION_VIEWS);
-    views.push(...WEB_VITALS_VIEWS);
+    views.splice(2, 0, ...getTransactionViews(organization));
+    views.push(...getWebVitalsViews(organization));
   }
 
   return views;
@@ -695,7 +699,7 @@ export function handleAddQueryToDashboard({
     yAxis,
   });
 
-  const dataset = getSavedQueryDataset(location, query);
+  const dataset = getSavedQueryDataset(organization, location, query);
 
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
@@ -730,8 +734,8 @@ export function handleAddQueryToDashboard({
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
           : undefined,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? getWidgetDataset(dataset)
+      widgetType: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
         : undefined,
     },
     router,
@@ -798,7 +802,7 @@ export function constructAddQueryToDashboardLink({
     displayType,
     yAxis,
   });
-  const dataset = getSavedQueryDataset(location, query);
+  const dataset = getSavedQueryDataset(organization, location, query);
 
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
@@ -815,8 +819,8 @@ export function constructAddQueryToDashboardLink({
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      dataset: organization.features.includes('performance-discover-dataset-selector')
-        ? getWidgetDataset(dataset)
+      dataset: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
         : undefined,
       limit:
         displayType === DisplayType.TOP_N
@@ -825,15 +829,8 @@ export function constructAddQueryToDashboardLink({
     },
   };
 }
-function getWidgetDataset(dataset: SavedQueryDatasets) {
-  switch (dataset) {
-    case SavedQueryDatasets.TRANSACTIONS:
-      return DataSet.TRANSACTIONS;
 
-    case SavedQueryDatasets.ERRORS:
-      return DataSet.ERRORS;
-
-    default:
-      return undefined;
-  }
-}
+export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
+  [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
+  [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+};

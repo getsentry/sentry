@@ -18,6 +18,7 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {getReplaySDKSetupSnippet} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -30,7 +31,7 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn}",${
+      dsn: "${params.dsn.public}",${
         params.isPerformanceSelected
           ? ''
           : `
@@ -191,7 +192,7 @@ const onboarding: OnboardingConfig = {
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
@@ -252,7 +253,7 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn}",
+      dsn: "${params.dsn.public}",
       replaysSessionSampleRate: 0.2, // defaults to 0.1
       replaysOnErrorSampleRate: 1.0, // defaults to 1.0
     }),
@@ -279,7 +280,7 @@ export default defineConfig({
                 importStatement: `// This file overrides \`astro.config.mjs\` for the browser-side.
 // SDK options from \`astro.config.mjs\` will not apply.
 import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -336,7 +337,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },
@@ -355,7 +356,7 @@ const feedbackOnboarding: OnboardingConfig = {
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
-  configure: () => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
@@ -364,6 +365,9 @@ const crashReportOnboarding: OnboardingConfig = {
       additionalInfo: widgetCallout({
         link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#user-feedback-widget',
       }),
+      ...(params.isProfilingSelected
+        ? [getProfilingDocumentHeaderConfigurationStep()]
+        : []),
     },
   ],
   verify: () => [],

@@ -14,15 +14,15 @@ from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
-from sentry.models.user import User
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
@@ -207,9 +207,11 @@ class IntegrationRepositoryProvider:
             repository_service.serialize_repository(
                 organization_id=organization.id,
                 id=repo.id,
-                as_user=serialize_rpc_user(request.user)
-                if isinstance(request.user, User)
-                else request.user,
+                as_user=(
+                    serialize_rpc_user(request.user)
+                    if isinstance(request.user, User)
+                    else request.user
+                ),
             ),
             status=201,
         )

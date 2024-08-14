@@ -8,32 +8,37 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
+  canEdit?: boolean;
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
+function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        <LinkWrapper name={token.name}>
-          <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
-            {token.name ? token.name : 'Token created on '}
-            <DateTime
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-              hidden={!!token.name}
-            />
-          </Link>
-        </LinkWrapper>
+        {canEdit ? (
+          <LinkWrapper name={token.name}>
+            <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
+              {token.name ? token.name : 'Token created on '}
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000), // National Pasta Day
+                })}
+                hidden={!!token.name}
+              />
+            </Link>
+          </LinkWrapper>
+        ) : (
+          <h1>{token.name ? token.name : ''}</h1>
+        )}
         <ButtonWrapper>
           <Confirm
             onConfirm={() => onRemove(token)}

@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, cast
 
@@ -21,7 +21,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -42,6 +41,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -177,7 +177,9 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
+                project_ctx.key_errors_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_errors
+                ]
 
                 if ctx.organization.slug == "sentry":
                     logger.info(
@@ -253,7 +255,6 @@ class OrganizationReportBatch:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
-
         if self.email_override:
             target_user_id = (
                 self.target_user.id if self.target_user else None
@@ -291,7 +292,7 @@ class OrganizationReportBatch:
         template_context: Mapping[str, Any] | None = user_template_context.get("context")
         user_id: int | None = user_template_context.get("user_id")
         if template_context and user_id:
-            dupe_check = _DuplicateDeliveryCheck(self, user_id)
+            dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
             if not dupe_check.check_for_duplicate_delivery():
                 self.send_email(template_ctx=template_context, user_id=user_id)
                 dupe_check.record_delivery()
@@ -335,9 +336,13 @@ class OrganizationReportBatch:
 
 
 class _DuplicateDeliveryCheck:
-    def __init__(self, batch: OrganizationReportBatch, user_id: int):
+    def __init__(self, batch: OrganizationReportBatch, user_id: int, timestamp: float):
         self.batch = batch
         self.user_id = user_id
+        # note that if the timestamps between batches cross a UTC day boundary,
+        # this will not work correctly. but we always start reports at midnight UTC,
+        # so that is unlikely to be an issue.
+        self.report_date = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
 
         # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
         self.count: int | None = None
@@ -347,7 +352,11 @@ class _DuplicateDeliveryCheck:
 
     @property
     def _redis_name(self) -> str:
-        name_parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
+        name_parts = (
+            self.report_date,
+            self.batch.ctx.organization.id,
+            self.user_id,
+        )
         return ":".join(str(part) for part in name_parts)
 
     def _get_log_extras(self) -> dict[str, Any]:
@@ -356,6 +365,7 @@ class _DuplicateDeliveryCheck:
             "organization": self.batch.ctx.organization.id,
             "user_id": self.user_id,
             "has_email_override": bool(self.batch.email_override),
+            "report_date": self.report_date,
         }
 
     def check_for_duplicate_delivery(self) -> bool:
@@ -465,8 +475,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         if len(user_projects) == 0:
             return None
     else:
-        # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
-        user_projects = ctx.projects_context_map.values()
+        return None
 
     notification_uuid = str(uuid.uuid4())
 
@@ -636,7 +645,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, count in project_ctx.key_errors:
+                for group, count in project_ctx.key_errors_by_group:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -656,14 +665,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     yield {
                         "count": count,
                         "group": group,
-                        "status": (
-                            group_history.get_status_display() if group_history else "Unresolved"
-                        ),
-                        "status_color": (
-                            group_status_to_color[group_history.status]
-                            if group_history
-                            else group_status_to_color[GroupHistoryStatus.NEW]
-                        ),
+                        "status": "Unresolved",
+                        "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
                         "group_substatus_border_color": substatus_border_color,

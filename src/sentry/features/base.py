@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class Feature:
@@ -92,12 +92,12 @@ class FeatureHandlerStrategy(Enum):
     """
 
     INTERNAL = 1
-    """Handle the feature using a constant or logic within python"""
-    REMOTE = 2
-    """Handle the feature using a remote flag management service"""
+    """Handle the feature using a logic within a FeatureHandler subclass"""
+    FLAGPOLE = 2
+    """Handle the feature using Flagpole and option backed rules based features.
+    Features will automatically have options registered for them.
+    """
     OPTIONS = 3
     """Handle the feature using options. see https://develop.sentry.dev/feature-flags/#building-your-options-based-feature
     for more information.
     """
-    FLAGPOLE = 4
-    """Handle the feature using the Flagpole management service"""

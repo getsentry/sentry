@@ -26,7 +26,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -119,6 +121,48 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
+
+export function handleUpdateDashboardSplit({
+  widgetId,
+  splitDecision,
+  dashboard,
+  onDashboardUpdate,
+  modifiedDashboard,
+  stateSetter,
+}: {
+  dashboard: DashboardDetails;
+  modifiedDashboard: DashboardDetails | null;
+  splitDecision: WidgetType;
+  stateSetter: Component<Props, State, any>['setState'];
+  widgetId: string;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+}) {
+  // The underlying dashboard needs to be updated with the split decision
+  // because the backend has evaluated the query and stored that value
+  const updatedDashboard = cloneDashboard(dashboard);
+  const widgetIndex = updatedDashboard.widgets.findIndex(
+    widget => widget.id === widgetId
+  );
+
+  if (widgetIndex >= 0) {
+    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+  }
+  onDashboardUpdate?.(updatedDashboard);
+
+  // The modified dashboard also needs to be updated because that dashboard
+  // is rendered instead of the original dashboard when editing
+  if (modifiedDashboard) {
+    stateSetter(state => ({
+      ...state,
+      modifiedDashboard: {
+        ...state.modifiedDashboard!,
+        widgets: state.modifiedDashboard!.widgets.map(widget =>
+          widget.id === widgetId ? {...widget, widgetType: splitDecision} : widget
+        ),
+      },
+    }));
+  }
+}
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
@@ -676,7 +720,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder() {
-    const {children, dashboard} = this.props;
+    const {children, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
@@ -685,6 +729,16 @@ class DashboardDetail extends Component<Props, State> {
           onSave: this.isEditingDashboard
             ? this.onUpdateWidget
             : this.handleUpdateWidgetList,
+          updateDashboardSplitDecision: (widgetId: string, splitDecision: WidgetType) => {
+            handleUpdateDashboardSplit({
+              widgetId,
+              splitDecision,
+              dashboard,
+              modifiedDashboard,
+              stateSetter: this.setState.bind(this),
+              onDashboardUpdate,
+            });
+          },
         })
       : children;
   }

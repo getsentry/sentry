@@ -394,6 +394,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.users",
+    "sentry.integrations",
     "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
@@ -418,6 +420,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.feedback",
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
+    "sentry.data_secrecy",
 )
 
 # Silence internal hints from Django's system checks
@@ -735,7 +738,13 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.backfill_outboxes",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -746,7 +755,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
-    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
@@ -762,12 +770,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion.scheduled",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
-    "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -809,6 +815,9 @@ CELERY_IMPORTS = (
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
+    "sentry.integrations.vsts.tasks",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
+    "sentry.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -995,7 +1004,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
@@ -1147,6 +1156,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
+    },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
@@ -1208,7 +1222,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
@@ -1406,25 +1420,28 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": False,
-        "COMPONENT_SPLIT_PATCH": False,
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
+        "COMPONENT_SPLIT_PATCH": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "CONTACT": {"email": "partners@sentry.io"},
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
+        "DESCRIPTION": "Sentry Public API",
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        # We override the default behavior to skip adding the choice name to the bullet point if
+        # it's identical to the choice value by monkey patching build_choice_description_list.
+        "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
-        "DESCRIPTION": "Sentry Public API",
         "TOS": "http://sentry.io/terms/",
-        "CONTACT": {"email": "partners@sentry.io"},
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io"}],
-        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1432,7 +1449,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:anr-improvements": "Enable anr improvements ui",
     "organizations:device-classification": "Enable device.class as a selectable column",
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
@@ -1539,10 +1555,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 # end APM config
 # ----
-
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN: str | None = None
-SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2859,7 +2871,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
     "outcomes": "default",
+    "outcomes-dlq": "default",
     "outcomes-billing": "default",
+    "outcomes-billing-dlq": "default",
     "events-subscription-results": "default",
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
@@ -2964,6 +2978,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.replays.endpoints",
     "sentry.monitors.endpoints",
     "sentry.issues.endpoints",
+    "sentry.integrations.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3136,6 +3151,8 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
 
+SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
+
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
@@ -3188,7 +3205,7 @@ SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 400
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
@@ -3350,6 +3367,8 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
+OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
+
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
@@ -3436,6 +3455,9 @@ SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
+
+SEER_ANOMALY_DETECTION_VERSION = "v1"
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 

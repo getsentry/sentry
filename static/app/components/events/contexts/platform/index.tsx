@@ -1,6 +1,7 @@
 import {PlatformIcon} from 'platformicons';
 
 import {getKnownData, getUnknownData} from 'sentry/components/events/contexts/utils';
+import type {IconSize} from 'sentry/utils/theme';
 
 /**
  * Mapping of platform to known context keys for platform-specific context.
@@ -51,7 +52,10 @@ export function getUnknownPlatformContextData({
 
 export function getPlatformContextIcon({
   platform,
-}: Pick<PlatformContextProps, 'platform'>) {
+  size = 'sm',
+}: Pick<PlatformContextProps, 'platform'> & {
+  size?: IconSize;
+}) {
   let platformIconName = '';
   switch (platform) {
     case 'laravel':
@@ -66,7 +70,7 @@ export function getPlatformContextIcon({
   }
   return (
     <PlatformIcon
-      format="sm"
+      size={size}
       platform={platformIconName}
       data-test-id={`${platform}-context-icon`}
     />

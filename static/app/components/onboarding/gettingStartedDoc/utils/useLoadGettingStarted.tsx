@@ -6,7 +6,8 @@ import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import type {Organization, PlatformIntegration, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
@@ -23,9 +24,8 @@ export function useLoadGettingStarted({
   orgSlug,
   projSlug,
 }: Props): {
-  cdn: string | undefined;
   docs: Docs<any> | null;
-  dsn: string | undefined;
+  dsn: ProjectKey['dsn'] | undefined;
   isError: boolean;
   isLoading: boolean;
   refetch: () => void;
@@ -35,12 +35,12 @@ export function useLoadGettingStarted({
   );
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
-
   const platformPath = getPlatformPath(platform);
 
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
+        !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platform.id))
       ) {
@@ -72,7 +72,6 @@ export function useLoadGettingStarted({
     isLoading: projectKeys.isLoading || module === undefined,
     isError: projectKeys.isError,
     docs: module === 'none' ? null : module?.default ?? null,
-    dsn: projectKeys.data?.[0]?.dsn.public,
-    cdn: projectKeys.data?.[0]?.dsn.cdn,
+    dsn: projectKeys.data?.[0]?.dsn,
   };
 }

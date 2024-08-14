@@ -29,7 +29,7 @@ from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 
@@ -168,7 +168,7 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
@@ -181,7 +181,7 @@ class Activity(Model):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)

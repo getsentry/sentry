@@ -427,7 +427,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -438,13 +438,13 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     middle = parse_datetime_string(middle_date)
                 except InvalidQuery:
                     raise ParseError(detail=f"{middle_date} is not a valid date format")
-                if middle <= params["start"] or middle >= params["end"]:
+                if middle <= snuba_params.start_date or middle >= snuba_params.end_date:
                     raise ParseError(
                         detail="The middle date should be within the duration of the query"
                     )
             else:
-                middle = params["start"] + timedelta(
-                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+                middle = snuba_params.start_date + timedelta(
+                    seconds=(snuba_params.date_range).total_seconds() * 0.5
                 )
             middle = datetime.strftime(middle, DateArg.date_format)
 
@@ -470,7 +470,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             trend_query = TrendQueryBuilder(
                 dataset=Dataset.Discover,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 selected_columns=selected_columns,
                 config=QueryBuilderConfig(
                     auto_fields=False,
@@ -508,7 +509,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 on_results=self.build_result_handler(
                     request,
                     organization,
-                    params,
+                    snuba_params,
                     trend_function,
                     selected_columns,
                     orderby,
@@ -529,23 +530,26 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self,
         request,
         organization,
-        params,
+        snuba_params,
         trend_function,
         selected_columns,
         orderby,
         query,
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
+            def get_event_stats(
+                query_columns, query, snuba_params, rollup, zerofill_results, _=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
                     query,
-                    params,
+                    {},
                     orderby,
                     rollup,
                     min(5, len(events_results["data"])),
                     organization,
+                    snuba_params=snuba_params,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
                     zerofill_results=zerofill_results,
@@ -558,7 +562,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     get_event_stats,
                     top_events=True,
                     query_column=trend_function,
-                    params=params,
+                    snuba_params=snuba_params,
                     query=query,
                 )
                 if len(events_results["data"]) > 0
@@ -567,7 +571,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
 
             return {
                 "events": self.handle_results_with_meta(
-                    request, organization, params["project_id"], events_results
+                    request, organization, snuba_params.project_ids, events_results
                 ),
                 "stats": stats_results,
             }
@@ -581,12 +585,12 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
         self,
         request,
         organization,
-        params,
+        snuba_params,
         trend_function,
         selected_columns,
         orderby,
         query,
     ):
         return lambda events_results: self.handle_results_with_meta(
-            request, organization, params["project_id"], events_results
+            request, organization, snuba_params.project_ids, events_results
         )

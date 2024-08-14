@@ -10,15 +10,15 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.signals import email_verified, terms_accepted
 from sentry.silo.base import control_silo_function
+from sentry.users.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
@@ -248,7 +248,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 user.save()
 
                 # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(username=user.username, password=form.cleaned_data["password"])
+                auth = authenticate(username=user.username, password=form.cleaned_data["password"])
+                assert isinstance(auth, User), auth
+                user = auth
 
                 # Only log the user in if there is no two-factor on the
                 # account.

@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
-import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {
   useVirtualMetricsContext,
   VirtualMetricsContextProvider,
@@ -96,6 +97,11 @@ function renderMockRequests({
         dateUpdated: '2024-07-17T21:27:54.742586Z',
       },
     ],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/meta/`,
+    method: 'GET',
+    body: [],
   });
 }
 

@@ -18,6 +18,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
@@ -53,7 +57,7 @@ type Params = DocsParams<PlatformOptions>;
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
     ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     integrations: [${
       params.isPerformanceSelected
         ? `
@@ -64,11 +68,16 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         ? `
           Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
+    }${
+      params.isProfilingSelected
+        ? `
+          Sentry.browserProfilingIntegration(),`
+        : ''
     }
   ],${
     params.isPerformanceSelected
       ? `
-        // Performance Monitoring
+        // Tracing
         tracesSampleRate: 1.0, //  Capture 100% of the transactions
         // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
         tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -79,6 +88,12 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         // Session Replay
         replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
         replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+        // Profiling
+        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;
@@ -129,6 +144,7 @@ const getNextStep = (
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,
@@ -185,7 +201,7 @@ export const nextSteps = [
   },
   {
     id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
+    name: t('Tracing'),
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
@@ -264,6 +280,9 @@ function getSetupConfiguration(params: Params) {
 
           ${getSiblingSuffix(siblingOption)}`,
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
   ];
 
   return configuration;
@@ -327,7 +346,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

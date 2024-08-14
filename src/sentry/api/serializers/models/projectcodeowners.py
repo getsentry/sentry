@@ -2,10 +2,11 @@ import logging
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.repository_project_path_config import (
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
 
@@ -21,8 +22,6 @@ class ProjectCodeOwnersSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
-        from sentry.integrations.mixins import RepositoryMixin  # XXX: circular import
-
         attrs = {}
         integrations = {
             i.id: i
@@ -38,8 +37,8 @@ class ProjectCodeOwnersSerializer(Serializer):
                 organization_id=item.repository_project_path_config.organization_id,
             )
             codeowners_url = "unknown"
-            if item.repository_project_path_config.organization_integration_id and isinstance(
-                install, RepositoryMixin
+            if item.repository_project_path_config.organization_integration_id and (
+                isinstance(install, RepositoryIntegration)
             ):
                 try:
                     codeowners_response = install.get_codeowner_file(
@@ -52,9 +51,11 @@ class ProjectCodeOwnersSerializer(Serializer):
                     logger.exception("Could not get CODEOWNERS URL. Continuing execution.")
 
             attrs[item] = {
-                "provider": integration.provider
-                if item.repository_project_path_config.organization_integration_id
-                else "unknown",
+                "provider": (
+                    integration.provider
+                    if item.repository_project_path_config.organization_integration_id
+                    else "unknown"
+                ),
                 "codeMapping": code_mapping,
                 "codeOwnersUrl": codeowners_url,
             }

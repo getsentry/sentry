@@ -14,11 +14,15 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -38,7 +42,7 @@ GITHUB_CODEOWNERS = {
 }
 
 
-class GitHubAppsClientTest(TestCase):
+class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         ten_days = timezone.now() + timedelta(days=10)
@@ -522,7 +526,7 @@ class GithubProxyClientTest(TestCase):
         "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
     )
     def test_integration_proxy_is_active(self, mock_get_token):
-        class GithubProxyTestClient(GitHubAppsClient):
+        class GithubProxyTestClient(GitHubApiClient):
             _use_proxy_url_for_tests = True
 
             def assert_proxy_request(self, request, is_proxy=True):

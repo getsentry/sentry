@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {
   isSpanNode,
@@ -9,20 +10,6 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-
-function toDate(value: unknown): Date | null {
-  if (typeof value !== 'string' && typeof value !== 'number') {
-    return null;
-  }
-
-  const dateObj = new Date(value);
-
-  if (isNaN(dateObj.getTime())) {
-    return null;
-  }
-
-  return dateObj;
-}
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
@@ -66,8 +53,10 @@ export function makeTraceContinuousProfilingLink(
   if (!transaction) {
     return null;
   }
-  let start: Date | null = toDate(transaction.space[0]);
-  let end: Date | null = toDate(transaction.space[0] + transaction.space[1]);
+  let start: Date | null = getDateFromTimestamp(transaction.space[0]);
+  let end: Date | null = getDateFromTimestamp(
+    transaction.space[0] + transaction.space[1]
+  );
 
   // End timestamp is required to generate a link
   if (end === null || typeof profilerId !== 'string' || profilerId === '') {
@@ -110,12 +99,12 @@ export function makeTraceContinuousProfilingLink(
     queryWithEventData.spanId = spanId;
   }
 
-  return generateContinuousProfileFlamechartRouteWithQuery(
-    options.orgSlug,
-    options.projectSlug,
-    profilerId,
-    start.toISOString(),
-    end.toISOString(),
-    queryWithEventData
-  );
+  return generateContinuousProfileFlamechartRouteWithQuery({
+    orgSlug: options.orgSlug,
+    projectSlug: options.projectSlug,
+    profilerId: profilerId,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    query: queryWithEventData,
+  });
 }

@@ -93,7 +93,7 @@ from django.db import router
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
@@ -158,7 +158,7 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
 
 @dataclass
 class ReprocessableEvent:
-    event: Event
+    event: Event | GroupEvent
     data: dict[str, Any]
     attachments: list[EventAttachment]
 
@@ -547,7 +547,7 @@ def start_group_reprocessing(
 
         # Create a duplicate row that has the same attributes by nulling out
         # the primary key and saving
-        group.pk = group.id = None
+        group.pk = group.id = None  # type: ignore[assignment]  # XXX: intentional resetting pk
         new_group = group  # rename variable just to avoid confusion
         del group
         new_group.status = original_status

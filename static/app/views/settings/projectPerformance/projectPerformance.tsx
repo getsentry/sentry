@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
@@ -21,8 +21,10 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, Scope} from 'sentry/types';
-import {IssueTitle, IssueType} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import {IssueTitle, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
@@ -74,6 +76,7 @@ enum DetectorConfigAdmin {
   CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
   HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
+  FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -459,6 +462,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             performance_issue_settings: {
               ...this.state.performance_issue__settings,
               [DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED]: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED,
+        type: 'boolean',
+        label: t('Function Duration Regression Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue__settings,
+              [DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED]: value,
             },
           }),
       },
@@ -931,12 +947,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                   disabled={!hasAccess}
                   renderFooter={() => (
                     <Actions>
-                      <Button
+                      <LinkButton
                         external
                         href="https://docs.sentry.io/product/performance/performance-at-scale/"
                       >
                         {t('Read docs')}
-                      </Button>
+                      </LinkButton>
                     </Actions>
                   )}
                 />

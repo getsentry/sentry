@@ -36,13 +36,15 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DateString, Organization, Project} from 'sentry/types';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
@@ -64,6 +66,7 @@ import {
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import type {Incident} from '../../../types';
 import {
@@ -177,13 +180,26 @@ class MetricChart extends PureComponent<Props, State> {
       dataset = DiscoverDatasets.ERRORS;
     }
 
+    let openInDiscoverDataset: SavedQueryDatasets | undefined = undefined;
+    if (hasDatasetSelector(organization)) {
+      if (rule.dataset === Dataset.ERRORS) {
+        openInDiscoverDataset = SavedQueryDatasets.ERRORS;
+      } else if (
+        rule.dataset === Dataset.TRANSACTIONS ||
+        rule.dataset === Dataset.GENERIC_METRICS
+      ) {
+        openInDiscoverDataset = SavedQueryDatasets.TRANSACTIONS;
+      }
+    }
+
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: organization.slug,
+      organization,
       projects: [project],
       rule,
       timePeriod,
       query,
       dataset,
+      openInDiscoverDataset,
     });
 
     const resolvedPercent =

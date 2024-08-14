@@ -18,13 +18,14 @@ import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import type {Platform} from 'sentry/components/platformPicker';
 import PlatformPicker from 'sentry/components/platformPicker';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK, Team} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -258,7 +259,7 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
@@ -274,7 +275,7 @@ function CreateProject() {
     isMissingAlertThreshold,
   ].filter(value => value).length;
 
-  const canSubmitForm = !inFlight && canCreateProject && formErrorCount === 0;
+  const canSubmitForm = !inFlight && canUserCreateProject && formErrorCount === 0;
 
   let submitTooltipText: string = t('Please select a team');
   if (formErrorCount > 1) {
@@ -318,7 +319,7 @@ function CreateProject() {
   }, [autoFill, gettingStartedWithProjectContext.project?.alertRules]);
 
   return (
-    <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
+    <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
           <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>

@@ -77,7 +77,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:span.description !span.description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:span.description span.module:resource !span.description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
         "sort": "-count",
         "statsPeriod": "10d",
@@ -168,6 +168,7 @@ const setupMocks = () => {
     initiallyLoaded: true,
     projects: [ProjectFixture({hasInsightsAssets: true})],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
   });
 };

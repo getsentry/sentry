@@ -4,6 +4,7 @@ import re
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Case, IntegerField, When
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,8 +15,21 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.dashboard import DashboardListSerializer
+from sentry.api.serializers.models.dashboard import (
+    DashboardDetailsModelSerializer,
+    DashboardListResponse,
+    DashboardListSerializer,
+)
 from sentry.api.serializers.rest_framework import DashboardSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.examples.dashboard_examples import DashboardExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 
@@ -43,28 +57,33 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         return True
 
 
+@extend_schema(tags=["Dashboards"])
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
+    @extend_schema(
+        operation_id="List an Organization's Custom Dashboards",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "DashboardListResponse", list[DashboardListResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DashboardExamples.DASHBOARDS_QUERY_RESPONSE,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        Retrieve an Organization's Dashboards
-        `````````````````````````````````````
-
-        Retrieve a list of dashboards that are associated with the given organization.
-        If on the first page, this endpoint will also include any pre-built dashboards
-        that haven't been replaced or removed.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          dashboards belongs to.
-        :qparam string query: the title of the dashboard being searched for.
-        :auth: required
+        Retrieve a list of custom dashboards that are associated with the given organization.
         """
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
@@ -73,7 +92,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
-        prebuilt = Dashboard.get_prebuilt_list(organization, query)
+        prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
@@ -148,14 +167,22 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             on_results=handle_results,
         )
 
+    @extend_schema(
+        operation_id="Create a New Dashboard for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=DashboardSerializer,
+        responses={
+            201: DashboardDetailsModelSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+        examples=DashboardExamples.DASHBOARD_POST_RESPONSE,
+    )
     def post(self, request: Request, organization, retry=0) -> Response:
         """
-        Create a New Dashboard for an Organization
-        ``````````````````````````````````````````
-
         Create a new dashboard for the given Organization
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          dashboards belongs to.
         """
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)

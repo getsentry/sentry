@@ -1,4 +1,5 @@
 import {type ReactNode, useState} from 'react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -8,10 +9,11 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AutofixShowMore} from 'sentry/components/events/autofix/autofixShowMore';
 import {
+  type AutofixRepository,
+  type AutofixRootCauseCodeContext,
+  type AutofixRootCauseCodeContextSnippet,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
-  type AutofixRootCauseSuggestedFix,
-  type AutofixRootCauseSuggestedFixSnippet,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -20,10 +22,14 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -32,6 +38,7 @@ import useApi from 'sentry/utils/useApi';
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
+  repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
 };
@@ -52,7 +59,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
       params:
         | {
             causeId: string;
-            fixId: string;
           }
         | {
             customRootCause: string;
@@ -74,7 +80,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                 payload: {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
-                  fix_id: params.fixId,
                 },
               },
       });
@@ -107,7 +112,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                         }
                       : {
                           cause_id: params.causeId,
-                          fix_id: params.fixId,
                         },
                 };
               }),
@@ -120,6 +124,33 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
     },
   });
+}
+
+function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[] {
+  function findLinesWithSubstrings(
+    input: string | undefined,
+    substring: string
+  ): number[] {
+    if (!input) {
+      return [];
+    }
+    const lines = input.split('\n');
+    const result: number[] = [];
+
+    lines.forEach((line, index) => {
+      if (line.includes(substring)) {
+        result.push(index + 1); // line numbers are 1-based
+      }
+    });
+
+    return result;
+  }
+
+  const lineNumbersToHighlight = findLinesWithSubstrings(
+    suggestedFix.snippet?.snippet,
+    '***'
+  );
+  return lineNumbersToHighlight;
 }
 
 function RootCauseContent({
@@ -142,52 +173,47 @@ function RootCauseContent({
   );
 }
 
-function SuggestedFixSnippet({snippet}: {snippet: AutofixRootCauseSuggestedFixSnippet}) {
+function SuggestedFixSnippet({
+  snippet,
+  linesToHighlight,
+  repos,
+}: {
+  linesToHighlight: number[];
+  repos: AutofixRepository[];
+  snippet: AutofixRootCauseCodeContextSnippet;
+}) {
+  function getSourceLink() {
+    if (!repos) return undefined;
+    const repo = repos.find(
+      r => r.name === snippet.repo_name && r.provider === 'integrations:github'
+    );
+    if (!repo) return undefined;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
+  }
   const extension = getFileExtension(snippet.file_path);
   const lanugage = extension ? getPrismLanguage(extension) : undefined;
+  const sourceLink = getSourceLink();
 
   return (
-    <div>
-      <StyledCodeSnippet filename={snippet.file_path} language={lanugage}>
+    <CodeSnippetWrapper>
+      <StyledCodeSnippet
+        filename={snippet.file_path}
+        language={lanugage}
+        hideCopyButton
+        linesToHighlight={linesToHighlight}
+      >
         {snippet.snippet}
       </StyledCodeSnippet>
-    </div>
-  );
-}
-
-function CauseSuggestedFix({
-  fixNumber,
-  suggestedFix,
-  groupId,
-  runId,
-  causeId,
-}: {
-  causeId: string;
-  fixNumber: number;
-  groupId: string;
-  runId: string;
-  suggestedFix: AutofixRootCauseSuggestedFix;
-}) {
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
-
-  return (
-    <SuggestedFixWrapper>
-      <SuggestedFixHeader>
-        <strong>{t('Suggested Fix #%s: %s', fixNumber, suggestedFix.title)}</strong>
-        <Button
-          size="xs"
-          onClick={() => handleSelectFix({causeId, fixId: suggestedFix.id})}
-          busy={isLoading}
-          analyticsEventName="Autofix: Root Cause Fix Selected"
-          analyticsEventKey="autofix.root_cause_fix_selected"
-          analyticsParams={{group_id: groupId}}
-        >
-          {t('Continue With This Fix')}
-        </Button>
-      </SuggestedFixHeader>
-      <p>{suggestedFix.description}</p>
-      {suggestedFix.snippet && <SuggestedFixSnippet snippet={suggestedFix.snippet} />}
-    </SuggestedFixWrapper>
+      {sourceLink && (
+        <CodeLinkWrapper>
+          <Tooltip title={t('Open this file in GitHub')} skipWrapper>
+            <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
+              <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+            </OpenInLink>
+          </Tooltip>
+        </CodeLinkWrapper>
+      )}
+    </CodeSnippetWrapper>
   );
 }
 
@@ -197,38 +223,54 @@ function CauseOption({
   setSelectedId,
   runId,
   groupId,
+  repos,
 }: {
   cause: AutofixRootCauseData;
   groupId: string;
+  repos: AutofixRepository[];
   runId: string;
   selected: boolean;
   setSelectedId: (id: string) => void;
 }) {
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+
   return (
     <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
       {!selected && <InteractionStateLayer />}
       <RootCauseOptionHeader>
-        <Title>{cause.title}</Title>
-        <Button
-          icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
-          aria-label={t('Select root cause')}
-          aria-expanded={selected}
-          size="zero"
-          borderless
+        <Title
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(cause.title),
+          }}
         />
+        <RootCauseOptionsRow>
+          <Button
+            size="xs"
+            onClick={() => handleSelectFix({causeId: cause.id})}
+            busy={isLoading}
+            analyticsEventName="Autofix: Root Cause Fix Selected"
+            analyticsEventKey="autofix.root_cause_fix_selected"
+            analyticsParams={{group_id: groupId}}
+          >
+            {t('Find a Fix')}
+          </Button>
+          <Button
+            icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
+            aria-label={t('Select root cause')}
+            aria-expanded={selected}
+            size="zero"
+            borderless
+            style={{marginLeft: 8}}
+          />
+        </RootCauseOptionsRow>
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
-        <CauseDescription>{cause.description}</CauseDescription>
-        {cause.suggested_fixes?.map((fix, index) => (
-          <CauseSuggestedFix
-            causeId={cause.id}
-            key={fix.title}
-            suggestedFix={fix}
-            fixNumber={index + 1}
-            groupId={groupId}
-            runId={runId}
-          />
-        )) ?? null}
+        <CauseDescription
+          dangerouslySetInnerHTML={{
+            __html: marked(cause.description),
+          }}
+        />
+        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
       </RootCauseContent>
     </RootCauseOption>
   );
@@ -236,22 +278,26 @@ function CauseOption({
 
 function SelectedRootCauseOption({
   selectedCause,
-  selectedFix,
+  codeContext,
+  repos,
 }: {
+  codeContext: AutofixRootCauseCodeContext[];
+  repos: AutofixRepository[];
   selectedCause: AutofixRootCauseData;
-  selectedFix: AutofixRootCauseSuggestedFix;
 }) {
   return (
     <RootCauseOption selected>
-      <Title>{t('Selected Cause: %s', selectedCause.title)}</Title>
-      <CauseDescription>{selectedCause.description}</CauseDescription>
-      <SuggestedFixWrapper>
-        <SuggestedFixHeader>
-          <strong>{t('Selected Fix: %s', selectedFix.title)}</strong>
-        </SuggestedFixHeader>
-        <p>{selectedFix.description}</p>
-        {selectedFix.snippet && <SuggestedFixSnippet snippet={selectedFix.snippet} />}
-      </SuggestedFixWrapper>
+      <Title
+        dangerouslySetInnerHTML={{
+          __html: singleLineRenderer(t('Selected Cause: %s', selectedCause.title)),
+        }}
+      />
+      <CauseDescription
+        dangerouslySetInnerHTML={{
+          __html: marked(selectedCause.description),
+        }}
+      />
+      <AutofixRootCauseCodeContexts codeContext={codeContext} repos={repos} />
     </RootCauseOption>
   );
 }
@@ -302,8 +348,10 @@ function ProvideYourOwn({
             analyticsEventName="Autofix: Root Cause Custom Cause Provided"
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
+            aria-describedby="continue-custom-root-cause"
+            id="continue-custom-root-cause"
           >
-            {t('Continue With This Fix')}
+            {t('Find a Fix')}
           </Button>
         </OptionFooter>
       </RootCauseContent>
@@ -316,8 +364,10 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  repos,
 }: AutofixRootCauseProps) {
   const [selectedId, setSelectedId] = useState(() => causes[0].id);
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {
     if ('custom_root_cause' in rootCauseSelection) {
@@ -332,11 +382,8 @@ function AutofixRootCauseDisplay({
     }
 
     const selectedCause = causes.find(cause => cause.id === rootCauseSelection.cause_id);
-    const selectedFix = selectedCause?.suggested_fixes?.find(
-      fix => fix.id === rootCauseSelection.fix_id
-    );
 
-    if (!selectedCause || !selectedFix) {
+    if (!selectedCause) {
       return <Alert type="error">{t('Selected root cause not found.')}</Alert>;
     }
 
@@ -345,24 +392,41 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <SelectedRootCauseOption
-          selectedFix={selectedFix}
+          codeContext={selectedCause?.code_context}
           selectedCause={selectedCause}
+          repos={repos}
         />
         {otherCauses.length > 0 && (
           <AutofixShowMore title={t('Show unselected causes')}>
             {otherCauses.map(cause => (
               <RootCauseOption selected key={cause.id}>
-                <Title>{t('Cause: %s', cause.title)}</Title>
-                <CauseDescription>{cause.description}</CauseDescription>
-                {cause.suggested_fixes?.map(fix => (
-                  <SuggestedFixWrapper key={fix.id}>
-                    <SuggestedFixHeader>
-                      <strong>{t('Fix: %s', fix.title)}</strong>
-                    </SuggestedFixHeader>
-                    <p>{fix.description}</p>
-                    {fix.snippet && <SuggestedFixSnippet snippet={fix.snippet} />}
-                  </SuggestedFixWrapper>
-                ))}
+                <RootCauseOptionHeader>
+                  <Title
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(t('Cause: %s', cause.title)),
+                    }}
+                  />
+                  <Button
+                    size="xs"
+                    onClick={() => handleSelectFix({causeId: cause.id})}
+                    busy={isLoading}
+                    analyticsEventName="Autofix: Root Cause Fix Re-Selected"
+                    analyticsEventKey="autofix.root_cause_fix_selected"
+                    analyticsParams={{group_id: groupId}}
+                  >
+                    {t('Fix This Instead')}
+                  </Button>
+                </RootCauseOptionHeader>
+
+                <CauseDescription
+                  dangerouslySetInnerHTML={{
+                    __html: marked(cause.description),
+                  }}
+                />
+                <AutofixRootCauseCodeContexts
+                  codeContext={cause.code_context}
+                  repos={repos}
+                />
               </RootCauseOption>
             ))}
           </AutofixShowMore>
@@ -390,6 +454,7 @@ function AutofixRootCauseDisplay({
               setSelectedId={setSelectedId}
               runId={runId}
               groupId={groupId}
+              repos={repos}
             />
           ))}
           <ProvideYourOwn
@@ -416,6 +481,38 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   }
 
   return <AutofixRootCauseDisplay {...props} />;
+}
+
+export function AutofixRootCauseCodeContexts({
+  codeContext,
+  repos,
+}: {
+  codeContext: AutofixRootCauseCodeContext[];
+  repos: AutofixRepository[];
+}) {
+  return codeContext?.map((fix, index) => (
+    <SuggestedFixWrapper key={fix.id}>
+      <SuggestedFixHeader>
+        <strong
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(t('Relevant Code #%s: %s', index + 1, fix.title)),
+          }}
+        />
+      </SuggestedFixHeader>
+      <p
+        dangerouslySetInnerHTML={{
+          __html: marked(fix.description),
+        }}
+      />
+      {fix.snippet && (
+        <SuggestedFixSnippet
+          snippet={fix.snippet}
+          linesToHighlight={getLinesToHighlight(fix)}
+          repos={repos}
+        />
+      )}
+    </SuggestedFixWrapper>
+  ));
 }
 
 const NoCausesPadding = styled('div')`
@@ -515,4 +612,47 @@ const OptionFooter = styled('div')`
 
 const CustomRootCausePadding = styled('div')`
   padding: 0 ${space(2)} ${space(2)} ${space(2)};
+`;
+
+const RootCauseOptionsRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const StyledIconWrapper = styled('span')`
+  color: inherit;
+  line-height: 0;
+`;
+
+const LinkStyles = css`
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const OpenInLink = styled(ExternalLink)`
+  ${LinkStyles}
+  color: ${p => p.theme.subText};
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const CodeLinkWrapper = styled('div')`
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.family};
+  padding: 0 ${space(1)};
+  position: absolute;
+  top: 8px;
+  right: 0;
+`;
+
+const CodeSnippetWrapper = styled('div')`
+  position: relative;
 `;

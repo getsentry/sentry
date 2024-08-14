@@ -115,7 +115,7 @@ const getConsoleAppenderSnippet = (params: Params) => `
   <!-- Configure the Sentry appender, overriding the logging threshold to the WARN level -->
   <appender name="Sentry" class="io.sentry.logback.SentryAppender">
     <options>
-      <dsn>${params.dsn}</dsn>
+      <dsn>${params.dsn.public}</dsn>
     </options>
   </appender>
 
@@ -130,7 +130,7 @@ const getConsoleAppenderSnippet = (params: Params) => `
 const getLogLevelSnippet = (params: Params) => `
 <appender name="Sentry" class="io.sentry.logback.SentryAppender">
   <options>
-    <dsn>${params.dsn}</dsn>
+    <dsn>${params.dsn.public}</dsn>
   </options>
   <!-- Optionally change minimum Event level. Default for Events is ERROR -->
   <minimumEventLevel>WARN</minimumEventLevel>

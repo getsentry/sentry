@@ -388,12 +388,12 @@ class GroupManager(BaseManager["Group"]):
     def get_groups_by_external_issue(
         self,
         integration: RpcIntegration,
-        organizations: Sequence[Organization],
+        organizations: Iterable[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
-        from sentry.models.integrations.external_issue import ExternalIssue
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -632,12 +632,10 @@ class Group(Model):
 
         if self.issue_category == GroupCategory.FEEDBACK:
             path = f"/organizations/{organization.slug}/feedback/"
-            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
-            project = {"project": self.project.id}
             params = {
                 **(params or {}),
-                **slug,
-                **project,
+                "feedbackSlug": f"{self.project.slug}:{self.id}",
+                "project": str(self.project.id),
             }
             query = urlencode(params)
             return organization.absolute_url(path, query=query)
@@ -833,7 +831,7 @@ class Group(Model):
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
-        if self.first_release_id is None:
+        if self.first_release is None:
             return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version
@@ -985,6 +983,10 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
 
         if instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus is None:
+                logger.warning(
+                    "no_substatus: Found UNRESOLVED group with no substatus",
+                    extra={"group_id": instance.id},
+                )
                 instance.substatus = GroupSubStatus.ONGOING
 
             # UNRESOLVED groups must have a substatus

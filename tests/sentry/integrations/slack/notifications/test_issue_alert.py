@@ -10,13 +10,13 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projectownership import ProjectOwnership
@@ -40,8 +40,8 @@ pytestmark = [requires_snuba]
 old_get_tags = get_tags
 
 
-def fake_get_tags(group, event_for_tags, tags):
-    return old_get_tags(group, event_for_tags, None)
+def fake_get_tags(event_for_tags, tags):
+    return old_get_tags(event_for_tags, None)
 
 
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):

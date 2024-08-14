@@ -14,6 +14,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -80,7 +81,6 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
         metric_and_agg_text = f"{metric_value} {agg_text}"
 
     time_window = alert_rule.snuba_query.time_window // 60
-    interval = "minute" if time_window == 1 else "minutes"
     # % change alerts have a comparison delta
     if alert_rule.comparison_delta:
         metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
@@ -92,15 +92,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
         return _(
-            f"{metric_and_agg_text} {higher_or_lower} in the last {time_window} {interval} "
+            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
             f"compared to the {comparison_string}"
         )
 
-    return _("%(metric_and_agg_text)s in the last %(time_window)d %(interval)s") % {
-        "metric_and_agg_text": metric_and_agg_text,
-        "time_window": time_window,
-        "interval": interval,
-    }
+    return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
 
 
 def incident_attachment_info(
@@ -123,6 +119,7 @@ def incident_attachment_info(
     title_link_params = {
         "alert": str(incident.identifier),
         "referrer": referrer,
+        "detection_type": alert_rule.detection_type,
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid

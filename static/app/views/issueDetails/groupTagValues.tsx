@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -21,13 +21,17 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Project, SavedQueryVersions} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 type RouteParams = {
   groupId: string;
@@ -189,7 +193,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
               >
                 {key === 'user' ? (
                   <UserBadge
-                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    user={{...tagValue, id: tagValue.id ?? ''}}
                     avatarSize={20}
                     hideEmail
                   />
@@ -232,7 +236,13 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
                 {
                   key: 'open-in-discover',
                   label: t('Open in Discover'),
-                  to: discoverView.getResultsViewUrlTarget(orgId),
+                  to: discoverView.getResultsViewUrlTarget(
+                    orgId,
+                    false,
+                    hasDatasetSelector(organization)
+                      ? SavedQueryDatasets.ERRORS
+                      : undefined
+                  ),
                   hidden: !organization.features.includes('discover-basic'),
                 },
                 {
@@ -260,13 +270,13 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar gap={1}>
-            <Button
+            <LinkButton
               size="sm"
               priority="default"
               href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
-            </Button>
+            </LinkButton>
             <DataExport
               payload={{
                 queryType: ExportQueryType.ISSUES_BY_TAG,

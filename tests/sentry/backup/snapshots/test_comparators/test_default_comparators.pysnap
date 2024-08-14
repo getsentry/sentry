@@ -1,5 +1,5 @@
 ---
-created: '2024-07-19T16:28:27.933996+00:00'
+created: '2024-08-13T18:47:42.048211+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -390,6 +390,11 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - organization
+  model_name: sentry.datasecrecywaiver
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
     - artifact_bundle
     - organization_id
   model_name: sentry.debugidartifactbundle
@@ -569,6 +574,11 @@ source: tests/sentry/backup/test_comparators.py
     - group_tombstone_id
     - project
   model_name: sentry.grouphash
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - grouphash
+  model_name: sentry.grouphashmetadata
 - comparators:
   - class: ForeignKeyComparator
     fields:

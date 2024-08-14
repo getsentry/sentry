@@ -24,6 +24,7 @@ export interface DashboardMetricsEquation {
   isHidden: boolean;
   type: MetricExpressionType.EQUATION;
   alias?: string;
+  isQueryOnly?: boolean;
 }
 
 export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;

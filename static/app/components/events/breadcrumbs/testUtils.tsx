@@ -2,8 +2,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {EntryType} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {EntryType} from 'sentry/types/event';
 
 const oneMinuteBeforeEventFixture = '2019-05-21T18:00:48.76Z';
 export const MOCK_BREADCRUMBS = [
@@ -33,6 +33,20 @@ export const MOCK_BREADCRUMBS = [
     category: 'Query Category',
     level: BreadcrumbLevelType.DEBUG,
     type: BreadcrumbType.QUERY,
+    timestamp: oneMinuteBeforeEventFixture,
+  },
+  {
+    message: 'my logger',
+    category: 'custom.logger',
+    level: BreadcrumbLevelType.UNDEFINED,
+    type: BreadcrumbType.DEFAULT,
+    timestamp: oneMinuteBeforeEventFixture,
+  },
+  {
+    message: 'my analytics',
+    category: 'analytics.event',
+    level: BreadcrumbLevelType.INFO,
+    type: BreadcrumbType.DEFAULT,
     timestamp: oneMinuteBeforeEventFixture,
   },
 ];

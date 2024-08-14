@@ -16,8 +16,8 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
@@ -425,7 +425,7 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .tag-button {
     height: 20px;
     min-height: 20px;
-    padding: ${space(0)} ${space(0.75)};
+    padding: 0 ${space(0.75)};
     border-radius: ${space(0.5)};
     z-index: 0;
   }

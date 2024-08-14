@@ -10,9 +10,8 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();
@@ -225,7 +224,6 @@ describe('Threads', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
-        organization,
       };
 
       it('renders', async function () {
@@ -878,7 +876,6 @@ describe('Threads', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
-        organization,
       };
 
       it('renders', async function () {
@@ -893,9 +890,9 @@ describe('Threads', function () {
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
-        expect(screen.queryByText('Threads')).not.toBeInTheDocument();
-        expect(screen.queryByText('Thread State')).not.toBeInTheDocument();
-        expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
+        expect(screen.queryByText('Threads')).toBeInTheDocument();
+        expect(screen.queryByText('Thread State')).toBeInTheDocument();
+        expect(screen.queryByText('Thread Tags')).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
@@ -910,12 +907,8 @@ describe('Threads', function () {
       });
 
       it('renders thread state and lock reason', async function () {
-        const newOrg = {
-          ...organization,
-          features: ['anr-improvements'],
-        };
-        const newProps = {...props, organization: newOrg};
-        render(<Threads {...newProps} />, {organization: newOrg});
+        const newProps = {...props, organization};
+        render(<Threads {...newProps} />, {organization});
         // Title
         expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 
@@ -945,10 +938,6 @@ describe('Threads', function () {
       });
 
       it('hides thread tag event entry if none', async function () {
-        const newOrg = {
-          ...organization,
-          features: ['anr-improvements'],
-        };
         const newProps = {
           ...props,
           data: {
@@ -991,9 +980,8 @@ describe('Threads', function () {
               },
             ],
           },
-          organization: newOrg,
         };
-        render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization});
         expect(await screen.findByTestId('event-section-threads')).toBeInTheDocument();
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
       });
@@ -1046,12 +1034,8 @@ describe('Threads', function () {
           },
         ];
 
-        const newOrg = {
-          ...organization,
-          features: ['anr-improvements'],
-        };
-        const newProps = {...props, event: newEvent, organization: newOrg};
-        render(<Threads {...newProps} />, {organization: newOrg});
+        const newProps = {...props, event: newEvent};
+        render(<Threads {...newProps} />, {organization});
         // Title
         expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 

@@ -9,10 +9,10 @@ from django.http.response import HttpResponseBase
 from rest_framework import status
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team

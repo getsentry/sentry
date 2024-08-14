@@ -6,8 +6,8 @@ from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.models.integrations import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
@@ -91,7 +91,7 @@ class OpsgenieActionHandlerTest(FireTest):
         assert data["priority"] == "P1"
         assert (
             data["details"]["URL"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie&detection_type=static"
         )
 
     @responses.activate

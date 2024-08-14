@@ -3,7 +3,7 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
 const lightColors = {
   black: '#1D1127',
@@ -497,6 +497,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.gray100,
     color: colors.gray500,
   },
+  internal: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
   warning: {
     background: colors.yellow300,
     indicatorColor: colors.yellow300,
@@ -655,17 +660,27 @@ const generatePrismVariables = (
     ...prismColors,
   });
 
+const iconNumberSizes = {
+  xs: 12,
+  sm: 14,
+  md: 18,
+  lg: 24,
+  xl: 32,
+  xxl: 72,
+} as const;
+
 const iconSizes = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  xxl: '72px',
-};
+  xs: `${iconNumberSizes.xs}px`,
+  sm: `${iconNumberSizes.sm}px`,
+  md: `${iconNumberSizes.md}px`,
+  lg: `${iconNumberSizes.lg}px`,
+  xl: `${iconNumberSizes.xl}px`,
+  xxl: `${iconNumberSizes.xxl}px`,
+} as const;
 
 const commonTheme = {
   breakpoints: {
+    xsmall: '500px',
     small: '800px',
     medium: '992px',
     large: '1200px',
@@ -678,6 +693,7 @@ const commonTheme = {
   ...lightShadows,
 
   iconSizes,
+  iconNumberSizes,
 
   iconDirections: {
     up: '0',

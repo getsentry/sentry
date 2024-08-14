@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import type {Organization, PageFilters} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
@@ -55,6 +56,7 @@ export function EventsSearchBar({
       savedSearchType={SavedSearchType.EVENT}
       customMeasurements={customMeasurements}
       dataset={dataset}
+      includeTransactions={hasDatasetSelector(organization) ? false : true}
     />
   );
 }

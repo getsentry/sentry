@@ -3,25 +3,24 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections import namedtuple
 from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NoReturn
-from urllib.request import Request
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
 from rest_framework.exceptions import NotFound
+from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.identity import Identity
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -47,35 +46,32 @@ from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
 
 logger = logging.getLogger(__name__)
 
-FeatureDescription = namedtuple(
-    "FeatureDescription",
-    [
-        "description",  # A markdown description of the feature
-        "featureGate",  # A IntegrationFeature that gates this feature
-    ],
-)
+
+class IntegrationFeatureNotImplementedError(Exception):
+    pass
 
 
-IntegrationMetadata = namedtuple(
-    "IntegrationMetadata",
-    [
-        "description",  # A markdown description of the integration
-        "features",  # A list of FeatureDescriptions
-        "author",  # The integration author's name
-        "noun",  # The noun used to identify the integration
-        "issue_url",  # URL where issues should be opened
-        "source_url",  # URL to view the source
-        "aspects",  # A map of integration specific 'aspects' to the aspect config.
-    ],
-)
+class FeatureDescription(NamedTuple):
+    description: str  # A markdown description of the feature
+    featureGate: IntegrationFeatures  # A IntegrationFeature that gates this feature
 
 
-class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
+class IntegrationMetadata(NamedTuple):
+    description: str | _StrPromise  # A markdown description of the integration
+    features: Sequence[FeatureDescription]  # A list of FeatureDescriptions
+    author: str  # The integration author's name
+    noun: str | _StrPromise  # The noun used to identify the integration
+    issue_url: str  # URL where issues should be opened
+    source_url: str  # URL to view the source
+    aspects: dict[str, Any]  # A map of integration specific 'aspects' to the aspect config.
+
     @staticmethod
     def feature_flag_name(f: str | None) -> str | None:
         """
@@ -87,14 +83,14 @@ class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
             return f"integrations-{f}"
         return None
 
-    def _asdict(self) -> dict[str, Sequence[Any]]:
-        metadata = super()._asdict()
+    def asdict(self) -> dict[str, Any]:
+        metadata = self._asdict()
         metadata["features"] = [
             {
                 "description": f.description.strip(),
                 "featureGate": self.feature_flag_name(f.featureGate.value),
             }
-            for f in metadata["features"]
+            for f in self.features
         ]
         return metadata
 
@@ -298,7 +294,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return feature in self.features
 
 
-class IntegrationInstallation:
+class IntegrationInstallation(abc.ABC):
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
@@ -367,6 +363,7 @@ class IntegrationInstallation:
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    @abc.abstractmethod
     def get_client(self) -> Any:
         """
         Return an API client for the integration provider
@@ -451,7 +448,7 @@ class IntegrationInstallation:
         raise NotImplementedError
 
     @property
-    def metadata(self) -> IntegrationMetadata:
+    def metadata(self) -> dict[str, Any]:
         return self.model.metadata
 
     def uninstall(self) -> None:
@@ -516,6 +513,9 @@ def disable_integration(
         "integration.disabled",
         extra=extra,
     )
+
+    if not rpc_integration:
+        return None
 
     if org and (
         (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())

@@ -6,8 +6,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {Tag, TagValue} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
+import type {Tag, TagValue} from 'sentry/types/group';
 import {
   type ApiQueryKey,
   useApiQuery,
@@ -114,7 +114,7 @@ export function fetchTagValues({
   includeTransactions?: boolean;
   projectIds?: string[];
   search?: string;
-  sort?: string;
+  sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 

@@ -6,7 +6,7 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -26,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -39,6 +40,7 @@ import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/util
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -402,7 +404,11 @@ class TraceDetailsContent extends Component<Props, State> {
             <ButtonBar gap={1}>
               <DiscoverButton
                 size="sm"
-                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+                to={traceEventView.getResultsViewUrlTarget(
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+                )}
                 onClick={() => {
                   trackAnalytics('performance_views.trace_view.open_in_discover', {
                     organization,
@@ -474,8 +480,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
       <ActionsWrapper>
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
-          {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -492,9 +503,9 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button href="https://docs.sentry.io/product/performance/" external>
+            <LinkButton href="https://docs.sentry.io/product/performance/" external>
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>

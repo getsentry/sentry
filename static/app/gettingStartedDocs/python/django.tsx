@@ -12,18 +12,17 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[django]'`;
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
-# settings.py
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
@@ -39,31 +38,14 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct('The Django integration adds support for the [link:Django Web Framework].', {
-      link: <ExternalLink href="https://www.djangoproject.com/" />,
-    }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
-        {
-          code: <code />,
-          sentryDjangoCode: <code />,
-        }
-      ),
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -74,7 +56,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'If you have the [codeDjango:django] package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django [codeSettings:settings.py] file:',
+        'Initialize the Sentry SDK in your Django [codeSettings:settings.py] file:',
         {
           codeDjango: <code />,
           codeSettings: <code />,
@@ -82,8 +64,14 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'settings.py',
+              value: 'settings.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
       ],
     },
@@ -96,9 +84,12 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-
-          code: `# urls.py
+          code: [
+            {
+              label: 'urls.py',
+              value: 'urls.py',
+              language: 'python',
+              code: `
 from django.urls import path
 
 def trigger_error(request):
@@ -109,24 +100,26 @@ urlpatterns = [
     # ...
 ]
                   `,
+            },
+          ],
         },
       ],
       additionalInfo: (
         <div>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
               {
-                link: <ExternalLink href="http://localhost:8000/" />,
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
             )}
           </p>
+          <br />
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
         </div>
       ),
     },

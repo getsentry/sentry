@@ -10,12 +10,14 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.auth.authenticators.u2f import decode_credential_id
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.authenticator import Authenticator
-from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
 
 
@@ -95,10 +97,19 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         response = serialize(interface)
 
         if interface.interface_id == "recovery":
+            assert isinstance(
+                interface, RecoveryCodeInterface
+            ), "Interace must be RecoveryCodeInterface to get unused codes"
             response["codes"] = interface.get_unused_codes()
         if interface.interface_id == "sms":
+            assert isinstance(
+                interface, SmsInterface
+            ), "Interace must be SmsInterface to get phone number"
             response["phone"] = interface.phone_number
         if interface.interface_id == "u2f":
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interace must be U2fInterface to get registered devices"
             response["devices"] = interface.get_registered_devices()
 
         return Response(response)
@@ -147,10 +158,15 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         interface = authenticator.interface
         # Remove a single device and not entire authentication method
         if interface.interface_id == "u2f" and interface_device_id is not None:
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interace must be U2fInterface to get registered devices"
             device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            assert interface.authenticator, "Interface must have an authenticator to save"
             interface.authenticator.save()
 
             capture_security_activity(
@@ -198,6 +214,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 if len(backup_interfaces) == len(interfaces):
                     for iface in backup_interfaces:
+                        assert iface.authenticator, "Interface must have an authenticator to delete"
                         iface.authenticator.delete()
 
                     # wait to generate entries until all pending writes

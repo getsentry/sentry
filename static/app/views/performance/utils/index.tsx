@@ -3,20 +3,21 @@ import type {Location} from 'history';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   NewQuery,
   Organization,
   OrganizationSummary,
-  PageFilters,
-  Project,
-  ReleaseProject,
-} from 'sentry/types';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {ReleaseProject} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useQuery} from 'sentry/utils/queryClient';
@@ -26,6 +27,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {DEFAULT_MAX_DURATION} from '../trends/utils';
 
@@ -74,7 +76,11 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
     query,
     props.location
   ).withSorts([{field: 'epm', kind: 'desc'}]);
-  const target = discoverEventView.getResultsViewUrlTarget(props.organization.slug);
+  const target = discoverEventView.getResultsViewUrlTarget(
+    props.organization.slug,
+    false,
+    hasDatasetSelector(props.organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
   target.query[SHOW_UNPARAM_BANNER] = 'true';
   return target;
 }

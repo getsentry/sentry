@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
@@ -47,7 +47,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
 
   const supportedPlatforms = replayPlatforms;
 
@@ -72,7 +72,7 @@ export default function ReplayOnboardingPanel() {
   // disable "setup" if the current selected pageFilters are not supported
   const primaryActionDisabled =
     primaryAction === 'create'
-      ? !canCreateProject
+      ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
   const breakpoints = preferences.collapsed
@@ -275,7 +275,7 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
-        <Button
+        <LinkButton
           href={
             allMobileProj
               ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
@@ -284,7 +284,7 @@ export function SetupReplaysCTA({
           external
         >
           {t('Read Docs')}
-        </Button>
+        </LinkButton>
       </ButtonList>
       <StyledWidgetContainer>
         <StyledHeaderContainer>

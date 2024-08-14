@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -20,6 +21,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Datasource} from 'sentry/views/alerts/rules/metric/types';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+
+import {handleXhrErrorResponse} from '../../utils/handleXhrErrorResponse';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
@@ -47,7 +51,6 @@ type CustomDynamicSamplingRule = {
 };
 type CreateCustomRuleVariables = {
   organization: Organization;
-  period: string | null;
   projects: number[];
   query: string;
 };
@@ -179,17 +182,27 @@ const InvestigationInProgressNotification = styled('span')`
 `;
 
 function InvestigationRuleCreationInternal(props: PropsInternal) {
+  const {organization, eventView} = props;
   const projects = [...props.eventView.project];
-  const organization = props.organization;
-  const period = props.eventView.statsPeriod || null;
-  const query = props.eventView.getQuery();
+
+  const isTransactionsDataset =
+    hasDatasetSelector(organization) &&
+    eventView.dataset === DiscoverDatasets.TRANSACTIONS;
+
+  const query = isTransactionsDataset
+    ? appendEventTypeCondition(eventView.getQuery())
+    : eventView.getQuery();
+
   const isTransactionQueryMissing =
-    getQueryDatasource(query)?.source !== Datasource.TRANSACTION;
+    getQueryDatasource(query)?.source !== Datasource.TRANSACTION &&
+    !isTransactionsDataset;
+
   const createInvestigationRule = useCreateInvestigationRuleMutation();
   const {
     data: rule,
     isFetching: isLoading,
     isError,
+    error,
   } = useGetExistingRule(query, projects, organization, !isTransactionQueryMissing);
 
   const isBreakingRequestError = isError && !isTransactionQueryMissing;
@@ -197,25 +210,21 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 
   useEffect(() => {
     if (isBreakingRequestError) {
-      addErrorMessage(t('Unable to fetch investigation rule'));
+      const msg = t('Unable to fetch investigation rule');
+      handleXhrErrorResponse(msg, error);
+      addErrorMessage(msg);
     }
-  }, [isBreakingRequestError]);
+  }, [isBreakingRequestError, error]);
 
-  if (isLoading) {
-    return null;
-  }
-  if (isBreakingRequestError) {
+  if (isLoading || isBreakingRequestError) {
     return null;
   }
 
-  const isInvestigationRuleInProgress = !!rule;
-
-  if (isInvestigationRuleInProgress) {
-    // investigation rule in progress, just show a message
-    const existingRule = rule as CustomDynamicSamplingRule;
-    const ruleStartDate = new Date(existingRule.startDate);
-    const now = new Date();
-    const interval = moment.duration(now.getTime() - ruleStartDate.getTime()).humanize();
+  // investigation rule in progress
+  if (rule) {
+    const interval = moment
+      .duration(new Date().getTime() - new Date(rule.startDate).getTime())
+      .humanize();
 
     return (
       <InvestigationInProgressNotification>
@@ -264,10 +273,10 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       }
     >
       <Button
-        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         {...props.buttonProps}
+        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         disabled={isTransactionQueryMissing}
-        onClick={() => createInvestigationRule({organization, period, projects, query})}
+        onClick={() => createInvestigationRule({organization, projects, query})}
         icon={<IconStack />}
       >
         {t('Get Samples')}
@@ -290,3 +299,10 @@ const StyledIconQuestion = styled(IconQuestion)`
   position: relative;
   top: 2px;
 `;
+
+function appendEventTypeCondition(query: string) {
+  if (query.length > 0) {
+    return `event.type:transaction (${query})`;
+  }
+  return 'event.type:transaction';
+}

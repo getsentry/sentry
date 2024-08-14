@@ -26,11 +26,11 @@ from sentry.incidents.models.incident import Incident
 from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -85,7 +85,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    timeWindow: int
+    timeWindow: float
     resolution: float
     thresholdPeriod: int
     triggers: list[dict]
@@ -273,6 +273,7 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
+        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
             "organizations:custom-metrics",
@@ -406,13 +407,13 @@ class CombinedRuleSerializer(Serializer):
 
         for item in item_list:
             item_id = str(item.id)
-            if item_id in serialized_alert_rule_map_by_id:
+            if isinstance(item, AlertRule) and item_id in serialized_alert_rule_map_by_id:
                 # This is a metric alert rule
                 serialized_alert_rule = serialized_alert_rule_map_by_id[item_id]
                 if "latestIncident" in self.expand:
                     # Eg. we _have_ an incident
                     try:
-                        serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)
+                        serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
                     except AttributeError as e:
                         logger.exception(
                             "incident serialization error",
@@ -424,10 +425,13 @@ class CombinedRuleSerializer(Serializer):
                             },
                         )
                 results[item] = serialized_alert_rule
-            elif item_id in serialized_issue_rule_map_by_id:
+            elif isinstance(item, Rule) and item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
-            elif item_id in serialized_uptime_monitor_map_by_id:
+            elif (
+                isinstance(item, ProjectUptimeSubscription)
+                and item_id in serialized_uptime_monitor_map_by_id
+            ):
                 # This is an uptime monitor
                 results[item] = serialized_uptime_monitor_map_by_id[item_id]
             else:

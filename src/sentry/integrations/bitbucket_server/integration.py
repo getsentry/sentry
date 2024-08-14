@@ -16,20 +16,21 @@ from rest_framework.request import Request
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
@@ -225,14 +226,16 @@ class OAuthCallbackView(PipelineView):
             return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
 
 
-class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
+class BitbucketServerIntegration(RepositoryIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
 
-    repo_search = True
-
     default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "bitbucket_server"
 
     def get_client(self):
         if self.default_identity is None:
@@ -295,8 +298,17 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
-    def reinstall(self):
-        self.reinstall_repositories()
+    def source_url_matches(self, url: str) -> bool:
+        raise IntegrationFeatureNotImplementedError
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):

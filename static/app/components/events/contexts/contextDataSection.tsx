@@ -2,13 +2,14 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueData from 'sentry/components/keyValueData';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface ContextDataSectionProps {
   event: Event;
@@ -35,10 +36,14 @@ export default function ContextDataSection({
     )
   );
 
+  if (!cards.length) {
+    return null;
+  }
+
   return (
-    <EventDataSection
+    <InterimSection
       key={'context'}
-      type={'context'}
+      type={FoldSectionKey.CONTEXTS}
       title={t('Contexts')}
       help={tct(
         'The structured context items attached to this event. [link:Learn more]',
@@ -51,6 +56,6 @@ export default function ContextDataSection({
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
         <KeyValueData.Container>{cards}</KeyValueData.Container>
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }

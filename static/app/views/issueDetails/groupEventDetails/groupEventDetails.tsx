@@ -13,14 +13,10 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupActivityReprocess,
-  GroupReprocessing,
-  Organization,
-  Project,
-} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -37,6 +33,7 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
 } from '../utils';
 
 const EscalatingIssuesFeedback = HookOrDefault({
@@ -72,6 +69,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -157,6 +155,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
 
   return (
     <TransactionProfileIdProvider
@@ -182,10 +181,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             />
           ) : (
             <Fragment>
-              <StyledLayoutMain>
-                {renderGroupStatusBanner()}
+              <MainLayoutComponent>
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
-                {eventWithMeta && issueTypeConfig.stats.enabled && (
+                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
                   <GroupEventHeader
                     group={group}
                     event={eventWithMeta}
@@ -193,7 +192,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   />
                 )}
                 {renderContent()}
-              </StyledLayoutMain>
+              </MainLayoutComponent>
               <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}
@@ -234,6 +233,14 @@ const StyledLayoutMain = styled(Layout.Main)`
     border-right: 1px solid ${p => p.theme.border};
     padding-right: 0;
   }
+`;
+
+const GroupContent = styled(Layout.Main)`
+  background: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  padding: ${space(1.5)};
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`

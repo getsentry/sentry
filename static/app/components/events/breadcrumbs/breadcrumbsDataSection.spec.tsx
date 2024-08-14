@@ -1,6 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForDrawerToHide,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {
@@ -8,7 +14,7 @@ import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_EXCEPTION_ENTRY,
 } from 'sentry/components/events/breadcrumbs/testUtils';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 // Needed to mock useVirtualizer lists.
 jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
@@ -30,6 +36,8 @@ describe('BreadcrumbsDataSection', function () {
     // Only summary crumbs should be visible by default
     const summaryCrumbTitles = [
       'Exception',
+      MOCK_BREADCRUMBS[5].category,
+      MOCK_BREADCRUMBS[4].category,
       MOCK_BREADCRUMBS[3].category,
       MOCK_BREADCRUMBS[2].category,
     ];
@@ -52,6 +60,17 @@ describe('BreadcrumbsDataSection', function () {
     for (const crumbTitle of [...summaryCrumbTitles, ...hiddenCrumbTitles]) {
       expect(within(drawer).getByText(crumbTitle)).toBeInTheDocument();
     }
+  });
+
+  it('toggles the drawer when view all is clicked', async function () {
+    render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+    const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+    await userEvent.click(viewAllButton);
+    const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+    expect(drawer).toBeInTheDocument();
+    await userEvent.click(viewAllButton);
+    await waitForDrawerToHide('breadcrumb drawer');
+    expect(drawer).not.toBeInTheDocument();
   });
 
   it('can switch between display time formats', async function () {

@@ -7,7 +7,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from .base import Newsletter
 
@@ -77,7 +77,7 @@ class DummyNewsletter(Newsletter):
         self._enabled = enabled
 
     @contextlib.contextmanager
-    def enable(self) -> Generator[None, None, None]:
+    def enable(self) -> Generator[None]:
         self._enabled = True
         try:
             yield

@@ -1,4 +1,4 @@
-import type {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types/group';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -9,7 +9,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
@@ -32,7 +31,6 @@ export const useProjectWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const search = new MutableSearch([]);
   if (transaction) {
@@ -53,9 +51,7 @@ export const useProjectWebVitalsScoresQuery = ({
         'performance_score(measurements.score.cls)',
         `performance_score(measurements.score.inp)`,
         'performance_score(measurements.score.ttfb)',
-        ...(shouldUseStaticWeights
-          ? ['performance_score(measurements.score.total)']
-          : ['avg(measurements.score.total)']),
+        'performance_score(measurements.score.total)',
         'avg(measurements.score.weight.lcp)',
         'avg(measurements.score.weight.fcp)',
         'avg(measurements.score.weight.cls)',
@@ -96,7 +92,6 @@ export const useProjectWebVitalsScoresQuery = ({
 
   // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
   if (
-    shouldUseStaticWeights &&
     result.data?.data?.[0]?.['performance_score(measurements.score.total)'] !== undefined
   ) {
     result.data.data[0]['avg(measurements.score.total)'] =

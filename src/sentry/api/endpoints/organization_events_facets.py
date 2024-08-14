@@ -25,18 +25,19 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
-        update_snuba_params_with_timestamp(request, params, timestamp_key="traceTimestamp")
+        update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 with handle_query_errors():
                     facets = discover.get_facets(
                         query=request.GET.get("query"),
-                        params=params,
+                        params={},
+                        snuba_params=snuba_params,
                         referrer="api.organization-events-facets.top-tags",
                         per_page=limit,
                         cursor=offset,

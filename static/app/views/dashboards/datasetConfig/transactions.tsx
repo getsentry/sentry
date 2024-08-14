@@ -2,14 +2,14 @@ import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-  TagCollection,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -306,7 +306,7 @@ function getEventsSeriesRequest(
       ...requestData.queryExtras,
       ...{dataset: DiscoverDatasets.METRICS_ENHANCED},
     };
-    return doOnDemandMetricsRequest(api, requestData);
+    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
   }
 
   return doEventsRequest<true>(api, requestData);

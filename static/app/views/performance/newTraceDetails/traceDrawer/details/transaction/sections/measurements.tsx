@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   getFieldTypeFromUnit,
   isNotMarkMeasurement,
@@ -9,7 +8,8 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
@@ -90,7 +90,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         value: (
           <MeasurementValue>
             {rendered}
-            <DropdownMenu
+            <TraceDrawerComponents.DropdownMenuWithPortal
               items={[
                 {
                   key: 'includeEvents',

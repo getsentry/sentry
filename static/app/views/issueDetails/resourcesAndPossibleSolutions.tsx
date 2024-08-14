@@ -3,18 +3,22 @@ import styled from '@emotion/styled';
 
 import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {Autofix} from 'sentry/components/events/autofix';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event, type Group, type Project} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
 } from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -46,20 +50,22 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
+  const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&
     organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
-    hasStacktraceWithFrames(event);
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
     getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
-    !displayAiAutofix;
+    !displayAiAutofix &&
+    !isSampleError;
 
   if (
     isSelfHostedErrorsOnly ||
@@ -70,9 +76,9 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 
   return (
     <Wrapper
-      type="resources-and-possible-solutions"
       title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
+      type={FoldSectionKey.RESOURCES}
     >
       <Content>
         {config.resources && (
@@ -97,7 +103,7 @@ const Content = styled('div')`
   gap: ${space(2)};
 `;
 
-const Wrapper = styled(EventDataSection)<{configResources: boolean}>`
+const Wrapper = styled(InterimSection)<{configResources: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     ${p =>
       !p.configResources &&

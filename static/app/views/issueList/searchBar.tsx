@@ -12,12 +12,8 @@ import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type Organization,
-  SavedSearchType,
-  type Tag,
-  type TagCollection,
-} from 'sentry/types';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
@@ -71,7 +67,7 @@ const getFilterKeySections = (
   return [
     {
       value: FieldKind.ISSUE_FIELD,
-      label: t('Issue Filters'),
+      label: t('Issues'),
       children: issueFields,
     },
     {
@@ -124,28 +120,32 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         statsPeriod: pageFilters.datetime.period,
       };
 
+      const fetchTagValuesPayload = {
+        api,
+        orgSlug,
+        tagKey: key,
+        search,
+        projectIds,
+        endpointParams,
+        sort: '-count' as const,
+      };
+
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
         fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          endpointParams,
+          ...fetchTagValuesPayload,
           dataset: Dataset.ERRORS,
         }),
         fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          endpointParams,
+          ...fetchTagValuesPayload,
           dataset: Dataset.ISSUE_PLATFORM,
         }),
       ]);
 
-      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
+      return mergeAndSortTagValues(
+        eventsDatasetValues,
+        issuePlatformDatasetValues,
+        'count'
+      );
     },
     [
       api,

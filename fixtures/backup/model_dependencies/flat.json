@@ -201,6 +201,9 @@
   "sentry.dashboardwidgetqueryondemand": [
     "sentry.dashboardwidgetquery"
   ],
+  "sentry.datasecrecywaiver": [
+    "sentry.organization"
+  ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization"
@@ -312,6 +315,9 @@
     "sentry.group",
     "sentry.grouptombstone",
     "sentry.project"
+  ],
+  "sentry.grouphashmetadata": [
+    "sentry.grouphash"
   ],
   "sentry.grouphistory": [
     "sentry.group",

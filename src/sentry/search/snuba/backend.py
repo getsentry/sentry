@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -31,7 +31,6 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
@@ -41,6 +40,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -139,7 +139,7 @@ def linked_filter(linked: bool, projects: Sequence[Project]) -> Q:
 def first_release_all_environments_filter(
     versions: Sequence[str], projects: Sequence[Project]
 ) -> Q:
-    releases = {
+    releases: dict[str | None, int] = {
         id_: version
         for id_, version in Release.objects.filter(
             organization=projects[0].organization_id, version__in=versions
@@ -257,10 +257,10 @@ atexit.register(_side_query_pool.shutdown, False)
 
 def _group_attributes_side_query(
     events_only_search_results: CursorResult[Group],
-    builder: Callable[[], BaseQuerySet],
+    builder: Callable[[], BaseQuerySet[Group, Group]],
     projects: Sequence[Project],
     retention_window_start: datetime | None,
-    group_queryset: BaseQuerySet,
+    group_queryset: BaseQuerySet[Group, Group],
     environments: Sequence[Environment] | None = None,
     sort_by: str = "date",
     limit: int = 100,
@@ -277,10 +277,10 @@ def _group_attributes_side_query(
 ) -> None:
     def __run_joined_query_and_log_metric(
         events_only_search_results: CursorResult[Group],
-        builder: Callable[[], BaseQuerySet],
+        builder: Callable[[], BaseQuerySet[Group, Group]],
         projects: Sequence[Project],
         retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group, Group],
         environments: Sequence[Environment] | None = None,
         sort_by: str = "date",
         limit: int = 100,
@@ -294,7 +294,7 @@ def _group_attributes_side_query(
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
-    ):
+    ) -> None:
         from sentry.utils import metrics
 
         try:
@@ -397,15 +397,19 @@ class Condition:
     ``QuerySetBuilder``.
     """
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
         raise NotImplementedError
 
 
 class QCallbackCondition(Condition):
-    def __init__(self, callback: Callable[[Any], QuerySet]):
+    def __init__(self, callback: Callable[[Any], Q]):
         self.callback = callback
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
         value = search_filter.value.raw_value
         q = self.callback(value)
         if search_filter.operator not in ("=", "!=", "IN", "NOT IN"):
@@ -435,7 +439,9 @@ class ScalarCondition(Condition):
             django_operator = f"__{django_operator}"
         return django_operator
 
-    def apply(self, queryset: QuerySet, search_filter: SearchFilter) -> QuerySet:
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
@@ -450,7 +456,9 @@ class QuerySetBuilder:
     def __init__(self, conditions: Mapping[str, Condition]):
         self.conditions = conditions
 
-    def build(self, queryset: QuerySet, search_filters: Sequence[SearchFilter]) -> QuerySet:
+    def build(
+        self, queryset: BaseQuerySet[Group, Group], search_filters: Sequence[SearchFilter]
+    ) -> BaseQuerySet[Group, Group]:
         for search_filter in search_filters:
             name = search_filter.key.name
             if name in self.conditions:
@@ -487,7 +495,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             paginator_options = {}
 
         # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=projects[0].organization)
+        retention = quotas.backend.get_event_retention(organization=projects[0].organization)
         if retention:
             retention_window_start = timezone.now() - timedelta(days=retention)
         else:
@@ -591,7 +599,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
     def _build_limited_group_queryset(
         self, projects: Sequence[Project], search_filters: Sequence[SearchFilter]
-    ) -> QuerySet:
+    ) -> BaseQuerySet[Group, Group]:
         """
         Builds a group queryset to handle joins for data that doesn't exist in Clickhouse on the group_attributes dataset
         """
@@ -615,7 +623,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         retention_window_start: datetime | None,
         *args: Any,
         **kwargs: Any,
-    ) -> QuerySet:
+    ) -> BaseQuerySet[Group, Group]:
         """This method should return a QuerySet of the Group model.
         How you implement it is up to you, but we generally take in the various search parameters
         and filter Group's down using the field's we want to query on in Postgres."""
@@ -637,7 +645,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         environments: Sequence[Environment] | None,
         retention_window_start: datetime | None,
         search_filters: Sequence[SearchFilter],
-    ) -> QuerySet:
+    ) -> BaseQuerySet[Group, Group]:
         group_queryset = Group.objects.filter(project__in=projects).exclude(
             status__in=[
                 GroupStatus.PENDING_DELETION,
@@ -671,7 +679,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     @abstractmethod
     def _get_query_executor(
         self,
-        group_queryset: QuerySet,
+        group_queryset: BaseQuerySet[Group, Group],
         projects: Sequence[Project],
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],

@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -1097,12 +1097,30 @@ describe('trace view', () => {
               transaction: 'transaction-name-0',
               'transaction.op': 'transaction-op-0',
             }),
+            makeTransaction({
+              span_id: '1',
+              event_id: '1',
+              transaction: 'transaction-name-1',
+              'transaction.op': 'transaction-op-1',
+            }),
+            makeTransaction({
+              span_id: '2',
+              event_id: '2',
+              transaction: 'transaction-name-2',
+              'transaction.op': 'transaction-op-2',
+            }),
+            makeTransaction({
+              span_id: '3',
+              event_id: '3',
+              transaction: 'transaction-name-3',
+              'transaction.op': 'transaction-op-3',
+            }),
           ],
           orphan_errors: [],
         },
       });
 
-      mockSpansResponse(
+      const spansRequest = mockSpansResponse(
         '0',
         {},
         {
@@ -1133,9 +1151,12 @@ describe('trace view', () => {
       );
 
       const highlighted_row = value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
-      await userEvent.click(await screen.findByRole('button', {name: '+'}));
+      const open = await screen.findAllByRole('button', {name: '+'});
+      await userEvent.click(open[0]);
       expect(await screen.findByText('span-description')).toBeInTheDocument();
       await searchToUpdate();
+
+      expect(spansRequest).toHaveBeenCalled();
 
       // The search is retriggered, but highlighting of current row is preserved
       expect(value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW)).toBe(

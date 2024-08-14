@@ -97,7 +97,7 @@ def get_performance_issue_settings(projects: list[Project]):
     return project_settings
 
 
-def all_projects_with_flags() -> Generator[tuple[int, int], None, None]:
+def all_projects_with_flags() -> Generator[tuple[int, int]]:
     yield from RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
         result_value_getter=lambda item: item[0],
@@ -146,9 +146,9 @@ def compute_delay(
 
 
 def dispatch_performance_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -190,9 +190,9 @@ def dispatch_performance_projects(
 
 
 def dispatch_profiling_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -411,6 +411,7 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
+        project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -718,7 +719,7 @@ def query_transactions_timeseries(
     transactions: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
     start = end - timedelta(days=days_to_query)
@@ -922,13 +923,13 @@ def query_functions_timeseries(
     functions_list: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     projects = [project for project, _ in functions_list]
 
-    # take the last 14 days as our window
+    days_to_query = options.get("statistical_detectors.query.functions.timeseries_days")
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     params = SnubaParams(
-        start=end - timedelta(days=14),
+        start=end - timedelta(days=days_to_query),
         end=end,
         projects=projects,
     )

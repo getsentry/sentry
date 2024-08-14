@@ -49,14 +49,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     loadGettingStarted.isError ||
     loadGettingStarted.isLoading ||
     !loadGettingStarted.docs ||
-    !loadGettingStarted.cdn ||
     !loadGettingStarted.dsn
   ) {
     return null;
   }
 
   const docParams: DocsParams<any> = {
-    cdn: loadGettingStarted.cdn,
     dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
@@ -147,13 +145,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                           eventType="error"
                         >
                           {({indicator, firstEventButton}) => (
-                            <div>
+                            <FirstEventWrapper>
                               <IndicatorWrapper>{indicator}</IndicatorWrapper>
                               <StyledButtonBar gap={1}>
                                 <GuidedSteps.BackButton size="md" />
                                 {firstEventButton}
                               </StyledButtonBar>
-                            </div>
+                            </FirstEventWrapper>
                           )}
                         </FirstEventIndicator>
                       )}
@@ -296,13 +294,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       eventType="error"
                     >
                       {({indicator, firstEventButton}) => (
-                        <div>
+                        <FirstEventWrapper>
                           <IndicatorWrapper>{indicator}</IndicatorWrapper>
                           <StyledButtonBar gap={1}>
                             <GuidedSteps.BackButton size="md" />
                             {firstEventButton}
                           </StyledButtonBar>
-                        </div>
+                        </FirstEventWrapper>
                       )}
                     </FirstEventIndicator>
                   </div>
@@ -425,4 +423,8 @@ const CodeSnippetWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const FirstEventWrapper = styled('div')`
+  padding-top: ${space(1)};
 `;

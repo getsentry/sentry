@@ -12,7 +12,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -23,6 +23,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 export function handleCreateQuery(
@@ -252,6 +253,7 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
 }
 
 export function getSavedQueryDataset(
+  organization: Organization,
   location: Location | undefined,
   savedQuery: SavedQuery | NewQuery | undefined,
   splitDecision?: SavedQueryDatasets
@@ -263,7 +265,16 @@ export function getSavedQueryDataset(
   if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
     return splitDecision;
   }
-  return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
+  if (
+    savedQuery?.queryDataset &&
+    savedQuery?.queryDataset !== SavedQueryDatasets.DISCOVER
+  ) {
+    return savedQuery.queryDataset;
+  }
+  if (hasDatasetSelector(organization)) {
+    return SavedQueryDatasets.ERRORS;
+  }
+  return SavedQueryDatasets.DISCOVER;
 }
 
 export function getSavedQueryWithDataset(

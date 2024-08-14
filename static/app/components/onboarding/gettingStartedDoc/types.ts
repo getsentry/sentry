@@ -1,6 +1,7 @@
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import type {Organization, PlatformKey, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
 type GeneratorFunction<T, Params> = (params: Params) => T;
 type WithGeneratorProperties<T extends Record<string, any>, Params> = {
@@ -36,7 +37,7 @@ export type SelectedPlatformOptions<
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
-  dsn: string;
+  dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
@@ -47,7 +48,6 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
-  cdn?: string;
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;

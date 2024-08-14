@@ -6,6 +6,7 @@
 
 from django.db import IntegrityError, router, transaction
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
@@ -15,9 +16,8 @@ from sentry.hybridcloud.services.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -43,8 +43,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     user = orm_mapping.user
                 except User.DoesNotExist:
                     return
-                for outbox in user.outboxes_for_update():
-                    outbox.save()
+                if user is not None:
+                    for outbox in user.outboxes_for_update():
+                        outbox.save()
 
         orm_mapping: OrganizationMemberMapping = OrganizationMemberMapping(
             organization_id=organization_id

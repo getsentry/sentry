@@ -19,12 +19,12 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
+from sentry.users.models.user import User
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -169,7 +169,10 @@ def build_metric_alert_chart(
     """
     Builds the dataset required for metric alert chart the same way the frontend would
     """
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+    if alert_rule.snuba_query is None:
+        return None
+
+    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE

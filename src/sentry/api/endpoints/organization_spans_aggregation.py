@@ -344,13 +344,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
         enable_indexed_spans = options.get("indexed-spans.agg-span-waterfall.enable")
 
-        start = params["start"]
+        start = snuba_params.start
         if start and start >= CUTOVER_DATE and enable_indexed_spans:
             backend = "indexedSpans"
         else:
@@ -373,7 +373,8 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             with handle_query_errors():
                 builder = SpansIndexedQueryBuilder(
                     dataset=Dataset.SpansIndexed,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     selected_columns=["transaction_id", "trace_id", "count()", "any(timestamp)"],
                     query=query,
                     limit=100,
@@ -419,11 +420,9 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         if http_method is not None:
             conditions.append(["http.method", "=", http_method])
 
-        environments = params.get("environment", None)
+        environments = snuba_params.environment_names
         if environments:
-            if isinstance(environments, str):
-                conditions.append(["environment", "=", environments])
-            elif len(environments) == 1:
+            if len(environments) == 1:
                 conditions.append(["environment", "=", environments[0]])
             elif len(environments) > 1:
                 conditions.append(["environment", "IN", environments])
@@ -431,10 +430,10 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 conditions=conditions,
-                start=params["start"],
-                end=params["end"],
-                project_ids=params["project_id"],
-                organization_id=params["organization_id"],
+                start=snuba_params.start,
+                end=snuba_params.end,
+                project_ids=snuba_params.project_ids,
+                organization_id=snuba_params.organization_id,
             ),
             limit=100,
             referrer=Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value,

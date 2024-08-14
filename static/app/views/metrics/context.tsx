@@ -11,8 +11,12 @@ import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MetricMeta} from 'sentry/types/metrics';
-import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
+import {
+  isCustomMetric,
+  isPerformanceMetric,
+  useInstantRef,
+  useUpdateQuery,
+} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
   emptyMetricsQueryWidget,
@@ -32,7 +36,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {getNewMetricsWidget} from 'sentry/views/metrics/utils/getNewMetricsWidget';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
@@ -97,20 +100,18 @@ export function useMetricsContext() {
   return useContext(MetricsContext);
 }
 
-export function useMetricWidgets(
-  firstCustomMeta: MetricMeta | undefined,
-  defaultCondition?: number
-) {
+export function useMetricWidgets(defaultQuery: Record<string, any> | null) {
   const {getVirtualMRIQuery} = useVirtualMetricsContext();
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
     useMemo<MetricsWidget[]>(() => {
-      const parseResult = parseMetricWidgetsQueryParam(urlWidgets);
-
+      const parseResult = parseMetricWidgetsQueryParam(
+        urlWidgets || defaultQuery?.widgets
+      );
       if (parseResult.length === 0) {
-        const widget = getNewMetricsWidget(firstCustomMeta, defaultCondition);
+        const widget = emptyMetricsQueryWidget;
         widget.id = 0;
         return [widget];
       }
@@ -133,7 +134,7 @@ export function useMetricWidgets(
           condition: virtualMRIQuery.conditionId,
         };
       });
-    }, [defaultCondition, firstCustomMeta, getVirtualMRIQuery, urlWidgets])
+    }, [defaultQuery?.widgets, getVirtualMRIQuery, urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -266,33 +267,22 @@ const useDefaultQuery = () => {
 export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
-  const {getConditions} = useVirtualMetricsContext();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
   const pageFilters = usePageFilters();
-  const {data: metaCustom, isLoading: isMetaCustomLoading} = useVirtualizedMetricsMeta(
+  const {data: meta, isLoading: isMetaLoading} = useVirtualizedMetricsMeta(
     pageFilters.selection,
-    ['custom'],
+    undefined,
     true,
     pageFilters.isReady
   );
-  const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
-    useVirtualizedMetricsMeta(
-      pageFilters.selection,
-      ['transactions', 'spans'],
-      true,
-      pageFilters.isReady
-    );
-  const isMultiChartMode = multiChartMode === 1;
-  const firstCustomMetric: MetricMeta | undefined = metaCustom[0];
 
-  const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
+  const isMultiChartMode = multiChartMode === 1;
+
+  const {setDefaultQuery, isDefaultQuery, defaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(
-      firstCustomMetric,
-      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id
-    );
+    useMetricWidgets(defaultQuery);
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
@@ -301,12 +291,12 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const hasCustomMetrics = useMemo(() => {
-    return !!metaCustom.length;
-  }, [metaCustom]);
+    return meta.some(m => isCustomMetric(m));
+  }, [meta]);
 
   const hasPerformanceMetrics = useMemo(() => {
-    return !!metaPerformance.length;
-  }, [metaPerformance]);
+    return meta.some(m => isPerformanceMetric(m));
+  }, [meta]);
 
   const handleSetSelectedWidgetIndex = useCallback(
     (value: number) => {
@@ -424,7 +414,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       widgets,
       hasCustomMetrics,
       hasPerformanceMetrics,
-      isHasMetricsLoading: isMetaCustomLoading || isMetaPerformanceLoading,
+      isHasMetricsLoading: isMetaLoading,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
@@ -456,8 +446,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       handleSetIsMultiChartMode,
       metricsSamples,
       toggleWidgetVisibility,
-      isMetaCustomLoading,
-      isMetaPerformanceLoading,
+      isMetaLoading,
     ]
   );
 

@@ -17,7 +17,6 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
-from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -25,10 +24,11 @@ from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.user import User
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
@@ -213,7 +213,7 @@ class AuthLoginView(BaseView):
         )
         return self.respond_login(request=request, context=context, **kwargs)
 
-    def post(self, request: Request, **kwargs) -> HttpResponse:
+    def post(self, request: Request, **kwargs) -> HttpResponseBase:
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
@@ -265,7 +265,7 @@ class AuthLoginView(BaseView):
 
     def handle_register_form_submit(
         self, request: Request, organization: RpcOrganization, **kwargs
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         """
         Validates a completed register form, redirecting to the next
         step or returning the form with its errors displayed.

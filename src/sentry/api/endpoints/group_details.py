@@ -21,11 +21,12 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
@@ -37,7 +38,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
