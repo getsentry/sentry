@@ -29,7 +29,7 @@ TRANSACTION_ONLY_FIELDS = [
     "measurements[fcp]",
     "measurements[fid]",
     "measurements[inp]",
-    "measurements[ttfb].requesttime",
+    "measurements[ttfb]",
     "measurements[app_start_cold]",
     "measurements[app_start_warm]",
     "measurements[frames_total]",
