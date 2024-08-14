@@ -1,6 +1,7 @@
 from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
 from sentry.users.models.user import *  # NOQA
+from sentry.users.models.userrole import *  # NOQA
 
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
@@ -123,4 +124,3 @@ from .useremail import *  # NOQA
 from .userip import *  # NOQA
 from .userpermission import *  # NOQA
 from .userreport import *  # NOQA
-from .userrole import *  # NOQA
