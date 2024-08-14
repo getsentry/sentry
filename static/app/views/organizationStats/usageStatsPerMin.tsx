@@ -68,7 +68,7 @@ function UsageStatsPerMin({
       const {category, outcome} = group.by;
 
       if (dataCategoryApiName === 'span_indexed') {
-        if (category !== 'span_indexed' || group.by.outcome !== Outcome.ACCEPTED) {
+        if (category !== 'span_indexed' || outcome !== Outcome.ACCEPTED) {
           return count;
         }
       } else {
