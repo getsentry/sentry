@@ -69,8 +69,7 @@ import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import type {AlertRuleComparisonType} from './types';
-import {Dataset, Datasource, TimeWindow} from './types';
+import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -264,6 +263,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         TimeWindow.TWO_HOURS,
         TimeWindow.FOUR_HOURS,
         TimeWindow.ONE_DAY,
+      ]);
+    }
+
+    if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIFTEEN_MINUTES,
+        TimeWindow.THIRTY_MINUTES,
+        TimeWindow.ONE_HOUR,
       ]);
     }
 
