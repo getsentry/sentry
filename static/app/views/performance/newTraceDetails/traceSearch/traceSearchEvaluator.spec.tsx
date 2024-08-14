@@ -1,7 +1,7 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {
   type TraceTree,
   TraceTreeNode,

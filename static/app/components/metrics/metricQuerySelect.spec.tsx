@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
-import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {
   useVirtualMetricsContext,
   VirtualMetricsContextProvider,

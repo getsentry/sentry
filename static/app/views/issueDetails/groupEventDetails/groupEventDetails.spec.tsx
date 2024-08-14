@@ -14,8 +14,10 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Event, Group} from 'sentry/types';
-import {EntryType, IssueCategory, IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';

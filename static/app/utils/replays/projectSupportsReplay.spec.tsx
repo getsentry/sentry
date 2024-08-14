@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {MinimalProject, PlatformKey} from 'sentry/types';
+import type {MinimalProject, PlatformKey} from 'sentry/types/project';
 import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';

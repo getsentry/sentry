@@ -17,12 +17,8 @@ import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type EntryRequest,
-  EntryType,
-  type EventTransaction,
-  type Meta,
-} from 'sentry/types';
+import {type EntryRequest, EntryType, type EventTransaction} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
