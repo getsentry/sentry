@@ -32,7 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import type {CombinedAlerts, CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedAlerts} from '../../types';
 import {AlertRuleType, CombinedAlertType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
@@ -138,21 +138,15 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    // TODO(davidenwang): Once we have edit apis for uptime alerts, fill this in
-    if (rule.type === CombinedAlertType.UPTIME) {
-      return;
-    }
+    const deleteEndpoints = {
+      [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
+      [CombinedAlertType.METRIC]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
+      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+    };
 
     try {
-      await api.requestPromise(
-        isIssueAlert(rule)
-          ? `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`
-          : `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-      setApiQueryData<Array<CombinedMetricIssueAlerts | null>>(
+      await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
+      setApiQueryData<Array<CombinedAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)

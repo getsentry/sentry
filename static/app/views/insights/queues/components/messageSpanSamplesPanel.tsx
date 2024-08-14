@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
@@ -360,20 +359,18 @@ export function MessageSpanSamplesPanel() {
             />
           </ModuleLayout.Full>
 
-          <Feature features="performance-sample-panel-search">
-            <ModuleLayout.Full>
-              <SearchBar
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                query={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                organization={organization}
-                supportedTags={supportedTags}
-                dataset={DiscoverDatasets.SPANS_INDEXED}
-                projectIds={selection.projects}
-              />
-            </ModuleLayout.Full>
-          </Feature>
+          <ModuleLayout.Full>
+            <SearchBar
+              searchSource={`${ModuleName.QUEUE}-sample-panel`}
+              query={query.spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              organization={organization}
+              supportedTags={supportedTags}
+              dataset={DiscoverDatasets.SPANS_INDEXED}
+              projectIds={selection.projects}
+            />
+          </ModuleLayout.Full>
 
           <ModuleLayout.Full>
             <MessageSpanSamplesTable

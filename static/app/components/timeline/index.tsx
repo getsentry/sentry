@@ -61,16 +61,13 @@ export const Item = forwardRef(function _Item(
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.subText};
-  display: grid;
   align-items: start;
-  grid-template: auto auto / 22px 1fr auto;
-  grid-column-gap: ${p => p.theme.space(1)};
-  margin: ${p => p.theme.space(1)} 0;
-  &:first-child {
-    margin-top: 0;
-  }
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+  grid-row-gap: ${p => p.theme.space(0.5)};
+
   &:last-child {
-    margin-bottom: 0;
     /* Show/hide connecting line from the last element of the timeline */
     background: ${p => (p.showLastLine ? 'transparent' : p.theme.background)};
   }
@@ -135,6 +132,10 @@ export const Data = styled('div')`
 
 export const Container = styled('div')`
   position: relative;
+  display: grid;
+  grid-template: auto auto / 22px 1fr auto;
+  grid-row-gap: ${p => p.theme.space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   /* vertical line connecting items */
   &::before {
     content: '';

@@ -290,7 +290,14 @@ class UsageStatsOrganization<
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
+    const {
+      dataCategory,
+      dataCategoryName,
+      organization,
+      projectIds,
+      router,
+      dataCategoryApiName,
+    } = this.props;
     const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
@@ -314,6 +321,7 @@ class UsageStatsOrganization<
         score: accepted,
         trend: (
           <UsageStatsPerMin
+            dataCategoryApiName={dataCategoryApiName}
             dataCategory={dataCategory}
             organization={organization}
             projectIds={projectIds}

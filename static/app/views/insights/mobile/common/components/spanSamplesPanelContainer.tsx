@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Feature from 'sentry/components/acl/feature';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
@@ -197,18 +196,17 @@ export function SpanSamplesContainer({
         platform={isProjectCrossPlatform ? selectedPlatform : undefined}
       />
 
-      <Feature features="performance-sample-panel-search">
-        <StyledSearchBar
-          searchSource={`${moduleName}-sample-panel`}
-          query={searchQuery}
-          onSearch={handleSearch}
-          placeholder={t('Search for span attributes')}
-          organization={organization}
-          supportedTags={supportedTags}
-          dataset={DiscoverDatasets.SPANS_INDEXED}
-          projectIds={selection.projects}
-        />
-      </Feature>
+      <StyledSearchBar
+        searchSource={`${moduleName}-sample-panel`}
+        query={searchQuery}
+        onSearch={handleSearch}
+        placeholder={t('Search for span attributes')}
+        organization={organization}
+        supportedTags={supportedTags}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        projectIds={selection.projects}
+      />
+
       <SampleTable
         referrer={TraceViewSources.APP_STARTS_MODULE}
         spanSearch={spanSearch}
