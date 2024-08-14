@@ -225,6 +225,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   renderProjectPageControl = () => {
     const {organization} = this.props;
+
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
@@ -235,6 +236,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
+        return (
+          organization.features.includes('span-stats') &&
+          !organization.features.includes('spans-usage-tracking')
+        );
+      }
+      if (DATA_CATEGORY_INFO.span_indexed.plural === opt.value) {
         return organization.features.includes('spans-usage-tracking');
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {

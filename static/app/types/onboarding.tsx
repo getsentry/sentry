@@ -2,14 +2,10 @@ import type {InjectedRouter} from 'react-router';
 
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
-import type {
-  Group,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-  Project,
-} from 'sentry/types';
 
+import type {Group} from './group';
+import type {Organization} from './organization';
+import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
 
 export enum OnboardingTaskKey {

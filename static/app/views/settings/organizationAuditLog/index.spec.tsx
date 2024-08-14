@@ -7,11 +7,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Config, User as UserType} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
+import type {User} from 'sentry/types/user';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
-  const user: UserType = {
+  const user: User = {
     ...UserFixture(),
     options: {
       ...UserFixture().options,

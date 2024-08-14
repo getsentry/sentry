@@ -13,12 +13,12 @@ import {
   getIssueTitleFromType,
   IssueCategory,
   IssueType,
-  type Organization,
   PriorityLevel,
   type Tag,
   type TagCollection,
-  type User,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, FieldKind, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';

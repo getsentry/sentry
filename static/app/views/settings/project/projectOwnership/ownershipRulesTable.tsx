@@ -17,7 +17,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
+import type {ParsedOwnershipRule} from 'sentry/types/group';
+import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
 

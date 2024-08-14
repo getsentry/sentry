@@ -7,7 +7,9 @@ import {Resources} from 'sentry/components/events/interfaces/performance/resourc
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event, type Group, type Project} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
