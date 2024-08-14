@@ -26,7 +26,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         group.save()
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.post(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
         assert response.data == convert_dict_key_case(existing_summary, snake_to_camel_case)
@@ -38,7 +38,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.post(self._get_url(group.id), format="json")
 
         assert response.status_code == 400
         assert response.data == {"detail": "Could not find an event for the issue"}
@@ -57,7 +57,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         mock_call_seer.return_value = mock_summary
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.post(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
         assert response.data == convert_dict_key_case(mock_summary.dict(), snake_to_camel_case)
@@ -79,7 +79,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         mock_post.return_value = mock_response
 
         self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
+        response = self.client.post(self._get_url(group.id), format="json")
 
         assert response.status_code == 200
         assert response.data == convert_dict_key_case(
