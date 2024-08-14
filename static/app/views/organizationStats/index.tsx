@@ -23,7 +23,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, PageFilters} from 'sentry/types/core';
+import {
+  DataCategoryExact,
+  type DataCategoryInfo,
+  type PageFilters,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -67,6 +71,16 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const categories = Object.values(DATA_CATEGORY_INFO);
     const info = categories.find(c => c.plural === dataCategoryPlural);
+
+    if (
+      info?.name === DataCategoryExact.SPAN &&
+      this.props.organization.features.includes('spans-usage-tracking')
+    ) {
+      return {
+        ...info,
+        apiName: 'span_indexed',
+      };
+    }
 
     // Default to errors
     return info ?? DATA_CATEGORY_INFO.error;
@@ -236,13 +250,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
-        return (
-          organization.features.includes('span-stats') &&
-          !organization.features.includes('spans-usage-tracking')
-        );
-      }
-      if (DATA_CATEGORY_INFO.span_indexed.plural === opt.value) {
-        return organization.features.includes('spans-usage-tracking');
+        return organization.features.includes('span-stats');
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');

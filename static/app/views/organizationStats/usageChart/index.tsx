@@ -81,12 +81,6 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.span_indexed.titleName,
-    value: DATA_CATEGORY_INFO.span_indexed.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
     label: DATA_CATEGORY_INFO.profileDuration.titleName,
     value: DATA_CATEGORY_INFO.profileDuration.plural,
     disabled: false,

@@ -201,6 +201,9 @@ class Organization(ReplicatedRegionModel):
         # Prevent superuser access to an organization
         prevent_superuser_access: bool
 
+        # Disable org-members from inviting members
+        disable_member_invite: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
