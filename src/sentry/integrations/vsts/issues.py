@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-class VstsSCMSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
+class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug

@@ -16,6 +16,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.repository import Repository
@@ -25,7 +26,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
-from .issues import BitbucketSCMSpec
+from .issues import BitbucketIssuesSpec
 from .repository import BitbucketRepositoryProvider
 
 DESCRIPTION = """
@@ -81,7 +82,7 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(BitbucketSCMSpec):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
     @property
     def integration_name(self) -> str:
         return "bitbucket"

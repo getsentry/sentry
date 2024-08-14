@@ -18,6 +18,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -31,7 +32,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
-from .issues import GitlabSCMSpec
+from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
@@ -91,7 +92,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(GitlabSCMSpec, CommitContextIntegration):
+class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):

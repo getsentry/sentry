@@ -18,11 +18,12 @@ from sentry.integrations.base import (
     IntegrationMetadata,
 )
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
-from sentry.integrations.github.issues import GitHubSCMSpec
+from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -130,7 +131,9 @@ API_ERRORS = {
 }
 
 
-class GitHubEnterpriseIntegration(GitHubSCMSpec, CommitContextIntegration):
+class GitHubEnterpriseIntegration(
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property

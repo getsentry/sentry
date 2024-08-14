@@ -16,7 +16,7 @@ from sentry.utils.http import absolute_uri
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
 
 
-class GitlabSCMSpec(SourceCodeIssueIntegration):
+class GitlabIssuesSpec(SourceCodeIssueIntegration):
     def make_external_key(self, data):
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 

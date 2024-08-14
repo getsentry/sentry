@@ -5,12 +5,12 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.mixins.issues import IssueBasicIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.repository import BaseRepositoryIntegration
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
-class SourceCodeIssueIntegration(IssueBasicIntegration, RepositoryIntegration, ABC):
+class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegration, ABC):
     def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
