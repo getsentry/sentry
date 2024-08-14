@@ -11,6 +11,10 @@ def create_or_update_service_hooks_for_installation(
     If no hooks are found and a webhook URL is provided, it creates a new service hook.
     Should only be called in the control silo
     """
+    print(
+        "running create_or_update_service_hooks_for_installation with application id",
+        installation.sentry_app.application_id,
+    )
     hooks = hook_service.update_webhook_and_events(
         organization_id=installation.organization_id,
         application_id=installation.sentry_app.application_id,

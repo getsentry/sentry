@@ -293,6 +293,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.published_app.save()
 
         # for published integrations, it runs in a task
+        print("start test with application id ", self.published_app.application_id)
         with self.tasks(), outbox_runner():
             self.get_success_response(
                 self.published_app.slug,
@@ -302,7 +303,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 status_code=200,
             )
         print(
-            f"task and outbox runner should be done by now, published app id: {self.published_app.id}"
+            f"task and outbox runner should be done by now with application id: {self.published_app.application_id}"
         )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
