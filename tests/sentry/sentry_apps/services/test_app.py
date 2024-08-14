@@ -1,7 +1,9 @@
+from sentry.constants import SentryAppInstallationStatus
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 
 @django_db_all(transaction=True)
@@ -100,3 +102,24 @@ def test_get_component_contexts() -> None:
     assert row.installation.sentry_app.slug == app.slug
     assert row.component.sentry_app_id == app.id
     assert row.component.app_schema
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_get_installation_org_id_by_token_id() -> None:
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    sentry_app = Factories.create_internal_integration(organization_id=org.id, is_alertable=True)
+    token = Factories.create_internal_integration_token(user=user, internal_integration=sentry_app)
+
+    result = app_service.get_installation_org_id_by_token_id(token_id=token.id)
+    assert result == org.id
+
+    with assume_test_silo_mode_of(SentryAppInstallation):
+        install = sentry_app.installations.get(organization_id=org.id)
+        install.status = SentryAppInstallationStatus.PENDING
+        install.save()
+
+    # Installation must be installed
+    result = app_service.get_installation_org_id_by_token_id(token_id=token.id)
+    assert result is None
