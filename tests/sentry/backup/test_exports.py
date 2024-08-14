@@ -14,8 +14,6 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.useremail import UserEmail
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
     BackupTransactionTestCase,
     ValidationError,
@@ -25,7 +23,9 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import get_matching_exportable_models
 
 

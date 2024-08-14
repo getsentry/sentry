@@ -23,6 +23,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.seer.similarity.utils import SEER_ELIGIBLE_PLATFORMS
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -163,7 +164,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         },
         examples=ProjectExamples.CREATE_PROJECT,
     )
-    def post(self, request: Request, team) -> Response:
+    def post(self, request: Request, team: Team) -> Response:
         """
         Create a new project bound to a team.
         """

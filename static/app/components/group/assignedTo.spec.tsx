@@ -14,23 +14,20 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {
-  Event,
-  Group,
-  Organization as TOrganization,
-  Project,
-  Team as TeamType,
-  User as UserType,
-} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 
 describe('Group > AssignedTo', () => {
-  let USER_1!: UserType;
-  let USER_2!: UserType;
-  let TEAM_1!: TeamType;
+  let USER_1!: User;
+  let USER_2!: User;
+  let TEAM_1!: Team;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
-  let organization!: TOrganization;
+  let organization!: Organization;
   const project = ProjectFixture();
 
   beforeEach(() => {

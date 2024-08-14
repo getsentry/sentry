@@ -9,7 +9,8 @@ import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTag, Organization} from 'sentry/types';
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import type {
   TraceError,

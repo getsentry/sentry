@@ -5,7 +5,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, PriorityLevel} from 'sentry/types';
+import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
