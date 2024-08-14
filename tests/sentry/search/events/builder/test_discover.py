@@ -14,7 +14,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -30,12 +30,13 @@ class DiscoverQueryBuilderTest(TestCase):
             hour=10, minute=15, second=0, microsecond=0
         ) - datetime.timedelta(days=2)
         self.end = self.start + datetime.timedelta(days=1)
-        self.projects = [self.project.id, self.create_project().id, self.create_project().id]
-        self.params: ParamsType = {
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-        }
+        self.project_objects = [self.project, self.create_project(), self.create_project()]
+        self.projects = [p.id for p in self.project_objects]
+        self.params = SnubaParams(
+            projects=self.project_objects,
+            start=self.start,
+            end=self.end,
+        )
         # These conditions should always be on a query when self.params is passed
         self.default_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
@@ -90,11 +91,11 @@ class DiscoverQueryBuilderTest(TestCase):
         )
 
     def test_query_without_project_ids(self):
-        params: ParamsType = {
-            "start": self.params["start"],
-            "end": self.params["end"],
-            "organization_id": self.organization.id,
-        }
+        params = SnubaParams(
+            start=self.params.start,
+            end=self.params.end,
+            organization=self.organization,
+        )
         with pytest.raises(UnqualifiedQueryError):
             query = DiscoverQueryBuilder(
                 Dataset.Discover, params, query="foo", selected_columns=["id"]
@@ -102,12 +103,12 @@ class DiscoverQueryBuilderTest(TestCase):
             bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
 
     def test_query_with_empty_project_ids(self):
-        params: ParamsType = {
-            "start": self.params["start"],
-            "end": self.params["end"],
-            "project_id": [],  # We add an empty project_id list
-            "organization_id": self.organization.id,
-        }
+        params = SnubaParams(
+            start=self.params.start,
+            end=self.params.end,
+            organization=self.organization,
+            projects=[],
+        )
         with pytest.raises(UnqualifiedQueryError):
             query = DiscoverQueryBuilder(
                 Dataset.Discover, params, query="foo", selected_columns=["id"]
@@ -158,7 +159,7 @@ class DiscoverQueryBuilderTest(TestCase):
     def test_simple_limitby(self):
         query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
-            params=self.params,
+            snuba_params=self.params,
             query="",
             selected_columns=["message"],
             orderby="message",
@@ -202,7 +203,7 @@ class DiscoverQueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
     def test_environment_param(self):
-        self.params["environment"] = ["", self.environment.name]
+        self.params.environments = [None, self.environment]
         query = DiscoverQueryBuilder(
             Dataset.Discover, self.params, selected_columns=["environment"]
         )
@@ -222,7 +223,7 @@ class DiscoverQueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
         env2 = self.create_environment()
-        self.params["environment"] = [self.environment.name, env2.name]
+        self.params.environments = [self.environment, env2]
         query = DiscoverQueryBuilder(
             Dataset.Discover, self.params, selected_columns=["environment"]
         )
@@ -240,7 +241,7 @@ class DiscoverQueryBuilderTest(TestCase):
         # TODO(snql-boolean): Update this to match the corresponding test in test_filter
         project1 = self.create_project()
         project2 = self.create_project()
-        self.params["project_id"] = [project1.id, project2.id]
+        self.params.projects = [project1, project2]
         query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
@@ -265,7 +266,7 @@ class DiscoverQueryBuilderTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
-        self.params["project_id"] = [project2.id]
+        self.params.projects = [project2]
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape(
@@ -283,7 +284,7 @@ class DiscoverQueryBuilderTest(TestCase):
         # TODO(snql-boolean): Update this to match the corresponding test in test_filter
         project1 = self.create_project()
         project2 = self.create_project()
-        self.params["project_id"] = [project1.id, project2.id]
+        self.params.projects = [project1, project2]
         query = DiscoverQueryBuilder(Dataset.Discover, self.params, selected_columns=["project"])
 
         self.assertCountEqual(
@@ -307,7 +308,7 @@ class DiscoverQueryBuilderTest(TestCase):
     def test_project_alias_column_with_project_condition(self):
         project1 = self.create_project()
         project2 = self.create_project()
-        self.params["project_id"] = [project1.id, project2.id]
+        self.params.projects = [project1, project2]
         query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
@@ -340,7 +341,7 @@ class DiscoverQueryBuilderTest(TestCase):
     def test_orderby_project_alias(self):
         project1 = self.create_project(name="zzz")
         project2 = self.create_project(name="aaa")
-        self.params["project_id"] = [project1.id, project2.id]
+        self.params.projects = [project1, project2]
         query = DiscoverQueryBuilder(
             Dataset.Discover, self.params, selected_columns=["project"], orderby=["project"]
         )
@@ -497,12 +498,13 @@ class DiscoverQueryBuilderTest(TestCase):
     def test_retention(self):
         old_start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-        old_params: ParamsType = {**self.params, "start": old_start, "end": old_end}
+        self.params.start = old_start
+        self.params.end = old_end
         with self.options({"system.event-retention-days": 10}):
             with pytest.raises(QueryOutsideRetentionError):
                 DiscoverQueryBuilder(
                     Dataset.Discover,
-                    old_params,
+                    self.params,
                     query="",
                     selected_columns=[],
                 )

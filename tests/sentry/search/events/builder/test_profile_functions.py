@@ -6,6 +6,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -31,15 +32,14 @@ def params(now, today):
     user = Factories.create_user()
     Factories.create_team_membership(team=team, user=user)
 
-    return {
-        "start": now - timedelta(days=7),
-        "end": now - timedelta(seconds=1),
-        "project_id": [project1.id, project2.id],
-        "project_objects": [project1, project2],
-        "organization_id": organization.id,
-        "user_id": user.id,
-        "team_id": [team.id],
-    }
+    return SnubaParams(
+        start=now - timedelta(days=7),
+        end=now - timedelta(seconds=1),
+        projects=[project1, project2],
+        organization=organization,
+        user=user,
+        teams=[team],
+    )
 
 
 @pytest.mark.parametrize(

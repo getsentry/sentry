@@ -46,7 +46,6 @@ def query(
 ):
     builder = ProfileFunctionsMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
-        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -94,9 +93,8 @@ def timeseries_query(
     """
 
     metrics_query = TimeseriesProfileFunctionsMetricsQueryBuilder(
-        {},
-        rollup,
         snuba_params=snuba_params,
+        interval=rollup,
         dataset=Dataset.PerformanceMetrics,
         query=query,
         selected_columns=selected_columns,
@@ -195,10 +193,9 @@ def top_events_timeseries(
 
     top_events_builder = TopProfileFunctionsMetricsQueryBuilder(
         Dataset.PerformanceMetrics,
-        {},
+        snuba_params,
         rollup,
         top_events["data"],
-        snuba_params=snuba_params,
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -211,10 +208,9 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopProfileFunctionsMetricsQueryBuilder(
             Dataset.PerformanceMetrics,
-            {},
+            snuba_params,
             rollup,
             top_events["data"],
-            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,

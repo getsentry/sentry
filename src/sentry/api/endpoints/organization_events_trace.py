@@ -187,10 +187,10 @@ class TraceEvent:
     def __init__(
         self,
         event: SnubaTransaction,
+        snuba_params: SnubaParams,
         parent: str | None,
         generation: int | None,
         light: bool = False,
-        snuba_params: SnubaParams | None = None,
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
@@ -280,7 +280,7 @@ class TraceEvent:
                     }
                 )
 
-    def load_performance_issues(self, light: bool, snuba_params: SnubaParams | None) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: SnubaParams) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -298,8 +298,6 @@ class TraceEvent:
                 if self.nodestore_event is not None:
                     occurrence_query = DiscoverQueryBuilder(
                         Dataset.IssuePlatform,
-                        # Params is ignored if snuba_params is passed
-                        params={},
                         snuba_params=snuba_params,
                         query=f"event_id:{self.event['id']}",
                         selected_columns=["occurrence_id"],
@@ -502,7 +500,6 @@ def child_sort_key(item: TraceEvent) -> list[int | str]:
 def count_performance_issues(trace_id: str, params: SnubaParams) -> int:
     transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        params={},
         snuba_params=params,
         query=f"trace:{trace_id}",
         selected_columns=[],
@@ -528,7 +525,6 @@ def create_transaction_params(
 
     metadata_query = DiscoverQueryBuilder(
         Dataset.Discover,
-        params={},
         snuba_params=snuba_params,
         query=f"trace:{trace_id}",
         selected_columns=[
@@ -618,7 +614,6 @@ def query_trace_data(
         )
     transaction_query = DiscoverQueryBuilder(
         Dataset.Transactions,
-        params={},
         snuba_params=transaction_params,
         query=f"trace:{trace_id}",
         selected_columns=transaction_columns,
@@ -627,7 +622,6 @@ def query_trace_data(
     )
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        params={},
         snuba_params=snuba_params,
         query=f"trace:{trace_id}",
         selected_columns=["event_id", "occurrence_id"],
@@ -642,7 +636,6 @@ def query_trace_data(
 
     error_query = DiscoverQueryBuilder(
         Dataset.Events,
-        params={},
         snuba_params=snuba_params,
         query=f"trace:{trace_id}",
         selected_columns=[
@@ -726,7 +719,6 @@ def strip_span_id(span_id):
 def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list[str]):
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
-        params={},
         snuba_params=spans_params,
         query=f"trace:{trace_id}",
         selected_columns=[
@@ -1243,18 +1235,16 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                             trace_results.append(
                                 TraceEvent(
                                     root,
+                                    snuba_params,
                                     None,
                                     0,
                                     True,
-                                    snuba_params=snuba_params,
                                 )
                             )
                             current_generation = 1
                             break
 
-            current_event = TraceEvent(
-                snuba_event, root_id, current_generation, True, snuba_params=snuba_params
-            )
+            current_event = TraceEvent(snuba_event, snuba_params, root_id, current_generation, True)
             trace_results.append(current_event)
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -1278,6 +1268,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                         [
                             TraceEvent(
                                 child_event,
+                                snuba_params,
                                 snuba_event["id"],
                                 (
                                     current_event.generation + 1
@@ -1285,7 +1276,6 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     else None
                                 ),
                                 True,
-                                snuba_params=snuba_params,
                             )
                             for child_event in child_events
                         ]
@@ -1354,6 +1344,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
         possible
         """
+        snuba_params = self.get_snuba_params(
+            self.request, self.request.organization, check_global_views=False
+        )
         if use_spans:
             results = self.serialize_with_spans(
                 limit,
@@ -1362,6 +1355,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 roots,
                 warning_extra,
                 event_id,
+                snuba_params,
                 detailed,
             )
             return results
@@ -1374,15 +1368,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params = self.get_snuba_params(
-            self.request, self.request.organization, check_global_views=False
-        )
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0, snuba_params=snuba_params)
+            root_event = TraceEvent(root, snuba_params, None, 0)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
@@ -1403,7 +1394,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0, snuba_params=snuba_params
+                        current_event, snuba_params, None, 0
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -1471,13 +1462,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     for child_event in child_events:
                         parent_events[child_event["id"]] = TraceEvent(
                             child_event,
+                            snuba_params,
                             current_event["id"],
                             (
                                 previous_event.generation + 1
                                 if previous_event.generation is not None
                                 else None
                             ),
-                            snuba_params=snuba_params,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])
@@ -1548,6 +1539,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         roots: Sequence[SnubaTransaction],
         warning_extra: dict[str, str],
         event_id: str | None,
+        snuba_params: SnubaParams,
         detailed: bool = False,
     ) -> SerializedTrace:
         root_traces: list[TraceEvent] = []
@@ -1563,7 +1555,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             for transaction in transactions:
                 parent_id = transaction["trace.parent_transaction"]
                 serialized_transaction = TraceEvent(
-                    transaction, parent_id, -1, span_serialized=True
+                    transaction, snuba_params, parent_id, -1, span_serialized=True
                 )
                 if parent_id is None:
                     if transaction["trace.parent_span"]:
@@ -1660,7 +1652,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "count_if(event.type, equals, transaction) as transactions",
                 "count_if(event.type, notEquals, transaction) as errors",
             ],
-            params={},
             snuba_params=snuba_params,
             query=f"trace:{trace_id}",
             limit=1,
@@ -1672,7 +1663,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "count()",
             ],
             orderby=["transaction.id"],
-            params={},
             snuba_params=snuba_params,
             query=f"trace:{trace_id}",
             limit=10_000,

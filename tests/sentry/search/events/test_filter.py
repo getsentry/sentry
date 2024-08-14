@@ -25,7 +25,7 @@ from sentry.search.events.filter import (
     _semver_package_filter_converter,
     parse_semver,
 )
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import OPERATOR_TO_FUNCTION
@@ -1144,7 +1144,7 @@ def _project(x):
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
-    params: ParamsType = {"project_id": [1]}
+    params = SnubaParams()
     query_filter = UnresolvedQuery(
         dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
     )
@@ -1220,7 +1220,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
 )
 def test_snql_malformed_boolean_search(description, query, expected_message):
     dataset = Dataset.Discover
-    params: ParamsType = {}
+    params = SnubaParams()
     query_filter = UnresolvedQuery(
         dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
     )
@@ -1240,10 +1240,10 @@ class SnQLBooleanSearchQueryTest(TestCase):
         self.group3 = self.create_group(project=self.project1)
 
         dataset = Dataset.Discover
-        params: ParamsType = {
-            "organization_id": self.organization.id,
-            "project_id": [self.project1.id, self.project2.id],
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project1, self.project2],
+        )
         self.query_filter = UnresolvedQuery(
             dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
         )

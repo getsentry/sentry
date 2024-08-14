@@ -7,7 +7,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.testutils.cases import TestCase
@@ -17,7 +17,8 @@ pytestmark = pytest.mark.sentry_metrics
 
 class ErrorsQueryBuilderTest(TestCase):
     def setUp(self):
-        self.projects = [self.project.id]
+        self.projects = [self.project]
+        self.project_ids = [self.project.id]
 
     @pytest.mark.querybuilder
     def test_simple_query(self):
@@ -25,9 +26,9 @@ class ErrorsQueryBuilderTest(TestCase):
             dataset=Dataset.Events,
             query="status:unresolved",
             selected_columns=["count_unique(user)"],
-            params={
-                "project_id": self.projects,
-            },
+            snuba_params=SnubaParams(
+                projects=self.projects,
+            ),
             offset=None,
             limit=None,
             config=QueryBuilderConfig(
@@ -51,12 +52,12 @@ class ErrorsQueryBuilderTest(TestCase):
             Condition(
                 Column("project_id", entity=Entity("events", alias="events")),
                 Op.IN,
-                self.projects,
+                self.project_ids,
             ),
             Condition(
                 Column("project_id", entity=g_entity),
                 Op.IN,
-                self.projects,
+                self.project_ids,
             ),
         ]
 
@@ -65,9 +66,9 @@ class ErrorsQueryBuilderTest(TestCase):
             dataset=Dataset.Events,
             query="is:unresolved",
             selected_columns=["count_unique(user)"],
-            params={
-                "project_id": self.projects,
-            },
+            snuba_params=SnubaParams(
+                projects=self.projects,
+            ),
             offset=None,
             limit=None,
             config=QueryBuilderConfig(
@@ -92,11 +93,11 @@ class ErrorsQueryBuilderTest(TestCase):
             Condition(
                 Column("project_id", entity=Entity("events", alias="events")),
                 Op.IN,
-                self.projects,
+                self.project_ids,
             ),
             Condition(
                 Column("project_id", entity=g_entity),
                 Op.IN,
-                self.projects,
+                self.project_ids,
             ),
         ]

@@ -248,7 +248,6 @@ def query(
 
     builder = DiscoverQueryBuilder(
         dataset,
-        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -329,7 +328,6 @@ def timeseries_query(
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
             dataset,
-            params={},
             interval=rollup,
             snuba_params=snuba_params,
             query=query,
@@ -351,7 +349,6 @@ def timeseries_query(
             comp_query_params.end -= comparison_delta
             comparison_builder = TimeseriesQueryBuilder(
                 dataset,
-                params={},
                 interval=rollup,
                 snuba_params=comp_query_params,
                 query=query,
@@ -510,7 +507,6 @@ def top_events_timeseries(
 
     top_events_builder = TopEventsQueryBuilder(
         dataset,
-        params={},
         interval=rollup,
         snuba_params=snuba_params,
         top_events=top_events["data"],
@@ -527,7 +523,6 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
             dataset,
-            params={},
             interval=rollup,
             top_events=top_events["data"],
             snuba_params=snuba_params,
@@ -648,7 +643,6 @@ def get_facets(
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
-            params={},
             snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
@@ -694,7 +688,6 @@ def get_facets(
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
                 snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", "project_id"],
@@ -733,7 +726,6 @@ def get_facets(
             tag = f"tags[{tag_name}]"
             tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
                 snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", tag],
@@ -755,7 +747,6 @@ def get_facets(
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
-                params={},
                 snuba_params=snuba_params,
                 query=(query if query is not None else "")
                 + f" tags_key:[{','.join(aggregate_tags)}]",
@@ -851,7 +842,6 @@ def spans_histogram_query(
         group_by,
         # Arguments for QueryBuilder
         Dataset.Discover,
-        params={},
         snuba_params=snuba_params,
         query=user_query,
         selected_columns=[""],
@@ -974,7 +964,6 @@ def histogram_query(
         group_by,
         # Arguments for QueryBuilder
         Dataset.Discover,
-        params={},
         snuba_params=snuba_params,
         query=user_query,
         selected_columns=fields,

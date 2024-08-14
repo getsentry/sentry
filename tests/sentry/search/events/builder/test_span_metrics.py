@@ -8,7 +8,7 @@ from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
 )
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -48,12 +48,12 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
     def test_granularity(self):
         # Need to pick granularity based on the period
         def get_granularity(start, end):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": start,
-                "end": end,
-            }
+            params = SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=start,
+                end=end,
+            )
             query = SpansMetricsQueryBuilder(params)
             return query.resolve_split_granularity()
 
@@ -233,12 +233,12 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
 
 class TimeseriesMetricQueryBuilder(MetricsEnhancedPerformanceTestCase):
     def test_split_granularity(self):
-        params: ParamsType = {
-            "organization_id": self.organization.id,
-            "project_id": [self.project.id],
-            "start": datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc),
-            "end": datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc),
-        }
+        params = SnubaParams(
+            organization=self.organization,
+            projects=[self.project],
+            start=datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc),
+            end=datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc),
+        )
         query = TimeseriesSpansMetricsQueryBuilder(params, 86400)
         condition, granularity = query.resolve_split_granularity()
         assert granularity == query.granularity

@@ -9,13 +9,7 @@ from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.fields import custom_time_processor, get_function_alias
-from sentry.search.events.types import (
-    ParamsType,
-    QueryBuilderConfig,
-    SelectType,
-    SnubaParams,
-    WhereType,
-)
+from sentry.search.events.types import QueryBuilderConfig, SelectType, SnubaParams, WhereType
 from sentry.snuba.dataset import Dataset
 
 
@@ -83,10 +77,9 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
         top_events: list[dict[str, Any]],
-        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -100,7 +93,6 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         _, timeseries_functions = categorize_columns(timeseries_columns)
         super().__init__(
             dataset,
-            params,
             snuba_params=snuba_params,
             interval=interval,
             query=query,

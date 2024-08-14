@@ -85,6 +85,7 @@ class SnubaParams:
     user: RpcUser | None = None
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
+    use_case_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.start:

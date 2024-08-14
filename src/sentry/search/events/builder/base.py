@@ -4,7 +4,7 @@ import math
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from re import Match
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -40,17 +40,12 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models.environment import Environment
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.models.team import Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     NormalizedArg,
-    ParamsType,
     QueryBuilderConfig,
     SelectType,
     SnubaParams,
@@ -59,7 +54,6 @@ from sentry.search.events.types import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.snuba.query_sources import QuerySource
-from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -114,75 +108,11 @@ class BaseQueryBuilder:
             ],
         )
 
-    def _dataclass_params(
-        self, snuba_params: SnubaParams | None, params: ParamsType
-    ) -> SnubaParams:
-        """Shim so the query builder can start using the dataclass
-
-        need a lot of type: ignore since the params being passed can't be trusted from files that are probably still in the type ignorelist
-        """
-        if snuba_params is not None:
-            return snuba_params
-
-        if "project_objects" in params:
-            projects = params["project_objects"]
-        elif "project_id" in params and (
-            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
-        ):
-            projects = list(Project.objects.filter(id__in=params["project_id"]))
-        else:
-            projects = []
-
-        if "organization_id" in params and isinstance(params["organization_id"], int):
-            organization = Organization.objects.filter(id=params["organization_id"]).first()
-        else:
-            organization = projects[0].organization if projects else None
-
-        # Yes this is a little janky, but its temporary until we can have everyone passing the dataclass directly
-        environments: Sequence[Environment | None] = []
-        if "environment_objects" in params:
-            environments = cast(Sequence[Union[Environment, None]], params["environment_objects"])
-        if "environment" in params and organization is not None:
-            if isinstance(params["environment"], list):
-                environments = list(
-                    Environment.objects.filter(
-                        organization_id=organization.id, name__in=params["environment"]
-                    )
-                )
-                if "" in params["environment"]:
-                    environments.append(None)
-            elif isinstance(params["environment"], str):
-                environments = list(
-                    Environment.objects.filter(
-                        organization_id=organization.id, name=params["environment"]
-                    )
-                )
-            else:
-                environments = []  # type: ignore[unreachable]
-
-        user_id = params.get("user_id")
-        user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
-        teams = (
-            Team.objects.filter(id__in=params["team_id"])
-            if "team_id" in params and isinstance(params["team_id"], list)
-            else []
-        )
-        return SnubaParams(
-            start=cast(datetime, params.get("start")),
-            end=cast(datetime, params.get("end")),
-            environments=environments,
-            projects=projects,
-            user=user,
-            teams=teams,
-            organization=organization,
-        )
-
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         config: QueryBuilderConfig | None = None,
-        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
@@ -205,11 +135,8 @@ class BaseQueryBuilder:
 
         self.dataset = dataset
 
-        # filter params is the older style params, shouldn't be used anymore
-        self.filter_params = params
-        if snuba_params is not None:
-            self.filter_params = snuba_params.filter_params
-        self.params = self._dataclass_params(snuba_params, params)
+        self.params = snuba_params
+        self.filter_params = self.params.filter_params
 
         org_id = self.params.organization_id
         self.organization_id: int | None = (
@@ -232,8 +159,8 @@ class BaseQueryBuilder:
         self.tenant_ids: dict[str, str | None | int] | None = dict()
         if org_id is not None:
             self.tenant_ids["organization_id"] = org_id
-        if "use_case_id" in params and params.get("use_case_id") is not None:
-            self.tenant_ids["use_case_id"] = params.get("use_case_id")
+        if self.params.use_case_id is not None:
+            self.tenant_ids["use_case_id"] = self.params.use_case_id
         if not self.tenant_ids:
             self.tenant_ids = None
 
@@ -1124,7 +1051,7 @@ class BaseQueryBuilder:
         try:
             parsed_terms = event_search.parse_search_query(
                 query,
-                params=self.filter_params,
+                snuba_params=self.params,
                 builder=self,
                 config_overrides=self.builder_config.parser_config_overrides,
             )
