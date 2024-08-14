@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -21,7 +21,7 @@ describe('DatabaseSystemSelector', function () {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    mockUseLocalStorageState.mockReturnValue(['', () => {}]);
+    mockUseLocalStorageState.mockReturnValue(['', jest.fn()]);
   });
 
   afterAll(() => {
@@ -29,6 +29,8 @@ describe('DatabaseSystemSelector', function () {
   });
 
   it('is disabled when only one database system is present and shows that system as selected', async function () {
+    const mockSetState = jest.fn();
+    mockUseLocalStorageState.mockReturnValue(['', mockSetState]);
     mockUseSpanMetrics.mockReturnValue({
       data: [
         {
@@ -44,7 +46,9 @@ describe('DatabaseSystemSelector', function () {
 
     const dropdownSelector = await screen.findByRole('button');
     expect(dropdownSelector).toBeDisabled();
-    expect(dropdownSelector).toHaveTextContent('DB SystemPostgreSQL');
+    await waitFor(() => {
+      expect(mockSetState).toHaveBeenCalledWith('postgresql');
+    });
   });
 
   it('renders all database system options correctly', async function () {
@@ -109,6 +113,5 @@ describe('DatabaseSystemSelector', function () {
     render(<DatabaseSystemSelector />, {organization});
 
     expect(await screen.findByText('MongoDB')).toBeInTheDocument();
-    screen.debug();
   });
 });
