@@ -96,12 +96,14 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.require_2fa = True
         org.flags.disable_member_project_creation = True
         org.flags.prevent_superuser_access = True
+        org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "early_adopter")
         assert flag_has_changed(org, "codecov_access")
         assert flag_has_changed(org, "require_2fa")
         assert flag_has_changed(org, "disable_member_project_creation")
         assert flag_has_changed(org, "prevent_superuser_access")
+        assert flag_has_changed(org, "disable_member_invite")
 
     def test_has_changed(self):
         org = self.create_organization()

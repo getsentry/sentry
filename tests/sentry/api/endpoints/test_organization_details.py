@@ -429,6 +429,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "allowSuperuserAccess": False,
+            "allowMemberInvite": False,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
@@ -472,6 +473,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert org.flags.early_adopter
         assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
+        assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -506,6 +508,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
+        assert "to {}".format(not data["allowMemberInvite"]) in log.data["disable_member_invite"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]

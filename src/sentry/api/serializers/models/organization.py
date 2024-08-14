@@ -353,6 +353,7 @@ class OrganizationSerializer(Serializer):
                 and obj.flags.require_email_verification
             ),
             "avatar": avatar,
+            "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
             "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {

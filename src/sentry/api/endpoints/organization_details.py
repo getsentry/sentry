@@ -245,6 +245,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberInvite = serializers.BooleanField(required=False)
     allowMemberProjectCreation = serializers.BooleanField(required=False)
     allowSuperuserAccess = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
@@ -514,6 +515,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "allowSuperuserAccess" in data:
             org.flags.prevent_superuser_access = not data["allowSuperuserAccess"]
+        if "allowMemberInvite" in data:
+            org.flags.disable_member_invite = not data["allowMemberInvite"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -532,6 +535,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
                 "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
+                "disable_member_invite": org.flags.disable_member_invite.is_set,
             },
         }
 
