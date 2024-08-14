@@ -14,12 +14,12 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 
 

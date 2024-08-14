@@ -17,12 +17,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
-from sentry.models.useremail import UserEmail
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.users.models.useremail import UserEmail
 
 
 class ResolveGroupResolutionsTest(TestCase):
