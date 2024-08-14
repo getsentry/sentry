@@ -17,7 +17,6 @@ def create_or_update_service_hooks_for_installation(
         webhook_url=webhook_url,
         events=events,
     )
-    print("webhook_url", webhook_url, hooks)
     if webhook_url and not hooks:
         # Note that because the update transaction is disjoint with this transaction, it is still
         # possible we redundantly create service hooks in the face of two concurrent requests.

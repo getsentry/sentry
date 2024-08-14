@@ -316,8 +316,12 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 organization_id=org2.id, application_id=self.published_app.id
             )
 
-        assert len(service_hooks_org1) > 0, "No service hooks found for Org1"
-        assert len(service_hooks_org2) > 0, "No service hooks found for Org2"
+        assert (
+            len(service_hooks_org1) > 0
+        ), f"No service hooks found for Org1, App ID: {self.published_app.id}"
+        assert (
+            len(service_hooks_org2) > 0
+        ), f"No service hooks found for Org2, App ID: {self.published_app.id}"
 
         for hook in service_hooks_org1:
             assert hook.application_id == self.published_app.id
