@@ -143,12 +143,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
                 # accurate measurement of delay/duration.
                 if result["duration_ms"]:
-                    metrics.gauge(
+                    metrics.distribution(
                         "uptime.result_processor.check_result.duration",
                         result["duration_ms"],
                         sample_rate=1.0,
                     )
-                metrics.gauge(
+                metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
