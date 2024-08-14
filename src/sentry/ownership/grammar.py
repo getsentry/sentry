@@ -117,7 +117,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(data) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
@@ -260,7 +260,7 @@ class OwnershipVisitor(NodeVisitor):
         type, _ = tag
         return str(type[0].text)
 
-    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> list[Owner]:
+    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
         _, owners = children
         return owners
 
@@ -285,7 +285,7 @@ class OwnershipVisitor(NodeVisitor):
     def visit_quoted_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
-    def generic_visit(self, node: Node, children: Sequence[Any]) -> list[Node] | Node:
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> Sequence[Node] | Node:
         return children or node
 
 
@@ -428,7 +428,7 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor | None]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
@@ -530,7 +530,9 @@ def create_schema_from_issue_owners(
         rules = parse_rules(issue_owners)
     except ParseError as e:
         raise ValidationError(
-            {"raw": f"Parse error: {e.expr.name} (line {e.line()}, column {e.column()})"}
+            {
+                "raw": f"Parse error: {e.expr.name if e.expr else 'unknown'} (line {e.line()}, column {e.column()})"
+            }
         )
 
     schema = dump_schema(rules)
@@ -539,7 +541,7 @@ def create_schema_from_issue_owners(
     owners_id = {}
     actors = resolve_actors(owners, project_id)
 
-    bad_actors = []
+    bad_actors: list[str] = []
     for owner, actor in actors.items():
         if actor is None:
             if owner.type == "user":
