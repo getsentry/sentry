@@ -10,23 +10,10 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
-  // aggregate: UnsavedMetricRule['aggregate'];
-  // api: Client;
-  // comparisonType: AlertRuleComparisonType;
-  // config: Config;
-
   disabled: boolean;
-  // trigger: Trigger;
   onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
-  // onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
-  // onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   sensitivity: UnsavedMetricRule['sensitivity'];
-  // organization: Organization;
-  // placeholder: string;
-  // projects: Project[];
-  // resolveThreshold: UnsavedMetricRule['resolveThreshold'];
-  // thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   /**
    * Map of fieldName -> errorMessage
