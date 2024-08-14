@@ -293,7 +293,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.published_app.save()
 
         # for published integrations, it runs in a task
-        print("start test with application id ", self.published_app.application_id)
+        print(
+            "start test with organization ids: ",
+            org1.id,
+            org2.id,
+            "and application id: ",
+            self.published_app.application_id,
+        )
         with self.tasks(), outbox_runner():
             self.get_success_response(
                 self.published_app.slug,
@@ -303,7 +309,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 status_code=200,
             )
         print(
-            f"task and outbox runner should be done by now with application id: {self.published_app.application_id}"
+            f"task and outbox runner should be done by now with organization ids: {org1.id}, {org2.id}, application id: {self.published_app.application_id}"
         )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
@@ -321,10 +327,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         assert (
             len(service_hooks_org1) > 0
-        ), f"No service hooks found for Org1, App ID: {self.published_app.id}"
+        ), f"No service hooks found for Org1 (ID: {org1.id}), App ID: {self.published_app.application_id}"
         assert (
             len(service_hooks_org2) > 0
-        ), f"No service hooks found for Org2, App ID: {self.published_app.id}"
+        ), f"No service hooks found for Org2 (ID: {org2.id}), App ID: {self.published_app.application_id}"
 
         for hook in service_hooks_org1:
             assert hook.application_id == self.published_app.id
