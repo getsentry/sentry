@@ -64,7 +64,7 @@ function getFiltersFromRecentSearches(
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => !filtersInCurrentQuery.includes(filter))
+    .filter(filter => !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter])
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;

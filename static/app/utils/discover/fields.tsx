@@ -1485,6 +1485,8 @@ export const ERROR_FILTER_FIELDS: FilterKeySection = {
   value: 'error_fields',
   label: 'Error',
   children: [
+    FieldKey.LEVEL,
+    FieldKey.MESSAGE,
     FieldKey.ERROR_TYPE,
     FieldKey.ERROR_VALUE,
     FieldKey.ERROR_MECHANISM,
