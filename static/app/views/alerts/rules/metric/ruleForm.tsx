@@ -143,6 +143,8 @@ type State = {
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
+  sensitivity: UnsavedMetricRule['sensitivity'];
+  // because it's not passed for now
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
@@ -152,6 +154,7 @@ type State = {
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
   monitorType?: MonitorType;
+  seasonality?: string;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -456,6 +459,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     changedTriggerIndex?: number
   ) {
     const {comparisonType} = this.state;
+    // If we have an anomaly detection alert, then we don't need to validate the thresholds, but we do need to set them to 0
+    if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      triggers.forEach(trigger => {
+        trigger.alertThreshold = 0;
+      });
+      const triggerErrors = new Map();
+      return triggerErrors; // return an empty map
+    }
     const triggerErrors = new Map();
 
     const requiredFields = ['label', 'alertThreshold'];
@@ -727,6 +738,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       eventTypes,
       monitorType,
       activationCondition,
+      sensitivity,
+      seasonality,
+      comparisonType,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -763,7 +777,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             activationCondition,
           };
         }
-
+        const detectionTypes = new Map([
+          [AlertRuleComparisonType.COUNT, 'static'],
+          [AlertRuleComparisonType.CHANGE, 'percent'],
+          [AlertRuleComparisonType.DYNAMIC, 'dynamic'],
+        ]);
+        const detectionType = detectionTypes.get(comparisonType) ?? '';
         const dataset = this.determinePerformanceDataset();
         this.setState({loading: true});
         // Add or update is just the PUT/POST to the org alert-rules api
@@ -787,6 +806,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
             dataset,
             queryType: DatasetMEPAlertQueryTypes[dataset],
+            sensitivity: sensitivity ?? null,
+            seasonality: seasonality ?? null,
+            detectionType: detectionType,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -889,13 +911,22 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     const comparisonDelta =
-      value === AlertRuleComparisonType.COUNT
-        ? undefined
-        : this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA;
+      value === AlertRuleComparisonType.CHANGE
+        ? this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA
+        : undefined;
     const timeWindow = this.state.comparisonDelta
       ? DEFAULT_COUNT_TIME_WINDOW
       : DEFAULT_CHANGE_TIME_WINDOW;
-    this.setState({comparisonType: value, comparisonDelta, timeWindow});
+    const sensitivity =
+      value === AlertRuleComparisonType.DYNAMIC ? this.state.sensitivity : undefined;
+    const seasonality = value === AlertRuleComparisonType.DYNAMIC ? 'auto' : undefined; // TODO: replace "auto" with the correct constant
+    this.setState({
+      comparisonType: value,
+      comparisonDelta,
+      timeWindow,
+      sensitivity,
+      seasonality,
+    });
   };
 
   handleDeleteRule = async () => {

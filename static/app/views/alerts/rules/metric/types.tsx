@@ -102,7 +102,7 @@ export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
-  detectionType: AlertRuleComparisonType;
+  detectionType: string;
   environment: string | null;
   projects: string[];
   query: string;
