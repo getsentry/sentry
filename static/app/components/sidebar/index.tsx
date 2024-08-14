@@ -644,7 +644,7 @@ function Sidebar() {
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
-            noMargin={hasNewNav}
+            hasNewNav={hasNewNav}
           >
             <SidebarDropdown
               orientation={orientation}
@@ -704,7 +704,7 @@ function Sidebar() {
         </SidebarSectionGroupPrimary>
 
         {hasOrganization && (
-          <SidebarSectionGroup>
+          <SidebarSectionGroup hasNewNav={hasNewNav}>
             {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
@@ -846,11 +846,11 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   }
 `;
 
-const SidebarSectionGroup = styled('div')`
+const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
   ${responsiveFlex};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
-  align-items: center;
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -934,6 +934,7 @@ const SidebarSection = styled(SidebarSectionGroup)<{
 `;
 
 const DropdownSidebarSection = styled(SidebarSection)<{
+  hasNewNav?: boolean;
   isSuperuser?: boolean;
 }>`
   position: relative;
@@ -951,6 +952,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
         background: ${p.theme.superuserSidebar};
       }
     `}
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`

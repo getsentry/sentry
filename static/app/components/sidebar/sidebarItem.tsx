@@ -386,11 +386,10 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : '40px')};
+  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-  margin: ${p => (p.hasNewNav ? space(2) : space(1))} 0;
   ${p => {
     if (!p.hasNewNav) {
       return css`
@@ -405,12 +404,14 @@ const StyledSidebarItem = styled(Link, {
           border-radius: 0 3px 3px 0;
           background-color: transparent;
           transition: 0.15s background-color linear;
-          height: 100%;
-          align-self: center;
         }
       `;
     }
-    return 'width: 100px;';
+    return css`
+      margin: ${space(2)} 0;
+      width: 100px;
+      align-self: center;
+    `;
   }}
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
