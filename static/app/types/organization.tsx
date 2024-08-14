@@ -52,7 +52,6 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
-  allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;

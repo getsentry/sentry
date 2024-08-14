@@ -92,16 +92,6 @@ const formGroups: JsonFormObject[] = [
         help: t('Allow organization members to freely join any team'),
       },
       {
-        name: 'allowMemberInvite',
-        type: 'boolean',
-        label: t('Let Members Invite Freely'),
-        help: t(
-          'Allow organization members to invite other members via email without needing org owner or manager approval.'
-        ),
-        visible: ({features}) => features.has('members-invite-teammates'),
-        disabled: ({access}) => !access.has('org:admin'),
-      },
-      {
         name: 'allowMemberProjectCreation',
         type: 'boolean',
         label: t('Let Members Create Projects'),
