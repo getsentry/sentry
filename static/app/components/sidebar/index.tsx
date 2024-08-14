@@ -883,6 +883,7 @@ const PrimaryItems = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: hidden;
+    overflow-x: auto;
     flex-direction: row;
     height: 100%;
     align-items: center;
