@@ -101,7 +101,7 @@ def build_event_data_for_occurrence(
             "uptime_rule": str(project_subscription.id),
         },
         "timestamp": occurrence.detection_time.isoformat(),
-        "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
+        "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}},
     }
 
 
