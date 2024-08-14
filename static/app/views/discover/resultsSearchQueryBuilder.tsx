@@ -14,13 +14,22 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
-import {isAggregateField, isEquation, isMeasurement} from 'sentry/utils/discover/fields';
+import {
+  ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+  COMMON_DATASET_FILTER_KEY_SECTIONS,
+  ERRORS_DATASET_FILTER_KEY_SECTIONS,
+  isAggregateField,
+  isEquation,
+  isMeasurement,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {
   DiscoverDatasets,
   DiscoverDatasetsToDatasetMap,
@@ -49,7 +58,14 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
       !isEquation(item.field) &&
       !isCustomMeasurement(item.field)
     ) {
-      acc[item.field] = {key: item.field, name: item.field, kind: FieldKind.FUNCTION};
+      const parsedFunction = parseFunction(item.field);
+      if (parsedFunction) {
+        acc[parsedFunction.name] = {
+          key: parsedFunction.name,
+          name: parsedFunction.name,
+          kind: FieldKind.FUNCTION,
+        };
+      }
     }
 
     return acc;
@@ -95,7 +111,7 @@ export const getHasTag = (tags: TagCollection) => ({
   kind: FieldKind.FIELD,
 });
 
-export type SearchBarProps = {
+type Props = {
   onSearch: (query: string) => void;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
@@ -111,7 +127,7 @@ export type SearchBarProps = {
 
 const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
 
-function ResultsSearchQueryBuilder(props: SearchBarProps) {
+function ResultsSearchQueryBuilder(props: Props) {
   const {
     omitTags,
     fields,
@@ -229,10 +245,6 @@ function ResultsSearchQueryBuilder(props: SearchBarProps) {
 
     combinedTags.has = getHasTag(combinedTags);
 
-    // const list =
-    //   omitTags && omitTags.length > 0 ?
-    //     omit(combinedTags, omitTags, [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]) :
-    //     omit(combinedTags, [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]);
     return combinedTags;
   }, [
     measurements,
@@ -243,16 +255,26 @@ function ResultsSearchQueryBuilder(props: SearchBarProps) {
     organization.features,
   ]);
 
-  const filterKeySections = useMemo(
-    () => [
-      {
-        value: 'custom_fields',
-        label: 'Custom Tags',
-        children: Object.keys(filteredTags),
-      },
-    ],
-    [filteredTags]
-  );
+  const filterKeySections = useMemo(() => {
+    const customTagsSection: FilterKeySection = {
+      value: 'custom_fields',
+      label: 'Custom Tags',
+      children: Object.keys(filteredTags),
+    };
+
+    if (
+      dataset === DiscoverDatasets.TRANSACTIONS ||
+      dataset === DiscoverDatasets.METRICS_ENHANCED
+    ) {
+      return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, customTagsSection];
+    }
+
+    if (dataset === DiscoverDatasets.ERRORS) {
+      return [...ERRORS_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
+    }
+
+    return [...COMMON_DATASET_FILTER_KEY_SECTIONS, customTagsSection];
+  }, [filteredTags, dataset]);
 
   return (
     <StyledResultsSearchQueryBuilder
@@ -263,8 +285,6 @@ function ResultsSearchQueryBuilder(props: SearchBarProps) {
       searchSource={'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
-      disallowFreeText
-      disallowUnsupportedFilters
       recentSearches={SavedSearchType.EVENT}
     />
   );
