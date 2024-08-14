@@ -1,7 +1,6 @@
 import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -15,6 +14,8 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
@@ -45,9 +46,9 @@ export default function LLMMonitoringSection({event}: Props) {
   );
 
   return (
-    <EventDataSection
+    <InterimSection
       title={t('LLM monitoring')}
-      type="llm-monitoring"
+      type={FoldSectionKey.LLM_MONITORING}
       help={t('Charts showing how many tokens are being used')}
       actions={actions}
     >
@@ -67,6 +68,6 @@ export default function LLMMonitoringSection({event}: Props) {
           </ModuleLayout.Half>
         </ModuleLayout.Layout>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }

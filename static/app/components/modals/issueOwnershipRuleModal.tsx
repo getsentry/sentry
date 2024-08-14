@@ -3,7 +3,9 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
 import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';

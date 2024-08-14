@@ -9,7 +9,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 
 interface Props {

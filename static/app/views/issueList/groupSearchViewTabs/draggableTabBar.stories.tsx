@@ -10,6 +10,7 @@ import {
   DraggableTabBar,
   type Tab,
 } from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const TabPanelContainer = styled('div')`
   width: 90%;
@@ -18,25 +19,31 @@ const TabPanelContainer = styled('div')`
 `;
 const TABS: Tab[] = [
   {
+    id: 'one',
     key: 'one',
     label: 'Inbox',
     content: <TabPanelContainer>This is the Inbox view</TabPanelContainer>,
     queryCount: 1001,
-    hasUnsavedChanges: true,
+    query: '',
+    querySort: IssueSortOptions.DATE,
   },
   {
+    id: 'two',
     key: 'two',
     label: 'For Review',
     content: <TabPanelContainer>This is the For Review view</TabPanelContainer>,
     queryCount: 50,
-    hasUnsavedChanges: false,
+    query: '',
+    querySort: IssueSortOptions.DATE,
   },
   {
+    id: 'three',
     key: 'three',
     label: 'Regressed',
     content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
     queryCount: 100,
-    hasUnsavedChanges: false,
+    query: '',
+    querySort: IssueSortOptions.DATE,
   },
 ];
 
@@ -44,17 +51,6 @@ export default storyBook(DraggableTabBar, story => {
   story('Default', () => {
     const [showTempTab, setShowTempTab] = useState(false);
     const [tabs, setTabs] = useState(TABS);
-
-    const tempTab = {
-      key: 'temporary-tab',
-      label: 'Unsaved',
-      content: <TabPanelContainer>This is the Temporary view</TabPanelContainer>,
-    };
-    const defaultNewTab = {
-      key: `view-${tabs.length + 1}`,
-      label: `New View`,
-      content: <TabPanelContainer>This is the a New View</TabPanelContainer>,
-    };
 
     return (
       <Fragment>
@@ -76,15 +72,11 @@ export default storyBook(DraggableTabBar, story => {
             <DraggableTabBar
               tabs={tabs}
               setTabs={setTabs}
-              showTempTab={showTempTab}
-              tempTabContent={
-                <TabPanelContainer>This is a Temporary view</TabPanelContainer>
-              }
-              defaultNewTab={defaultNewTab}
-              tempTab={tempTab}
               onDiscardTempView={() => {
                 setShowTempTab(false);
               }}
+              orgSlug={'sentry'}
+              router={{} as any}
             />
           </TabBarContainer>
         </SizingWindow>

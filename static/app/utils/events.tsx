@@ -1,24 +1,24 @@
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import type {
-  BaseGroup,
   EntryException,
   EntryRequest,
   EntryThreads,
+  Event,
   EventMetadata,
+  ExceptionValue,
+  Frame,
+  Thread,
+  TreeLabelPart,
+} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {
+  BaseGroup,
   Group,
   GroupActivityAssigned,
   GroupTombstoneHelper,
-  TreeLabelPart,
-} from 'sentry/types';
-import {
-  EventOrGroupType,
-  GroupActivityType,
-  IssueCategory,
-  IssueType,
-} from 'sentry/types';
-import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -526,9 +526,6 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
 export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneHelper) {
   if (isTombstone(event) || isGroup(event)) {
     return false;
-  }
-  if (event.issueCategory === IssueCategory.PROFILE) {
-    return true;
   }
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return evidenceData.templateName === 'profile';

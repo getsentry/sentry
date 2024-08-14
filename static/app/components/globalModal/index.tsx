@@ -8,6 +8,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {TooltipContext} from 'sentry/components/tooltip';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {space} from 'sentry/styles/space';
@@ -226,7 +227,17 @@ function GlobalModal({onClose}: Props) {
         <AnimatePresence>
           {visible && (
             <Modal role="dialog" aria-modal css={options.modalCss}>
-              <Content role="document">{renderedChild}</Content>
+              <Content role="document">
+                <TooltipContext.Provider
+                  value={{
+                    // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
+                    // they need to be rendered inside the modal's DOM node.
+                    container: portal,
+                  }}
+                >
+                  {renderedChild}
+                </TooltipContext.Provider>
+              </Content>
             </Modal>
           )}
         </AnimatePresence>

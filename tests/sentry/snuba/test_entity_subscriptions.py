@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -619,6 +620,7 @@ class EntitySubscriptionTestCase(TestCase):
         ]
 
     def test_get_entity_subscription_for_insights_queries(self) -> None:
+        indexer.record(use_case_id=UseCaseID.SPANS, org_id=self.organization.id, string="cache.hit")
         with Feature("organizations:custom-metrics"):
             cases = [
                 ("count()", "", True),
@@ -628,12 +630,10 @@ class EntitySubscriptionTestCase(TestCase):
                 ("count()", "span.op:http.client", False),
                 ("count()", "span.description:abc", False),
                 ("performance_score(measurements.score.lcp)", "", False),
+                ("cache_miss_rate()", "", False),
+                ("http_response_rate(3)", "", False),
                 ("avg(span.self_time)", "", False),
-                # TODO: The following functions are not supported in the discover metrics dataset yet.
-                # Uncomment these as we port them over.
-                # ("spm()", "", False),
-                # ("cache_miss_rate()", "", False),
-                # ("http_response_rate()", "", False),
+                ("spm()", "", False),
             ]
             for aggregate, query, use_metrics_layer in cases:
                 entity_subscription = get_entity_subscription(
@@ -643,7 +643,16 @@ class EntitySubscriptionTestCase(TestCase):
                     time_window=3600,
                     extra_fields={"org_id": self.organization.id},
                 )
-                builder = entity_subscription.build_query_builder(query, [self.project.id], None)
+                builder = entity_subscription.build_query_builder(
+                    query,
+                    [self.project.id],
+                    None,
+                    {
+                        "organization_id": self.organization.id,
+                        "start": datetime(2024, 1, 1),
+                        "end": datetime(2024, 1, 2),
+                    },
+                )
                 assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
 
