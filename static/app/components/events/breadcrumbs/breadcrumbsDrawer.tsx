@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -73,11 +73,7 @@ export function BreadcrumbsDrawer({
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
-  const headerRef = useRef<HTMLHeadingElement>(null);
-  const [headerOffset, setHeaderOffset] = useState(0);
-  useEffect(() => {
-    setHeaderOffset(headerRef?.current?.offsetHeight ?? 0);
-  }, [headerRef]);
+  const containerRef = useRef<HTMLElement>(null);
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -211,8 +207,8 @@ export function BreadcrumbsDrawer({
   );
 
   return (
-    <Fragment>
-      <BreadcrumbDrawerHeader ref={headerRef}>
+    <BreadcrumbDrawerContainer>
+      <BreadcrumbDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -228,11 +224,11 @@ export function BreadcrumbsDrawer({
           ]}
         />
       </BreadcrumbDrawerHeader>
-      <BreadcrumbNavigator offset={headerOffset}>
+      <BreadcrumbNavigator>
         <Header>{t('Breadcrumbs')}</Header>
         {actions}
       </BreadcrumbNavigator>
-      <DrawerBody>
+      <BreadcrumbDrawerBody ref={containerRef}>
         <TimelineContainer>
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
@@ -255,11 +251,12 @@ export function BreadcrumbsDrawer({
             <BreadcrumbsTimeline
               breadcrumbs={displayCrumbs}
               startTimeString={startTimeString}
+              getScrollElement={() => containerRef.current}
             />
           )}
         </TimelineContainer>
-      </DrawerBody>
-    </Fragment>
+      </BreadcrumbDrawerBody>
+    </BreadcrumbDrawerContainer>
   );
 }
 
@@ -268,25 +265,40 @@ const VisibleFocusButton = styled(Button)`
     0 0 1px;
 `;
 
+const BreadcrumbDrawerContainer = styled('div')`
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+`;
+
 const BreadcrumbDrawerHeader = styled(DrawerHeader)`
+  position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const BreadcrumbNavigator = styled('div')<{offset: number}>`
-  position: sticky;
-  top: ${p => p.offset}px;
+const BreadcrumbNavigator = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
-  margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+`;
+
+const BreadcrumbDrawerBody = styled(DrawerBody)`
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Move the scrollbar to the left edge */
+  scroll-margin: 0 ${space(2)};
+  direction: rtl;
+  * {
+    direction: ltr;
+  }
 `;
 
 const Header = styled('h3')`

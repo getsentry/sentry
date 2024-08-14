@@ -52,6 +52,7 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const openForm = useFeedbackForm();
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
@@ -183,13 +184,16 @@ export default function BreadcrumbsDataSection({
       actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        <BreadcrumbsTimeline
-          breadcrumbs={summaryCrumbs}
-          startTimeString={startTimeString}
-          // We want the timeline to appear connected to the 'View All' button
-          showLastLine={hasViewAll}
-          fullyExpanded={false}
-        />
+        <div ref={containerRef}>
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            startTimeString={startTimeString}
+            // We want the timeline to appear connected to the 'View All' button
+            showLastLine={hasViewAll}
+            fullyExpanded={false}
+            getScrollElement={() => containerRef.current}
+          />
+        </div>
         {hasViewAll && (
           <ViewAllContainer>
             <VerticalEllipsis />
