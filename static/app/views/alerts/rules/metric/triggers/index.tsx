@@ -164,6 +164,7 @@ class Triggers extends Component<Props> {
             triggers={triggers}
             onChange={this.handleChangeActions}
             onAdd={this.handleAddAction}
+            comparisonType={comparisonType}
           />
         )}
       </Fragment>
