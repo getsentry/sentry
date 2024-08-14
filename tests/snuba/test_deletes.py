@@ -62,7 +62,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         snuba.raw_snql_query(req)
 
         # make sure its gone
-        time.sleep(5)
+        time.sleep(5)  # test will currently fail without the sleep (maybe it take time to delete?)
         assert (
             snuba.query(
                 dataset=Dataset.IssuePlatform,
