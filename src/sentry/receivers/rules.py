@@ -1,8 +1,9 @@
 from sentry import features
-from sentry.auth.access import Access
+from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.rules.conditions.new_high_priority_issue import has_high_priority_issue_alerts
 from sentry.signals import project_created
 
 DEFAULT_RULE_LABEL = "Send a notification for new issues"
@@ -43,19 +44,18 @@ DEFAULT_RULE_DATA_NEW = {
 PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
 
-def has_high_priority_issue_alerts(project: Project) -> bool:
-    # Seer-based priority is enabled if the organization has the feature flag
-    return features.has("organizations:priority-ga-features", project.organization)
-
-
+@project_created.connect(dispatch_uid="create_default_rules", weak=False)
 def create_default_rules(
-    project: Project, default_rules=True, RuleModel=Rule, access=Access, **kwargs
+    project: Project, default_rules=True, RuleModel=Rule, sender=None, **kwargs
 ):
     if not default_rules:
         return
 
     if features.has("organizations:default-metric-alerts-new-projects", project.organization):
-        pass
+        try:
+            create_metric_alert(organization=project.organization, project=project, sender=sender)
+        except Exception:
+            pass
 
     if has_high_priority_issue_alerts(project):
         rule_data = DEFAULT_RULE_DATA_NEW
@@ -64,6 +64,3 @@ def create_default_rules(
     else:
         rule_data = DEFAULT_RULE_DATA
         RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL, data=rule_data)
-
-
-project_created.connect(create_default_rules, dispatch_uid="create_default_rules", weak=False)
