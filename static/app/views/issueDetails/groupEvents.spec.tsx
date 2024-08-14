@@ -10,8 +10,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 

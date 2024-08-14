@@ -17,8 +17,10 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {HealthStatsPeriodOption, SessionFieldWithOperation} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';

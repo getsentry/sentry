@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import storyBook from 'sentry/stories/storyBook';
-import type {TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
 
 const stats: ReadonlyArray<TimeseriesValue> = [
   [1715554800, 126],

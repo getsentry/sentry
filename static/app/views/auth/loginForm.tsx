@@ -11,7 +11,7 @@ import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<

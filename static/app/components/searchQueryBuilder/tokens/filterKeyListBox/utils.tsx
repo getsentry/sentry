@@ -44,16 +44,24 @@ export function createSection(
     key: section.value,
     value: section.value,
     label: section.label,
-    options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
+    options: section.children.map(key =>
+      createItem(keys[key], getFieldDefinition(key), section)
+    ),
     type: 'section',
   };
 }
 
-export function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
+export function createItem(
+  tag: Tag,
+  fieldDefinition: FieldDefinition | null,
+  section?: FilterKeySection
+): KeyItem {
   const description = fieldDefinition?.desc;
 
+  const key = section ? `${section.value}:${tag.key}` : tag.key;
+
   return {
-    key: getEscapedKey(tag.key),
+    key: getEscapedKey(key),
     label: getKeyLabel(tag, fieldDefinition),
     description: description ?? '',
     value: tag.key,
