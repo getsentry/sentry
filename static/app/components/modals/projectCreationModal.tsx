@@ -28,10 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  getAlertStepName,
-  type IssueAlertFragment,
-} from 'sentry/views/projectInstall/createProject';
+import type {IssueAlertFragment} from 'sentry/views/projectInstall/createProject';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
@@ -154,7 +151,7 @@ export default function ProjectCreationModal({
       )}
       {step === 1 && (
         <Fragment>
-          <Subtitle>{getAlertStepName(organization)}</Subtitle>
+          <Subtitle>{t('Set your alert frequency')}</Subtitle>
           <IssueAlertOptions
             platformLanguage={platform?.language as SupportedLanguages}
             onChange={updatedData => setAlertRuleConfig(updatedData)}

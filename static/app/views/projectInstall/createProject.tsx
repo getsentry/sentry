@@ -25,7 +25,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -44,12 +44,6 @@ import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingSta
 export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
-
-export function getAlertStepName(organization: Organization) {
-  return organization.features.includes('default-metric-alerts-new-projects')
-    ? t('Set your alerts')
-    : t('Set your alert frequency');
-}
 
 function CreateProject() {
   const api = useApi();
@@ -348,7 +342,7 @@ function CreateProject() {
             showOther
             noAutoFilter
           />
-          <StyledListItem>{getAlertStepName(organization)}</StyledListItem>
+          <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
             {...alertFrequencyDefaultValues}
             platformLanguage={platform?.language as SupportedLanguages}
