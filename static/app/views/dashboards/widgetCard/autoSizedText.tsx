@@ -32,10 +32,12 @@ export function AutoSizedText({
     const parentDimensions = getElementDimensions(parentRef.current);
 
     if (parentDimensions) {
+      // Reset the known font size bounds, they're no longer valid
       setCalculationCount(0);
       setFontSizeLowerBound(minFontSize);
       setFontSizeUpperBound(maxFontSize);
 
+      // Update state, trigger a re-render
       setParentHeight(parentDimensions.height);
       setParentWidth(parentDimensions.width);
     }
