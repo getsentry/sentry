@@ -57,9 +57,17 @@ class DatasetSourcesTypes(Enum):
     """
     USER = 2
     """
-     Was an ambiguous dataset forced to split (i.e. we picked a default)
+     Was an ambiguous dataset forced to split (i.e. we picked a default).
     """
     FORCED = 3
+    """
+     We attempted to split dataset, but there was an error.
+    """
+    SPLIT_ERRORED = 4
+    """
+     We attempted to split dataset, but neither dataset returned data.
+    """
+    INSUFFICIENT_DATA = 5
 
     @classmethod
     def as_choices(cls):
