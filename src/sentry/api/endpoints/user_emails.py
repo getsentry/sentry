@@ -11,8 +11,8 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
 from sentry.models.options.user_option import UserOption
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 logger = logging.getLogger("sentry.accounts")
 

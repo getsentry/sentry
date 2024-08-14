@@ -5,7 +5,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.models.group import Group
 from sentry.notifications.utils.actions import MessageAction
 

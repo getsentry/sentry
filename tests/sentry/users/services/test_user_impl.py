@@ -1,10 +1,10 @@
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.service import user_service
 
 

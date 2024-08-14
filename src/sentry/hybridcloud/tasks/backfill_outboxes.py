@@ -3,6 +3,7 @@ Checks OutboxProducingModel classes and their replication_version.
 When the replication_version on any class is bumped, callers to process_outbox_backfill_batch
 will produce new outboxes incrementally to replicate those models.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,8 +15,8 @@ from django.db.models import Max, Min, Model
 from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel, RegionOutboxProducingModel
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
+from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
 
 
@@ -28,7 +29,13 @@ class BackfillBatch:
 
     @property
     def count(self) -> int:
-        return self.up - self.low + 1
+        delta = self.up - self.low
+        if delta < 0:
+            return 0
+        return delta + 1
+
+    def __str__(self) -> str:
+        return f"BackfillBatch(low={self.low} up={self.up} version={self.version} has_more={self.has_more} count={self.count})"
 
 
 def get_backfill_key(table_name: str) -> str:

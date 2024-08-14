@@ -2,10 +2,10 @@ import pytest
 
 from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user import User
 from sentry.utils.query import (
     InvalidQuerySetError,
     RangeQuerySetWrapper,

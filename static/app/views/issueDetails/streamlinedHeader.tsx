@@ -15,14 +15,10 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Event,
-  Group,
-  Project,
-  Release,
-  TeamParticipant,
-  UserParticipant,
-} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -242,11 +238,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   padding: ${space(1)} 24px;
   margin-right: 0;
   margin-left: 0;
+  flex-wrap: wrap;
 `;
 
 const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  column-gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const Wrapper = styled('div')`

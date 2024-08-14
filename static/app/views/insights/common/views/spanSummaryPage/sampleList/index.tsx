@@ -4,7 +4,6 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -219,18 +218,16 @@ export function SampleList({
           highlightedSpanId={highlightedSpanId}
         />
 
-        <Feature features="performance-sample-panel-search">
-          <StyledSearchBar
-            searchSource={`${moduleName}-sample-panel`}
-            query={spanSearchQuery}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            organization={organization}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
-          />
-        </Feature>
+        <StyledSearchBar
+          searchSource={`${moduleName}-sample-panel`}
+          query={spanSearchQuery}
+          onSearch={handleSearch}
+          placeholder={t('Search for span attributes')}
+          organization={organization}
+          supportedTags={supportedTags}
+          dataset={DiscoverDatasets.SPANS_INDEXED}
+          projectIds={selection.projects}
+        />
 
         <SampleTable
           highlightedSpanId={highlightedSpanId}
@@ -277,5 +274,5 @@ const Title = styled('h4')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+  margin: ${space(2)} 0;
 `;

@@ -21,7 +21,8 @@ import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
@@ -289,7 +290,14 @@ class UsageStatsOrganization<
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
+    const {
+      dataCategory,
+      dataCategoryName,
+      organization,
+      projectIds,
+      router,
+      dataCategoryApiName,
+    } = this.props;
     const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
@@ -313,6 +321,7 @@ class UsageStatsOrganization<
         score: accepted,
         trend: (
           <UsageStatsPerMin
+            dataCategoryApiName={dataCategoryApiName}
             dataCategory={dataCategory}
             organization={organization}
             projectIds={projectIds}

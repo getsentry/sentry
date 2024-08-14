@@ -7,15 +7,14 @@ import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-  SelectValue,
-  TagCollection,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';

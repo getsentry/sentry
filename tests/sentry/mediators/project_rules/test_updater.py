@@ -1,8 +1,8 @@
 from sentry.mediators.project_rules.updater import Updater
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 
 
 class TestUpdater(TestCase):

@@ -142,7 +142,6 @@ SPAN_COLUMN_MAP = {
     "user.id": "sentry_tags[user.id]",
     "user.email": "sentry_tags[user.email]",
     "user.username": "sentry_tags[user.username]",
-    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
@@ -170,6 +169,37 @@ SPAN_COLUMN_MAP = {
     "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
+}
+
+SPAN_EAP_COLUMN_MAP = {
+    "id": "span_id",
+    "organization.id": "organization_id",
+    "project": "project_id",
+    "project.id": "project_id",
+    "project_id": "project_id",
+    "span.action": "attr_str[action]",
+    # For some reason the decision was made to store description as name? its called description everywhere else though
+    "span.description": "name",
+    "description": "name",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "name",
+    "span.domain": "domain",
+    "span.group": "group",
+    "span.op": "attr_str[op]",
+    "span.category": "attr_str[category]",
+    "span.self_time": "exclusive_time_ms",
+    "span.status": "attr_str[status]",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "segment_id",
+    "is_transaction": "is_segment",
+    "segment.id": "segment_id",
+    # We should be able to delete origin.transaction and just use transaction
+    "origin.transaction": "segment_name",
+    "span.status_code": "attr_str[status_code]",
+    "replay.id": "attr_str[replay_id]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -241,6 +271,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
+    Dataset.SpansEAP: SPAN_EAP_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -255,6 +286,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
+    Dataset.SpansEAP: list(SPAN_EAP_COLUMN_MAP.values()),
     Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
@@ -1350,6 +1382,13 @@ def resolve_column(dataset) -> Callable:
 
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
+        elif dataset == Dataset.SpansEAP:
+            if isinstance(col, str) and col.startswith("sentry_tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("sentry_tags", "attr_str", 1)
+            measurement_name = get_measurement_name(col)
+            if measurement_name:
+                return f"attr_num[{measurement_name}]"
         elif (
             dataset == Dataset.SpansIndexed
             and isinstance(col, str)
@@ -1372,6 +1411,8 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
+        if dataset == Dataset.SpansEAP:
+            return f"attr_str[{col}]"
         return f"tags[{col}]"
 
     return _resolve_column

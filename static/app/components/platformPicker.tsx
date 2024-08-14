@@ -17,7 +17,8 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
