@@ -62,10 +62,12 @@ export const Item = forwardRef(function _Item(
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.subText};
-  display: grid;
   align-items: start;
-  grid-template: auto auto / 22px 1fr auto;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
   grid-column-gap: ${space(1)};
+
   margin: ${space(1)} 0;
   &:first-child {
     margin-top: 0;
@@ -136,6 +138,8 @@ export const Data = styled('div')`
 
 export const Container = styled('div')`
   position: relative;
+  display: grid;
+  grid-template: auto auto / 22px 1fr auto;
   /* vertical line connecting items */
   &::before {
     content: '';
