@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {EventSamples} from 'sentry/views/insights/mobile/appStarts/components/eventSamples';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/appStarts/components/tables/spanOperationTable';
@@ -83,6 +84,7 @@ export function SamplesTables({transactionName}) {
             clearSpansTableCursor
             moduleName={ModuleName.APP_START}
           />
+          <SubregionSelector />
         </FiltersContainer>
         <SegmentedControl
           onChange={value => {

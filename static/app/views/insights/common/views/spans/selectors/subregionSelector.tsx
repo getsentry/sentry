@@ -25,7 +25,10 @@ export default function SubregionSelector() {
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
   const {data, isLoading} = useSpanMetrics(
-    {fields: [SpanMetricsField.USER_GEO_SUBREGION], enabled: hasGeoSelectorFeature},
+    {
+      fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
+      enabled: hasGeoSelectorFeature,
+    },
     'api.insights.user-geo-subregion-selector'
   );
 

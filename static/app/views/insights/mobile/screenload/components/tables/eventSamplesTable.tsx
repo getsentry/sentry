@@ -26,6 +26,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
@@ -184,6 +185,7 @@ export function EventSamplesTable({
           {showDeviceClassSelector && (
             <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
           )}
+          <SubregionSelector />
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
