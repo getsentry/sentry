@@ -262,11 +262,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       ) : (
         <AutoResizeParent key={`big_number:${result.title}`}>
           <AutoSizedText minFontSize={14} maxFontSize={containerHeight}>
-            <Trickery>
+            <NumberContainerOverride>
               <Tooltip title={rendered} showOnlyOnOverflow>
                 {rendered}
               </Tooltip>
-            </Trickery>
+            </NumberContainerOverride>
           </AutoSizedText>
         </AutoResizeParent>
       );
@@ -638,7 +638,13 @@ const BigText = styled('div')`
   }
 `;
 
-const Trickery = styled('div')`
+/**
+ * This component overrides the default behavior of `NumberContainer`,
+ * which wraps every single number in big widgets. This override forces
+ * `NumberContainer` to never truncate its values, which makes it possible
+ * to auto-size them.
+ */
+const NumberContainerOverride = styled('div')`
   display: inline-block;
 
   * {
