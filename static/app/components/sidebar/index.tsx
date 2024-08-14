@@ -124,7 +124,7 @@ function Sidebar() {
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasNewNav = useMemo(() => {
-    return organization?.features.includes('organizations:navigation-sidebar-v2');
+    return organization?.features.includes('navigation-sidebar-v2');
   }, [organization]);
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
