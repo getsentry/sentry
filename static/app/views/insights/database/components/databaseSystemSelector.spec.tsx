@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
@@ -47,6 +47,12 @@ describe('DatabaseSystemSelector', function () {
     const dropdownButton = await screen.findByRole('button');
     expect(dropdownButton).toBeInTheDocument();
 
-    screen.debug(dropdownButton);
+    await userEvent.click(dropdownButton);
+
+    const dropdownOptionLabels = await screen.findAllByTestId('menu-list-item-label');
+    expect(dropdownOptionLabels[0]).toHaveTextContent('PostgreSQL');
+    expect(dropdownOptionLabels[1]).toHaveTextContent('MongoDB');
+    // chungusdb does not exist, so we do not expect this option to have casing
+    expect(dropdownOptionLabels[2]).toHaveTextContent('chungusdb');
   });
 });
