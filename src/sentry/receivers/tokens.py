@@ -1,23 +1,9 @@
-from collections.abc import Sequence
-
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.models.apikey import ApiKey
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
-
-
-def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
-    """
-    Adds missing hierarchy scopes to the list of scopes. Returns an
-    alphabetically sorted list of final scopes.
-    """
-    new_scopes = set(curr_scopes)
-    for scope in curr_scopes:
-        if scope in SENTRY_SCOPES:
-            new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
-    return sorted(new_scopes)
 
 
 @receiver(pre_save, sender=ApiKey, dispatch_uid="enforce_scope_hierarchy_api_key")

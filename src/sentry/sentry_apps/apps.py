@@ -22,6 +22,7 @@ from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import (
     EVENT_EXPANSION,
@@ -32,7 +33,6 @@ from sentry.models.integrations.sentry_app import (
 )
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.receivers.tokens import add_scope_hierarchy
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
