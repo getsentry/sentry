@@ -176,8 +176,10 @@ function TableView(props: TableViewProps) {
 
       const target = {
         pathname: location.pathname,
-        query: nextView.generateQueryStringObject(),
-        ...appendQueryDatasetParam(organization, queryDataset),
+        query: {
+          ...nextView.generateQueryStringObject(),
+          ...appendQueryDatasetParam(organization, queryDataset),
+        },
       };
 
       return [
