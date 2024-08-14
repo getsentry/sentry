@@ -65,7 +65,7 @@
     "@sentry/status-page-list": "^0.3.0",
     "@sentry/types": "^8.24.0",
     "@sentry/utils": "^8.24.0",
-    "@sentry/webpack-plugin": "^2.22.1",
+    "@sentry/webpack-plugin": "^2.22.2",
     "@spotlightjs/spotlight": "^2.0.0-alpha.1",
     "@tanstack/react-query": "^4.29.7",
     "@tanstack/react-query-devtools": "^4.36.1",
