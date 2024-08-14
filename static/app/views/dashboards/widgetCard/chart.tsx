@@ -204,7 +204,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     if (typeof tableResults === 'undefined' || loading) {
-      return <BigNumber>{'\u2014'}</BigNumber>;
+      return <BigText>{'\u2014'}</BigText>;
     }
 
     const {containerHeight} = this.state;
@@ -223,7 +223,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       if (!field || !result.data?.length) {
-        return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
+        return <BigText key={`big_number:${result.title}`}>{'\u2014'}</BigText>;
       }
 
       const dataRow = result.data[0];
@@ -237,11 +237,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
-        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+        return (
+          <AutoResizeParent key={`big_number:${result.title}`}>
+            {rendered}
+          </AutoResizeParent>
+        );
       }
 
-      return (
-        <BigNumber key={`big_number:${result.title}`}>
+      return expandNumbers ? (
+        <BigText>{rendered}</BigText>
+      ) : (
+        <AutoResizeParent key={`big_number:${result.title}`}>
           <AutoSizedText minFontSize={30} maxFontSize={containerHeight}>
             <Trickery>
               <Tooltip title={rendered} showOnlyOnOverflow>
@@ -249,7 +255,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               </Tooltip>
             </Trickery>
           </AutoSizedText>
-        </BigNumber>
+        </AutoResizeParent>
       );
     });
   }
@@ -577,14 +583,21 @@ const BigNumberResizeWrapper = styled('div')`
   height: 100%;
   width: 100%;
   position: relative;
+  line-height: 1;
+  color: ${p => p.theme.headingColor};
 `;
 
-const BigNumber = styled('div')`
-  line-height: 1;
+const AutoResizeParent = styled('div')`
   display: inline-flex;
   position: absolute;
   inset: ${space(1)} ${space(3)} 0 ${space(3)};
-  color: ${p => p.theme.headingColor};
+`;
+
+const BigText = styled('div')`
+  display: block;
+  width: 100%;
+  font-size: max(min(8vw, 90px), 30px);
+  white-space: nowrap;
 `;
 
 const Trickery = styled('div')`
