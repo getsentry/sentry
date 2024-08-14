@@ -843,7 +843,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             ? err?.responseJSON
             : Object.values(err?.responseJSON)
           : [];
-        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        let apiErrors = '';
+        if (typeof errors[0] === 'object') {
+          // NOTE: this occurs if we get a TimeoutError when attempting to hit the Seer API
+          apiErrors = ': ' + errors[0].message;
+        } else {
+          apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        }
         this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
     });
