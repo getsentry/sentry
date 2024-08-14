@@ -52,6 +52,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -59,7 +60,6 @@ import type {Widget} from '../types';
 import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
-import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -242,11 +242,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       return (
         <BigNumber key={`big_number:${result.title}`}>
-          <Tooltip title={rendered} showOnlyOnOverflow>
-            <AutoSizedText minFontSize={10} maxFontSize={containerHeight}>
-              <Trickery>{rendered}</Trickery>
-            </AutoSizedText>
-          </Tooltip>
+          <AutoSizedText minFontSize={30} maxFontSize={containerHeight}>
+            <Trickery>
+              <Tooltip title={rendered} showOnlyOnOverflow>
+                {rendered}
+              </Tooltip>
+            </Trickery>
+          </AutoSizedText>
         </BigNumber>
       );
     });
