@@ -16,6 +16,7 @@ export function AutoSizedText({
   calculationCountLimit = DEFAULT_CALCULATION_COUNT_LIMIT,
 }: Props) {
   const [parentHeight, setParentHeight] = useState<number | null>(null);
+  const [parentWidth, setParentWidth] = useState<number | null>(null);
 
   const [fontSize, setFontSize] = useState<number>((maxFontSize + minFontSize) / 2);
   const [fontSizeLowerBound, setFontSizeLowerBound] = useState<number>(minFontSize);
@@ -30,7 +31,12 @@ export function AutoSizedText({
     const parentDimensions = getElementDimensions(parentRef.current);
 
     if (parentDimensions) {
+      setCalculationCount(0);
+      setFontSizeLowerBound(minFontSize);
+      setFontSizeUpperBound(maxFontSize);
+
       setParentHeight(parentDimensions.height);
+      setParentWidth(parentDimensions.width);
     }
   };
 
@@ -108,6 +114,7 @@ export function AutoSizedText({
     calculationCount,
     calculationCountLimit,
     parentHeight,
+    parentWidth,
   ]);
 
   return (
