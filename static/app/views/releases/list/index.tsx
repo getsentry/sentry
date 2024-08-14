@@ -18,6 +18,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -32,14 +33,11 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {
-  AvatarProject,
-  Organization,
-  PageFilters,
-  Project,
-  Release,
-  Tag,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
@@ -293,7 +291,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       tagKey: key,
       search,
       projectIds: projectId ? [projectId] : undefined,
-      endpointParams: location.query,
+      endpointParams: normalizeDateTimeParams(location.query),
     });
   };
 

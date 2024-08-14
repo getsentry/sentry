@@ -31,7 +31,6 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
@@ -1032,9 +1031,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
 
@@ -1218,7 +1215,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params, _ = self.get_snuba_dataclass(
+            snuba_params = self.get_snuba_params(
                 self.request, self.request.organization, check_global_views=False
             )
             if current_generation is None:
@@ -1377,7 +1374,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params, _ = self.get_snuba_dataclass(
+        snuba_params = self.get_snuba_params(
             self.request, self.request.organization, check_global_views=False
         )
         # The root of the orphan tree we're currently navigating through
@@ -1650,40 +1647,59 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace meta isn't useful without global views, so skipping the check here
-            snuba_params, params = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
 
         update_snuba_params_with_timestamp(request, snuba_params)
 
+        meta_query = DiscoverQueryBuilder(
+            dataset=Dataset.Discover,
+            selected_columns=[
+                "count_unique(project_id) as projects",
+                "count_if(event.type, equals, transaction) as transactions",
+                "count_if(event.type, notEquals, transaction) as errors",
+            ],
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            limit=1,
+        )
+        transaction_children_query = SpansIndexedQueryBuilder(
+            dataset=Dataset.SpansIndexed,
+            selected_columns=[
+                "transaction.id",
+                "count()",
+            ],
+            orderby=["transaction.id"],
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            limit=10_000,
+        )
         with handle_query_errors():
-            result = discover.query(
-                selected_columns=[
-                    "count_unique(project_id) as projects",
-                    "count_if(event.type, equals, transaction) as transactions",
-                    "count_if(event.type, notEquals, transaction) as errors",
+            results = bulk_snuba_queries(
+                [
+                    meta_query.get_snql_query(),
+                    transaction_children_query.get_snql_query(),
                 ],
-                params=params,
-                snuba_params=snuba_params,
-                query=f"trace:{trace_id}",
-                limit=1,
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
             )
-            if len(result["data"]) == 0:
+            meta_result, children_result = results[0], results[1]
+            if len(meta_result["data"]) == 0:
                 return Response(status=404)
             # Merge the result back into the first query
-            result["data"][0]["performance_issues"] = count_performance_issues(
+            meta_result["data"][0]["performance_issues"] = count_performance_issues(
                 trace_id, snuba_params
             )
-        return Response(self.serialize(result["data"][0]))
+        return Response(self.serialize(meta_result["data"][0], children_result["data"]))
 
-    def serialize(self, results: Mapping[str, int]) -> Mapping[str, int]:
+    def serialize(self, results: Mapping[str, int], child_result: Any) -> Mapping[str, int]:
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
+            "transaction_child_count_map": child_result,
         }

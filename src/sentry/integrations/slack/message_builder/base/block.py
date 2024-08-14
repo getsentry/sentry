@@ -7,8 +7,8 @@ from typing import Any
 
 import orjson
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.utils.actions import MessageAction
 
 
@@ -67,7 +67,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if block_id:
             tags_block_id = block_id.copy()
-            tags_block_id["block"] = "text"
+            tags_block_id["block"] = "tags"
             block["block_id"] = orjson.dumps(tags_block_id).decode()
 
         return block

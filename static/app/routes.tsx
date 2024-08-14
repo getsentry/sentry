@@ -1197,6 +1197,15 @@ function buildRoutes() {
               )}
             />
           </Route>
+          <Route
+            path="uptime/"
+            component={make(() => import('sentry/views/alerts/rules/uptime'))}
+          >
+            <Route
+              path=":projectId/:uptimeRuleId/details/"
+              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1215,6 +1224,17 @@ function buildRoutes() {
                   : '/organizations/:orgId/alerts/rules/'
               }
             />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="uptime-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
@@ -1573,6 +1593,19 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+          )}
+        />
+        <Route
+          path="details/"
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1696,7 +1729,9 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (

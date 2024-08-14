@@ -78,9 +78,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response({})
 

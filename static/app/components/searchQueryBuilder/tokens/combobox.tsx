@@ -25,7 +25,6 @@ import type {
 } from 'sentry/components/compactSelect/types';
 import {
   getDisabledOptions,
-  getEscapedKey,
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
@@ -187,8 +186,8 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
   }, [items, shouldFilterResults, filterValue, maxOptions]);
 
-  const disabledKeys: string[] = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
     [hiddenOptions, items]
   );
 

@@ -227,7 +227,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
 
 function getBreadcrumbTitle(crumb: RawCrumb) {
   if (crumb?.type === BreadcrumbType.DEFAULT) {
-    return crumb?.category;
+    return crumb?.category ?? BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
   }
 
   switch (crumb?.category) {
@@ -346,6 +346,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
   border: 0;
   background: none;
   color: ${p => {

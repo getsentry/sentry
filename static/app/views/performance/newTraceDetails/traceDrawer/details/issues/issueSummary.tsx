@@ -9,7 +9,8 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 

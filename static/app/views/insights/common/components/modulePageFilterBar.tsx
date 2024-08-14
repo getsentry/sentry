@@ -44,9 +44,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   }, [hasDataWithAllProjects]);
 
   useEffect(() => {
-    document.body.addEventListener('click', handleClickAnywhereOnPage);
+    document.addEventListener('click', handleClickAnywhereOnPage, {capture: true});
     return () => {
-      document.body.removeEventListener('click', handleClickAnywhereOnPage);
+      document.removeEventListener('click', handleClickAnywhereOnPage);
     };
   }, []);
 
@@ -59,8 +59,11 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
           position="bottom-start"
           disabled={!showTooltip}
         >
-          <ProjectPageFilter onChange={onProjectChange} />
+          {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
+          otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
+          <div style={{width: '100px', position: 'absolute', height: '100%'}} />
         </Tooltip>
+        <ProjectPageFilter onChange={onProjectChange} />
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>

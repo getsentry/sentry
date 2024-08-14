@@ -32,7 +32,7 @@ cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.49.1
 distro==1.8.0
-django==5.0.7
+django==5.0.8
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -105,7 +105,7 @@ python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
 python3-saml==1.15.0
-pyuwsgi==2.0.23.post0
+pyuwsgi==2.0.26
 pyvat==1.3.15
 pyyaml==6.0.1
 rb==1.10.0
@@ -123,7 +123,7 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.16.5
-sentry-kafka-schemas==0.1.102
+sentry-kafka-schemas==0.1.106
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.1
@@ -143,7 +143,7 @@ symbolic==12.8.0
 tiktoken==0.6.0
 tldextract==5.1.2
 toronado==0.1.0
-tqdm==4.64.1
+tqdm==4.66.4
 typing-extensions==4.12.0
 tzdata==2023.3
 ua-parser==0.10.0

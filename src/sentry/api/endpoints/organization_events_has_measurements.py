@@ -42,7 +42,7 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
     def validate(self, data):
         # only allow one project at a time in order to cache the results
         # for a unique transaction
-        project_ids = self.context.get("params", {}).get("project_id", [])
+        project_ids = self.context.get("project_ids", [])
         if len(project_ids) != 1:
             raise serializers.ValidationError("Only 1 project allowed.")
         return data
@@ -62,7 +62,9 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
             try:
                 # This endpoint only allows for a single project + transaction, so no need
                 # to check `global-views`.
-                params = self.get_snuba_params(request, organization, check_global_views=False)
+                snuba_params = self.get_snuba_params(
+                    request, organization, check_global_views=False
+                )
 
                 # Once an transaction begins containing measurement data, it is unlikely
                 # it will stop. So it makes more sense to always query the latest data.
@@ -71,8 +73,8 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                 # to 7 days to have a better chance of finding an example event and provide
                 # a more consistent experience.
                 now = timezone.now()
-                params["start"] = now - timedelta(days=7)
-                params["end"] = now
+                snuba_params.start = now - timedelta(days=7)
+                snuba_params.end = now
             except NoProjects:
                 return Response({"measurements": False})
 
@@ -81,12 +83,14 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                 "type": request.GET.get("type"),
             }
 
-            serializer = EventsHasMeasurementsQuerySerializer(data=data, context={"params": params})
+            serializer = EventsHasMeasurementsQuerySerializer(
+                data=data, context={"project_ids": snuba_params.project_ids}
+            )
             if not serializer.is_valid():
                 return Response(serializer.errors, status=400)
 
         org_id = organization.id
-        project_id = params["project_id"][0]
+        project_id = snuba_params.project_ids[0]
         md5_hash = md5_text(data["transaction"], data["type"]).hexdigest()
 
         cache_key = f"check-events-measurements:{org_id}:{project_id}:{md5_hash}"
@@ -107,7 +111,8 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                 results = discover.query(
                     selected_columns=["id"],
                     query=query,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     limit=1,  # Just want to check for existence of such an event
                     referrer="api.events.measurements",
                     auto_fields=True,

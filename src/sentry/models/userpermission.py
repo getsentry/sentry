@@ -7,8 +7,9 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
-from sentry.db.models.outboxes import ControlOutboxProducingModel
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 
@@ -55,7 +56,7 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         old_user_id = self.user_id
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)

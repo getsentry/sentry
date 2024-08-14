@@ -44,13 +44,13 @@ from sentry.backup.services.import_export.model import (
 from sentry.backup.services.import_export.service import DEFAULT_IMPORT_FLAGS, ImportExportService
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRoleUser
 from sentry.silo.base import SiloMode
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRoleUser
 
 logger = logging.getLogger(__name__)
 

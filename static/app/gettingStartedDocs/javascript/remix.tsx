@@ -121,24 +121,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
-  nextSteps: () => [
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/remix/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/remix/session-replay/',
-    },
-  ],
+  nextSteps: () => [],
 };
 
 const replayOnboarding: OnboardingConfig = {
@@ -158,7 +141,7 @@ const replayOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -212,7 +195,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

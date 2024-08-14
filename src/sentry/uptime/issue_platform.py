@@ -17,10 +17,11 @@ def create_issue_platform_occurrence(
     result: CheckResult, project_subscription: ProjectUptimeSubscription
 ):
     occurrence = build_occurrence_from_result(result, project_subscription)
+    event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
-        event_data=build_event_data_for_occurrence(result, occurrence),
+        event_data=event_data,
     )
 
 
@@ -72,7 +73,7 @@ def build_occurrence_from_result(
         event_id=uuid.uuid4().hex,
         fingerprint=build_fingerprint_for_project_subscription(project_subscription),
         type=UptimeDomainCheckFailure,
-        issue_title=f"Uptime Check Failed for {project_subscription.uptime_subscription.url}",
+        issue_title=f"Downtime detected for {project_subscription.uptime_subscription.url}",
         subtitle="Your monitored domain is down",
         evidence_display=evidence_display,
         evidence_data={},
@@ -82,7 +83,11 @@ def build_occurrence_from_result(
     )
 
 
-def build_event_data_for_occurrence(result: CheckResult, occurrence: IssueOccurrence):
+def build_event_data_for_occurrence(
+    result: CheckResult,
+    project_subscription: ProjectUptimeSubscription,
+    occurrence: IssueOccurrence,
+):
     return {
         "environment": "prod",  # TODO: Include the environment here when we have it
         "event_id": occurrence.event_id,
@@ -93,7 +98,7 @@ def build_event_data_for_occurrence(result: CheckResult, occurrence: IssueOccurr
         "received": datetime.fromtimestamp(result["actual_check_time_ms"] / 1000),
         "sdk": None,
         "tags": {
-            "subscription_id": result["subscription_id"],
+            "uptime_rule": project_subscription.id,
         },
         "timestamp": occurrence.detection_time.isoformat(),
         "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
