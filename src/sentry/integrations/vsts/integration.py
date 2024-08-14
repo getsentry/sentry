@@ -29,6 +29,7 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
