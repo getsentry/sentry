@@ -40,9 +40,7 @@
         "noRestrictedImports": {
           "level": "warn",
           "options": {
-            "paths": {
-              "sentry/types": "Please import directly. For example: import type {Organization} from 'sentry/types/organization'"
-            }
+            "paths": {}
           }
         }
       },
