@@ -196,10 +196,8 @@ SPAN_EAP_COLUMN_MAP = {
     "transaction.id": "segment_id",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
-    # We should be able to delete this and just use transaction
+    # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
-    # These are guesses:
-    "transaction.op": "attr_str[transaction_op]",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
 }
