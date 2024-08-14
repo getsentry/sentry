@@ -1,6 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import type {Tag} from 'sentry/types';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Tag} from 'sentry/types/group';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';

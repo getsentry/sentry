@@ -8,7 +8,8 @@ import {Button} from 'sentry/components/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Team, User} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import useOverlay from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {

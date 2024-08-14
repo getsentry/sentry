@@ -12,7 +12,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Member} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;

@@ -16,11 +16,11 @@ import type {
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
+} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 

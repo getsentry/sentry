@@ -6,8 +6,8 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import type {IssueConfigField} from 'sentry/types';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {IssueConfigField} from 'sentry/types/integrations';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');

@@ -3,8 +3,8 @@ import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types';
-import {Outcome} from 'sentry/types';
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 
 import {getDateFromMoment} from './usageChart/utils';
 import {getReasonGroupName} from './getReasonGroupName';

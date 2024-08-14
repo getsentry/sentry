@@ -15,7 +15,10 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import ImageVisualization from './imageVisualization';

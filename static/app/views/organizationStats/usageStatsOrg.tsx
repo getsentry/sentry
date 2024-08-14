@@ -21,7 +21,8 @@ import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';

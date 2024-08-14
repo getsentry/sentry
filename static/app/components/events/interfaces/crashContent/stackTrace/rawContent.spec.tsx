@@ -5,7 +5,7 @@ import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import type {StacktraceType} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 describe('RawStacktraceContent', () => {
   describe('getJavaFrame()', () => {

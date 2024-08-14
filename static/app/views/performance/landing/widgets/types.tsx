@@ -3,7 +3,8 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import type BaseChart from 'sentry/components/charts/baseChart';
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
-import type {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';

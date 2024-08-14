@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import type {AvatarProject} from 'sentry/types';
+import type {AvatarProject} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import useOrganization from 'sentry/utils/useOrganization';
 

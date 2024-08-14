@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FormContext from 'sentry/components/forms/formContext';
-import type {Permissions, WebhookEvent} from 'sentry/types';
+import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,

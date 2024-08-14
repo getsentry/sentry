@@ -8,16 +8,15 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {
   Commit,
   CommitFile,
   FilesByRepository,
-  ReleaseProject,
-  ReleaseWithHealth,
   Repository,
-} from 'sentry/types';
-import {ReleaseComparisonChartType} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/integrations';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';

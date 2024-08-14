@@ -13,14 +13,10 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupActivityReprocess,
-  GroupReprocessing,
-  Organization,
-  Project,
-} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';

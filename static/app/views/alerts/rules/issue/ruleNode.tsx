@@ -13,7 +13,6 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Choices, Organization, Project} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -26,6 +25,9 @@ import {
   IssueAlertFilterType,
   MailActionTargetType,
 } from 'sentry/types/alerts';
+import type {Choices} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';

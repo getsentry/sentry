@@ -4,7 +4,8 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {Event, KeyValueListData, KeyValueListDataItem} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 
 type StateDescription = {
   value: Record<string, any> | null | string;

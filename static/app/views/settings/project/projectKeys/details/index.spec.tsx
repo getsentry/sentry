@@ -10,13 +10,14 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
   const {routerProps} = initializeOrg();
 
-  let org: TOrganization;
+  let org: Organization;
   let project: Project;
   let deleteMock: jest.Mock;
   let statsMock: jest.Mock;

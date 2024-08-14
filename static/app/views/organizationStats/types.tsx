@@ -1,4 +1,4 @@
-import type {SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types/organization';
 
 /**
  * Raw response from API endpoint

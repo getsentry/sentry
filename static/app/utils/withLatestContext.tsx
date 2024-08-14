@@ -2,7 +2,8 @@ import {Component} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
-import type {Organization, OrganizationSummary, Project} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganizations from 'sentry/utils/withOrganizations';
 

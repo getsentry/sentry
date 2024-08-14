@@ -3,7 +3,8 @@ import {
   replayOnboardingPlatforms,
   withoutPerformanceSupport,
 } from 'sentry/data/platformCategories';
-import {type OnboardingTask, OnboardingTaskKey, type Project} from 'sentry/types';
+import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
 
 const replayRelatedTasks = [OnboardingTaskKey.SESSION_REPLAY];
 const performanceRelatedTasks = [

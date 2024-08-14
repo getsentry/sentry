@@ -3,7 +3,7 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
 const lightColors = {
   black: '#1D1127',

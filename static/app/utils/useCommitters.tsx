@@ -1,4 +1,4 @@
-import type {Committer} from 'sentry/types';
+import type {Committer} from 'sentry/types/integrations';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

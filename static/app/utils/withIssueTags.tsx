@@ -9,7 +9,9 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization, TagCollection, User} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {

@@ -1,7 +1,8 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, Frame, PlatformKey} from 'sentry/types';
-import {EventOrGroupType} from 'sentry/types';
+import type {Event, Frame} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 

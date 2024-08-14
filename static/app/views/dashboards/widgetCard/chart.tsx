@@ -23,13 +23,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,

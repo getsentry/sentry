@@ -8,8 +8,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {TeamParticipant, UserParticipant} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 

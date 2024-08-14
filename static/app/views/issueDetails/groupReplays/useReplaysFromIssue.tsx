@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {type Group, IssueCategory, type Organization} from 'sentry/types';
+import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';

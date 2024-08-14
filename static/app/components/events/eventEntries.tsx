@@ -10,15 +10,11 @@ import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashC
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Entry,
-  Event,
-  Group,
-  Organization,
-  Project,
-  SharedViewOrganization,
-} from 'sentry/types';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 

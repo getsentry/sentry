@@ -1,13 +1,13 @@
 import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
-import type {EntrySpans, EventTransaction} from 'sentry/types';
+import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {
-  EntryType,
   getIssueTypeFromOccurrenceType,
   IssueCategory,
   IssueType,
-} from 'sentry/types';
+} from 'sentry/types/group';
 
 import type {RawSpanType} from '../spans/types';
 

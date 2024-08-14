@@ -1,4 +1,5 @@
-import type {OrganizationSummary, Project} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
 
 /**

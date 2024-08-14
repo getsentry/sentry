@@ -45,7 +45,6 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -59,6 +58,8 @@ import {
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';

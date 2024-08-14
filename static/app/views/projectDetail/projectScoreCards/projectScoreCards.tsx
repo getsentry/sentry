@@ -2,8 +2,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, Project} from 'sentry/types';
-import {SessionFieldWithOperation} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';

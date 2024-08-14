@@ -2,13 +2,9 @@ import type {InjectedRouter} from 'react-router';
 
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
-import type {
-  Group,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-  Project,
-} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 
 import type {AvatarUser} from './user';
 

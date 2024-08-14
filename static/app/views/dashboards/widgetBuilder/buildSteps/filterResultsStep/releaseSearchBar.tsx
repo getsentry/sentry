@@ -8,8 +8,10 @@ import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Tag, TagValue} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag, TagValue} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {

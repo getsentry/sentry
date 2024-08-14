@@ -7,7 +7,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {MetricsQueryApiResponse} from 'sentry/types';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {MetricsExtractionRulesTable} from 'sentry/views/settings/projectMetrics/metricsExtractionRulesTable';
 
 function renderMockRequests({

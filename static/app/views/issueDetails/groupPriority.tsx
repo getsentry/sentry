@@ -7,7 +7,7 @@ import {
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {t} from 'sentry/locale';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {type Group, PriorityLevel} from 'sentry/types';
+import {type Group, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';

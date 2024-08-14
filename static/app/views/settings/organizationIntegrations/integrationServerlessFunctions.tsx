@@ -3,11 +3,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type {Organization} from 'sentry/types/organization';
 import type {
-  Organization,
   OrganizationIntegration,
   ServerlessFunction,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

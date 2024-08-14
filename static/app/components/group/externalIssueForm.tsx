@@ -8,12 +8,9 @@ import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstract
 import type {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import type {
-  Group,
-  Integration,
-  IntegrationExternalIssue,
-  Organization,
-} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Integration, IntegrationExternalIssue} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 

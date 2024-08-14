@@ -1,8 +1,8 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import {SessionFieldWithOperation} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';

@@ -10,7 +10,8 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import type {OrgRole, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {OrgRole} from 'sentry/types/organization';
 
 import renderEmailValue from './renderEmailValue';
 import type {InviteStatus} from './types';

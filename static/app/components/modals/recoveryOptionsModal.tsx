@@ -7,7 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

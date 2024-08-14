@@ -5,7 +5,8 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {Integration, Organization} from 'sentry/types';
+import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   integration: Integration;

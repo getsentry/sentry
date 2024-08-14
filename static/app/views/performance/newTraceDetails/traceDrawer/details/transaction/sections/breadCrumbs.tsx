@@ -17,8 +17,8 @@ import {
   type EntryBreadcrumbs,
   EntryType,
   type EventTransaction,
-  type Organization,
-} from 'sentry/types';
+} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 import {TraceDrawerComponents} from '../../styles';
 

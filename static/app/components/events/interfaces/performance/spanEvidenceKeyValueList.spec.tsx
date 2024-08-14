@@ -7,7 +7,7 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
+import {IssueType} from 'sentry/types/group';
 
 import {
   extractQueryParameters,

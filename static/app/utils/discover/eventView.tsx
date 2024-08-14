@@ -12,14 +12,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {
-  NewQuery,
-  PageFilters,
-  Project,
-  SavedQuery,
-  SelectValue,
-  User,
-} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {

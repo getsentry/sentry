@@ -6,7 +6,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import {SdkDocumentation} from './sdkDocumentation';
 

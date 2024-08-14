@@ -8,7 +8,8 @@ import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Member, Organization, User} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>

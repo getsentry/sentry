@@ -10,7 +10,8 @@ import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Broadcast, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Broadcast} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 
 import type {CommonSidebarProps} from './types';

@@ -26,18 +26,13 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import type {
-  AvatarUser,
-  CurrentRelease,
-  Group,
-  Organization,
-  OrganizationSummary,
-  Project,
-  TeamParticipant,
-  UserParticipant,
-} from 'sentry/types';
-import {IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease} from 'sentry/types/release';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';

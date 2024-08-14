@@ -1,7 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetricsContext';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 import {MetricsContextProvider} from 'sentry/views/metrics/context';

@@ -1,7 +1,8 @@
 import {LinkButton} from 'sentry/components/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';

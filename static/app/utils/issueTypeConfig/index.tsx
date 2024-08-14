@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import {

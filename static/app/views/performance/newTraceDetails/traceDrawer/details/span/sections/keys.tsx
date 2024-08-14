@@ -17,11 +17,9 @@ import Link from 'sentry/components/links/link';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  KeyValueListDataItem,
-  MetricsExtractionRule,
-  Organization,
-} from 'sentry/types';
+import type {KeyValueListDataItem} from 'sentry/types/group';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMetricsUrl} from 'sentry/utils/metrics';

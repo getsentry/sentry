@@ -6,7 +6,8 @@ import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import type {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 

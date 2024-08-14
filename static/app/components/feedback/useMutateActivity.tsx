@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
-import type {Group, GroupActivity, Organization} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

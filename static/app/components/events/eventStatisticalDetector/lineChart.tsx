@@ -6,7 +6,7 @@ import type {ChartType} from 'sentry/chartcuterie/types';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsData} from 'sentry/types/organization';
 import useRouter from 'sentry/utils/useRouter';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';

@@ -30,16 +30,16 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   BaseGroup,
   Group,
-  Organization,
-  PageFilters,
   PriorityLevel,
   SavedSearch,
   TagCollection,
-} from 'sentry/types';
-import {GroupStatus, IssueCategory} from 'sentry/types';
+} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
