@@ -46,3 +46,4 @@ class RpcOrganizationMappingUpdate(RpcModel):
     require_email_verification: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False
+    disable_member_invite: bool = False

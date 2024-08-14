@@ -176,6 +176,7 @@ class RpcOrganizationMappingFlags(RpcModel):
     codecov_access: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False
+    disable_member_invite: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
@@ -192,6 +193,7 @@ class RpcOrganizationFlags(RpcOrganizationMappingFlags):
             self.codecov_access,
             self.disable_member_project_creation,
             self.prevent_superuser_access,
+            self.disable_member_invite,
         )
 
 
