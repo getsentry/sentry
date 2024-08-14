@@ -298,10 +298,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 <Button
                   key={config.key}
                   onClick={() => {
+                    dispatch({type: 'OPEN_SECTION', key: config.key});
                     document
                       .getElementById(config.key)
                       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                    dispatch({type: 'OPEN_SECTION', key: config.key});
                   }}
                   borderless
                   size="xs"
