@@ -3,6 +3,7 @@ from datetime import timezone as tz
 
 from django.conf import settings
 from django.db import models
+from django.db.models.base import Model
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -13,7 +14,7 @@ from sentry.models.organization import Organization
 
 
 @region_silo_model
-class RotationSchedule(models.Model):
+class RotationSchedule(Model):
     """Schedules consist of layers. Each layer has an ordered user rotation and has corresponding
     rotation times and restrictions. The layers are then superimposed with higher layers
     having higher precedence resulting in a single materialized schedule.
@@ -45,7 +46,7 @@ class RotationScheduleLayerRotationType(models.TextChoices):
 
 
 @region_silo_model
-class RotationScheduleLayer(models.Model):
+class RotationScheduleLayer(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     # each layer that gets created has a higher precedence overriding lower layers
@@ -79,7 +80,7 @@ class RotationScheduleLayer(models.Model):
 
 
 @region_silo_model
-class RotationScheduleUserOrder(models.Model):
+class RotationScheduleUserOrder(Model):
     schedule_layer = models.ForeignKey(
         RotationScheduleLayer, on_delete=models.CASCADE, related_name="user_orders"
     )
@@ -93,7 +94,7 @@ class RotationScheduleUserOrder(models.Model):
 
 
 @region_silo_model
-class RotationScheduleOverride(models.Model):
+class RotationScheduleOverride(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     rotation_schedule = models.ForeignKey(

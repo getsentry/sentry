@@ -49,7 +49,7 @@ class EscalationPolicyPutSerializer(serializers.Serializer):
     team_id = serializers.IntegerField(required=False)
     user_id = serializers.IntegerField(required=False)
 
-    def create(self, validated_data):
+    def create(self, validated_data: "EscalationPolicyPutSerializer"):
         """
         Create or replace an EscalationPolicy instance from the validated data.
         """
