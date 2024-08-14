@@ -1,4 +1,3 @@
-import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -11,6 +10,7 @@ import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
+import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
 
