@@ -76,7 +76,7 @@ class DiscoverProcessor:
         if set(requested_environments) != set(environment_names):
             raise ExportError("Requested environment does not exist")
 
-        return environment_names
+        return environments
 
     @staticmethod
     def get_data_fn(fields, equations, query, snuba_params, sort, dataset):
