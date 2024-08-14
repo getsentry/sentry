@@ -269,8 +269,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-queries-mongodb-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable removing the fallback for metrics compatibility
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable span search bar in Insights module sample panels
-    manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable screens view powered by span metrics
