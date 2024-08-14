@@ -72,6 +72,9 @@ export function EventDetails({
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
   top: 0;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    top: ${p => p.theme.sidebar.mobileHeight};
+  }
   background: ${p => p.theme.background};
   z-index: 100;
   border-radius: 6px 6px 0 0;
