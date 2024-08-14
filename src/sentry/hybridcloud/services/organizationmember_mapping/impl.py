@@ -16,8 +16,8 @@ from sentry.hybridcloud.services.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.user import User
 from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):

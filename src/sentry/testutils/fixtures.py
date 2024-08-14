@@ -23,7 +23,6 @@ from sentry.models.project import Project
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
@@ -42,6 +41,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

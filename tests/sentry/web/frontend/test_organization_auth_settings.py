@@ -26,7 +26,6 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
@@ -34,6 +33,7 @@ from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.users.models.user import User
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 

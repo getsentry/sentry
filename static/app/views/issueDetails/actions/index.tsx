@@ -11,7 +11,6 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ActionButton from 'sentry/components/actions/button';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -373,7 +372,7 @@ export function Actions(props: Props) {
               {isResolved ? t('Resolved') : t('Archived')}
             </ResolvedWrapper>
             <Divider />
-            <ActionButton
+            <Button
               size="sm"
               disabled={disabled || isAutoResolved}
               onClick={() =>
@@ -387,7 +386,7 @@ export function Actions(props: Props) {
               }
             >
               {isResolved ? t('Unresolve') : t('Unarchive')}
-            </ActionButton>
+            </Button>
           </ResolvedActionWapper>
         ) : (
           <Fragment>
@@ -530,7 +529,7 @@ export function Actions(props: Props) {
               features="discover-basic"
               organization={organization}
             >
-              <ActionButton
+              <Button
                 className="hidden-xs"
                 disabled={disabled}
                 to={disabled ? '' : getDiscoverUrl()}
@@ -540,11 +539,11 @@ export function Actions(props: Props) {
                 <GuideAnchor target="open_in_discover">
                   {t('Open in Discover')}
                 </GuideAnchor>
-              </ActionButton>
+              </Button>
             </Feature>
           )}
           {isResolved || isIgnored ? (
-            <ActionButton
+            <Button
               priority="primary"
               title={
                 isAutoResolved
@@ -564,7 +563,7 @@ export function Actions(props: Props) {
               }
             >
               {isIgnored ? t('Archived') : t('Resolved')}
-            </ActionButton>
+            </Button>
           ) : (
             <Fragment>
               <ArchiveActions

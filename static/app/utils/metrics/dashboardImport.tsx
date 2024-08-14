@@ -1,7 +1,7 @@
 import {Client} from 'sentry/api';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import type {Organization} from 'sentry/types';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';

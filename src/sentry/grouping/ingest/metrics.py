@@ -4,9 +4,9 @@ import logging
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
-from sentry import features, options
+from sentry import options
 from sentry.grouping.api import GroupingConfig
-from sentry.grouping.ingest.config import is_in_transition
+from sentry.grouping.ingest.config import is_in_transition, project_uses_optimized_grouping
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.project import Project
@@ -67,12 +67,7 @@ def record_calculation_metric_with_result(
     # count to get an average number of calculations per event
     tags = {
         "in_transition": str(is_in_transition(project)),
-        "using_transition_optimization": str(
-            features.has(
-                "organizations:grouping-suppress-unnecessary-secondary-hash",
-                project.organization,
-            )
-        ),
+        "using_transition_optimization": str(project_uses_optimized_grouping(project)),
         "result": result,
     }
     metrics.incr(

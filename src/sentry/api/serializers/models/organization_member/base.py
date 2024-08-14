@@ -6,7 +6,7 @@ from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 

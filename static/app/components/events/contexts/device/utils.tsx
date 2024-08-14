@@ -1,5 +1,5 @@
-import type {DeviceContext} from 'sentry/types';
-import {DeviceContextKey} from 'sentry/types';
+import type {DeviceContext} from 'sentry/types/event';
+import {DeviceContextKey} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
