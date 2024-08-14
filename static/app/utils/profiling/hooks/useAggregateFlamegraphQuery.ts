@@ -64,14 +64,15 @@ export function useAggregateFlamegraphQuery(
   const {selection} = usePageFilters();
 
   const endpointOptions = useMemo(() => {
-    const params = {
+    const params: {
+      query: Record<string, any>;
+    } = {
       query: {
         project: projects ?? selection.projects,
         environment: environments ?? selection.environments,
         ...normalizeDateTimeParams(datetime ?? selection.datetime),
         dataSource,
         fingerprint,
-        expand: metrics ? 'metrics' : undefined,
         query,
       },
     };

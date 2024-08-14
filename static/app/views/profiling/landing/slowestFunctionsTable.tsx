@@ -116,6 +116,7 @@ export function SlowestFunctionsTable() {
                   <SlowestFunctionCell>{t('p75()')}</SlowestFunctionCell>
                   <SlowestFunctionCell>{t('p95()')}</SlowestFunctionCell>
                   <SlowestFunctionCell>{t('p99()')}</SlowestFunctionCell>
+                  {/* @TODO remove sum before relasing */}
                   <SlowestFunctionCell>{t('Sum()')}</SlowestFunctionCell>
                 </SlowestFunctionHeader>
                 {sortedMetrics.slice(pagination.start, pagination.end).map((f, i) => {
@@ -207,6 +208,7 @@ function SlowestFunction(props: SlowestFunctionProps) {
         {getPerformanceDuration(props.function.p99 / 1e6)}
       </SlowestFunctionCell>
       <SlowestFunctionCell>
+        {/* @TODO remove sum before relasing */}
         {getPerformanceDuration(props.function.sum / 1e6)}
       </SlowestFunctionCell>
     </SlowestFunctionContainer>

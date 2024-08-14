@@ -479,8 +479,18 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
-          {organization.features.includes('profiling-global-suspect-functions') &&
-          !organization.features.includes('continuous-profiling-compat') ? (
+          {organization.features.includes('continuous-profiling-compat') ? (
+            <Fragment>
+              <ProfilesChartWidget
+                chartHeight={150}
+                referrer="api.profiling.landing-chart"
+                userQuery={query}
+                selection={selection}
+                continuousProfilingCompat={continuousProfilingCompat}
+              />
+              <SlowestFunctionsTable />
+            </Fragment>
+          ) : organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
@@ -505,17 +515,6 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
                   storageKey="profiling-landing-widget-1"
                 />
               </WidgetsContainer>
-            </Fragment>
-          ) : organization.features.includes('continuous-profiling-compat') ? (
-            <Fragment>
-              <ProfilesChartWidget
-                chartHeight={150}
-                referrer="api.profiling.landing-chart"
-                userQuery={query}
-                selection={selection}
-                continuousProfilingCompat={continuousProfilingCompat}
-              />
-              <SlowestFunctionsTable />
             </Fragment>
           ) : (
             <PanelsGrid>
