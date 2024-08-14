@@ -95,7 +95,7 @@ ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
-ENV SENTRY_BUILD=${SOURCE_COMMIT:-self hosted}
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
