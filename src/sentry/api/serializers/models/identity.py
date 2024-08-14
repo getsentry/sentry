@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.identity import Identity
+from sentry.users.models.identity import Identity
 
 
 @register(Identity)

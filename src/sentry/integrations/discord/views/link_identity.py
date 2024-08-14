@@ -8,8 +8,8 @@ from sentry import analytics
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.identities import get_identity_or_404
-from sentry.models.identity import Identity
 from sentry.types.actor import ActorType
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView, control_silo_view

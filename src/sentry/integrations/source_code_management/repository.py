@@ -9,10 +9,10 @@ import sentry_sdk
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.repository import RpcRepository
-from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 
 REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"

@@ -3,13 +3,13 @@ from unittest.mock import patch
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):

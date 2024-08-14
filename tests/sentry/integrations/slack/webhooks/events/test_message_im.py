@@ -5,11 +5,11 @@ import pytest
 import responses
 from slack_sdk.web import SlackResponse
 
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text, override_options
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity, IdentityStatus
 
 from . import BaseEventTest
 

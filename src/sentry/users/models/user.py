@@ -338,10 +338,10 @@ class User(Model, AbstractBaseUser):
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authidentity import AuthIdentity
         from sentry.models.avatars.user_avatar import UserAvatar
-        from sentry.models.identity import Identity
         from sentry.models.options.user_option import UserOption
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.users.models.authenticator import Authenticator
+        from sentry.users.models.identity import Identity
         from sentry.users.models.useremail import UserEmail
 
         from_user_id = from_user.id

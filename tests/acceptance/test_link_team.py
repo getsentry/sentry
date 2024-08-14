@@ -5,9 +5,9 @@ from selenium.webdriver.common.by import By
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @no_silo_test

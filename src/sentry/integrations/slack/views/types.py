@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from sentry.integrations.models.integration import Integration
-from sentry.models.identity import IdentityProvider
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.users.models.identity import IdentityProvider
 
 
 @dataclass(frozen=True)

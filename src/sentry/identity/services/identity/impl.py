@@ -15,7 +15,7 @@ from sentry.identity.services.identity.model import (
 from sentry.identity.services.identity.serial import serialize_identity, serialize_identity_provider
 from sentry.identity.services.identity.service import IdentityService
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.identity import Identity
+from sentry.users.models.identity import Identity
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -26,7 +26,7 @@ class DatabaseBackedIdentityService(IdentityService):
         provider_type: str | None = None,
         provider_ext_id: str | None = None,
     ) -> RpcIdentityProvider | None:
-        from sentry.models.identity import IdentityProvider
+        from sentry.users.models.identity import IdentityProvider
 
         # If an id is provided, use that -- otherwise, use the type and external_id
         idp_kwargs: Any = (
@@ -57,7 +57,7 @@ class DatabaseBackedIdentityService(IdentityService):
     ) -> list[RpcIdentity]:
         from django.db.models import F
 
-        from sentry.models.identity import Identity
+        from sentry.users.models.identity import Identity
 
         identities = Identity.objects.filter(user=user_id, idp__type=provider_type)
 

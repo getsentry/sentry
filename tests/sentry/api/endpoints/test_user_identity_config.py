@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.identity import Identity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from social_auth.models import UserSocialAuth
 
 
