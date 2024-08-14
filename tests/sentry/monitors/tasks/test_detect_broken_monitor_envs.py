@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import (
     CheckInStatus,
@@ -25,6 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user_option import UserOption
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):

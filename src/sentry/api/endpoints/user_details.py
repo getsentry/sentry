@@ -21,7 +21,6 @@ from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -29,6 +28,7 @@ from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
