@@ -192,7 +192,7 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "webhook", "command": command},
                 )
-                _logger.exception("%s error", log)
+                _logger.exception("%serror", log)
     else:
         _logger.info("%s respond-ephemeral", log)
         try:
@@ -215,4 +215,4 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "ephemeral", "command": command},
                 )
-                _logger.exception("%s error", log)
+                _logger.exception("%serror", log)

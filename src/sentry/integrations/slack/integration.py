@@ -144,8 +144,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             sdk_response = client.team_info()
 
             return sdk_response.get("team")
-        except SlackApiError as e:
-            _logger.exception("slack.install.team-info.error", extra={"error": str(e)})
+        except SlackApiError:
+            _logger.exception("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
