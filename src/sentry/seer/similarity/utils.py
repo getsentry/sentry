@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node", "ruby"])
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
