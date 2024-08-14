@@ -25,7 +25,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -569,13 +569,13 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, config=None, params=None, builder=None):
+    def __init__(self, config=None, snuba_params=None, builder=None):
         super().__init__()
 
         if config is None:
             config = SearchConfig()
         self.config = config
-        self.params = params if params is not None else {}
+        self.params = snuba_params if snuba_params is not None else SnubaParams()
         if builder is None:
             # Avoid circular import
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -583,7 +583,7 @@ class SearchVisitor(NodeVisitor):
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
-                params=self.params,
+                snuba_params=self.params,
                 config=QueryBuilderConfig(functions_acl=list(FUNCTIONS)),
             )
         else:
@@ -1233,7 +1233,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query, config=None, params=None, builder=None, config_overrides=None
+    query, config=None, snuba_params=None, builder=None, config_overrides=None
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1256,4 +1256,4 @@ def parse_search_query(
     if config_overrides:
         config = SearchConfig.create_from(config, **config_overrides)
 
-    return SearchVisitor(config, params=params, builder=builder).visit(tree)
+    return SearchVisitor(config, snuba_params=snuba_params, builder=builder).visit(tree)
