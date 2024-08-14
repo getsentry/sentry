@@ -236,7 +236,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
-        return organization.features.includes('spans-stats');
+        return organization.features.includes('span-stats');
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
