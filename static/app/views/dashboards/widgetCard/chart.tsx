@@ -583,7 +583,7 @@ const BigNumber = styled('div')`
   line-height: 1;
   display: inline-flex;
   position: absolute;
-  inset: ${space(1)} ${space(3)};
+  inset: ${space(1)} ${space(3)} 0 ${space(3)};
   color: ${p => p.theme.headingColor};
 `;
 
