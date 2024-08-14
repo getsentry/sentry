@@ -300,6 +300,18 @@ describe('Sidebar', function () {
     expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 
+  it('does not render collapse with hasNewNav flag', function () {
+    renderSidebar({
+      organization: {...organization, features: ['hasNewNav']},
+    });
+
+    // Check that the user name is no longer visible
+    expect(screen.findByText(user.name)).not.toBeInTheDocument();
+    // Check that the organization name is no longer visible
+    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
+    expect(screen.getBytestId('sidebar-collapse')).not.toBeInTheDocument();
+  });
+
   describe('sidebar links', () => {
     beforeEach(function () {
       ConfigStore.init();
