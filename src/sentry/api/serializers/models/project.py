@@ -38,6 +38,7 @@ from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.users.models.user import User
 
@@ -344,9 +345,9 @@ class ProjectSerializer(Serializer):
             project_ids = [o.id for o in item_list]
 
             if self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
+                stats = self.get_stats(item_list, "!event.type:transaction")
                 if self._expand("transaction_stats"):
-                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                    transaction_stats = self.get_stats(item_list, "event.type:transaction")
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
@@ -391,26 +392,26 @@ class ProjectSerializer(Serializer):
                     serialized["options"] = options[project.id]
         return result
 
-    def get_stats(self, project_ids, query):
+    def get_stats(self, projects, query):
         # we need to compute stats at 1d (1h resolution), and 14d
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
         now = timezone.now()
 
-        params = {
-            "project_id": project_ids,
-            "start": now - ((segments - 1) * interval),
-            "end": now,
-        }
+        snuba_params = SnubaParams(
+            projects=projects,
+            start=now - ((segments - 1) * interval),
+            end=now,
+        )
         if self.environment_id:
             query = f"{query} environment:{self.environment_id}"
 
         # Generate a query result to skip the top_events.find query
-        top_events = {"data": [{"project_id": p} for p in project_ids]}
+        top_events = {"data": [{"project_id": p.id} for p in projects]}
         stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
-            params=params,
+            snuba_params=snuba_params,
             orderby="project_id",
             rollup=int(interval.total_seconds()),
             limit=10000,
@@ -419,13 +420,13 @@ class ProjectSerializer(Serializer):
             top_events=top_events,
         )
         results = {}
-        for project_id in project_ids:
+        for project in projects:
             serialized = []
-            str_id = str(project_id)
+            str_id = str(project.id)
             if str_id in stats:
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
-            results[project_id] = serialized
+            results[project.id] = serialized
         return results
 
     def get_session_stats(
