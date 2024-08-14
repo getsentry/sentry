@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -72,6 +72,11 @@ export function BreadcrumbsDrawer({
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const headerRef = useRef<HTMLHeadingElement>(null);
+  const [headerOffset, setHeaderOffset] = useState(0);
+  useEffect(() => {
+    setHeaderOffset(headerRef?.current?.offsetHeight ?? 0);
+  }, [headerRef]);
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -206,7 +211,7 @@ export function BreadcrumbsDrawer({
 
   return (
     <Fragment>
-      <DrawerHeader>
+      <DrawerHeader ref={headerRef}>
         <NavigationCrumbs
           crumbs={[
             {
@@ -223,7 +228,7 @@ export function BreadcrumbsDrawer({
         />
       </DrawerHeader>
       <DrawerBody>
-        <HeaderGrid>
+        <HeaderGrid offset={headerOffset}>
           <Header>{t('Breadcrumbs')}</Header>
           {actions}
         </HeaderGrid>
@@ -262,12 +267,26 @@ const VisibleFocusButton = styled(Button)`
     0 0 1px;
 `;
 
-const HeaderGrid = styled('div')`
+const HeaderGrid = styled('div')<{offset: number}>`
+  position: sticky;
+  top: ${p => p.offset}px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${space(1)};
-  margin: ${space(1)} 0 ${space(2)};
+  padding: ${space(0.75)} 0;
+  margin-bottom: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: 1;
+  &:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: ${space(2)};
+    background-image: linear-gradient(0deg, transparent, ${p => p.theme.background});
+  }
 `;
 
 const Header = styled('h3')`
