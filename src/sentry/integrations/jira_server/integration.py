@@ -21,7 +21,6 @@ from sentry import features
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -269,7 +268,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraServerIntegration(IntegrationInstallation, IssueSyncIntegration):
+class JiraServerIntegration(IssueSyncIntegration):
     """
     IntegrationInstallation implementation for Jira-Server
     """

@@ -10,6 +10,7 @@ from operator import attrgetter
 from typing import Any, ClassVar
 
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
@@ -21,7 +22,6 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -61,7 +61,7 @@ class ResolveSyncAction(enum.Enum):
         return ResolveSyncAction.NOOP
 
 
-class IssueBasicIntegration(ABC):
+class IssueBasicIntegration(IntegrationInstallation, ABC):
     def should_sync(self, attribute):
         return False
 
@@ -213,7 +213,7 @@ class IssueBasicIntegration(ABC):
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
-        if persisted_fields:
+        if persisted_fields and self.org_integration:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             new_config = deepcopy(self.org_integration.config)
             new_config.setdefault("project_issue_defaults", {}).setdefault(
@@ -239,7 +239,13 @@ class IssueBasicIntegration(ABC):
                 )
 
     def get_defaults(self, project: Project, user: User):
-        project_defaults = self.get_project_defaults(project.id)
+        project_defaults = (
+            {}
+            if not self.org_integration
+            else self.org_integration.config.get("project_issue_defaults", {}).get(
+                str(project.id), {}
+            )
+        )
 
         user_option_value = get_option_from_list(
             user_option_service.get_many(
@@ -256,12 +262,6 @@ class IssueBasicIntegration(ABC):
         defaults.update(user_defaults)
 
         return defaults
-
-    # TODO(saif): Make private and move all usages over to `get_defaults`
-    def get_project_defaults(self, project_id):
-        return self.org_integration.config.get("project_issue_defaults", {}).get(
-            str(project_id), {}
-        )
 
     @abstractmethod
     def create_issue(self, data, **kwargs):
@@ -323,42 +323,6 @@ class IssueBasicIntegration(ABC):
         does not match the desired display name.
         """
         return ""
-
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
-        """
-        Returns the default repository and a set/subset of repositories of associated with the installation
-        """
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            raise IntegrationError("Unable to retrieve repositories. Please try again later.")
-        else:
-            repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
-
-        defaults = self.get_project_defaults(group.project_id) if group else {}
-        repo = params.get("repo") or defaults.get("repo")
-
-        try:
-            default_repo = repo or repo_choices[0][0]
-        except IndexError:
-            return "", repo_choices
-
-        # If a repo has been selected outside of the default list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
-
-        return default_repo, repo_choices
-
-    def create_default_repo_choice(self, default_repo):
-        """
-        Helper method for get_repository_choices
-        Returns the choice for the default repo in a tuple to be added to the list of repository choices
-        """
-        return (default_repo, default_repo)
 
     def get_annotations_for_group_list(self, group_list):
         group_links = GroupLink.objects.filter(

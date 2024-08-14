@@ -16,7 +16,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -119,7 +118,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(IntegrationInstallation, IssueSyncIntegration):
+class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
     inbound_status_key = "sync_status_reverse"

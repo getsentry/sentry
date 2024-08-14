@@ -28,7 +28,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
@@ -42,7 +41,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
-from .issues import GitHubIssueBasic
+from .issues import GitHubSCMSpec
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -156,7 +155,7 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubIssueBasic):  # type: ignore[misc]
+class GitHubIntegration(GitHubSCMSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
