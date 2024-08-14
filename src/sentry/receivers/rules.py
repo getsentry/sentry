@@ -1,5 +1,3 @@
-from sentry import features
-from sentry.incidents.endpoints.organization_alert_rule_index import create_metric_alert
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
@@ -50,12 +48,6 @@ def create_default_rules(
 ):
     if not default_rules:
         return
-
-    if features.has("organizations:default-metric-alerts-new-projects", project.organization):
-        try:
-            create_metric_alert(organization=project.organization, project=project, sender=sender)
-        except Exception:
-            pass
 
     if has_high_priority_issue_alerts(project):
         rule_data = DEFAULT_RULE_DATA_NEW
