@@ -101,9 +101,9 @@ export function EventDetailsContent({
   const hasNewTimelineUI = useHasNewTimelineUI();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
-  const eventEntries: {[key in EntryType]?: Entry} = useMemo(() => {
+  const eventEntries = useMemo(() => {
     const {entries = []} = event;
-    return entries.reduce((entryMap, entry) => {
+    return entries.reduce<{[key in EntryType]?: Entry}>((entryMap, entry) => {
       entryMap[entry.type] = entry;
       return entryMap;
     }, {});

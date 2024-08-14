@@ -163,6 +163,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     @property
     def use_default_tags(self) -> bool:
+        if self.is_spans_metrics_query:
+            return False
         if self._use_default_tags is None:
             if self.params.organization is not None:
                 self._use_default_tags = features.has(

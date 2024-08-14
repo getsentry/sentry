@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
@@ -10,10 +10,10 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
-  Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
@@ -241,7 +241,7 @@ const CategoryTag = styled(
   color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
 `;
 
-const ResolveNowButton = styled(Button)`
+const ResolveNowButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
   float: right;
 `;

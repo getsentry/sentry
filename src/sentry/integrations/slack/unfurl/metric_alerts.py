@@ -24,7 +24,7 @@ from sentry.integrations.slack.unfurl.types import (
     make_type_coercer,
 )
 from sentry.models.organization import Organization
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 map_incident_args = make_type_coercer(
     {

@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import type {ParntershipAgreementType} from 'sentry/types/hooks';
 
+import type {ParntershipAgreementType} from './hooks';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {

@@ -26,6 +26,7 @@ from sentry.tasks.summaries.utils import (
     ProjectContext,
     organization_project_issue_substatus_summaries,
     project_key_errors,
+    user_project_ownership,
 )
 from sentry.tasks.summaries.weekly_reports import (
     OrganizationReportBatch,
@@ -176,7 +177,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_deliver_reports_respects_settings(
         self, mock_send_email, mock_prepare_template_context
     ):
-        ctx = OrganizationReportContext(0, 0, self.organization)
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+        ctx = OrganizationReportContext(0, 0, organization=self.organization)
+        user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
         batch_id = UUID("77a1d368-33d5-47cd-88cf-d66c97b38333")
@@ -197,7 +202,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_member_disabled(self, mock_send_email):
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
         ctx = OrganizationReportContext(0, 0, self.organization)
+        user_project_ownership(ctx)
+
         with unguarded_write(using=router.db_for_write(Project)):
             OrganizationMember.objects.get(user_id=self.user.id).update(
                 flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
@@ -209,7 +219,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_user_inactive(self, mock_send_email):
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
         ctx = OrganizationReportContext(0, 0, self.organization)
+        user_project_ownership(ctx)
+
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.update(is_active=False)
 
@@ -219,7 +234,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_invited_member(self, mock_send_email):
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
         ctx = OrganizationReportContext(0, 0, self.organization)
+        user_project_ownership(ctx)
+
         # create a member without a user
         OrganizationMember.objects.create(
             organization=self.organization, email="different.email@example.com", token="abc"
@@ -280,7 +300,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         event2.group.save()
         timestamp = self.now.timestamp()
 
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
         organization_project_issue_substatus_summaries(ctx)
 
         project_ctx = cast(ProjectContext, ctx.projects_context_map[self.project.id])
@@ -325,6 +349,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
         assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
 
@@ -389,6 +414,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorIncidentType.type_id)
+
         prepare_organization_report(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
@@ -910,6 +936,36 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_user_with_team_and_no_projects(self, message_builder, record):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+
+        user = self.create_user(email="itwasme@dio.xyz")
+
+        extra_team = self.create_team(organization=organization, members=[])
+        self.create_member(teams=[extra_team], user=user, organization=organization)
+
+        self.store_event_outcomes(organization.id, project.id, self.two_days_ago, num_times=2)
+
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+            target_user=user,
+        )
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == organization
+            assert context["user_project_count"] == 0
+            assert f"Weekly Report for {organization.name}" in message_params["subject"]
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_no_target_user(self, message_builder, record):
         # create some extra projects; we expect to receive a report with all projects included
         self.create_project(organization=self.organization)
@@ -1008,7 +1064,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_duplicate_detection(self, mock_send_email, mock_prepare_template_context, mock_logger):
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+        ctx = OrganizationReportContext(0, 0, organization=self.organization)
         ctx = OrganizationReportContext(0, 0, self.organization)
+        user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
         batch1_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")

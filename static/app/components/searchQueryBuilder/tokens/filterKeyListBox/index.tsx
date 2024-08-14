@@ -158,7 +158,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   selectedSection,
   setSelectedSection,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth} = useSearchQueryBuilder();
+  const {filterKeySections, filterKeyMenuWidth} = useSearchQueryBuilder();
 
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
@@ -195,12 +195,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
             >
               {t('All')}
             </ListBoxSectionButton>
-            {sections.map(section => (
+            {filterKeySections.map(section => (
               <ListBoxSectionButton
-                key={section.key}
-                selected={selectedSection === section.key}
+                key={section.value}
+                selected={selectedSection === section.value}
                 onClick={() => {
-                  setSelectedSection(section.key);
+                  setSelectedSection(section.value);
                   state.selectionManager.setFocusedKey(null);
                 }}
               >

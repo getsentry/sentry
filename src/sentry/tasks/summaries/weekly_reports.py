@@ -21,7 +21,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -42,6 +41,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -255,7 +255,6 @@ class OrganizationReportBatch:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
-
         if self.email_override:
             target_user_id = (
                 self.target_user.id if self.target_user else None
@@ -476,8 +475,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         if len(user_projects) == 0:
             return None
     else:
-        # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
-        user_projects = ctx.projects_context_map.values()
+        return None
 
     notification_uuid = str(uuid.uuid4())
 
