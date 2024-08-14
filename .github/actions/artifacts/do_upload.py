@@ -38,13 +38,14 @@ def main():
     upload_flags = [
         "-t",
         input_token,
-        "--commit-sha",
-        input_commit_sha,
         "--plugin",
         "noop",
         "--flag",
         input_type,
     ]
+
+    if input_commit_sha:
+        upload_flags += ["--commit-sha", input_commit_sha]
 
     upload_coverage_cmd = [*codecov_base_cmd, "upload-process", *upload_flags]
     for file in coverage_files:
@@ -85,8 +86,13 @@ def main():
     # wait, while showing un-interleaved logs
     jobs.append(Popen(tail_args))
 
+    return_codes = []
+
     for job in jobs:
         job.wait()
+
+    if any(return_codes):
+        raise Exception("Error uploading to codecov")
 
 
 if __name__ == "__main__":

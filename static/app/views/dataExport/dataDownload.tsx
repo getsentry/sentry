@@ -273,7 +273,7 @@ const Body = styled('div')`
   }
 `;
 
-const DownloadButton = styled(Button)`
+const DownloadButton = styled(LinkButton)`
   margin-bottom: ${space(1.5)};
 `;
 

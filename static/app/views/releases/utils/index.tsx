@@ -10,7 +10,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Release, SemverVerison, VersionInfo} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
+import type {Release, SemverVerison, VersionInfo} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

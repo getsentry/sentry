@@ -11,9 +11,9 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 
 class MergedGroup(TypedDict):

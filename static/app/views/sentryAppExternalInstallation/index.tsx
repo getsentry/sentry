@@ -14,12 +14,8 @@ import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModa
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {
-  Organization,
-  OrganizationSummary,
-  SentryApp,
-  SentryAppInstallation,
-} from 'sentry/types';
+import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';

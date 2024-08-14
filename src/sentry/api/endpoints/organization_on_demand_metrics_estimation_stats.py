@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.models.organization import Organization
 from sentry.search.events import fields
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover, metrics_performance
 from sentry.snuba.metrics.extraction import to_standard_metrics_query
 from sentry.snuba.referrer import Referrer
@@ -162,7 +163,7 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
     def get_discover_stats(
         query_columns: Sequence[str],
         query: str,
-        params: dict[str, str],
+        snuba_params: SnubaParams,
         rollup: int,
         zerofill_results: bool,  # not used but required by get_event_stats_data
         comparison_delta: datetime | None,  # not used but required by get_event_stats_data
@@ -179,7 +180,8 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
         return module.timeseries_query(
             selected_columns=query_columns,
             query=query,
-            params=params,
+            params={},
+            snuba_params=snuba_params,
             rollup=rollup,
             referrer=Referrer.API_ORGANIZATION_METRICS_ESTIMATION_STATS.value,
             zerofill_results=True,
