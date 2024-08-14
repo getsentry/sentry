@@ -9,10 +9,12 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
+from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
@@ -43,7 +45,10 @@ class DiscordRequestParser(BaseRequestParser):
     _discord_request: DiscordRequest | None = None
 
     # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
-    async_response_data = {"type": 5, "data": {"flags": 64}}
+    async_response_data = {
+        "type": DiscordResponseTypes.DEFERRED_MESSAGE,
+        "data": {"flags": EPHEMERAL_FLAG},
+    }
 
     @property
     def discord_request(self) -> DiscordRequest | None:
