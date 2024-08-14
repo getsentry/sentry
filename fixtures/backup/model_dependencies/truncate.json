@@ -217,6 +217,7 @@
   "sentry_sentryappinstallationtoken",
   "sentry_sentryappinstallationforprovider",
   "sentry_incident",
+  "sentry_grouphashmetadata",
   "sentry_dashboardwidgetqueryondemand",
   "sentry_alertruletriggerexclusion",
   "sentry_alertruletriggeraction",

@@ -46,6 +46,7 @@ from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
 from .grouphash import *  # NOQA
+from .grouphashmetadata import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
