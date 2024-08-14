@@ -190,7 +190,7 @@ SPAN_EAP_COLUMN_MAP = {
     "span.category": "attr_str[category]",
     "span.self_time": "exclusive_time_ms",
     "span.status": "attr_str[status]",
-    "timestamp": "start_timestamp",
+    "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "segment_id",
