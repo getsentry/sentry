@@ -6,6 +6,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import {isAggregateFieldOrEquation} from 'sentry/utils/discover/fields';
 
 const MAX_RECENT_FILTERS = 5;
 const NO_FILTERS = [];
@@ -64,7 +65,14 @@ function getFiltersFromRecentSearches(
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter])
+    .filter(filter => {
+      if (isAggregateFieldOrEquation(filter)) {
+        return !filtersInCurrentQuery.includes(filter);
+      }
+
+      // If the filter is not an aggregate field or equation, we only want to show it if it's a valid filter key.
+      return !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter];
+    })
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
