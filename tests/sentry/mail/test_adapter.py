@@ -33,7 +33,6 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.models.userreport import UserReport
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.digest import get_digest_subject
@@ -51,6 +50,7 @@ from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
 from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userreport import UserReport
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify

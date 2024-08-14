@@ -52,7 +52,6 @@ from sentry.models.releasefile import ReleaseFile
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.models.team import Team
-from sentry.models.userreport import UserReport
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -67,6 +66,7 @@ from sentry.similarity import features
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
+from sentry.users.models.userreport import UserReport
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event

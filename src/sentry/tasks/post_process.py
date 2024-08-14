@@ -1389,7 +1389,7 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
-    from sentry.models.userreport import UserReport
+    from sentry.users.models.userreport import UserReport
 
     event = job["event"]
     project = event.project

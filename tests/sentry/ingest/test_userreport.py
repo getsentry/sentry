@@ -1,7 +1,7 @@
 from sentry.feedback.usecases.create_feedback import UNREAL_FEEDBACK_UNATTENDED_MESSAGE
 from sentry.ingest.userreport import is_org_in_denylist, save_userreport, should_filter_user_report
-from sentry.models.userreport import UserReport
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.users.models.userreport import UserReport
 
 
 @django_db_all

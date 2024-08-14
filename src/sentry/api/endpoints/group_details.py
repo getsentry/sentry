@@ -40,10 +40,10 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
-from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.userreport import UserReport
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 

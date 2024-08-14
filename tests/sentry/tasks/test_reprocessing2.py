@@ -20,7 +20,6 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
-from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
@@ -31,6 +30,7 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.userreport import UserReport
 from sentry.utils.cache import cache_key_for_event
 
 pytestmark = [requires_snuba]

@@ -3,8 +3,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset
+from sentry.users.models.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 
 
@@ -28,9 +28,11 @@ class UserReportSerializer(Serializer):
         events_dict: dict[str, Event] = {event.event_id: event for event in events}
         for item in item_list:
             attrs[item] = {
-                "event_user": EventUser.from_event(events_dict[item.event_id])
-                if events_dict.get(item.event_id)
-                else {}
+                "event_user": (
+                    EventUser.from_event(events_dict[item.event_id])
+                    if events_dict.get(item.event_id)
+                    else {}
+                )
             }
 
         return attrs

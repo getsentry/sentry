@@ -5,9 +5,9 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.models.group import GroupStatus
-from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.users.models.userreport import UserReport
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):

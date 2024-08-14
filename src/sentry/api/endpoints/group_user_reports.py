@@ -7,7 +7,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
-from sentry.models.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 
 
 @region_silo_endpoint

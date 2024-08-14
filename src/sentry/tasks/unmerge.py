@@ -23,12 +23,12 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
+from sentry.users.models.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 from sentry.utils.query import celery_run_batch_query
 from sentry.utils.safe import get_path

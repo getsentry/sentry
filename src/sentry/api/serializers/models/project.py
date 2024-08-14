@@ -35,11 +35,11 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 from sentry.users.models.user import User
+from sentry.users.models.userreport import UserReport
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",

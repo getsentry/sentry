@@ -5,6 +5,7 @@ from sentry.users.models.user import *  # NOQA
 from sentry.users.models.useremail import *  # NOQA
 from sentry.users.models.userrole import *  # NOQA
 
+from ..users.models.userreport import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -124,4 +125,3 @@ from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userip import *  # NOQA
 from .userpermission import *  # NOQA
-from .userreport import *  # NOQA

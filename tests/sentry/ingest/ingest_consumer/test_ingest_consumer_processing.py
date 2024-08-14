@@ -27,12 +27,12 @@ from sentry.ingest.consumer.processors import (
 )
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
+from sentry.users.models.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 

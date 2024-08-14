@@ -16,7 +16,7 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.projectkey import ProjectKey
-from sentry.models.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 
 
 class UserReportSerializer(serializers.ModelSerializer):

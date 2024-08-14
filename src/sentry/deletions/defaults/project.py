@@ -36,10 +36,10 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
-        from sentry.models.userreport import UserReport
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
+        from sentry.users.models.userreport import UserReport
 
         relations = [
             # ProjectKey gets revoked immediately, in bulk
