@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
@@ -18,7 +19,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models.user import User
 from sentry.utils import metrics
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 SLACK_GET_USERS_PAGE_LIMIT = 100
 SLACK_GET_USERS_PAGE_SIZE = 200
@@ -75,7 +76,7 @@ def get_slack_user_list(
             yield users
     except SlackApiError as e:
         metrics.incr(SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC, sample_rate=1.0)
-        logger.info(
+        _logger.info(
             "slack.post_install.get_users.error",
             extra={
                 "error": str(e),

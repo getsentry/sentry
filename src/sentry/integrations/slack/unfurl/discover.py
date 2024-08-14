@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import logging
 import re
 from collections.abc import Mapping
 from datetime import timedelta
@@ -30,7 +31,7 @@ from sentry.utils.dates import (
     validate_interval,
 )
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 # The display modes on the frontend are defined in app/utils/discover/types.tsx
 display_modes: Mapping[str, ChartType] = {
@@ -145,12 +146,8 @@ def unfurl_discover(
                     path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
                 )
 
-            except Exception as exc:
-                logger.error(
-                    "Failed to load saved query for unfurl: %s",
-                    exc,
-                    exc_info=True,
-                )
+            except Exception:
+                _logger.exception("Failed to load saved query for unfurl")
             else:
                 saved_query = response.data
 
@@ -258,11 +255,8 @@ def unfurl_discover(
                 path=f"/organizations/{org_slug}/{endpoint}",
                 params=params,
             )
-        except Exception as exc:
-            logger.error(
-                f"Failed to load {endpoint} for unfurl: {exc}",
-                exc_info=True,
-            )
+        except Exception:
+            _logger.exception("Failed to load %s for unfurl", endpoint)
             continue
 
         chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
@@ -271,12 +265,8 @@ def unfurl_discover(
 
         try:
             url = charts.generate_chart(style, chart_data)
-        except RuntimeError as exc:
-            logger.error(
-                "Failed to generate chart for discover unfurl: %s",
-                exc,
-                exc_info=True,
-            )
+        except RuntimeError:
+            _logger.exception("Failed to generate chart for discover unfurl")
             continue
 
         unfurls[link.url] = SlackDiscoverMessageBuilder(
