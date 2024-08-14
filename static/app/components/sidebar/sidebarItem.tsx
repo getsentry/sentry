@@ -245,7 +245,9 @@ function SidebarItem({
               <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
             )}
             <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
-              {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
+              {!isInFloatingAccordion && (
+                <SidebarItemIcon hasNewNav={hasNewNav}>{icon}</SidebarItemIcon>
+              )}
               {!isInCollapsedState && !isTop && (
                 <SidebarItemLabel
                   isInFloatingAccordion={isInFloatingAccordion}
@@ -285,7 +287,7 @@ function SidebarItem({
               )}
               {!isInFloatingAccordion && hasNewNav && (
                 <LabelHook id={id}>
-                  <TruncatedLabel>{label}</TruncatedLabel>
+                  <TruncatedLabel hasNewNav={hasNewNav}>{label}</TruncatedLabel>
                   {additionalContent ?? badges}
                 </LabelHook>
               )}
@@ -408,7 +410,7 @@ const StyledSidebarItem = styled(Link, {
         }
       `;
     }
-    return '';
+    return 'width: 100px;';
   }}
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
@@ -463,7 +465,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boole
   }
 `;
 
-const SidebarItemIcon = styled('span')`
+const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -476,6 +478,13 @@ const SidebarItemIcon = styled('span')`
     width: 18px;
     height: 18px;
   }
+  ${p =>
+    p.hasNewNav &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        display: none;
+      }
+    `};
 `;
 
 const SidebarItemLabel = styled('span')<{
@@ -491,8 +500,12 @@ const SidebarItemLabel = styled('span')<{
   overflow: hidden;
 `;
 
-const TruncatedLabel = styled(TextOverflow)`
-  margin-right: auto;
+const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
+  ${p =>
+    !p.hasNewNav &&
+    css`
+      margin-right: auto;
+    `}
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {

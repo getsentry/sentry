@@ -442,7 +442,7 @@ function Sidebar() {
         icon={<IconLightning />}
         label={
           <GuideAnchor target="performance">
-            {hasNewNav ? truncateString(t('Performance'), 7) : t('Performance')}
+            {hasNewNav ? truncateString(t('Performance'), 4) : t('Performance')}
           </GuideAnchor>
         }
         to={`/organizations/${organization.slug}/performance/`}
@@ -661,19 +661,19 @@ function Sidebar() {
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection noMargin={hasNewNav}>
+                <SidebarSection hasNewNav={hasNewNav}>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection noMargin={hasNewNav}>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {explore}
                       {insights}
                     </SidebarSection>
 
-                    <SidebarSection noMargin={hasNewNav}>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {performance}
                       {feedback}
                       {monitors}
@@ -686,7 +686,7 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection noMargin={hasNewNav}>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {alerts}
                       {discover2}
                       {dashboards}
@@ -696,7 +696,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                <SidebarSection noMargin={hasNewNav}>
+                <SidebarSection hasNewNav={hasNewNav}>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -707,6 +707,7 @@ function Sidebar() {
 
         {hasOrganization && (
           <SidebarSectionGroup>
+            {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
@@ -737,7 +738,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <SidebarSection noMargin noPadding>
+            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
               <OnboardingStatus
                 org={organization}
                 currentPanel={activePanel}
@@ -747,7 +748,7 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection noMargin={hasNewNav}>
+            <SidebarSection hasNewNav={hasNewNav}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
                   orientation,
@@ -782,7 +783,7 @@ function Sidebar() {
             </SidebarSection>
 
             {!horizontal && !hasNewNav && (
-              <SidebarSection noMargin={hasNewNav}>
+              <SidebarSection hasNewNav={hasNewNav}>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"
@@ -880,7 +881,7 @@ const PrimaryItems = styled('div')`
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    overflow-y: visible;
+    overflow-y: hidden;
     flex-direction: row;
     height: 100%;
     align-items: center;
@@ -907,16 +908,25 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
 `;
 
 const SidebarSection = styled(SidebarSectionGroup)<{
+  hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
+  ${p => !p.noMargin && !p.hasNewNav && `margin: ${space(1)} 0`};
+  ${p => !p.noPadding && !p.hasNewNav && `padding: 0 ${space(2)}`};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
     padding: 0;
   }
+  ${p =>
+    p.hasNewNav &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        margin: 0;
+        padding: 0;
+      }
+    `}
 
   &:empty {
     display: none;
