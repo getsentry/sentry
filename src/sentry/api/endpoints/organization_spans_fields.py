@@ -14,7 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
@@ -38,7 +38,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return self.paginate(
                 request=request,
@@ -53,7 +53,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             # are returned if the total exceeds the limit.
             builder = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params=params,
+                params={},
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["array_join(tags.key)"],
@@ -96,7 +96,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return self.paginate(
                 request=request,
@@ -108,7 +108,6 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         max_span_tag_values = options.get("performance.spans-tags-values.max")
 
         executor = SpanFieldValuesAutocompletionExecutor(
-            params=params,
             snuba_params=snuba_params,
             key=key,
             query=request.GET.get("query"),
@@ -154,13 +153,11 @@ class SpanFieldValuesAutocompletionExecutor:
 
     def __init__(
         self,
-        params: ParamsType,
         snuba_params: SnubaParams,
         key: str,
         query: str | None,
         max_span_tag_values: int,
     ):
-        self.params = params
         self.snuba_params = snuba_params
         self.key = key
         self.query = query
@@ -241,7 +238,7 @@ class SpanFieldValuesAutocompletionExecutor:
         with handle_query_errors():
             return SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params=self.params,
+                params={},
                 snuba_params=self.snuba_params,
                 selected_columns=[self.key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",

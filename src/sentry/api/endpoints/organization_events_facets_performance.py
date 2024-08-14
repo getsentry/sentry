@@ -55,7 +55,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         if not self.has_feature(organization, request):
             raise Http404
 
-        snuba_params, _ = self.get_snuba_dataclass(request, organization)
+        snuba_params = self.get_snuba_params(request, organization)
 
         filter_query = request.GET.get("query")
         aggregate_column = request.GET.get("aggregateColumn")

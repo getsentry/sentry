@@ -29,7 +29,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({"count": 0})
 
@@ -63,9 +63,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
     def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response([])
 
@@ -129,7 +127,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         is_frontend = is_frontend_request(request)
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 

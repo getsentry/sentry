@@ -26,7 +26,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, Span
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams, Span
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -87,19 +87,15 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 
 
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
-    def get_snuba_dataclass(
+    def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, ParamsType]:
-        snuba_params, params = super().get_snuba_dataclass(
-            request, organization, check_global_views
-        )
+    ) -> SnubaParams:
+        snuba_params = super().get_snuba_params(request, organization, check_global_views)
 
-        if len(params.get("project_id", [])) != 1:
-            raise ParseError(detail="You must specify exactly 1 project.")
         if len(snuba_params.project_ids) != 1:
             raise ParseError(detail="You must specify exactly 1 project.")
 
-        return snuba_params, params
+        return snuba_params
 
     def get_orderby_column(self, request: Request) -> tuple[str, str]:
         orderbys = super().get_orderby(request)
@@ -161,7 +157,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -239,7 +235,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -332,7 +328,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: ParamsType,
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None = None,
@@ -342,8 +338,9 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             ):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
-                    params,
+                    {},
                     rollup,
+                    snuba_params=snuba_params,
                     query=query,
                     selected_columns=query_columns,
                     config=QueryBuilderConfig(
@@ -380,13 +377,15 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             ):
                 result = discover.zerofill(
                     results["data"],
-                    params["start"],
-                    params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     rollup,
                     "time",
                 )
 
-            return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+            return SnubaTSResult(
+                {"data": result}, snuba_params.start_date, snuba_params.end_date, rollup
+            )
 
         return Response(
             self.get_event_stats_data(

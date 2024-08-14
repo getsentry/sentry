@@ -62,7 +62,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
             try:
                 # This endpoint only allows for a single project + transaction, so no need
                 # to check `global-views`.
-                snuba_params, _ = self.get_snuba_dataclass(
+                snuba_params = self.get_snuba_params(
                     request, organization, check_global_views=False
                 )
 

@@ -46,7 +46,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -78,7 +78,6 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         executor = executor_cls(
             mri=serialized["mri"],
-            params={},
             snuba_params=snuba_params,
             fields=serialized["field"],
             operation=serialized.get("operation"),
