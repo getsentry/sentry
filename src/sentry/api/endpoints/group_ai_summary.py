@@ -35,13 +35,13 @@ class SummarizeIssueResponse(BaseModel):
 @region_silo_endpoint
 class GroupAiSummaryEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     private = True
     enforce_rate_limit = True
     rate_limits = {
-        "GET": {
+        "POST": {
             RateLimitCategory.IP: RateLimit(limit=10, window=60),
             RateLimitCategory.USER: RateLimit(limit=10, window=60),
             RateLimitCategory.ORGANIZATION: RateLimit(
@@ -105,7 +105,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         return SummarizeIssueResponse.validate(response.json())
 
-    def get(self, request: Request, group: Group) -> Response:
+    def post(self, request: Request, group: Group) -> Response:
         if not features.has("organizations:ai-summary", group.organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
