@@ -62,7 +62,7 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_local_region
-from sentry.users.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
