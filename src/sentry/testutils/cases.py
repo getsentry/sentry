@@ -1369,18 +1369,20 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span):
+    def store_span(self, span, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
             ).status_code
             == 200
         )
 
-    def store_spans(self, spans):
+    def store_spans(self, spans, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
             ).status_code
             == 200
         )
