@@ -9,7 +9,7 @@ from django.utils import timezone
 from pydantic import Field
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 
 
 class RpcLostPasswordHash(RpcModel):

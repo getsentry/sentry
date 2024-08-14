@@ -36,7 +36,6 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -61,6 +60,7 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
 )
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.utils import json, loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.dates import to_datetime

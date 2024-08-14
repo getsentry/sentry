@@ -1,9 +1,9 @@
 from django.core import mail
 from django.urls import reverse
 
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 
 
 @control_silo_test

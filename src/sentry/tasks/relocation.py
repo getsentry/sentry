@@ -43,7 +43,6 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
-from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
@@ -62,6 +61,7 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_local_region
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
@@ -1585,7 +1585,7 @@ def notifying_users(uuid: UUID) -> None:
         for control_chunk in chunks:
             imported_user_ids = imported_user_ids.union(set(control_chunk.inserted_map.values()))
 
-        imported_org_slugs: set[int] = set()
+        imported_org_slugs: set[str] = set()
         for region_chunk in RegionImportChunk.objects.filter(
             import_uuid=uuid_str, model="sentry.organization"
         ):
