@@ -159,7 +159,8 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   // TODO: floating accordion should be transformed into secondary panel
-  const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  const isInFloatingAccordion =
+    ((isNested || isMainItem) && shouldAccordionFloat) || hasNewNav;
   const hasLink = Boolean(to);
 
   const isActive = defined(active) ? active : isActiveRouter;
@@ -205,7 +206,7 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
 
-  const isInCollapsedState = !isInFloatingAccordion && (collapsed || hasNewNav);
+  const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
 
   return (
     <Tooltip
