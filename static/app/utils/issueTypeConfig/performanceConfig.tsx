@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueType} from 'sentry/types';
+import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {

@@ -8,8 +8,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
-import type {AvatarProject} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {AvatarProject} from 'sentry/types/project';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import type {
   QuickTraceQueryChildrenProps,

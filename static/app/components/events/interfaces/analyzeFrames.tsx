@@ -7,7 +7,7 @@ import {
 import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types';
+import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 

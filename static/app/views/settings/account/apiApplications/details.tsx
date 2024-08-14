@@ -17,7 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

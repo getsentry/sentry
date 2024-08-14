@@ -5,11 +5,11 @@ import type {
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {IssueType, PlatformKey} from 'sentry/types';
+import type {IssueAttachment, IssueCategory, IssueType} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 

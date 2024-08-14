@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {

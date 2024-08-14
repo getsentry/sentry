@@ -6,7 +6,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
