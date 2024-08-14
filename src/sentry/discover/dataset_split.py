@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,6 +15,8 @@ from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
+
+logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
 def time_limit_exceeded_handler(*_: Any) -> None:
@@ -68,6 +71,19 @@ ERROR_ONLY_FIELDS = [
     "exception_frames.package",
     "exception_frames.stack_level",
 ]
+
+
+def save_split_decision_for_query(
+    saved_query: DiscoverSavedQuery,
+    split_decision: DiscoverSavedQueryTypes | None,
+    dataset_source: DatasetSourcesTypes | None,
+):
+    if split_decision is not None:
+        saved_query.dataset = split_decision
+    if dataset_source is not None:
+        saved_query.dataset_source = dataset_source
+
+    saved_query.save()
 
 
 def check_function_parameter_matches_dataset(
@@ -237,7 +253,9 @@ def get_snuba_dataclass(
         return params, filter_params
 
 
-def save_split_decision_for_query(saved_query: DiscoverSavedQuery):
+def get_and_save_split_decision_for_query(
+    saved_query: DiscoverSavedQuery, dry_run: bool
+) -> tuple[DiscoverSavedQueryTypes, bool]:
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
@@ -271,10 +289,15 @@ def save_split_decision_for_query(saved_query: DiscoverSavedQuery):
     )
 
     if dataset_inferred_from_query is not None:
-        saved_query.dataset = dataset_inferred_from_query
-        saved_query.dataset_source = DatasetSourcesTypes.INFERRED.value
-        saved_query.save()
-        return
+        if dry_run:
+            logger.info("Split decision for %s: %s", saved_query.id, dataset_inferred_from_query)
+        else:
+            save_split_decision_for_query(
+                saved_query,
+                dataset_inferred_from_query,
+                DatasetSourcesTypes.INFERRED.value,
+            )
+        return dataset_inferred_from_query, False
 
     has_errors = False
     try:
@@ -288,10 +311,17 @@ def save_split_decision_for_query(saved_query: DiscoverSavedQuery):
         pass
 
     if has_errors:
-        saved_query.dataset = DiscoverSavedQueryTypes.ERROR_EVENTS
-        saved_query.dataset_source = DatasetSourcesTypes.INFERRED.value
-        saved_query.save()
-        return
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s", saved_query.id, DiscoverSavedQueryTypes.ERROR_EVENTS
+            )
+        else:
+            save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.INFERRED.value,
+            )
+        return DiscoverSavedQueryTypes.ERROR_EVENTS, True
 
     has_transactions = False
     try:
@@ -305,10 +335,30 @@ def save_split_decision_for_query(saved_query: DiscoverSavedQuery):
         pass
 
     if has_transactions:
-        saved_query.dataset = DiscoverSavedQueryTypes.TRANSACTION_LIKE
-        saved_query.dataset_source = DatasetSourcesTypes.INFERRED.value
-        saved_query.save()
-        return
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s",
+                saved_query.id,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            )
+        else:
+            save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+                DatasetSourcesTypes.INFERRED.value,
+            )
 
-    saved_query.dataset_source = DatasetSourcesTypes.INSUFFICIENT_DATA.value
-    saved_query.save()
+        return DiscoverSavedQueryTypes.TRANSACTION_LIKE, True
+
+    if dry_run:
+        logger.info(
+            "Split decision for %s: %s", saved_query.id, DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        )
+    else:
+        save_split_decision_for_query(
+            saved_query,
+            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            DatasetSourcesTypes.FORCED.value,
+        )
+
+    return DiscoverSavedQueryTypes.ERROR_EVENTS, True
