@@ -8,7 +8,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -35,9 +35,9 @@ import useApi from 'sentry/utils/useApi';
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
 const docsLink = (
-  <Button external href={releasesSetupUrl}>
+  <LinkButton external href={releasesSetupUrl}>
     {t('Setup')}
-  </Button>
+  </LinkButton>
 );
 
 export const RELEASES_TOUR_STEPS: TourStep[] = [
@@ -207,9 +207,9 @@ sentry-cli releases finalize "$VERSION"`,
         <ContainerHeader>
           <h3>{t('Set up Releases')}</h3>
 
-          <Button priority="default" size="sm" href={releasesSetupUrl} external>
+          <LinkButton priority="default" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         </ContainerHeader>
 
         <p>

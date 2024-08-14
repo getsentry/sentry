@@ -337,15 +337,13 @@ function MultiOrgView({
         )}
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>
-        {() => (
-          <SelectControl
-            onChange={({value}) => onSelectOrg(value)}
-            value={selectedOrgSlug}
-            placeholder={t('Select an organization')}
-            options={getOrganizationOptions(organizations)}
-            data-test-id="org-select"
-          />
-        )}
+        <SelectControl
+          onChange={({value}) => onSelectOrg(value)}
+          value={selectedOrgSlug}
+          placeholder={t('Select an organization')}
+          options={getOrganizationOptions(organizations)}
+          data-test-id="org-select"
+        />
       </FieldGroup>
     </div>
   );

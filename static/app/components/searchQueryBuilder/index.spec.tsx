@@ -21,7 +21,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,
@@ -74,6 +74,10 @@ const FILTER_KEYS: TagCollection = {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
   },
+  uncategorized_tag: {
+    key: 'uncategorized_tag',
+    name: 'uncategorized_tag',
+  },
 };
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
@@ -110,6 +114,8 @@ describe('SearchQueryBuilder', function () {
 
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
+
+    MockApiClient.clearMockResponses();
   });
 
   afterEach(function () {
@@ -287,7 +293,7 @@ describe('SearchQueryBuilder', function () {
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
-      expect(groups).toHaveLength(2);
+      expect(groups).toHaveLength(3);
 
       // First group (Field) should have age, assigned, browser.name
       const group1 = groups[0];
@@ -301,6 +307,12 @@ describe('SearchQueryBuilder', function () {
       const group2 = groups[1];
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+
+      // There should be a third group for uncategorized keys
+      const group3 = groups[2];
+      expect(
+        within(group3).getByRole('option', {name: 'uncategorized_tag'})
       ).toBeInTheDocument();
 
       // Clicking "Category 2" should filter the options to only category 2
@@ -333,6 +345,102 @@ describe('SearchQueryBuilder', function () {
         'aria-selected',
         'true'
       );
+    });
+
+    describe('recent filter keys', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            {query: 'assigned:me'},
+            {query: 'assigned:me browser:firefox'},
+            {query: 'assigned:me browser:firefox is:unresolved'},
+          ],
+        });
+      });
+
+      it('can select from recently-used filter keys', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        expect(recentFilterKeys).toHaveLength(3);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
+        expect(recentFilterKeys[1]).toHaveTextContent('browser');
+        expect(recentFilterKeys[2]).toHaveTextContent('is');
+
+        await userEvent.click(recentFilterKeys[0]);
+
+        expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
+      });
+
+      it('does not display filters present in the query', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="assigned:me"
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "assigned" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(2);
+        expect(recentFilterKeys[0]).toHaveTextContent('browser');
+        expect(recentFilterKeys[1]).toHaveTextContent('is');
+      });
+
+      it('can navigate between filters with arrow keys', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        // Arrow down once should focus the first recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
+
+        // Arrow right should go to the next recent filter
+        await userEvent.keyboard('{ArrowRight}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[1].id
+          );
+        });
+
+        // Arrow down again skip to the next non-recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            screen.getByRole('option', {name: 'age'}).id
+          );
+        });
+
+        // Arrow up should go back to the first recent filter key
+        await userEvent.keyboard('{ArrowUp}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
+      });
     });
   });
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationSettingEnum

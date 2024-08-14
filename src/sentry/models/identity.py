@@ -26,7 +26,7 @@ from sentry.users.services.user import RpcUser
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
     from sentry.identity.services.identity import RpcIdentityProvider
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 

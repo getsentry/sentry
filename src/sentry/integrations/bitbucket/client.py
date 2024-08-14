@@ -7,8 +7,10 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.utils import get_query_hash
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -46,7 +48,7 @@ class BitbucketAPIPath:
     source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
 
-class BitbucketApiClient(ApiClient):
+class BitbucketApiClient(ApiClient, RepositoryClient):
     """
     The API Client for the Bitbucket Integration
 
@@ -170,7 +172,7 @@ class BitbucketApiClient(ApiClient):
 
         return self.zip_commit_data(repo, commits)
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.head_cached(
             path=BitbucketAPIPath.source.format(
                 repo=repo.name,
@@ -178,3 +180,8 @@ class BitbucketApiClient(ApiClient):
                 path=path,
             ),
         )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        raise IntegrationFeatureNotImplementedError

@@ -497,6 +497,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.gray100,
     color: colors.gray500,
   },
+  internal: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
   warning: {
     background: colors.yellow300,
     indicatorColor: colors.yellow300,

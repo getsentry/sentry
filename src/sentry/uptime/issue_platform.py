@@ -73,7 +73,7 @@ def build_occurrence_from_result(
         event_id=uuid.uuid4().hex,
         fingerprint=build_fingerprint_for_project_subscription(project_subscription),
         type=UptimeDomainCheckFailure,
-        issue_title=f"Uptime Check Failed for {project_subscription.uptime_subscription.url}",
+        issue_title=f"Downtime detected for {project_subscription.uptime_subscription.url}",
         subtitle="Your monitored domain is down",
         evidence_display=evidence_display,
         evidence_data={},
