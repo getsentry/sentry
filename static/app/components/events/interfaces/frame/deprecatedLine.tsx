@@ -20,7 +20,7 @@ import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Event,Frame} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,

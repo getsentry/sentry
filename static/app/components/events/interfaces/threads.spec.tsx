@@ -11,7 +11,7 @@ import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
-import {EntryType,EventOrGroupType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();

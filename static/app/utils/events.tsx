@@ -4,9 +4,14 @@ import type {
   EntryException,
   EntryRequest,
   EntryThreads,
-Event,   EventMetadata,
-ExceptionValue, Frame, Thread,  TreeLabelPart} from 'sentry/types/event';
-import {EntryType,EventOrGroupType} from 'sentry/types/event';
+  Event,
+  EventMetadata,
+  ExceptionValue,
+  Frame,
+  Thread,
+  TreeLabelPart,
+} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {
   BaseGroup,
   Group,

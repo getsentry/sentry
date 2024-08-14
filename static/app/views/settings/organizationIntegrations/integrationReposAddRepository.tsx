@@ -8,7 +8,11 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {Integration, IntegrationRepository, Repository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationRepository,
+  Repository,
+} from 'sentry/types/integrations';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

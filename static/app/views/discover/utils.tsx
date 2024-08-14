@@ -9,7 +9,11 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {NewQuery, Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {
+  NewQuery,
+  Organization,
+  OrganizationSummary,
+} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';

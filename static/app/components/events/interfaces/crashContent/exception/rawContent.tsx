@@ -7,7 +7,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Event,ExceptionType} from 'sentry/types/event';
+import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';

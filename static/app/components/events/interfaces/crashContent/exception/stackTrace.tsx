@@ -3,7 +3,7 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event,ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';

@@ -6,7 +6,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event,Frame} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
   LineCoverage,
   SentryAppComponent,

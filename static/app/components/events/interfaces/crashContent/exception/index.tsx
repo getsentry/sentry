@@ -1,5 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {Event,ExceptionType} from 'sentry/types/event';
+import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StackType} from 'sentry/types/stacktrace';

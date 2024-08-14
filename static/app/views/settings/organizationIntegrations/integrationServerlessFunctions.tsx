@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {Organization} from 'sentry/types/organization';
-import type {OrganizationIntegration, ServerlessFunction} from 'sentry/types/integrations';
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

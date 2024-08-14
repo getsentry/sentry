@@ -13,7 +13,11 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {t, tct} from 'sentry/locale';
-import {type EntryBreadcrumbs, EntryType, type EventTransaction} from 'sentry/types/event';
+import {
+  type EntryBreadcrumbs,
+  EntryType,
+  type EventTransaction,
+} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
 import {TraceDrawerComponents} from '../../styles';
