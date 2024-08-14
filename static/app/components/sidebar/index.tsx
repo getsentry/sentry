@@ -759,7 +759,6 @@ function Sidebar() {
                 collapsed={collapsed}
                 hidePanel={hidePanel}
                 organization={organization}
-                hasNewNav={hasNewNav} // TODO: implement
               />
               <Broadcasts
                 orientation={orientation}
@@ -768,7 +767,6 @@ function Sidebar() {
                 onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
                 hidePanel={hidePanel}
                 organization={organization}
-                hasNewNav={hasNewNav} // TODO: implement
               />
               <ServiceIncidents
                 orientation={orientation}
@@ -776,7 +774,6 @@ function Sidebar() {
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
                 hidePanel={hidePanel}
-                hasNewNav={hasNewNav} // TODO: implement
               />
             </SidebarSection>
 
