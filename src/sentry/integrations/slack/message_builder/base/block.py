@@ -7,8 +7,8 @@ from typing import Any
 
 import orjson
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.utils.actions import MessageAction
 
 

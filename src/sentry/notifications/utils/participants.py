@@ -24,7 +24,6 @@ from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     ActionTargetType,
@@ -34,6 +33,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service

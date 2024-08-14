@@ -7,7 +7,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -53,10 +54,9 @@ function SpanNodeDetailHeader({
         </Tooltip>
         <TraceDrawerComponents.TitleText>
           <div>{t('span')}</div>
-          <TraceDrawerComponents.TitleOp>
-            {' '}
-            {getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
-          </TraceDrawerComponents.TitleOp>
+          <TraceDrawerComponents.TitleOp
+            text={getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
+          />
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions

@@ -5,8 +5,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.api.endpoints.custom_rules import (
-    DEFAULT_PERIOD_STRING,
-    MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
     UnsupportedSearchQuery,
     UnsupportedSearchQueryReason,
@@ -201,7 +199,6 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
-            "period": "1h",
         }
         resp = self.get_response(self.organization.slug, raw_data=request_data)
 
@@ -239,7 +236,6 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
-            "period": "1h",
         }
         response = self.get_response(self.organization.slug, raw_data=request_data)
         assert response.status_code == 403, response.data
@@ -250,12 +246,10 @@ class CustomRulesEndpoint(APITestCase):
         Test that the endpoint updates an existing rule if the same rule condition and projects is given
 
         The rule id should be the same
-        The period should be updated
         """
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
-            "period": "1h",
         }
 
         # create rule
@@ -273,7 +267,6 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
-            "period": "2h",
         }
 
         # update existing rule
@@ -301,7 +294,6 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id, self.second_project.id],
-            "period": "1h",
         }
 
         mock_invalidate_project_config.reset_mock()
@@ -324,7 +316,6 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction http.method:POST",
             "projects": [],
-            "period": "1h",
         }
 
         mock_invalidate_project_config.reset_mock()
@@ -341,9 +332,7 @@ class CustomRulesEndpoint(APITestCase):
     "what,value,valid",
     [
         ("query", "event.type:transaction", True),
-        ("period", "1h", True),
         ("projects", ["abc"], False),
-        ("period", "hello", False),
         ("query", "", True),
     ],
 )
@@ -351,7 +340,7 @@ def test_custom_rule_serializer(what, value, valid):
     """
     Test that the serializer works as expected
     """
-    data = {"query": "event.type:transaction", "projects": [], "period": "1h"}
+    data = {"query": "event.type:transaction", "projects": []}
     data[what] = value
 
     serializer = CustomRulesInputSerializer(data=data)
@@ -359,33 +348,11 @@ def test_custom_rule_serializer(what, value, valid):
     assert serializer.is_valid() == valid
 
 
-def test_custom_rule_serializer_default_period():
-    """
-    Test that the serializer validation sets the default period
-    """
-    data = {"query": "event.type:transaction", "projects": []}
-    serializer = CustomRulesInputSerializer(data=data)
-
-    assert serializer.is_valid()
-    assert serializer.validated_data["period"] == DEFAULT_PERIOD_STRING
-
-
-def test_custom_rule_serializer_limits_period():
-    """
-    Test that the serializer validation limits the peroid to the max allowed
-    """
-    data = {"query": "event.type:transaction", "projects": [], "period": "100d"}
-    serializer = CustomRulesInputSerializer(data=data)
-
-    assert serializer.is_valid()
-    assert serializer.validated_data["period"] == MAX_RULE_PERIOD_STRING
-
-
 def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
     """
     Test that the serializer creates an org level rule when no projects are given
     """
-    data = {"query": "event.type:transaction", "period": "1h"}
+    data = {"query": "event.type:transaction"}
     serializer = CustomRulesInputSerializer(data=data)
 
     assert serializer.is_valid()
@@ -403,7 +370,6 @@ class TestCustomRuleSerializerWithProjects(TestCase):
 
         data = {
             "query": "event.type:transaction",
-            "period": "1h",
             "isOrgLevel": True,
             "projects": [p1.id, p2.id],
         }
@@ -426,7 +392,6 @@ class TestCustomRuleSerializerWithProjects(TestCase):
 
         data = {
             "query": "event.type:transaction",
-            "period": "1h",
             "isOrgLevel": True,
             "projects": [p1.id, invalid_project_id, p2.id, invalid_project_id2],
         }

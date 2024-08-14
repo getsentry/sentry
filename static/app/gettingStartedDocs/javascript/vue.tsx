@@ -57,7 +57,7 @@ type Params = DocsParams<PlatformOptions>;
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
     ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     integrations: [${
       params.isPerformanceSelected
         ? `
@@ -77,7 +77,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   ],${
     params.isPerformanceSelected
       ? `
-        // Performance Monitoring
+        // Tracing
         tracesSampleRate: 1.0, //  Capture 100% of the transactions
         // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
         tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -201,7 +201,7 @@ export const nextSteps = [
   },
   {
     id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
+    name: t('Tracing'),
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
@@ -346,7 +346,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

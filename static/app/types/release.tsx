@@ -1,7 +1,6 @@
-import type {PlatformKey} from 'sentry/types/project';
-
 import type {TimeseriesValue} from './core';
 import type {Commit} from './integrations';
+import type {PlatformKey} from './project';
 import type {User} from './user';
 
 export enum ReleaseStatus {

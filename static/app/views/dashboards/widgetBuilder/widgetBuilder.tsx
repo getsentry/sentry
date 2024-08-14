@@ -10,8 +10,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import InputField from 'sentry/components/forms/fields/inputField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
+import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -20,7 +20,9 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
+import type {DateString, PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -572,11 +574,18 @@ function WidgetBuilder({
         widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet;
 
-      newState.queries.push(
-        ...(didDatasetChange
-          ? widgetToBeUpdated.queries
-          : [{...config.defaultWidgetQuery}])
-      );
+      if (
+        [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(prevState.dataSet) &&
+        [DataSet.ERRORS, DataSet.TRANSACTIONS].includes(newDataSet as DataSet)
+      ) {
+        newState.queries = prevState.queries;
+      } else {
+        newState.queries.push(
+          ...(didDatasetChange
+            ? widgetToBeUpdated.queries
+            : [{...config.defaultWidgetQuery}])
+        );
+      }
 
       set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
@@ -1336,7 +1345,7 @@ function WidgetBuilder({
 
 export default withPageFilters(withTags(WidgetBuilder));
 
-const TitleInput = styled(InputField)`
+const TitleInput = styled(TextField)`
   padding: 0 ${space(2)} 0 0;
 `;
 

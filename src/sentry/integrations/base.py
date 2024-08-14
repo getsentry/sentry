@@ -54,6 +54,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class IntegrationFeatureNotImplementedError(Exception):
+    pass
+
+
 class FeatureDescription(NamedTuple):
     description: str  # A markdown description of the feature
     featureGate: IntegrationFeatures  # A IntegrationFeature that gates this feature
@@ -290,7 +294,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return feature in self.features
 
 
-class IntegrationInstallation:
+class IntegrationInstallation(abc.ABC):
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
@@ -359,6 +363,7 @@ class IntegrationInstallation:
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    @abc.abstractmethod
     def get_client(self) -> Any:
         """
         Return an API client for the integration provider

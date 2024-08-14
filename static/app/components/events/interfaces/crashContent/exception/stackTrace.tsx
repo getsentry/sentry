@@ -3,8 +3,9 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ExceptionValue, Group, PlatformKey} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';

@@ -8,13 +8,13 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   EventsStatsData,
   OrganizationSummary,
-  Project,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';

@@ -31,9 +31,11 @@ interface TransactionSearchQueryBuilderProps {
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  filterKeyMenuWidth?: number;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  trailingItems?: React.ReactNode;
 }
 
 export function TransactionSearchQueryBuilder({
@@ -44,6 +46,8 @@ export function TransactionSearchQueryBuilder({
   placeholder,
   projects,
   disableLoadingTags,
+  filterKeyMenuWidth,
+  trailingItems,
 }: TransactionSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -134,6 +138,8 @@ export function TransactionSearchQueryBuilder({
       disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.EVENT}
+      filterKeyMenuWidth={filterKeyMenuWidth}
+      trailingItems={trailingItems}
     />
   );
 }

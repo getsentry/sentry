@@ -15,7 +15,7 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {GroupStatus, IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupActions from 'sentry/views/issueDetails/actions';

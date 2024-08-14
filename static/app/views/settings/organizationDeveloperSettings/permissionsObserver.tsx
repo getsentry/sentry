@@ -5,7 +5,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {Permissions, Scope, WebhookEvent} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,

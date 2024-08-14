@@ -6,6 +6,7 @@ from django.apps import apps
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
+from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
     backfill_outboxes_for,
@@ -19,7 +20,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
@@ -140,6 +140,8 @@ def test_control_processing(task_runner: Callable[..., Any]) -> None:
 
     assert OrganizationMapping.objects.all().count() == 2
 
+    # No new outboxes as replication version hasn't changed.
+    assert ControlOutbox.objects.all().count() == 0
     # Does not process these new objects since we already completed all available work for this version.
     with assume_test_silo_mode(SiloMode.REGION):
         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
@@ -150,7 +152,11 @@ def test_control_processing(task_runner: Callable[..., Any]) -> None:
             while backfill_outboxes_for(SiloMode.CONTROL, 0, 1, force_synchronous=True):
                 pass
 
-        # Replicates it now that the version has bumped
+            # Replication version was incremented, both sets of records need
+            # replica updates.
+            assert ControlOutbox.objects.all().count() == 10
+
+        # Replicates it now that the version has bumped, and outboxes run by outbox_runner
         with assume_test_silo_mode(SiloMode.REGION):
             assert AuthIdentityReplica.objects.all().count() == 10
             assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 5
