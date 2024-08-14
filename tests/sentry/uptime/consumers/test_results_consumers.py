@@ -42,7 +42,9 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
-        self.subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
+        self.subscription = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex, interval_seconds=300
+        )
         self.project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=self.subscription
         )

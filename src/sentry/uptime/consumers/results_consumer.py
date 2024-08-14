@@ -44,7 +44,7 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 # ONBOARDING_MONITOR_PERIOD.
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
-AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=5)
+AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
 # When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
 # successes in a row do we need to mark it up
 ACTIVE_FAILURE_THRESHOLD = 2
