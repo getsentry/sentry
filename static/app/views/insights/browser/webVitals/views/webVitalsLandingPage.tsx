@@ -61,7 +61,7 @@ export function WebVitalsLandingPage() {
     subregions,
   });
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserTypes});
+    useProjectWebVitalsScoresQuery({browserTypes, subregions});
 
   const projectScore =
     isProjectScoresLoading || isLoading
