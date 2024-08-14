@@ -30,6 +30,7 @@ export default function SubregionSelector() {
       fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
       enabled: hasGeoSelectorFeature,
+      sorts: [{field: 'count()', kind: 'desc'}],
     },
     'api.insights.user-geo-subregion-selector'
   );
