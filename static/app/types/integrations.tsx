@@ -1,6 +1,5 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import type {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -11,6 +10,7 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './group';
+import type {PlatformKey} from './project';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
