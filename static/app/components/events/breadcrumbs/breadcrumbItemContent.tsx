@@ -145,7 +145,7 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -201,7 +201,7 @@ function ExceptionCrumbContent({
       {children}
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
