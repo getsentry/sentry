@@ -204,7 +204,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     if (typeof tableResults === 'undefined' || loading) {
-      return <BigText>{'\u2014'}</BigText>;
+      return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
     const {containerHeight} = this.state;
@@ -223,7 +223,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       if (!field || !result.data?.length) {
-        return <BigText key={`big_number:${result.title}`}>{'\u2014'}</BigText>;
+        return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
       const dataRow = result.data[0];
@@ -237,10 +237,27 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
-        return <BigText key={`big_number:${result.title}`}>{rendered}</BigText>;
+        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      return expandNumbers ? (
+      // The font size is the container height, minus the top and bottom padding
+      const fontSize = !expandNumbers
+        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
+        : `max(min(8vw, 90px), ${space(4)})`;
+
+      return !organization.features.includes('auto-size-big-number-widget') ? (
+        <BigNumber
+          key={`big_number:${result.title}`}
+          style={{
+            fontSize,
+            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
+          }}
+        >
+          <Tooltip title={rendered} showOnlyOnOverflow>
+            {rendered}
+          </Tooltip>
+        </BigNumber>
+      ) : expandNumbers ? (
         <BigText>{rendered}</BigText>
       ) : (
         <AutoResizeParent key={`big_number:${result.title}`}>
@@ -578,9 +595,20 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 const BigNumberResizeWrapper = styled('div')`
   height: 100%;
   width: 100%;
+  overflow: hidden;
   position: relative;
+`;
+
+const BigNumber = styled('div')`
   line-height: 1;
+  display: inline-flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  font-size: 32px;
   color: ${p => p.theme.headingColor};
+  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+
   * {
     text-align: left !important;
   }
@@ -589,15 +617,25 @@ const BigNumberResizeWrapper = styled('div')`
 const AutoResizeParent = styled('div')`
   display: inline-flex;
   position: absolute;
+  color: ${p => p.theme.headingColor};
   inset: ${space(1)} ${space(3)} 0 ${space(3)};
+
+  * {
+    text-align: left !important;
+  }
 `;
 
 const BigText = styled('div')`
   display: block;
   width: 100%;
+  color: ${p => p.theme.headingColor};
   font-size: max(min(8vw, 90px), 30px);
   padding: ${space(1)} ${space(3)} 0 ${space(3)};
   white-space: nowrap;
+
+  * {
+    text-align: left !important;
+  }
 `;
 
 const Trickery = styled('div')`
