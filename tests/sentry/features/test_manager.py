@@ -15,8 +15,8 @@ from sentry.features.base import (
     SystemFeature,
     UserFeature,
 )
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

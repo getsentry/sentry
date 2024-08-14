@@ -62,6 +62,7 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -1130,6 +1131,9 @@ class MetricsDatasetConfig(DatasetConfig):
             )
 
         return Condition(lhs, Op(operator), value)
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
 
     # Query Functions
     def _resolve_count_if(

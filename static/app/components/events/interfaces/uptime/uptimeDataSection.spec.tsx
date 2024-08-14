@@ -9,7 +9,7 @@ import {
   GroupActivityType,
   GroupStatus,
   IssueCategory,
-} from 'sentry/types';
+} from 'sentry/types/group';
 
 describe('Uptime Data Section', function () {
   it('displays downtime according to activity', function () {

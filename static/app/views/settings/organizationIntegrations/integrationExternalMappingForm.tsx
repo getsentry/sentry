@@ -12,7 +12,7 @@ import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,

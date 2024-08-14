@@ -1,4 +1,5 @@
-import type {Commit, Repository, User} from 'sentry/types';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import type {EventData} from 'sentry/utils/discover/eventView';
 
 export const defaultRow: EventData = {

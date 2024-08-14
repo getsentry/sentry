@@ -13,14 +13,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,
   GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
-  User,
-} from 'sentry/types';
-import type {NoteType} from 'sentry/types/alerts';
+} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';

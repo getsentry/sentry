@@ -15,8 +15,8 @@ from sentry.utils.otp import TOTP, generate_secret_key
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
-    from sentry.models.user import User
     from sentry.users.models.authenticator import Authenticator
+    from sentry.users.models.user import User
 
 
 class ActivationResult:

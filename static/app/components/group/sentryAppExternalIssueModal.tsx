@@ -4,8 +4,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import type {Group, SentryAppComponent, SentryAppInstallation} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
 
 type Props = ModalRenderProps & {
   event: Event;
