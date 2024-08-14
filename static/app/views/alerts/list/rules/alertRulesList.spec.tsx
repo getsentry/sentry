@@ -595,4 +595,45 @@ describe('AlertRulesList', () => {
     expect(await screen.findByText('Auto Detected')).toBeInTheDocument();
     expect(await screen.findByText('Up')).toBeInTheDocument();
   });
+
+  it('deletes an uptime rule', async () => {
+    const deletedRuleName = 'Uptime Rule';
+    const uptimeRule = UptimeRuleFixture({owner: undefined});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [{...uptimeRule, type: CombinedAlertType.UPTIME}],
+    });
+
+    const {router, project, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+    renderGlobalModal();
+
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+
+    // Add a new response to the mock with no rules
+    const emptyListMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [],
+    });
+
+    expect(
+      screen.queryByRole('link', {name: 'Uptime Rule Auto Detected'})
+    ).toBeInTheDocument();
+    await userEvent.click(actions);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(emptyListMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
+  });
 });
