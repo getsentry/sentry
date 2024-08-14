@@ -198,6 +198,10 @@ OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
 
 def condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
     operator_kind = ConditionOperatorKind(data.get("operator", "invalid"))
+    if operator_kind not in OPERATOR_LOOKUP:
+        valid = ", ".join(OPERATOR_LOOKUP.keys())
+        raise ValueError(f"The {operator_kind} is not a known operator. Choose from {valid}")
+
     condition_cls = OPERATOR_LOOKUP[operator_kind]
     return condition_cls(
         property=str(data.get("property")), operator=operator_kind.value, value=data.get("value")

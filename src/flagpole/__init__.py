@@ -140,7 +140,9 @@ class Feature:
                 segments=segments,
             )
         except Exception as exc:
-            raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
+            raise InvalidFeatureFlagConfiguration(
+                "Provided config_dict is not a valid feature"
+            ) from exc
 
         return feature
 

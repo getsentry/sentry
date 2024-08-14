@@ -216,6 +216,24 @@ class TestParseFeatureConfig:
             Feature.from_feature_config_json("foo", "{}")
         assert "Feature has no segments defined" in str(exception)
 
+    def test_invalid_operator_condition(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "derp",
+                    "conditions": [
+                        {"property": "user_email", "operator": "trash", "value": 1}
+                    ]
+                }
+            ]
+        }
+        """
+        with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
+            Feature.from_feature_config_json("foo", config)
+        assert "Provided config_dict is not a valid feature" in str(exception)
+
     def test_enabled_feature(self):
         feature = Feature.from_feature_config_json(
             "foo",
