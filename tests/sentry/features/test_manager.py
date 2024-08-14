@@ -16,6 +16,7 @@ from sentry.features.base import (
     UserFeature,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -197,6 +198,24 @@ class FeatureManagerTest(TestCase):
             assert manager.has("organizations:settings-feature", test_org) == "test"
             assert len(entity_handler.mock_calls) == 2
 
+    def test_entity_handler_has_capture_error(self):
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.has.side_effect = Exception("something bad")
+        handler.features = {"organizations:faulty"}
+
+        manager = features.FeatureManager()
+        manager.add("organizations:faulty", OrganizationFeature)
+        manager.add_entity_handler(handler)
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            res = manager.has("organizations:faulty", test_org)
+            assert res is False
+            assert mock_capture.call_count == 1
+
     def test_has_for_batch(self):
         test_user = self.create_user()
         test_org = self.create_organization()
@@ -253,6 +272,26 @@ class FeatureManagerTest(TestCase):
 
         assert null_handler.hit_counter == 2
 
+    def test_has_for_batch_capture_error(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        handler = mock.Mock(spec=features.BatchFeatureHandler)
+        handler.features = {"organizations:faulty"}
+        handler.has_for_batch.side_effect = ValueError("invalid thing")
+
+        manager = features.FeatureManager()
+        manager.add("oragnizations:faulty", OrganizationFeature)
+        manager.add_handler(handler)
+
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            res = manager.has_for_batch("organizations:faulty", org, [project])
+            assert res == {}
+            assert mock_capture.call_count == 1
+
     def test_batch_has(self):
         manager = features.FeatureManager()
         manager.add("auth:register")
@@ -280,8 +319,13 @@ class FeatureManagerTest(TestCase):
         handler.batch_has.side_effect = Exception("something bad")
         manager.add_entity_handler(handler)
 
-        ret = manager.batch_has(["auth:register"], actor=self.user)
-        assert ret is None
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            ret = manager.batch_has(["auth:register"], actor=self.user)
+            assert ret is None
+            assert mock_capture.call_count == 1
 
     def test_batch_has_no_entity(self):
         manager = features.FeatureManager()
