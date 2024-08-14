@@ -58,9 +58,6 @@ function UsageStatsPerMin({
     return null;
   }
 
-  const category =
-    dataCategoryApiName === 'span_indexed' ? dataCategoryApiName : dataCategory;
-
   const minuteData = (): string | undefined => {
     // The last minute in the series is still "in progress"
     // Read data from 2nd last element for the latest complete minute
@@ -68,12 +65,17 @@ function UsageStatsPerMin({
     const lastMin = Math.max(intervals.length - 2, 0);
 
     const eventsLastMin = groups.reduce((count, group) => {
-      // HACK: The backend enum are singular, but the frontend enums are plural
-      if (
-        !category.includes(`${group.by.category}`) ||
-        group.by.outcome !== Outcome.ACCEPTED
-      ) {
-        return count;
+      const {category, outcome} = group.by;
+
+      if (dataCategoryApiName === 'span_indexed') {
+        if (category !== 'span_indexed' || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
+      } else {
+        // HACK: The backend enum are singular, but the frontend enums are plural
+        if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
       }
 
       count += group.series['sum(quantity)'][lastMin];
