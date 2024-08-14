@@ -341,6 +341,24 @@ class GroupUpdateTest(APITestCase):
 
         assert GroupResolution.objects.filter(group=group).exists()
 
+    def test_resolved_in_next_release_no_release(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+        group = self.create_group(project=project)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.put(url, data={"status": "resolvedInNextRelease"})
+        assert response.status_code == 200, response.content
+
+        group = Group.objects.get(id=group.id, project=group.project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # no GroupResolution because there is no release
+        assert not GroupResolution.objects.filter(group=group).exists()
+
     def test_snooze_duration(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
 

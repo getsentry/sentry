@@ -270,14 +270,17 @@ def update_groups(
                     {"detail": "Cannot set resolved in next release for multiple projects."},
                     status=400,
                 )
+            # may not be a release yet
             release = (
                 status_details.get("inNextRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
+                .order_by("-sort")
+                .first()
             )
+
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
