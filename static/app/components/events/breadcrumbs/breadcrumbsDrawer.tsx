@@ -33,6 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
@@ -211,7 +212,7 @@ export function BreadcrumbsDrawer({
 
   return (
     <Fragment>
-      <DrawerHeader ref={headerRef}>
+      <BreadcrumbDrawerHeader ref={headerRef}>
         <NavigationCrumbs
           crumbs={[
             {
@@ -226,12 +227,12 @@ export function BreadcrumbsDrawer({
             {label: t('Breadcrumbs')},
           ]}
         />
-      </DrawerHeader>
+      </BreadcrumbDrawerHeader>
+      <BreadcrumbNavigator offset={headerOffset}>
+        <Header>{t('Breadcrumbs')}</Header>
+        {actions}
+      </BreadcrumbNavigator>
       <DrawerBody>
-        <HeaderGrid offset={headerOffset}>
-          <Header>{t('Breadcrumbs')}</Header>
-          {actions}
-        </HeaderGrid>
         <TimelineContainer>
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
@@ -267,26 +268,23 @@ const VisibleFocusButton = styled(Button)`
     0 0 1px;
 `;
 
-const HeaderGrid = styled('div')<{offset: number}>`
+const BreadcrumbDrawerHeader = styled(DrawerHeader)`
+  min-height: ${MIN_NAV_HEIGHT}px;
+`;
+
+const BreadcrumbNavigator = styled('div')<{offset: number}>`
   position: sticky;
-  top: ${p => p.offset}px;
+  top: ${p => p.offset + 1}px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${space(1)};
-  padding: ${space(0.75)} 0;
+  padding: ${space(0.75)} 24px;
   margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   z-index: 1;
-  &:after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: ${space(2)};
-    background-image: linear-gradient(0deg, transparent, ${p => p.theme.background});
-  }
+  min-height: ${MIN_NAV_HEIGHT}px;
+  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
 const Header = styled('h3')`
