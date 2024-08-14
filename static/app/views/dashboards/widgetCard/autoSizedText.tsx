@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState, useTransition} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import debounce from 'lodash/debounce';
@@ -16,6 +16,8 @@ export function AutoSizedText({
   maxFontSize,
   calculationCountLimit = DEFAULT_CALCULATION_COUNT_LIMIT,
 }: Props) {
+  const [_isPending, startTransition] = useTransition();
+
   const [parentHeight, setParentHeight] = useState<number | null>(null);
   const [parentWidth, setParentWidth] = useState<number | null>(null);
 
@@ -94,9 +96,11 @@ export function AutoSizedText({
       // The element is bigger than the parent, scale down
       const newFontSize = (fontSizeLowerBound + fontSize) / 2;
 
-      setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
-      setFontSizeUpperBound(fontSize);
-      setFontSize(newFontSize);
+      startTransition(() => {
+        setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
+        setFontSizeUpperBound(fontSize);
+        setFontSize(newFontSize);
+      });
     } else if (
       childDimensions.width < parentDimensions.width ||
       childDimensions.height < parentDimensions.height
@@ -104,9 +108,11 @@ export function AutoSizedText({
       // The element is too small, scale up
       const midpoint = (fontSizeUpperBound + fontSize) / 2;
 
-      setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
-      setFontSizeLowerBound(fontSize);
-      setFontSize(midpoint);
+      startTransition(() => {
+        setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
+        setFontSizeLowerBound(fontSize);
+        setFontSize(midpoint);
+      });
     }
   }, [
     fontSize,
