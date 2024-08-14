@@ -12,11 +12,11 @@ from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface, create_credential_object
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 
 def get_auth(user: User) -> Authenticator:

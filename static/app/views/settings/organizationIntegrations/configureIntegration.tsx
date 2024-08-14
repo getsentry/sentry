@@ -20,10 +20,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
-  Organization,
   OrganizationIntegration,
   PluginWithProjectList,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';

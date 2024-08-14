@@ -11,8 +11,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.user import User
 from sentry.types.region import get_region_by_name
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

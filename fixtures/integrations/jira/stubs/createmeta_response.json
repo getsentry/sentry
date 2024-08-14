@@ -101,6 +101,21 @@
                 {"id": 10101, "label": "happy"}
               ]
             },
+            "customfield_10001": {
+              "required": false,
+              "schema": {
+                "type": "team",
+                "custom": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
+                "customId": 10001,
+                "configuration": {
+                  "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team": true
+                }
+              },
+              "name": "Team",
+              "key": "customfield_10001",
+              "hasDefaultValue": false,
+              "operations": ["set"]
+            },
             "customfield_10300": {
               "required": false,
               "schema": {
