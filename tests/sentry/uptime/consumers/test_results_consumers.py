@@ -65,11 +65,39 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             consumer.submit(message)
 
     def test(self):
-        result = self.create_uptime_result(self.subscription.subscription_id)
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
         ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={"status": "failure"},
+                    ),
+                ]
+            )
+            metrics.incr.reset_mock()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                )
+            )
             metrics.incr.assert_has_calls(
                 [
                     call(
@@ -90,9 +118,93 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
+    def test_reset_fail_count(self):
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                )
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={"status": "failure"},
+                    ),
+                ]
+            )
+            metrics.incr.reset_mock()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    status=CHECKSTATUS_SUCCESS,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                )
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
+            metrics.incr.reset_mock()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
+                )
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                    call(
+                        "uptime.result_processor.active.under_threshold",
+                        sample_rate=1.0,
+                        tags={"status": "failure"},
+                    ),
+                ]
+            )
+
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.OK
+
     def test_no_create_issues_feature(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics, mock.patch(
+            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+            new=1,
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -115,14 +227,35 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
-        result = self.create_uptime_result(
-            self.subscription.subscription_id,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
-        )
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
         ) as metrics, self.feature("organizations:uptime-create-issues"):
-            self.send_result(result)
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                )
+            )
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
+            metrics.incr.reset_mock()
+            self.send_result(
+                self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                )
+            )
             metrics.incr.assert_has_calls(
                 [
                     call(
@@ -147,7 +280,7 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_SUCCESS,
-            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            scheduled_check_time=datetime.now() - timedelta(minutes=3),
         )
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
