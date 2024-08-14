@@ -5,8 +5,8 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
-import {isAggregateFieldOrEquation} from 'sentry/utils/discover/fields';
 
 const MAX_RECENT_FILTERS = 5;
 const NO_FILTERS = [];
@@ -21,7 +21,7 @@ function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
 
   return parsedQuery
     .filter(token => token.type === Token.FILTER)
-    .map(token => token.key.text);
+    .map(token => getKeyName(token.key));
 }
 
 function getFiltersFromQuery({
@@ -65,14 +65,12 @@ function getFiltersFromRecentSearches(
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => {
-      if (isAggregateFieldOrEquation(filter)) {
-        return !filtersInCurrentQuery.includes(filter);
-      }
-
-      // If the filter is not an aggregate field or equation, we only want to show it if it's a valid filter key.
-      return !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter];
-    })
+    .filter(
+      filter =>
+        // We want to show recent filters that are not already in the current query
+        // and are valid filter keys
+        !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter]
+    )
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
