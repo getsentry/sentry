@@ -19,10 +19,10 @@ import type {
   CodeOwner,
   CodeownersFile,
   Integration,
-  Organization,
-  Project,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {

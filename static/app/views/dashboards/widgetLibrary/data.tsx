@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 

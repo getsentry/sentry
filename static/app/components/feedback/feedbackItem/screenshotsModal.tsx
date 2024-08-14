@@ -7,7 +7,9 @@ import ScreenshotPagination from 'sentry/components/events/eventTagsAndScreensho
 import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {tct} from 'sentry/locale';
-import type {EventAttachment, Organization, Project} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = ModalRenderProps & {
   initialIndex: number;

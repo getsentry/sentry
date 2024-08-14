@@ -7,14 +7,10 @@ import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-  Project,
-  SelectValue,
-} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
+import type {NewQuery, Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

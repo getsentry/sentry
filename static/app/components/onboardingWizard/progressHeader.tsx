@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ProgressRing from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
+import type {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types/onboarding';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 type Props = {

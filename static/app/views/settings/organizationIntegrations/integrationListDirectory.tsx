@@ -23,11 +23,11 @@ import type {
   DocIntegration,
   Integration,
   IntegrationProvider,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
