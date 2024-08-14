@@ -96,6 +96,8 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Let Members Create Projects'),
         help: t('Allow organization members to create and configure new projects.'),
+        disabled: ({features}) => features.has('team-roles'),
+        disabledReason: t('You must be on a business plan to toggle this feature.'),
       },
       {
         name: 'eventsMemberAdmin',
