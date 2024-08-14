@@ -134,7 +134,7 @@ const ParentSizeMimic = styled('div')`
 `;
 
 const SizedChild = styled('div')`
-  display: inline;
+  display: inline-block;
 `;
 
 const DEFAULT_CALCULATION_COUNT_LIMIT = 5;
