@@ -1011,7 +1011,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 query="",
                 orderby=orderby,
                 snuba_params=SnubaParams(
-                    projects=[self.project],
+                    projects=[project],
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
                 ),

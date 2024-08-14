@@ -165,6 +165,7 @@ def bulk_timeseries_query(
                 metrics_query = TimeseriesMetricQueryBuilder(
                     {},
                     rollup,
+                    snuba_params=snuba_params,
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
