@@ -147,11 +147,13 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         "uptime.result_processor.check_result.duration",
                         result["duration_ms"],
                         sample_rate=1.0,
+                        unit="millisecond",
                     )
                 metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
+                    unit="millisecond",
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
