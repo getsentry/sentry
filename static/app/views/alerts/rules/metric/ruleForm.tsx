@@ -461,9 +461,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {comparisonType} = this.state;
     // If we have an anomaly detection alert, then we don't need to validate the thresholds, but we do need to set them to 0
     if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
-      triggers.forEach(trigger => {
-        trigger.alertThreshold = 0;
-      });
+      // NOTE: we don't support warning triggers for anomaly detection alerts yet
+      // once we do, uncomment this code and delete the next five uncommented lines:
+      // triggers.forEach(trigger => {
+      //   trigger.alertThreshold = 0;
+      // });
+      const criticalTriggerIndex = triggers.findIndex(
+        ({label}) => label === AlertRuleTriggerType.CRITICAL
+      );
+      const criticalTrigger = triggers[criticalTriggerIndex];
+      criticalTrigger.alertThreshold = 0;
       const triggerErrors = new Map();
       return triggerErrors; // return an empty map
     }
