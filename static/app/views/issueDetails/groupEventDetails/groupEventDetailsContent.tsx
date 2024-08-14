@@ -13,6 +13,7 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -53,7 +54,10 @@ import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -149,22 +153,25 @@ export function DefaultGroupEventDetailsContent({
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
 
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+
   return (
     <Fragment>
       {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
-
-      {hasActionableItems && (
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
@@ -289,7 +296,9 @@ export function DefaultGroupEventDetailsContent({
         />
       )}
       <EventHydrationDiff event={event} group={group} />
-      <EventReplay event={event} group={group} projectSlug={project.slug} />
+      {issueTypeConfig.replays.enabled && (
+        <EventReplay event={event} group={group} projectSlug={project.slug} />
+      )}
       <GroupEventEntry
         sectionKey={FoldSectionKey.HPKP}
         entryType={EntryType.HPKP}
@@ -358,6 +367,9 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {hasStreamlinedUI && (
+        <EventProcessingErrors event={event} project={project} isShare={false} />
+      )}
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}

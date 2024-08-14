@@ -1,4 +1,5 @@
-import type {StacktraceType, Thread} from 'sentry/types';
+import type {Thread} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 function getThreadStacktrace(raw: boolean, thread?: Thread): StacktraceType | undefined {
   if (!thread) {

@@ -2425,6 +2425,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "grouping.config_transition.killswitch_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
@@ -2695,6 +2702,11 @@ register(
 register(
     "similarity.backfill_use_reranking",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.delete_task_EA_rollout_percentage",
+    default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

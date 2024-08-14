@@ -30,7 +30,7 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/electron";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
 });`;
 
 const getMetricsConfigureSnippet = (params: Params) => `
@@ -38,7 +38,7 @@ import * as Sentry from '@sentry/electron/main';
 
 // main process init
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   // Only needed for SDK versions < 8.0.0
   // _experiments: {
   //   metricsAggregator: true,
@@ -157,7 +157,7 @@ const replayOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -297,7 +297,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },
@@ -329,7 +329,7 @@ const crashReportOnboarding: OnboardingConfig = {
               code: `const { init, showReportDialog } = require("@sentry/electron");
 
 init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   beforeSend(event) {
     // Check if it is an exception, if so, show the report dialog
     // Note that this only will work in the renderer process, it's a noop on the main process

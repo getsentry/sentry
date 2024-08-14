@@ -1,4 +1,6 @@
+from sentry.users.models.authenticator import *  # NOQA
 from sentry.users.models.email import *  # NOQA
+from sentry.users.models.user import *  # NOQA
 
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
@@ -10,7 +12,6 @@ from .apitoken import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
-from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
 from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
@@ -79,7 +80,6 @@ from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
-from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
@@ -119,7 +119,6 @@ from .team import *  # NOQA
 from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
-from .user import *  # NOQA
 from .useremail import *  # NOQA
 from .userip import *  # NOQA
 from .userpermission import *  # NOQA

@@ -15,8 +15,9 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Environment, Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+import type {Environment} from 'sentry/types/project';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');

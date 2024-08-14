@@ -7,7 +7,7 @@ from fixtures.slack import (
     MISSING_COMMAND,
     SUPPORT_COMMAND,
 )
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test

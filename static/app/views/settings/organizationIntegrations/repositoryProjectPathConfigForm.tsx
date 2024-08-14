@@ -10,11 +10,11 @@ import {t} from 'sentry/locale';
 import type {
   Integration,
   IntegrationRepository,
-  Organization,
-  Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';

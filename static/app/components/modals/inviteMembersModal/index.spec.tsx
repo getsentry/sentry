@@ -11,7 +11,8 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import {ORG_ROLES} from 'sentry/constants';
 import TeamStore from 'sentry/stores/teamStore';
-import type {DetailedTeam, Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import type {DetailedTeam} from 'sentry/types/organization';
 
 describe('InviteMembersModal', function () {
   const styledWrapper = styled(c => c.children);

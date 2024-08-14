@@ -1,10 +1,10 @@
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 
 
 def assert_no_notification_settings():
