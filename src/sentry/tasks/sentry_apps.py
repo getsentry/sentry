@@ -416,7 +416,9 @@ def send_webhooks(installation, event, **kwargs):
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
-    print("start task for create_or_update_service_hooks_for_sentry_app")
+    print(
+        f"start task for create_or_update_service_hooks_for_sentry_app with sentry_app_id: {sentry_app_id}"
+    )
     installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)
     for installation in installations:
         create_or_update_service_hooks_for_installation(

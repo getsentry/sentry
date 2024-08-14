@@ -301,7 +301,9 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 events=("issue",),
                 status_code=200,
             )
-        print("task and outbox runner should be done by now")
+        print(
+            f"task and outbox runner should be done by now, published app id: {self.published_app.id}"
+        )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
         assert (
