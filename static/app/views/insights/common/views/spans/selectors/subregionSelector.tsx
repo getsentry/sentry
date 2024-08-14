@@ -54,6 +54,7 @@ export default function SubregionSelector() {
 
   return (
     <CompactSelect
+      searchable
       triggerProps={{
         prefix: (
           <Fragment>
