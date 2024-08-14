@@ -1,18 +1,11 @@
-import {useMemo} from 'react';
-
 import {useFetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
-import {isAggregateFieldOrEquation} from 'sentry/utils/discover/fields';
 
 const MAX_RECENT_FILTERS = 5;
-const NO_FILTERS = [];
-
-// If the recent searches are very long, this prevents the parser from taking too long
-const MAX_QUERY_PARSE_LENGTH = 500;
 
 function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
   if (!parsedQuery) {
@@ -33,19 +26,15 @@ function getFiltersFromQuery({
   getFieldDefinition: FieldDefinitionGetter;
   query: string;
 }) {
-  const parsed = parseQueryBuilderValue(
-    query.slice(0, MAX_QUERY_PARSE_LENGTH),
-    getFieldDefinition,
-    {
-      filterKeys,
-    }
-  );
+  const parsed = parseQueryBuilderValue(query, getFieldDefinition, {
+    filterKeys,
+  });
 
   return getFiltersFromParsedQuery(parsed);
 }
 
 function getFiltersFromRecentSearches(
-  recentSearchesData: RecentSearch[] | undefined,
+  recentSearchesData: RecentSearch[],
   {
     parsedCurrentQuery,
     filterKeys,
@@ -56,23 +45,17 @@ function getFiltersFromRecentSearches(
     parsedCurrentQuery: ParseResult | null;
   }
 ) {
-  if (!recentSearchesData?.length) {
-    return NO_FILTERS;
+  if (!recentSearchesData.length) {
+    return [];
   }
+
   const filtersInCurrentQuery = getFiltersFromParsedQuery(parsedCurrentQuery);
 
   const filterCounts: {[filter: string]: number} = recentSearchesData
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => {
-      if (isAggregateFieldOrEquation(filter)) {
-        return !filtersInCurrentQuery.includes(filter);
-      }
-
-      // If the filter is not an aggregate field or equation, we only want to show it if it's a valid filter key.
-      return !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter];
-    })
+    .filter(filter => !filtersInCurrentQuery.includes(filter))
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
@@ -103,15 +86,11 @@ export function useRecentSearchFilters() {
     }
   );
 
-  const filters = useMemo(
-    () =>
-      getFiltersFromRecentSearches(recentSearchesData, {
-        parsedCurrentQuery: parsedQuery,
-        filterKeys,
-        getFieldDefinition,
-      }),
-    [filterKeys, getFieldDefinition, parsedQuery, recentSearchesData]
-  );
+  const filters = getFiltersFromRecentSearches(recentSearchesData ?? [], {
+    parsedCurrentQuery: parsedQuery,
+    filterKeys,
+    getFieldDefinition,
+  });
 
   return filters;
 }
