@@ -1,25 +1,22 @@
 import itertools
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import Group, GroupSnooze
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import region_silo_test
+import sentry.models.groupsnooze
+from sentry.models.group import Group
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test(stable=True)
 class GroupSnoozeTest(
     TestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     SearchIssueTestMixin,
     PerformanceIssueTestCase,
 ):
@@ -72,7 +69,7 @@ class GroupSnoozeTest(
 
     @freeze_time()
     def test_user_delta_reached(self):
-        for i in range(0, 100):
+        for i in range(5):
             self.store_event(
                 data={
                     "user": {"id": i},
@@ -83,7 +80,7 @@ class GroupSnoozeTest(
             )
 
         group = list(Group.objects.all())[-1]
-        snooze = GroupSnooze.objects.create(group=group, user_count=100, state={"users_seen": 0})
+        snooze = GroupSnooze.objects.create(group=group, user_count=5, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
@@ -168,7 +165,9 @@ class GroupSnoozeTest(
                 fingerprints=["test_user_rate_reached_generic_issues-group"],
                 environment=None,
             )
+        assert group_info is not None
         generic_group = group_info.group
+        assert generic_group is not None
         snooze = GroupSnooze.objects.create(group=generic_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
@@ -182,6 +181,258 @@ class GroupSnoozeTest(
                 fingerprints=["test_rate_reached_generic_issue-group"],
                 environment=None,
             )
+        assert group_info is not None
         generic_group = group_info.group
+        assert generic_group is not None
         snooze = GroupSnooze.objects.create(group=generic_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
+
+    def test_test_user_rates_w_cache(self):
+        snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_user_rate:events_seen_counter"
+
+        with (
+            mock.patch(
+                "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
+            ) as mocked_get_distinct_counts_totals,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            mocked_get_distinct_counts_totals.side_effect = [
+                {snooze.group_id: c} for c in [95, 98, 100]
+            ]
+
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 1
+            cache_spy.incr.assert_called_with(cache_key)
+            assert cache_spy.get(cache_key) == 96
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 97
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 98
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+
+            # cache counter reaches 100, but gets 98 from get_distinct_counts_totals
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+            assert cache_spy.get(cache_key) == 98
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+            # with this call counter reaches 100, gets 100 from get_distinct_counts_totals, so is_valid returns False
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 3
+
+    def test_test_user_rates_w_cache_expired(self):
+        snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_user_rate:events_seen_counter"
+
+        with (
+            mock.patch(
+                "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
+            ) as mocked_get_distinct_counts_totals,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            mocked_get_distinct_counts_totals.side_effect = [
+                {snooze.group_id: c} for c in [98, 99, 100]
+            ]
+
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_get_distinct_counts_totals.call_count == 3
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)
+
+    def test_test_user_count_w_cache(self):
+        snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:events_seen_counter"
+
+        with (
+            mock.patch.object(
+                snooze.group,
+                "count_users_seen",
+                side_effect=[95, 98, 100],
+            ) as mocked_count_users_seen,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 1
+            cache_spy.incr.assert_called_with(cache_key)
+            assert cache_spy.get(cache_key) == 96
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 97
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 98
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+
+            # cache counter reaches 100, but gets 98 from count_users_seen
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+            assert cache_spy.get(cache_key) == 98
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+            # with this call counter reaches 100, gets 100 from count_users_seen, so is_valid returns False
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 3
+
+    def test_test_user_count_w_cache_expired(self):
+        snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:events_seen_counter"
+
+        with (
+            mock.patch.object(
+                snooze.group,
+                "count_users_seen",
+                side_effect=[98, 99, 100],
+            ) as mocked_count_users_seen,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_count_users_seen.call_count == 3
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)
+
+    def test_test_frequency_rates_w_cache(self):
+        snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_frequency_rate:events_seen_counter"
+
+        with (
+            mock.patch("sentry.models.groupsnooze.tsdb.backend.get_sums") as mocked_get_sums,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            mocked_get_sums.side_effect = [{snooze.group_id: c} for c in [95, 98, 100]]
+
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 95, 3600)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 1
+            cache_spy.incr.assert_called_with(cache_key)
+            assert cache_spy.get(cache_key) == 96
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 97
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 98
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+
+            # cache counter reaches 100, but gets 98 from get_distinct_counts_totals
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+            assert cache_spy.get(cache_key) == 98
+
+            assert snooze.is_valid(test_rates=True)
+            assert cache_spy.get(cache_key) == 99
+            # with this call counter reaches 100, gets 100 from get_distinct_counts_totals, so is_valid returns False
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 3
+
+    def test_test_frequency_rates_w_cache_expired(self):
+        snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
+
+        cache_key = f"groupsnooze:v1:{snooze.id}:test_frequency_rate:events_seen_counter"
+
+        with (
+            mock.patch("sentry.models.groupsnooze.tsdb.backend.get_sums") as mocked_get_sums,
+            mock.patch.object(
+                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+            ) as cache_spy,
+        ):
+            mocked_get_sums.side_effect = [{snooze.group_id: c} for c in [98, 99, 100]]
+
+            cache_spy.set = mock.Mock(side_effect=cache_spy.set)
+            cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 1
+            cache_spy.set.assert_called_with(cache_key, 98, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 2
+            cache_spy.set.assert_called_with(cache_key, 99, 3600)
+
+            # simulate cache expiration
+            cache_spy.delete(cache_key)
+
+            assert not snooze.is_valid(test_rates=True)
+            assert mocked_get_sums.call_count == 3
+            cache_spy.set.assert_called_with(cache_key, 100, 3600)

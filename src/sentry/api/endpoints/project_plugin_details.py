@@ -5,7 +5,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -16,18 +18,28 @@ from sentry.api.serializers.models.plugin import (
     serialize_field,
 )
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
+from sentry.integrations.base import IntegrationFeatures
 from sentry.plugins.base import plugins
 from sentry.signals import plugin_enabled
 from sentry.utils.http import absolute_uri
 
 ERR_ALWAYS_ENABLED = "This plugin is always enabled."
 ERR_FIELD_REQUIRED = "This field is required."
+ERR_FEATURE_REQUIRED = "Feature '%s' is not enabled for the organization."
 
 OK_UPDATED = "Successfully updated configuration."
 
 
 @region_silo_endpoint
 class ProjectPluginDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
     def _get_plugin(self, plugin_id):
         try:
             return plugins.get(plugin_id)
@@ -76,6 +88,18 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         if not plugin.can_disable:
             return Response({"detail": ERR_ALWAYS_ENABLED}, status=400)
+
+        # Currently, only data forwarding plugins need feature check. If there will be plugins with other feature gates,
+        # we will need to add the relevant check. However, this is unlikely to happen.
+        if any(
+            [
+                fd.featureGate == IntegrationFeatures.DATA_FORWARDING
+                for fd in plugin.feature_descriptions
+            ]
+        ) and not features.has("organizations:data-forwarding", project.organization):
+            return Response(
+                {"detail": ERR_FEATURE_REQUIRED % "organizations:data-forwarding"}, status=403
+            )
 
         plugin.enable(project)
 

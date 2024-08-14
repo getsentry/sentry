@@ -18,7 +18,6 @@ class SlackIntegrationStatus(analytics.Event):
     )
 
 
-# TODO: add field for whether target is user or team
 class SlackIntegrationNotificationSent(analytics.Event):
     type = "integrations.slack.notification_sent"
 
@@ -26,9 +25,12 @@ class SlackIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id", required=False),
         analytics.Attribute("category"),
-        analytics.Attribute("actor_id"),
+        analytics.Attribute("actor_id", required=False),
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("group_id", required=False),
+        analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
+        analytics.Attribute("actor_type", required=False),
     )
 
 
@@ -77,7 +79,6 @@ class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvita
 
 
 analytics.register(SlackIntegrationAssign)
-analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
 analytics.register(IntegrationIdentityLinked)
 analytics.register(IntegrationSlackChartUnfurl)

@@ -1,11 +1,12 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import useApi from 'sentry/utils/useApi';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {ReprocessingStatus} from '../utils';
+import type {ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 
@@ -22,9 +23,7 @@ export interface GroupEventDetailsProps
 }
 
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
-  const api = useApi();
-
-  return <GroupEventDetails {...props} api={api} />;
+  return <GroupEventDetails {...props} />;
 }
 
 export default withOrganization(GroupEventDetailsContainer);

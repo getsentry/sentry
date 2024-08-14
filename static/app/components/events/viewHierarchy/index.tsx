@@ -6,15 +6,14 @@ import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -25,7 +24,7 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 
 function onScrollToNode(
   node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
-  scrollContainer: HTMLElement | null,
+  scrollContainer: HTMLElement | HTMLElement[] | null,
   coordinates: {depth: number; top: number} | undefined
 ) {
   if (node) {
@@ -41,9 +40,17 @@ function onScrollToNode(
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
     // we need to scroll to where the node would be rendered
     const left = coordinates.depth * 16;
-    scrollContainer?.scrollBy({
-      left,
-    });
+    if (Array.isArray(scrollContainer)) {
+      scrollContainer.forEach(container => {
+        container.scrollBy({
+          left,
+        });
+      });
+    } else if (scrollContainer) {
+      scrollContainer.scrollBy({
+        left,
+      });
+    }
   }
 }
 
@@ -72,6 +79,7 @@ type ViewHierarchyProps = {
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -182,7 +190,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     );
   }
 
-  return (
+  const viewHierarchyContent = (
     <Fragment>
       <RenderingSystem
         platform={project?.platform}
@@ -218,9 +226,20 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       </Content>
     </Fragment>
   );
+
+  return hasStreamlinedUI ? (
+    <Container>{viewHierarchyContent}</Container>
+  ) : (
+    viewHierarchyContent
+  );
 }
 
 export {ViewHierarchy};
+
+const Container = styled('div')`
+  position: relative;
+  margin-left: ${space(2)};
+`;
 
 const Content = styled('div')`
   display: flex;

@@ -1,23 +1,30 @@
-from sentry.models import Integration, Repository
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.models.repository import Repository
 
 from . import Webhook
 
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization):
         installation = event["installation"]
 
-        integration = Integration.objects.get(
+        integration = integration_service.get_integration(
             external_id=installation["id"], provider="github_apps"
         )
+        if integration is None:
+            raise Integration.DoesNotExist
+
+        integration_orgs = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        organizations = [org.organization_id for org in integration_orgs]
 
         repos_added = event["repositories_added"]
 
         if repos_added:
-            for org_id in integration.organizationintegration_set.values_list(
-                "organization_id", flat=True
-            ):
+            for org_id in organizations:
                 for r in repos_added:
                     config = {"name": r["full_name"]}
                     repo, created = Repository.objects.get_or_create(

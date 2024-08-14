@@ -1,9 +1,9 @@
-from unittest import mock
+from django.test import override_settings
 
-from sentry.auth.password_validation import MinimumLengthValidator
-from sentry.models import User
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
 @control_silo_test
@@ -32,11 +32,13 @@ class UserPasswordTest(APITestCase):
         user = User.objects.get(id=self.user.id)
         assert old_password != user.password
 
-    # Not sure why but sentry.auth.password_validation._default_password_validators is [] instead of None and not
-    # using `settings.AUTH_PASSWORD_VALIDATORS`
-    @mock.patch(
-        "sentry.auth.password_validation.get_default_password_validators",
-        mock.Mock(return_value=[MinimumLengthValidator(min_length=6)]),
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                "OPTIONS": {"min_length": 8},
+            },
+        ]
     )
     def test_password_too_short(self):
         self.get_error_response(
@@ -60,7 +62,7 @@ class UserPasswordTest(APITestCase):
             **{
                 "password": "wrongpassword",
                 "passwordNew": "testpassword",
-                "passwordVerify": "passworddoesntmatch",
+                "passwordVerify": "testpassword",
             },
         )
 
@@ -124,3 +126,18 @@ class UserPasswordTest(APITestCase):
                 "passwordVerify": "newpassword",
             },
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit(self):
+        with freeze_time("2024-05-21"):
+            for _ in range(5):
+                self.test_require_current_password()
+            self.get_error_response(
+                "me",
+                status_code=429,
+                **{
+                    "password": "wrongguess",
+                    "passwordNew": "newpassword",
+                    "passwordVerify": "newpassword",
+                },
+            )

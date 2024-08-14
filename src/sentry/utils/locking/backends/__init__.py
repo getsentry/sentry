@@ -4,7 +4,7 @@ class LockBackend:
     ``sentry.utils.locking.Lock`` class.
     """
 
-    def acquire(self, key, duration, routing_key=None):
+    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         """
         Acquire a lock, represented by the given key for the given duration (in
         seconds.) This method should attempt to acquire the lock once, in a
@@ -18,13 +18,13 @@ class LockBackend:
         """
         raise NotImplementedError
 
-    def release(self, key, routing_key=None):
+    def release(self, key: str, routing_key: str | None = None) -> None:
         """
         Release a lock. The return value is not used.
         """
         raise NotImplementedError
 
-    def locked(self, key, routing_key=None):
+    def locked(self, key: str, routing_key: str | None = None) -> bool:
         """
         Check if a lock has been taken.
         """

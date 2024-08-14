@@ -6,17 +6,15 @@ import TextField from 'sentry/components/deprecatedforms/textField';
 describe('TextField', function () {
   describe('render()', function () {
     it('renders without form context', function () {
-      const {container} = render(<TextField name="fieldName" />);
-      expect(container).toSnapshot();
+      render(<TextField name="fieldName" />);
     });
 
     it('renders with form context', function () {
-      const {container} = render(
+      render(
         <Form initialData={{fieldName: 'fieldValue'}}>
           <TextField name="fieldName" />
         </Form>
       );
-      expect(container).toSnapshot();
     });
   });
 });

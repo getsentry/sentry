@@ -1,14 +1,15 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import Badge from 'sentry/components/badge/badge';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {trimSlug} from 'sentry/utils/trimSlug';
+import type {Project} from 'sentry/types/project';
+import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
@@ -64,20 +65,21 @@ function BaseProjectPageFilterTrigger(
   const label = isAllProjectsSelected
     ? t('All Projects')
     : isMyProjectsSelected
-    ? t('My Projects')
-    : enumeratedLabel;
+      ? t('My Projects')
+      : enumeratedLabel;
 
   // Number of projects that aren't listed in the trigger label
   const remainingCount = isAllProjectsSelected
     ? 0
     : isMyProjectsSelected
-    ? value.length - memberProjects.length
-    : value.length - projectsToShow.length;
+      ? value.length - memberProjects.length
+      : value.length - projectsToShow.length;
 
   return (
     <DropdownButton
       {...props}
       ref={forwardedRef}
+      data-test-id="page-filter-project-selector"
       icon={
         <TriggerIconWrap>
           {!ready || isAllProjectsSelected || isMyProjectsSelected ? (

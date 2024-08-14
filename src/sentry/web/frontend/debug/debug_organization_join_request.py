@@ -1,8 +1,10 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import InviteStatus, Organization, OrganizationMember, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
+from sentry.users.models.user import User
 
 from .mail import render_preview_email_for_notification
 
@@ -17,7 +19,7 @@ class DebugOrganizationJoinRequestEmailView(View):
             user_id=user_to_join.id,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        recipient = User(name="James Bond", actor_id=1)
+        recipient = User(name="James Bond")
         recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = JoinRequestNotification(pending_member, user_to_join)

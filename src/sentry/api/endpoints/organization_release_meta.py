@@ -1,17 +1,38 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
-from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCommit, ReleaseProject
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.projectplatform import ProjectPlatform
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
+
+
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    newGroups: int | None
+    platform: str | None
+    platforms: list[str]
 
 
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data
@@ -19,7 +40,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         The data returned from here is auxiliary meta data that the UI uses.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required
@@ -61,7 +82,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             platforms_by_project[project_id].append(platform)
 
         # This must match what is returned from the `Release` serializer
-        projects = [
+        projects: list[_ProjectDict] = [
             {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],

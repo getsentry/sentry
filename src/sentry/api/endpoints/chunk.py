@@ -10,9 +10,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
-from sentry.models import FileBlob
+from sentry.api.utils import generate_region_url
+from sentry.models.files.fileblob import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri
@@ -21,7 +24,7 @@ MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
-SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+).*$")
+SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
@@ -31,6 +34,8 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
+    "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
+    "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
 )
 
 
@@ -44,6 +49,11 @@ class GzipChunk(BytesIO):
 
 @region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.OWNERS_INGEST
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
@@ -60,11 +70,22 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         # User-Agent: sentry-cli/1.70.1
         user_agent = request.headers.get("User-Agent", "")
         sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
+        sentrycli_version_split = None
+        if sentrycli_version is not None:
+            sentrycli_version_split = (
+                int(sentrycli_version.group("major")),
+                int(sentrycli_version.group("minor")),
+                int(sentrycli_version.group("patch")),
+            )
+
+        relative_urls_disabled = options.get("hybrid_cloud.disable_relative_upload_urls")
+        requires_region_url = sentrycli_version_split and sentrycli_version_split >= (2, 30, 0)
+
         supports_relative_url = (
-            (sentrycli_version is not None)
-            and (int(sentrycli_version.group("major")) >= 1)
-            and (int(sentrycli_version.group("minor")) >= 70)
-            and (int(sentrycli_version.group("patch")) >= 1)
+            not relative_urls_disabled
+            and not requires_region_url
+            and sentrycli_version_split
+            and sentrycli_version_split >= (1, 70, 1)
         )
 
         # If user do not overwritten upload url prefix
@@ -74,25 +95,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 url = relative_url.lstrip(API_PREFIX)
             # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
             else:
-                url = absolute_uri(relative_url)
+                # We need to generate region specific upload URLs when possible to avoid hitting the API proxy
+                # which tends to cause timeouts and performance issues for uploads.
+                url = absolute_uri(relative_url, generate_region_url())
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
         accept = CHUNK_UPLOAD_ACCEPT
-        # We keep checking for the early adopter flag, since we don't want existing early adopters to have a time in
-        # which the system rolls back to release bundles, since we want to change the option after deploying.
-        if (
-            options.get("sourcemaps.enable-artifact-bundles") == 1.0
-            or organization.flags.early_adopter
-        ):
-            accept += ("artifact_bundles",)
-
-        # We introduced the new missing chunks functionality for artifact bundles and in order to synchronize upload
-        # capabilities we need to tell CLI to use the new upload style. This is done since if we have mismatched
-        # versions we might incur into problems like the impossibility for users to upload artifacts.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
-            accept += ("artifact_bundles_v2",)
 
         return Response(
             {

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
@@ -28,7 +28,7 @@ function DemoSignUpModal({closeModal}: Props) {
   return (
     <HighlightCornerContainer>
       <CloseButton
-        icon={<IconClose size="xs" />}
+        icon={<IconClose />}
         size="xs"
         aria-label={t('Close')}
         onClick={() => {
@@ -49,7 +49,7 @@ function DemoSignUpModal({closeModal}: Props) {
           </p>
         </TrialCheckInfo>
         <StyledButtonBar gap={1}>
-          <Button
+          <LinkButton
             priority="primary"
             href={signupUrl}
             onClick={() =>
@@ -59,8 +59,8 @@ function DemoSignUpModal({closeModal}: Props) {
             }
           >
             {t('Start free trial')}
-          </Button>
-          <Button
+          </LinkButton>
+          <LinkButton
             priority="default"
             href={demoUrl}
             onClick={() =>
@@ -70,7 +70,7 @@ function DemoSignUpModal({closeModal}: Props) {
             }
           >
             {t('Request a demo')}
-          </Button>
+          </LinkButton>
         </StyledButtonBar>
       </div>
       <ImagePosition>
@@ -106,7 +106,7 @@ export const modalCss = css`
 const Subheader = styled('h4')`
   margin-bottom: ${space(2)};
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

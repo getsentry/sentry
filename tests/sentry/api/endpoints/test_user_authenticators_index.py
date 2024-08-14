@@ -1,10 +1,12 @@
-from django.conf import settings
 from django.urls import reverse
 
-from sentry.models import Authenticator
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 
 
+@control_silo_test
 class AuthenticatorIndex(APITestCase):
     def test_simple(self):
         user = self.create_user(email="a@example.com", is_superuser=True)
@@ -30,9 +32,7 @@ class AuthenticatorIndex(APITestCase):
 
         url = reverse("sentry-api-0-authenticator-index")
 
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["system.url-prefix"] = "https://testserver"
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"system.url-prefix": "https://testserver"}):
             resp = self.client.get(url, format="json")
 
             assert resp.status_code == 200, (resp.status_code, resp.content)

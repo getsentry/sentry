@@ -1,10 +1,10 @@
-from typing import Any, Dict
+from typing import Any
 
 from django import forms
 from django.utils import timezone
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.types.condition_activity import ConditionActivity
@@ -33,7 +33,7 @@ class IssueOccurrencesFilter(EventFilter):
         return bool(issue_occurrences >= value)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             value = int(self.get_option("value"))

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 import posixpath
-from typing import Any, Callable, Optional, Set
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
@@ -18,9 +21,10 @@ from sentry.lang.native.utils import (
     native_images_from_data,
     signal_from_data,
 )
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.stacktraces.functions import trim_function_name
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
+from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 
@@ -205,11 +209,11 @@ def _merge_full_response(data, response):
 
     os = get_os_from_event(data)
 
-    images = []
+    images: list[dict[str, Any]] = []
     set_path(data, "debug_meta", "images", value=images)
 
     for complete_image in response["modules"]:
-        image = {}
+        image: dict[str, Any] = {}
         _merge_image(image, complete_image, os, data)
         images.append(image)
 
@@ -230,7 +234,7 @@ def _merge_full_response(data, response):
     if response.get("crash_reason"):
         data_exception["type"] = response["crash_reason"]
 
-    data_threads = []
+    data_threads: list[dict[str, Any]] = []
     if response["stacktraces"]:
         data["threads"] = {"values": data_threads}
     else:
@@ -266,7 +270,7 @@ def _merge_full_response(data, response):
             data_stacktrace["registers"] = complete_stacktrace["registers"]
 
         for complete_frame in reversed(complete_stacktrace["frames"]):
-            new_frame = {}
+            new_frame: dict[str, Any] = {}
             _merge_frame(new_frame, complete_frame)
             data_stacktrace["frames"].append(new_frame)
 
@@ -277,6 +281,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing minidump for minidump event")
         return
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_minidump(minidump.data)
 
     if _handle_response_status(data, response):
@@ -291,6 +296,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing applecrashreport for event")
         return
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_applecrashreport(report.data)
 
     if _handle_response_status(data, response):
@@ -397,6 +403,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     signal = signal_from_data(data)
 
+    metrics.incr("process.native.symbolicate.request")
     response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
 
     if not _handle_response_status(data, response):
@@ -412,7 +419,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
-        complete_frames_by_idx = {}
+        complete_frames_by_idx: dict[int, list[dict[str, Any]]] = {}
         for complete_frame in complete_stacktrace.get("frames") or ():
             complete_frames_by_idx.setdefault(complete_frame["original_index"], []).append(
                 complete_frame
@@ -448,18 +455,24 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_native_symbolication_function(
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
+) -> Callable[[Symbolicator, Any], Any] | None:
+    """
+    Returns the appropriate symbolication function (or `None`) that will process
+    the event, based on the Event `data`, and the supplied `stacktraces`.
+    """
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
         return process_applecrashreport
-    elif is_native_event(data):
+    elif is_native_event(data, stacktraces):
         return process_native_stacktraces
     else:
         return None
 
 
-def get_required_attachment_types(data) -> Set[str]:
+def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
     elif is_applecrashreport_event(data):

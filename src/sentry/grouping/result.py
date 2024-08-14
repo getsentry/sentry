@@ -1,10 +1,12 @@
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import Any, Optional, TypedDict
 
+from sentry.db.models import NodeData
+from sentry.grouping.variants import BaseVariant
 from sentry.utils.safe import get_path, safe_execute, set_path
 
-EventData = Dict[str, Any]
-EventMetadata = Dict[str, Any]
+EventMetadata = dict[str, Any]
 
 
 class TreeLabelPart(TypedDict):
@@ -12,7 +14,7 @@ class TreeLabelPart(TypedDict):
     package: str
     is_sentinel: bool
     is_prefix: bool
-    datapath: Sequence[Union[str, int]]
+    datapath: Sequence[str | int]
 
 
 class StrippedTreeLabelPart(TypedDict):
@@ -34,7 +36,9 @@ StrippedTreeLabel = Sequence[StrippedTreeLabelPart]
 # To get around this, we truncate the tree label down to some arbitrary
 # number of functions. This does not apply to the grouping breakdown, as in
 # grouping_level_new_issues endpoint we populate the tree labels not through
-# this function at all.
+# this function at all. EDIT: This endpoint is no longer, nor is the FE it
+# powered. Does the "grouping breakdown" exist anywhere else, or can this part
+# of the comment go away?
 #
 # The reason we do this on the backend instead of the frontend's title
 # component is because JIRA/Slack/Email titles suffer from the same issue:
@@ -51,10 +55,10 @@ MAX_ISSUE_TREE_LABELS = 2
 def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> StrippedTreeLabel:
     rv = []
     for part in tree_label:
-        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore
+        stripped_part: StrippedTreeLabelPart = dict(part)  # type: ignore[assignment]
         # TODO(markus): Remove more stuff here if we never use it in group
         # title
-        stripped_part.pop("datapath", None)  # type: ignore
+        stripped_part.pop("datapath", None)  # type: ignore[typeddict-item]
         rv.append(stripped_part)
 
         if truncate and len(rv) == MAX_ISSUE_TREE_LABELS:
@@ -63,8 +67,8 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: EventData) -> None:
-    event_labels: List[Optional[StrippedTreeLabel]] = []
+def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: NodeData) -> None:
+    event_labels: list[StrippedTreeLabel | None] = []
     event_data["hierarchical_tree_labels"] = event_labels
 
     for level, tree_label in enumerate(tree_labels):
@@ -93,20 +97,29 @@ def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: E
 
 @dataclass(frozen=True)
 class CalculatedHashes:
-    hashes: Sequence[str]
-    hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[Optional[TreeLabel]]
+    hashes: list[str]
+    hierarchical_hashes: list[str] = field(default_factory=list)
+    tree_labels: list[TreeLabel | None] = field(default_factory=list)
+    # `variants` will never be `None` when the `CalculatedHashes` instance is created as part of
+    # event grouping, but it has to be typed including `None` because we use the `CalculatedHashes`
+    # container in other places where we don't have the variants data
+    #
+    # TODO: Once we get rid of hierarchical hashing, those other places will just be using
+    # `CalculatedHashes` to wrap `hashes` - meaning we don't need a wrapper at all, and can save use
+    # of `CalculatedHashes` for times when we know the variants are there (so we can make them
+    # required in the type)
+    variants: dict[str, BaseVariant] = field(default_factory=dict)
 
-    def write_to_event(self, event_data: EventData) -> None:
+    def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
 
         if self.hierarchical_hashes:
             event_data["hierarchical_hashes"] = self.hierarchical_hashes
 
-            safe_execute(_write_tree_labels, self.tree_labels, event_data, _with_transaction=False)
+            safe_execute(_write_tree_labels, self.tree_labels, event_data)
 
     @classmethod
-    def from_event(cls, event_data: EventData) -> Optional["CalculatedHashes"]:
+    def from_event(cls, event_data: NodeData) -> Optional["CalculatedHashes"]:
         hashes = event_data.get("hashes")
         hierarchical_hashes = event_data.get("hierarchical_hashes") or []
         tree_labels = event_data.get("hierarchical_tree_labels") or []
@@ -118,7 +131,7 @@ class CalculatedHashes:
         return None
 
     @property
-    def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
+    def finest_tree_label(self) -> StrippedTreeLabel | None:
         try:
             tree_label = self.tree_labels[-1]
             # Also do this for event title in discover because people may

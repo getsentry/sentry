@@ -5,11 +5,12 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import AuthProviderTestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -28,6 +29,12 @@ class DummyOAuth2Callback(OAuth2Callback):
 
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
+
+    def get_client_id(self):
+        raise NotImplementedError
+
+    def get_client_secret(self):
+        raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
@@ -52,11 +59,11 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
     def setUp(self):
         super().setUp()
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization_id=self.organization.id
         )
         AuthIdentity.objects.create(
-            auth_provider=self.auth_provider,
+            auth_provider=auth_provider,
             user=self.user,
             ident="oauth_external_id_1234",
         )
@@ -126,7 +133,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
             resp = self.client.get(resp["Location"], follow=True)
             assert resp.status_code == 200
             assert resp.redirect_chain == [("/organizations/baz/issues/", 302)]
-            assert resp.context["user"] == self.user
+            assert resp.context["user"].id == self.user.id
 
             assert urlopen.called
             data = urlopen.call_args[1]["data"]

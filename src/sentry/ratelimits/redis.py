@@ -65,7 +65,7 @@ class RedisRateLimiter(RateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()  # type: ignore[union-attr]
+            self.client.connection_pool.disconnect()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
@@ -95,7 +95,9 @@ class RedisRateLimiter(RateLimiter):
     ) -> tuple[bool, int, int]:
         """
         Does a rate limit check as well as returning the new rate limit value and when the next
-        rate limit window will start
+        rate limit window will start.
+
+        Note that the counter is incremented when the check is done.
         """
         request_time = time()
         if window is None or window == 0:
@@ -106,8 +108,11 @@ class RedisRateLimiter(RateLimiter):
         # Reset Time = next time bucket's start time
         reset_time = _bucket_start_time(_time_bucket(request_time, window) + 1, window)
         try:
-            result = self.client.incr(redis_key)
-            self.client.expire(redis_key, expiration)
+            pipe = self.client.pipeline()
+            pipe.incr(redis_key)
+            pipe.expire(redis_key, expiration)
+            pipeline_result = pipe.execute()
+            result = pipeline_result[0]
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.

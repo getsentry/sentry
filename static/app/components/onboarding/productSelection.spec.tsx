@@ -1,22 +1,42 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  platformProductAvailability,
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('Onboarding Product Selection', function () {
+  const organization = OrganizationFixture({
+    features: ['session-replay', 'performance-view', 'profiling-view'],
+  });
+
+  beforeEach(function () {
+    ConfigStore.init();
+  });
+
   it('renders default state', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
     });
 
-    render(<ProductSelection />, {
-      context: routerContext,
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
     });
 
     // Introduction
@@ -40,22 +60,22 @@ describe('Onboarding Product Selection', function () {
     await userEvent.click(screen.getByRole('checkbox', {name: 'Error Monitoring'}));
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
 
-    // Performance monitoring shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeEnabled();
+    // Tracing shall be checked and enabled by default
+    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeEnabled();
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
+    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
     expect(
       await screen.findByText(/Automatic performance issue detection/)
     ).toBeInTheDocument();
 
-    // Uncheck performance monitoring
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
+    // Uncheck tracing
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['session-replay']},
+        query: {product: [ProductSolution.SESSION_REPLAY]},
       })
     );
 
@@ -68,7 +88,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: undefined,
-        query: {product: ['performance-monitoring']},
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
       })
     );
 
@@ -80,10 +100,15 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders for Loader Script', async function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
-          query: {product: ['performance-monitoring', 'session-replay']},
+          query: {
+            product: [
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
+            ],
+          },
         },
         params: {},
       },
@@ -91,9 +116,17 @@ describe('Onboarding Product Selection', function () {
 
     const skipLazyLoader = jest.fn();
 
-    render(<ProductSelection lazyLoader skipLazyLoader={skipLazyLoader} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        organization={organization}
+        lazyLoader
+        skipLazyLoader={skipLazyLoader}
+        platform="javascript-react"
+      />,
+      {
+        router,
+      }
+    );
 
     // Introduction
     expect(
@@ -107,44 +140,174 @@ describe('Onboarding Product Selection', function () {
       )
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Go here'));
+    await userEvent.click(screen.getByText('View npm instructions'));
 
     expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });
 
   it('renders disabled product', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
-          query: {product: ['session-replay']},
+          query: {product: [ProductSolution.SESSION_REPLAY]},
         },
         params: {},
       },
     });
 
-    const disabledProducts = [
-      {
-        product: PRODUCT.PERFORMANCE_MONITORING,
+    const disabledProducts = {
+      [ProductSolution.PERFORMANCE_MONITORING]: {
         reason: 'Product unavailable in this SDK version',
       },
-    ];
+    };
 
-    render(<ProductSelection disabledProducts={disabledProducts} />, {
-      context: routerContext,
-    });
+    render(
+      <ProductSelection
+        organization={organization}
+        disabledProducts={disabledProducts}
+        platform="javascript-react"
+      />,
+      {
+        router,
+      }
+    );
 
-    // Performance Monitoring shall be unchecked and disabled by default
-    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeDisabled();
-    expect(
-      screen.getByRole('checkbox', {name: 'Performance Monitoring'})
-    ).not.toBeChecked();
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
+    // Tracing shall be unchecked and disabled by default
+    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
+    expect(screen.getByRole('checkbox', {name: 'Tracing'})).not.toBeChecked();
+    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
 
     // A tooltip with explanation why the option is disabled shall be displayed on hover
-    expect(await screen.findByText(disabledProducts[0].reason)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
+    expect(
+      await screen.findByText(
+        disabledProducts[ProductSolution.PERFORMANCE_MONITORING].reason
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
 
-    // Try to uncheck performance monitoring
+    // Try to uncheck tracing
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
+  });
+
+  it('does not render Session Replay', async function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+    ];
+
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.SESSION_REPLAY]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Session Replay'})
+    ).not.toBeInTheDocument();
+
+    // router.replace is called to remove session-replay from query
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+      })
+    );
+  });
+
+  it('render Profiling', async function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="python-django" />, {
+      router,
+    });
+
+    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
+
+    // router.replace is called to add profiling from query
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: {
+          product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+        },
+      })
+    );
+  });
+
+  it('renders with non-errors features disabled for errors only self-hosted', function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
+    ];
+
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.SESSION_REPLAY]},
+        },
+        params: {},
+      },
+    });
+
+    ConfigStore.set('isSelfHostedErrorsOnly', true);
+
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
+
+    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeEnabled();
+
+    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
+
+    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+  });
+
+  it('renders npm & yarn info text', function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
+
+    expect(screen.queryByText('npm')).toBeInTheDocument();
+    expect(screen.queryByText('yarn')).toBeInTheDocument();
+  });
+
+  it('does not render npm & yarn info text', function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
+        },
+        params: {},
+      },
+    });
+
+    render(<ProductSelection organization={organization} platform="python-django" />, {
+      router,
+    });
+
+    expect(screen.queryByText('npm')).not.toBeInTheDocument();
+    expect(screen.queryByText('yarn')).not.toBeInTheDocument();
   });
 });

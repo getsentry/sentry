@@ -3,10 +3,12 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils import authenticate_asymmetric_jwt, verify_claims
-from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 
 from ..integration import JiraIntegrationProvider
@@ -15,6 +17,10 @@ from .base import JiraWebhookBase
 
 @control_silo_endpoint
 class JiraSentryInstalledWebhook(JiraWebhookBase):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     """
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """

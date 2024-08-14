@@ -1,4 +1,5 @@
-import {ComponentProps, MouseEvent, useMemo} from 'react';
+import type {ComponentProps, MouseEvent} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -18,6 +19,9 @@ type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   theme?: Record<string, any>;
 };
 
+/**
+ * @deprecated use `StructuredEventData` or `StructuredData` instead.
+ */
 function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props) {
   const config = useLegacyStore(ConfigStore);
   const emotionTheme = useTheme();
@@ -60,13 +64,17 @@ function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props)
           size="xs"
           text={JSON.stringify(data, null, '\t')}
         />
-        {inspector}
+        <InspectorWrapper>{inspector}</InspectorWrapper>
       </Wrapper>
     );
   }
 
   return inspector;
 }
+
+const InspectorWrapper = styled('div')`
+  margin-right: ${space(4)};
+`;
 
 const Wrapper = styled('div')`
   position: relative;

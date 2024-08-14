@@ -4,13 +4,11 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay, mock_replay_click
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-clicks-index"
 
@@ -97,6 +95,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="id1",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -133,13 +132,14 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div",
                 "click.selector:div#id1",
                 "click.selector:div[alt=Alt]",
+                "click.selector:div[data-sentry-component=SignUpForm]",
                 "click.selector:div[title=MyTitle]",
                 "click.selector:div[data-testid='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#id1.class1.class2",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
-                "click.selector:div#id1.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div#id1.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
@@ -157,7 +157,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 "click.testid:2",
                 "click.textContent:World",
                 "click.title:NotMyTitle",
-                "!click.selector:div#myid",
+                # "!click.selector:div#myid",
                 "click.selector:div#notmyid",
                 # Assert all classes must match.
                 "click.selector:div#myid.class1.class2.class3",
@@ -171,6 +171,49 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
+
+    def test_get_replays_filter_clicks_not_selector(self):
+        replay1_id = self.replay_id
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                self.project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="id1",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                self.project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="id2",
+                class_=["class1", "class3"],
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            # Assert `NOT` selectors match every click.
+            response = self.client.get(self.url + "?query=!click.selector:div#myid")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 2
 
     def test_get_replay_explicit_and_to_implicit_or(self):
         """Test explicit AND operation are implicitly converted to OR operations."""
@@ -237,3 +280,9 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert len(response_data) == 2
             assert response_data[0]["node_id"] == 1
             assert response_data[1]["node_id"] == 2
+
+    def test_get_replays_invalid_filter_field(self):
+        """Test invalid filter fields error."""
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=abc:123")
+            assert response.status_code == 400

@@ -4,12 +4,16 @@ import abc
 import contextlib
 import functools
 import itertools
-import sys
 import threading
+import typing
+from collections.abc import Callable, Generator, Iterable
 from enum import Enum
-from typing import Any, Callable, Generator, Iterable
+from typing import Any
 
-from django.conf import settings
+from sentry.utils.env import in_test_environment
+
+if typing.TYPE_CHECKING:
+    from sentry.types.region import Region
 
 
 class SiloMode(Enum):
@@ -24,11 +28,9 @@ class SiloMode(Enum):
     REGION = "REGION"
 
     @classmethod
-    def resolve(cls, mode: str | SiloMode | None, default: SiloMode | None = None) -> SiloMode:
+    def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
         if not mode:
-            if not default:
-                return SiloMode.MONOLITH
-            return default
+            return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
         return cls[mode]
@@ -37,56 +39,56 @@ class SiloMode(Enum):
         return str(self.value)
 
     @classmethod
-    def single_process_silo_mode(cls) -> bool:
-        return bool(settings.SINGLE_SERVER_SILO_MODE)
-
-    @classmethod
-    @contextlib.contextmanager
-    def enter_single_process_silo_context(cls, mode: SiloMode) -> Generator[None, None, None]:
-        """
-        Used by silo endpoint decorators and other contexts that help 'suggest' to acceptance testing and local
-        single process silo testing which 'silo context' the process should be running in.  Prevents re-entrant
-        cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
-        silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
-        """
-        if "pytest" in sys.modules:
-            assert (
-                single_process_silo_mode_state.mode is None
-            ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
-        old = single_process_silo_mode_state.mode
-        single_process_silo_mode_state.mode = mode
-        try:
-            yield
-        finally:
-            single_process_silo_mode_state.mode = old
-
-    @classmethod
-    @contextlib.contextmanager
-    def exit_single_process_silo_context(cls) -> Generator[None, None, None]:
-        """
-        Used by silo endpoint decorators and other contexts to signal that a potential inter process interaction
-        is being simulated locally for acceptance tests that validate the behavior of multiple endpoints with
-        process boundaries in play.  Call this inside of any RPC interaction to ensure that such acceptance tests
-        can 'swap' the silo context on the fly.
-        """
-        old = single_process_silo_mode_state.mode
-        single_process_silo_mode_state.mode = None
-        try:
-            yield
-        finally:
-            single_process_silo_mode_state.mode = old
-
-    @classmethod
     def get_current_mode(cls) -> SiloMode:
-        process_level_silo_mode = cls.resolve(settings.SILO_MODE)
-        return cls.resolve(single_process_silo_mode_state.mode, process_level_silo_mode)
+        from django.conf import settings
+
+        configured_mode = settings.SILO_MODE
+        process_level_silo_mode = cls.resolve(configured_mode)
+        return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
 
 class SingleProcessSiloModeState(threading.local):
-    mode: SiloMode | None = None
+    """
+    Used by silo endpoint decorators and other contexts that help 'suggest' to
+    acceptance testing and local single process silo testing which 'silo context' the
+    process should be running in.
 
+    All calls to this class's methods are no-ops in a production environment,
+    but are monkey-patched in a test environment. See the function
+        sentry.testutils.silo.monkey_patch_single_process_silo_mode_state
+    for the test environment's method bodies.
+    """
 
-single_process_silo_mode_state = SingleProcessSiloModeState()
+    @staticmethod
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
+        """
+        Prevents re-entrant cases unless the exit_single_process_silo_context is
+        explicitly embedded, ensuring that this single process silo mode simulates
+        the boundaries explicitly between what would be separate processes in
+        deployment.
+        """
+        yield
+
+    @staticmethod
+    @contextlib.contextmanager
+    def exit() -> Generator[None]:
+        """
+        Used by silo endpoint decorators and other contexts to signal that a
+        potential inter process interaction is being simulated locally for acceptance
+        tests that validate the behavior of multiple endpoints with process
+        boundaries in play.  Call this inside of any RPC interaction to ensure that
+        such acceptance tests can 'swap' the silo context on the fly.
+        """
+        yield
+
+    @staticmethod
+    def get_mode() -> SiloMode | None:
+        return None
+
+    @staticmethod
+    def get_region() -> Region | None:
+        return None
 
 
 class SiloLimit(abc.ABC):
@@ -154,3 +156,32 @@ class SiloLimit(abc.ABC):
 
         functools.update_wrapper(override, original_method)
         return override
+
+
+class FunctionSiloLimit(SiloLimit):
+    """Decorator for functions that are scoped to a silo"""
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        if in_test_environment():
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Called {original_method.__name__} in "
+                f"{current_mode} mode. This function is available only in: {mode_str}"
+            )
+            raise self.AvailabilityError(message)
+        return original_method
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if not callable(decorated_obj):
+            raise TypeError("`@FunctionSiloLimit` must decorate a function")
+        return self.create_override(decorated_obj)
+
+
+region_silo_function = FunctionSiloLimit(SiloMode.REGION)
+control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
+all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

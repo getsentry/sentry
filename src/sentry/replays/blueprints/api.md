@@ -11,7 +11,7 @@ Host: https://sentry.io/api/0
 
 This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response WILL document the full interchange format. Clients may opt to restrict response data or provide a subset of the request data. The API may or may not accept partial payloads.
 
-## Replays [/organizations/<organization_slug>/replays/]
+## Replays [/organizations/<organization_id_or_slug>/replays/]
 
 - Parameters
 
@@ -26,12 +26,12 @@ This document is structured by resource with each resource having actions that c
     Members: + s + m + h + d + w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -53,18 +53,21 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field             | Type          | Description                                                    |
-    | ----------------- | ------------- | -------------------------------------------------------------- |
-    | click.alt         | string        | The alt attribute of the HTML element.                         |
-    | click.class       | array[string] | An array of HTML element classes.                              |
-    | click.id          | string        | The ID of an HTML element.                                     |
-    | click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | click.role        | string        | The role of an HTML element.                                   |
-    | click.tag         | string        | Valid HTML5 tag name.                                          |
-    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | click.textContent | string        | The text-content of an HTML element.                           |
-    | click.title       | string        | The title attribute of an HTML element.                        |
-    | click.selector    | string        | A valid CSS selector.                                          |
+    | Field                | Type          | Description                                                    |
+    | -------------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt            | string        | The alt attribute of the HTML element.                         |
+    | click.class          | array[string] | An array of HTML element classes.                              |
+    | click.id             | string        | The ID of an HTML element.                                     |
+    | click.label          | string        | The aria-label attribute of an HTML element.                   |
+    | click.component_name | string        | The value of the data-sentry-component attribute.              |
+    | click.role           | string        | The role of an HTML element.                                   |
+    | click.tag            | string        | Valid HTML5 tag name.                                          |
+    | click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent    | string        | The text-content of an HTML element.                           |
+    | click.title          | string        | The title attribute of an HTML element.                        |
+    | click.selector       | string        | A valid CSS selector.                                          |
+    | dead.selector        | string        | A valid CSS selector.                                          |
+    | rage.selector        | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -84,13 +87,14 @@ Retrieve a collection of replays.
 | count_urls        | number                        | The number of urls visited in the replay.              |
 | device.brand      | optional[string]              | -                                                      |
 | device.family     | optional[string]              | -                                                      |
-| device.model_id   | optional[string]              | Same search field as Events                            |
+| device.model      | optional[string]              | Same search field as Events                            |
 | device.name       | optional[string]              | -                                                      |
 | dist              | optional[string]              | -                                                      |
 | duration          | number                        | Difference of `finishedAt` and `startedAt` in seconds. |
 | environment       | optional[string]              | -                                                      |
 | error_ids         | array[string]                 | -                                                      |
 | finished_at       | string                        | The **latest** timestamp received.                     |
+| has_viewed        | bool                          | True if the authorized user has viewed the replay.     |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
 | os.name           | optional[string]              | -                                                      |
@@ -129,7 +133,7 @@ Retrieve a collection of replays.
         "device": {
           "brand": "Apple",
           "family": "iPhone",
-          "model_id": "11",
+          "model": "11",
           "name": "iPhone 11"
         },
         "dist": null,
@@ -137,6 +141,7 @@ Retrieve a collection of replays.
         "environment": "production",
         "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
         "finished_at": "2022-07-07T14:15:33.201019",
+        "has_viewed": true,
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
         "os": {
@@ -144,7 +149,7 @@ Retrieve a collection of replays.
           "version": "16.2"
         },
         "platform": "Sentry",
-        "project_dd": "639195",
+        "project_id": "639195",
         "releases": ["version@1.4"],
         "sdk": {
           "name": "Thundercat",
@@ -160,7 +165,7 @@ Retrieve a collection of replays.
           "display_name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
-          "ip_address": "213.164.1.114",
+          "ip": "213.164.1.114",
           "username": "John Doe"
         }
       }
@@ -168,7 +173,7 @@ Retrieve a collection of replays.
   }
   ```
 
-## Replay [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/]
+## Replay [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/]
 
 - Parameters
   - field (optional, string)
@@ -195,7 +200,7 @@ Retrieve a single replay instance.
       "device": {
         "brand": "Apple",
         "family": "iPhone",
-        "model_id": "11",
+        "model": "11",
         "name": "iPhone 11"
       },
       "dist": null,
@@ -203,6 +208,7 @@ Retrieve a single replay instance.
       "environment": "production",
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
+      "has_viewed": false,
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
       "os": {
         "name": "iOS",
@@ -238,7 +244,174 @@ Deletes a replay instance.
 
 - Response 204
 
-## Replay Recording Segments [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/]
+## Replay Accessibility Issues [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/accessibility-issues]
+
+This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
+
+### Fetch Replay Accessibility Issues [GET]
+
+- Parameters
+
+  - timestamp (optional, number) - A UNIX timestamp (seconds since epoch) marking the last moment to render a replay for accessibility analysis.
+
+Retrieve a collection of accessibility issues.
+
+**Attributes**
+
+Issue Type:
+
+| Column    | Type                   | Description                                         |
+| --------- | ---------------------- | --------------------------------------------------- |
+| elements  | array[IssueElement]    | Array of elements matching the accessibility issue. |
+| help      | string                 | -                                                   |
+| help_url  | string                 | -                                                   |
+| id        | string                 | -                                                   |
+| impact    | Optional[enum[string]] | One of: 'minor', 'moderate', 'serious', 'critical'  |
+| timestamp | number                 | -                                                   |
+
+IssueElement Type:
+
+| Column       | Type                           | Description                                         |
+| ------------ | ------------------------------ | --------------------------------------------------- |
+| alternatives | array[IssueElementAlternative] | Array of solutions which could solve the problem.   |
+| element      | string                         | Array of elements matching the accessibility issue. |
+| target       | array[string]                  | Array of elements matching the accessibility issue. |
+
+IssueElementAlternative Type:
+
+| Column  | Type   | Description                           |
+| ------- | ------ | ------------------------------------- |
+| id      | string | String ID of the accessibility issue. |
+| message | string | Message explaining the problem.       |
+
+- Response 200
+
+  - Headers
+
+    - X-Hits=1
+
+  - Body
+
+    ```json
+    {
+      "data": [
+        [
+          {
+            "elements": [
+              {
+                "alternatives": [
+                  {
+                    "id": "button-has-visible-text",
+                    "message": "Element does not have inner text that is visible to screen readers"
+                  },
+                  {
+                    "id": "aria-label",
+                    "message": "aria-label attribute does not exist or is empty"
+                  },
+                  {
+                    "id": "aria-labelledby",
+                    "message": "aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty"
+                  },
+                  {
+                    "id": "non-empty-title",
+                    "message": "Element has no title attribute"
+                  },
+                  {
+                    "id": "presentational-role",
+                    "message": "Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+                  }
+                ],
+                "element": "<button class=\"svelte-19ke1iv\">",
+                "target": ["button:nth-child(1)"]
+              }
+            ],
+            "help_url": "https://dequeuniversity.com/rules/axe/4.8/button-name?application=playwright",
+            "help": "Buttons must have discernible text",
+            "id": "button-name",
+            "impact": "critical",
+            "timestamp": 1695967678108
+          }
+        ]
+      ]
+    }
+    ```
+
+## Replay Selectors [/organizations/<organization_id_or_slug>/replay-selectors/]
+
+- Parameters
+
+  - project (optional, string)
+  - sort (optional, string)
+    Default: -count_dead_clicks
+    Members:
+    - count_dead_clicks
+    - -count_dead_clicks
+    - count_rage_clicks
+    - -count_rage_clicks
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
+    Default: 7d
+    Members:
+    - s
+    - m
+    - h
+    - d
+    - w
+  - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+  - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - per_page (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replay Selectors [GET]
+
+Retrieve a collection of selectors.
+
+**Attributes**
+
+| Column                 | Type          | Description                                        |
+| ---------------------- | ------------- | -------------------------------------------------- |
+| count_dead_clicks      | number        | The number of dead clicks for a given DOM element. |
+| count_rage_clicks      | number        | The number of rage clicks for a given DOM element. |
+| dom_element            | string        | -                                                  |
+| element.alt            | string        | -                                                  |
+| element.aria_label     | string        | -                                                  |
+| element.class          | array[string] | -                                                  |
+| element.component_name | string        | -                                                  |
+| element.id             | string        | -                                                  |
+| element.role           | string        | -                                                  |
+| element.tag            | string        | -                                                  |
+| element.testid         | string        | -                                                  |
+| element.title          | string        | -                                                  |
+| project_id             | string        | -                                                  |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "count_dead_clicks": 2,
+        "count_rage_clicks": 1,
+        "dom_element": "div#myid.class1.class2",
+        "element": {
+          "alt": "",
+          "aria_label": "",
+          "class": ["class1", "class2"],
+          "component_name": "",
+          "id": "myid",
+          "role": "",
+          "tag": "div",
+          "testid": "",
+          "title": ""
+        },
+        "project_id": "1"
+      }
+    ]
+  }
+  ```
+
+## Replay Recording Segments [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/recording-segments/]
 
 - Parameters
   - per_page
@@ -290,7 +463,7 @@ With download query argument, rrweb events JSON
   ]
   ```
 
-## Replay Recording Segment [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/<segment_id>/]
+## Replay Recording Segment [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/recording-segments/<segment_id>/]
 
 - Parameters
   - download - Instruct the API to return a streaming bytes response.
@@ -320,7 +493,19 @@ With download query argument.
 
   Content-Type application/octet-stream
 
-## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
+## Replay Video [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/videos/<segment_id>/]
+
+### Fetch Replay Video [GET]
+
+Returns the bytes of a replay-segment video.
+
+- Response 200
+
+  ```
+  \x00\x00\x00
+  ```
+
+## Replay Tag Keys [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
 
@@ -344,7 +529,7 @@ Retrieve a collection of tag keys associated with the replays dataset.
   ]
   ```
 
-## Replay Tag Values [/projects/<organization_slug>/<project_slug>/replays/tags/<key>/values/]
+## Replay Tag Values [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/tags/<key>/values/]
 
 ### Fetch Tag Values [GET]
 
@@ -374,30 +559,38 @@ Retrieve a collection of tag values associated with a tag key on the replays dat
   ]
   ```
 
-## Replay Click [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/clicks/]
+## Replay Click [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/clicks/]
 
 Parameters:
 
 | Parameter | Type   | Default | Description                                  |
 | --------- | ------ | ------- | -------------------------------------------- |
-| limit     | number | 100     |                                              |
+| per_page  | number | 100     |                                              |
 | offset    | number | 0       |                                              |
 | query     | string | 0       | Space-separated string of field, value pairs |
 
 Queryable fields:
 
-| Field             | Type          | Description                                                    |
-| ----------------- | ------------- | -------------------------------------------------------------- |
-| click.alt         | string        | The alt attribute of the HTML element.                         |
-| click.class       | array[string] | An array of HTML element classes.                              |
-| click.id          | string        | The ID of an HTML element.                                     |
-| click.label       | string        | The aria-label attribute of an HTML element.                   |
-| click.role        | string        | The role of an HTML element.                                   |
-| click.selector    | string        | A valid CSS selector.                                          |
-| click.tag         | string        | Valid HTML5 tag name.                                          |
-| click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-| click.textContent | string        | The text-content of an HTML element.                           |
-| click.title       | string        | The title attribute of an HTML element.                        |
+| Field                | Type          | Description                                                    |
+| -------------------- | ------------- | -------------------------------------------------------------- |
+| click.alt            | string        | The alt attribute of the HTML element.                         |
+| click.class          | array[string] | An array of HTML element classes.                              |
+| click.id             | string        | The ID of an HTML element.                                     |
+| click.label          | string        | The aria-label attribute of an HTML element.                   |
+| click.component_name | string        | The value of the data-sentry-component attribute.              |
+| click.role           | string        | The role of an HTML element.                                   |
+| click.selector       | string        | A valid CSS selector.                                          |
+| click.tag            | string        | Valid HTML5 tag name.                                          |
+| click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+| click.textContent    | string        | The text-content of an HTML element.                           |
+| click.title          | string        | The title attribute of an HTML element.                        |
+
+Queryable fields for rage and dead clicks:
+
+| Field         | Type   | Description           |
+| ------------- | ------ | --------------------- |
+| dead.selector | string | A valid CSS selector. |
+| rage.selector | string | A valid CSS selector. |
 
 ### Fetch Replay Clicks [GET]
 
@@ -420,3 +613,64 @@ Retrieve a collection of click events associated with a replay.
     ]
   }
   ```
+
+## Replay Viewed By [/projects/<organization_id_or_slug>/<project_id_or_slug>/replays/<replay_id>/viewed-by/]
+
+### Fetch Replay Viewed By [GET]
+
+| Column    | Type        | Description                                        |
+| --------- | ----------- | -------------------------------------------------- |
+| viewed_by | array[User] | An array of user types who have viewed the replay. |
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "viewed_by": [
+        {
+          "id": "884411",
+          "name": "some.body@sentry.io",
+          "username": "d93522a35cb64c13991104bd73d44519",
+          "email": "some.body@sentry.io",
+          "avatarUrl": "https://gravatar.com/avatar/d93522a35cb64c13991104bd73d44519d93522a35cb64c13991104bd73d44519?s=32&d=mm",
+          "isActive": true,
+          "hasPasswordAuth": false,
+          "isManaged": false,
+          "dateJoined": "2022-07-25T23:36:29.593212Z",
+          "lastLogin": "2024-03-14T18:11:28.740309Z",
+          "has2fa": true,
+          "lastActive": "2024-03-15T22:22:06.925934Z",
+          "isSuperuser": true,
+          "isStaff": false,
+          "experiments": {},
+          "emails": [
+            {
+              "id": "2231333",
+              "email": "some.body@sentry.io",
+              "is_verified": true
+            }
+          ],
+          "avatar": {
+            "avatarType": "upload",
+            "avatarUuid": "499dcd0764da42a589654a2224086e67",
+            "avatarUrl": "https://sentry.io/avatar/499dcd0764da42a589654a2224086e67/"
+          },
+          "type": "user"
+        }
+      ]
+    }
+  }
+  ```
+
+### Create Replay Viewed [POST]
+
+A POST request is issued with no body. The URL and authorization context is used to construct a new viewed replay entry.
+
+- Request
+
+  - Headers
+
+    Cookie: \_ga=GA1.2.17576183...
+
+- Response 204

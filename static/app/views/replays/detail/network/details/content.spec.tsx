@@ -1,34 +1,48 @@
+import {
+  ReplayRequestFrameFixture,
+  ReplayResourceFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
-const mockUseProjectSdkNeedsUpdate = useProjectSdkNeedsUpdate as jest.MockedFunction<
-  typeof useProjectSdkNeedsUpdate
->;
-
 function mockNeedsUpdate(needsUpdate: boolean) {
-  mockUseProjectSdkNeedsUpdate.mockReturnValue({isFetching: false, needsUpdate});
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
 }
 
-const mockItems = {
-  img: TestStubs.ReplaySpanPayload({
+const [
+  img,
+  fetchNoDataObj,
+  fetchUrlSkipped,
+  fetchBodySkipped,
+  fetchWithHeaders,
+  fetchWithRespBody,
+] = hydrateSpans(ReplayRecordFixture(), [
+  ReplayResourceFrameFixture({
     op: 'resource.img',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/static/img/logo.png',
-    data: {
-      method: 'GET',
-      statusCode: 200,
-    },
   }),
-  fetchNoDataObj: TestStubs.ReplaySpanPayload({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/api/0/issues/1234',
   }),
-  fetchUrlSkipped: TestStubs.ReplaySpanPayload({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/api/0/issues/1234',
     data: {
       method: 'GET',
@@ -37,24 +51,30 @@ const mockItems = {
       response: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
     },
   }),
-  fetchBodySkipped: TestStubs.ReplaySpanPayload({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/api/0/issues/1234',
     data: {
       method: 'GET',
       statusCode: 200,
       request: {
+        // @ts-expect-error
         _meta: {warnings: ['BODY_SKIPPED']},
         headers: {accept: 'application/json'},
       },
       response: {
+        // @ts-expect-error
         _meta: {warnings: ['BODY_SKIPPED']},
         headers: {'content-type': 'application/json'},
       },
     },
   }),
-  fetchWithHeaders: TestStubs.ReplaySpanPayload({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/api/0/issues/1234',
     data: {
       method: 'GET',
@@ -69,8 +89,10 @@ const mockItems = {
       },
     },
   }),
-  fetchWithRespBody: TestStubs.ReplaySpanPayload({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
     description: '/api/0/issues/1234',
     data: {
       method: 'GET',
@@ -86,6 +108,15 @@ const mockItems = {
       },
     },
   }),
+]);
+
+const mockItems = {
+  img,
+  fetchNoDataObj,
+  fetchUrlSkipped,
+  fetchBodySkipped,
+  fetchWithHeaders,
+  fetchWithRespBody,
 };
 
 function basicSectionProps() {

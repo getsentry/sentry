@@ -1,17 +1,34 @@
+from __future__ import annotations
+
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import pytest
 import responses
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
-from sentry.testutils import IntegrationTestCase
+from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
-    provider = VstsIntegrationProvider
+    provider = VstsIntegrationProvider()
 
-    def setUp(self):
-        super().setUp()
+    def _get_integration_and_install(self) -> tuple[Integration, VstsIntegration]:
+        integration = Integration.objects.get(provider="vsts")
+        installation = get_installation_of_type(
+            VstsIntegration,
+            integration,
+            integration.organizationintegration_set.get().organization_id,
+        )
+        return integration, installation
 
+    @pytest.fixture(autouse=True)
+    def setup_data(self):
         self.access_token = "9d646e20-7a62-4bcc-abc0-cb2d4d075e36"
         self.refresh_token = "32004633-a3c0-4616-9aa0-a40632adac77"
 
@@ -31,11 +48,9 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         self.project_b = {"id": "6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c", "name": "ProjectB"}
 
-        responses.start()
-        self._stub_vsts()
-
-    def tearDown(self):
-        responses.stop()
+        with responses.mock:
+            self._stub_vsts()
+            yield
 
     def _stub_vsts(self):
         responses.reset()
@@ -185,6 +200,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert response.status_code == 200
         assert f'<option value="{account_id}"'.encode() in response.content
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_installation(self):
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()
@@ -471,7 +487,7 @@ CREATE_SUBSCRIPTION = {
     "consumerInputs": {"url": "https://myservice/newreceiver"},
 }
 
-WORK_ITEM_UPDATED = {
+WORK_ITEM_UPDATED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -588,7 +604,7 @@ WORK_ITEM_UPDATED = {
 }
 
 
-WORK_ITEM_UNASSIGNED = {
+WORK_ITEM_UNASSIGNED: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
@@ -699,7 +715,7 @@ WORK_ITEM_UNASSIGNED = {
     "publisherId": "tfs",
     "message": None,
 }
-WORK_ITEM_UPDATED_STATUS = {
+WORK_ITEM_UPDATED_STATUS: dict[str, Any] = {
     "resourceContainers": {
         "project": {
             "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",

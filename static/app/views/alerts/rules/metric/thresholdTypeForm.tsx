@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {AlertRuleComparisonType, Dataset} from './types';
+import type {Dataset} from './types';
+import {AlertRuleComparisonType} from './types';
 
 type Props = {
   comparisonType: AlertRuleComparisonType;
@@ -34,57 +35,62 @@ function ThresholdTypeForm({
     return null;
   }
 
+  const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
+
+  const thresholdTypeChoices: RadioOption[] = [
+    [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
+    [
+      AlertRuleComparisonType.CHANGE,
+      comparisonType !== AlertRuleComparisonType.CHANGE ? (
+        t('Percent Change: {x%} higher or lower compared to previous period')
+      ) : (
+        // Prevent default to avoid dropdown menu closing on click
+        <ComparisonContainer onClick={e => e.preventDefault()}>
+          {t('Percent Change: {x%} higher or lower compared to')}
+          <SelectControl
+            name="comparisonDelta"
+            styles={{
+              container: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                marginLeft: space(1),
+              }),
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minHeight: 30,
+                minWidth: 500,
+                maxWidth: 1000,
+              }),
+              valueContainer: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                padding: 0,
+              }),
+              singleValue: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+              }),
+            }}
+            value={comparisonDelta}
+            onChange={({value}) => onComparisonDeltaChange(value)}
+            options={COMPARISON_DELTA_OPTIONS}
+            required={comparisonType === AlertRuleComparisonType.CHANGE}
+          />
+        </ComparisonContainer>
+      ),
+    ],
+  ];
+
+  if (hasAnomalyDetection) {
+    thresholdTypeChoices.push([
+      AlertRuleComparisonType.DYNAMIC,
+      'Anomaly: when evaluated values are outside of expected bounds',
+    ] as RadioOption);
+  }
+
   return (
-    <Feature features={['organizations:change-alerts']} organization={organization}>
+    <Feature features="organizations:change-alerts" organization={organization}>
       <FormRow>
         <StyledRadioGroup
           disabled={disabled}
-          choices={[
-            [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
-            [
-              AlertRuleComparisonType.CHANGE,
-              comparisonType === AlertRuleComparisonType.COUNT ? (
-                t('Percent Change: {x%} higher or lower compared to previous period')
-              ) : (
-                // Prevent default to avoid dropdown menu closing on click
-                <ComparisonContainer onClick={e => e.preventDefault()}>
-                  {t('Percent Change: {x%} higher or lower compared to')}
-                  <SelectControl
-                    name="comparisonDelta"
-                    styles={{
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        marginLeft: space(1),
-                      }),
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minHeight: 30,
-                        minWidth: 500,
-                        maxWidth: 1000,
-                      }),
-                      valueContainer: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        padding: 0,
-                      }),
-                      singleValue: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                      }),
-                    }}
-                    value={comparisonDelta}
-                    onChange={({value}) => onComparisonDeltaChange(value)}
-                    options={COMPARISON_DELTA_OPTIONS}
-                    required={comparisonType === AlertRuleComparisonType.CHANGE}
-                  />
-                </ComparisonContainer>
-              ),
-            ],
-          ]}
+          choices={thresholdTypeChoices}
           value={comparisonType}
           label={t('Threshold Type')}
           onChange={value => onComparisonTypeChange(value as AlertRuleComparisonType)}

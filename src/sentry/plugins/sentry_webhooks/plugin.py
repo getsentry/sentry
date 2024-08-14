@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django import forms
@@ -7,8 +9,8 @@ from requests.exceptions import ConnectionError, ReadTimeout
 
 import sentry
 from sentry.exceptions import PluginError
-from sentry.http import is_valid_url
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.net.socket import is_valid_url
 from sentry.plugins.bases import notify
 
 from .client import WebhookApiClient
@@ -21,13 +23,13 @@ Internal Integration.
 """
 
 
-def split_urls(value):
+def split_urls(value: str) -> list[str]:
     if not value:
-        return ()
+        return []
     return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
-def validate_urls(value, **kwargs):
+def validate_urls(value: str, **kwargs: object) -> str:
     urls = split_urls(value)
     if any((not u.startswith(("http://", "https://")) or not is_valid_url(u)) for u in urls):
         raise PluginError("Not a valid URL.")
@@ -80,10 +82,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         )
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("urls", project))
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "urls",
@@ -121,7 +123,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     def get_client(self, payload):
         return WebhookApiClient(payload)
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         payload = self.get_group_data(group, event, triggering_rules)
         client = self.get_client(payload)
         for url in self.get_webhook_urls(group.project):

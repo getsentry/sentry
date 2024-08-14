@@ -1,28 +1,31 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import Any
 
 from sentry.constants import ObjectStatus
-from sentry.models import ExternalActor, Organization, Team
+from sentry.identity.services.identity import identity_service
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: RpcActor | Team | RpcUser,
+    recipient: Actor | Team | RpcUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     """Compose the various levels of context and add Slack-specific fields."""
     return {
         **shared_context,
-        **notification.get_recipient_context(RpcActor.from_object(recipient), extra_context),
+        **notification.get_recipient_context(Actor.from_object(recipient), extra_context),
     }
 
 
@@ -72,7 +75,7 @@ def _get_channel_and_integration_by_user(
 
 
 def _get_channel_and_integration_by_team(
-    team_actor_id: int, organization: Organization, provider: ExternalProviders
+    team_id: int, organization: Organization, provider: ExternalProviders
 ) -> Mapping[str, RpcIntegration]:
     org_integrations = integration_service.get_organization_integrations(
         status=ObjectStatus.ACTIVE, organization_id=organization.id
@@ -81,7 +84,7 @@ def _get_channel_and_integration_by_team(
     try:
         external_actor = ExternalActor.objects.get(
             provider=provider.value,
-            actor_id=team_actor_id,
+            team_id=team_id,
             organization_id=organization.id,
             integration_id__in=[oi.integration_id for oi in org_integrations],
         )
@@ -96,19 +99,19 @@ def _get_channel_and_integration_by_team(
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     provider: ExternalProviders,
-) -> Mapping[RpcActor, Mapping[str, RpcIntegration]]:
-    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration]] = defaultdict(dict)
-    for recipient in RpcActor.many_from_object(recipients):
+) -> Mapping[Actor, Mapping[str, RpcIntegration]]:
+    output: MutableMapping[Actor, Mapping[str, RpcIntegration]] = defaultdict(dict)
+    for recipient in Actor.many_from_object(recipients):
         channels_to_integrations = None
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             channels_to_integrations = _get_channel_and_integration_by_user(
                 recipient.id, organization, provider
             )
-        elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
+        elif recipient.is_team:
             channels_to_integrations = _get_channel_and_integration_by_team(
-                recipient.actor_id, organization, provider
+                recipient.id, organization, provider
             )
         if channels_to_integrations is not None:
             output[recipient] = channels_to_integrations

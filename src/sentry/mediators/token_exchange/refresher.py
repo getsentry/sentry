@@ -1,13 +1,18 @@
+from django.db import router
+from django.utils.functional import cached_property
+
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
-from sentry.models import ApiApplication, ApiToken, SentryApp, User
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.utils.cache import memoize
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.users.models.user import User
 
 
 class Refresher(Mediator):
@@ -19,6 +24,7 @@ class Refresher(Mediator):
     refresh_token = Param(str)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate()
@@ -51,17 +57,20 @@ class Refresher(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=token)
+        try:
+            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=token)
+        except SentryAppInstallation.DoesNotExist:
+            pass
         return token
 
-    @memoize
+    @cached_property
     def token(self):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
             raise APIUnauthorized
 
-    @memoize
+    @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)

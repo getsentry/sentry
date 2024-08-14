@@ -1,8 +1,9 @@
+import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 
 type Props = {
-  type?: React.ComponentProps<typeof Alert>['type'];
+  type?: AlertProps['type'];
 };
 
 function PreviewFeature({type = 'info'}: Props) {

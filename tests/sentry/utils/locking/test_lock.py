@@ -46,7 +46,7 @@ class LockTestCase(unittest.TestCase):
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
     @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
-    def test_blocking_aqcuire(self, mock_acquire, mock_random):
+    def test_blocking_acquire(self, mock_acquire, mock_random):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 from sentry.utils import json
 
@@ -20,8 +20,8 @@ class EventType(Enum):
     Plugin = 6
 
 
-SegmentList = List[Dict[str, Any]]
-RRWebNode = Dict[str, Any]
+SegmentList = list[dict[str, Any]]
+RRWebNode = dict[str, Any]
 
 
 def sec(timestamp: datetime.datetime) -> int:
@@ -31,6 +31,17 @@ def sec(timestamp: datetime.datetime) -> int:
 
 def ms(timestamp: datetime.datetime) -> int:
     return int(timestamp.timestamp()) * 1000
+
+
+def assert_viewed_by_expected_ids_and_unique(
+    viewed_by: list[dict[str, Any]], expected_ids: set[int]
+):
+    seen = set()
+    for user_dict in viewed_by:
+        id = int(user_dict["id"])
+        assert id not in seen
+        seen.add(id)
+    assert seen == expected_ids
 
 
 def assert_expected_response(response: dict[str, Any], expected_response: dict[str, Any]) -> None:
@@ -60,7 +71,7 @@ def assert_expected_response(response: dict[str, Any], expected_response: dict[s
 
 
 def mock_expected_response(
-    project_id: str,
+    project_id: int,
     replay_id: str,
     started_at: datetime.datetime,
     finished_at: datetime.datetime,
@@ -77,7 +88,8 @@ def mock_expected_response(
         "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "duration": (finished_at - started_at).seconds,
-        "count_errors": kwargs.pop("count_errors", 1),
+        "count_dead_clicks": kwargs.pop("count_dead_clicks", 0),
+        "count_rage_clicks": kwargs.pop("count_rage_clicks", 0),
         "count_segments": kwargs.pop("count_segments", 1),
         "count_urls": len(urls),
         "platform": kwargs.pop("platform", "javascript"),
@@ -113,17 +125,25 @@ def mock_expected_response(
         "activity": kwargs.pop("activity", 0),
         "is_archived": kwargs.pop("is_archived", False),
         "clicks": kwargs.pop("clicks", []),
+        "warning_ids": kwargs.pop("warning_ids", []),
+        "info_ids": kwargs.pop("info_ids", []),
+        "count_errors": kwargs.pop("count_errors", 0),
+        "count_warnings": kwargs.pop("count_warnings", 0),
+        "count_infos": kwargs.pop("count_infos", 0),
+        "has_viewed": kwargs.pop("has_viewed", False),
     }
 
 
 def mock_replay(
     timestamp: datetime.datetime,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
+    tags = [[key, value] for key, value in tags.items()]
+
     return {
         "type": "replay_event",
         "start_time": sec(timestamp),
@@ -202,7 +222,7 @@ def mock_replay(
 
 def mock_replay_click(
     timestamp: datetime.datetime,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -225,11 +245,14 @@ def mock_replay_click(
                                 "id": kwargs.pop("id", ""),
                                 "class": kwargs.pop("class_", []),
                                 "text": kwargs.pop("text", ""),
+                                "component_name": kwargs.pop("component_name", ""),
                                 "role": kwargs.pop("role", ""),
                                 "alt": kwargs.pop("alt", ""),
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
+                                "is_dead": int(kwargs.pop("is_dead", 0)),
+                                "is_rage": int(kwargs.pop("is_rage", 0)),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
@@ -237,6 +260,31 @@ def mock_replay_click(
                     }
                 ).encode()
             )
+        ),
+    }
+
+
+def mock_replay_viewed(
+    timestamp: float,
+    project_id: int,
+    replay_id: str,
+    viewed_by_id: int,
+    retention_days: int = 30,
+) -> dict[str, Any]:
+    return {
+        "type": "replay_event",
+        "start_time": int(timestamp),
+        "replay_id": replay_id,
+        "project_id": project_id,
+        "retention_days": retention_days,
+        "payload": list(
+            json.dumps(
+                {
+                    "type": "replay_viewed",
+                    "timestamp": timestamp,
+                    "viewed_by_id": viewed_by_id,
+                }
+            ).encode()
         ),
     }
 
@@ -345,6 +393,51 @@ def mock_segment_nagivation(
     )
 
 
+def mock_segment_click(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),
+            "type": "default",
+            "category": "ui.click",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                }
+            },
+        },
+    )
+
+
+def mock_segment_rageclick(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str, clickCount: int
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
+            "type": "default",
+            "category": "ui.multiClick",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                },
+                "clickCount": clickCount,
+            },
+        },
+    )
+
+
 __rrweb_id = 0
 
 
@@ -384,3 +477,61 @@ def mock_rrweb_div_helloworld() -> RRWebNode:
             ),
         ],
     )
+
+
+def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
+    """
+    mock a replay event for useage in our recording consumer tests
+    """
+    timestamp = datetime.datetime.now() - datetime.timedelta(minutes=10)
+    tags = kwargs.pop("tags", {})
+    tags.update({"transaction": kwargs.pop("title", "Title")})
+    tags = [[key, value] for key, value in tags.items()]
+    return {
+        "type": "replay_event",
+        "replay_id": replay_id,
+        "replay_type": kwargs.pop("replay_type", "session"),
+        "segment_id": kwargs.pop("segment_id", 0),
+        "tags": tags,
+        "urls": kwargs.pop("urls", []),
+        "is_archived": kwargs.pop("is_archived", None),
+        "error_ids": kwargs.pop("error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]),
+        "trace_ids": kwargs.pop("trace_ids", ["44916572-43ba-4dbe-bd2f-6bd62b733080"]),
+        "dist": kwargs.pop("dist", "abc123"),
+        "platform": kwargs.pop("platform", "javascript"),
+        "timestamp": sec(timestamp),
+        "replay_start_timestamp": kwargs.pop("replay_start_timestamp", sec(timestamp)),
+        "environment": kwargs.pop("environment", "production"),
+        "release": kwargs.pop("release", "version@1.3"),
+        "user": {
+            "id": kwargs.pop("user_id", "1"),
+            "username": kwargs.pop("user_name", "username"),
+            "email": kwargs.pop("user_email", "test@test.com"),
+            "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+        },
+        "sdk": {
+            "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
+            "version": kwargs.pop("sdk_version", "6.18.1"),
+        },
+        "contexts": {
+            "os": {
+                "name": kwargs.pop("os_name", "iOS"),
+                "version": kwargs.pop("os_version", "16.2"),
+            },
+            "browser": {
+                "name": kwargs.pop("browser_name", "Chrome"),
+                "version": kwargs.pop("browser_version", "103.0.38"),
+            },
+            "device": {
+                "name": kwargs.pop("device_name", "iPhone 13 Pro"),
+                "brand": kwargs.pop("device_brand", "Apple"),
+                "family": kwargs.pop("device_family", "iPhone"),
+                "model": kwargs.pop("device_model", "13 Pro"),
+            },
+        },
+        "request": {
+            "url": "Doesn't matter not ingested.",
+            "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
+        },
+        "extra": {},
+    }

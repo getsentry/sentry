@@ -1,19 +1,16 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FeatureBadge from 'sentry/components/featureBadge';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SavedSearchType,
-  Tag,
-  TagCollection,
-  TagValue,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -54,8 +51,13 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
-function getSupportedTags(supportedTags: TagCollection) {
-  return {
+/**
+ * Merges a list of supported tags and replay search fields into one collection.
+ */
+function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
+  const allTags = {
+    ...REPLAY_FIELDS_AS_TAGS,
+    ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
         key,
@@ -65,9 +67,14 @@ function getSupportedTags(supportedTags: TagCollection) {
         },
       ])
     ),
-    ...REPLAY_CLICK_FIELDS_AS_TAGS,
-    ...REPLAY_FIELDS_AS_TAGS,
   };
+
+  // A hack used to "sort" the dictionary for SearchQueryBuilder.
+  // Technically dicts are unordered but this works in dev.
+  // To guarantee ordering, we need to implement filterKeySections.
+  const keys = Object.keys(allTags);
+  keys.sort();
+  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
@@ -78,26 +85,42 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
 function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
-  const projectIdStrings = pageFilters.projects?.map(String);
-  const tags = useTags();
+  const projectIds = pageFilters.projects;
+  const organizationTags = useTags();
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, pageFilters);
   }, [api, organization.slug, pageFilters]);
 
+  const replayTags = useMemo(
+    () => getReplaySearchTags(organizationTags),
+    [organizationTags]
+  );
+
   const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
+    (tag: Tag, searchQuery: string): Promise<string[]> => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
         return Promise.resolve([]);
       }
 
+      const endpointParams = {
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
+        statsPeriod: pageFilters.datetime.period,
+      };
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIdStrings,
+        projectIds: projectIds?.map(String),
+        endpointParams,
         includeReplays: true,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
@@ -106,42 +129,79 @@ function ReplaySearchBar(props: Props) {
         }
       );
     },
-    [api, organization.slug, projectIdStrings]
+    [
+      api,
+      organization.slug,
+      projectIds,
+      pageFilters.datetime.end,
+      pageFilters.datetime.period,
+      pageFilters.datetime.start,
+    ]
   );
+
+  const onSearch = props.onSearch;
+  const onSearchWithAnalytics = useCallback(
+    (query: string) => {
+      onSearch?.(query);
+      const conditions = new MutableSearch(query);
+      const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
+
+      if (searchKeys.length > 0) {
+        trackAnalytics('replay.search', {
+          search_keys: searchKeys.join(','),
+          organization,
+        });
+      }
+    },
+    [onSearch, organization]
+  );
+
+  if (organization.features.includes('search-query-builder-replays')) {
+    return (
+      <SearchQueryBuilder
+        {...props}
+        onChange={undefined} // not implemented and different type from SmartSearchBar
+        disallowLogicalOperators={undefined} // ^
+        className={props.className}
+        fieldDefinitionGetter={getReplayFieldDefinition}
+        filterKeys={replayTags}
+        filterKeySections={undefined}
+        getTagValues={getTagValues}
+        initialQuery={props.query ?? props.defaultQuery ?? ''}
+        onSearch={onSearchWithAnalytics}
+        searchSource={props.searchSource ?? 'replay_index'}
+        placeholder={
+          props.placeholder ??
+          t('Search for users, duration, clicked elements, count_errors, and more')
+        }
+        recentSearches={SavedSearchType.REPLAY}
+      />
+    );
+  }
 
   return (
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={getSupportedTags(tags)}
-      placeholder={t(
-        'Search for users, duration, clicked elements, count_errors, and more'
-      )}
+      supportedTags={replayTags}
+      placeholder={
+        props.placeholder ??
+        t('Search for users, duration, clicked elements, count_errors, and more')
+      }
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
-      searchSource="replay_index"
+      searchSource={props.searchSource ?? 'replay_index'}
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
+      projectIds={projectIds}
       fieldDefinitionGetter={getReplayFieldDefinition}
       mergeSearchGroupWith={{
         click: {
           documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
-          titleBadge: <FeatureBadge type="new">{t('New')}</FeatureBadge>,
         },
       }}
-      onSearch={(query: string) => {
-        props.onSearch?.(query);
-        const conditions = new MutableSearch(query);
-        const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
-
-        if (searchKeys.length > 0) {
-          trackAnalytics('replay.search', {
-            search_keys: searchKeys.join(','),
-            organization,
-          });
-        }
-      }}
+      onSearch={onSearchWithAnalytics}
     />
   );
 }

@@ -1,8 +1,9 @@
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class GroupIntegrationsTest(APITestCase):
     def test_simple_get(self):
         self.login_as(user=self.user)
@@ -23,6 +24,7 @@ class GroupIntegrationsTest(APITestCase):
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
+            assert provider.metadata is not None
 
             assert response.data[0] == {
                 "id": str(integration.id),

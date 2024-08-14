@@ -1,3 +1,6 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+
 import {
   render,
   renderGlobalModal,
@@ -6,42 +9,28 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import RepositoryRow from 'sentry/components/repositoryRow';
+import {RepositoryStatus} from 'sentry/types/integrations';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  const repository = TestStubs.Repository();
-  const pendingRepo = TestStubs.Repository({
-    status: 'pending_deletion',
+  const repository = RepositoryFixture();
+  const pendingRepo = RepositoryFixture({
+    status: RepositoryStatus.PENDING_DELETION,
   });
-  const customRepo = TestStubs.Repository({
-    provider: {
-      id: 'integrations:custom_scm',
-    },
-  });
-  const customPendingRepo = TestStubs.Repository({
-    provider: {
-      id: 'integrations:custom_scm',
-    },
-    status: 'pending_deletion',
-  });
+
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
-    const organization = TestStubs.Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
     it('displays provider information', function () {
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       expect(screen.getByText(repository.name)).toBeInTheDocument();
@@ -56,12 +45,7 @@ describe('RepositoryRow', function () {
 
     it('displays cancel pending button', function () {
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -75,18 +59,13 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = TestStubs.Organization({
+    const organization = OrganizationFixture({
       access: ['org:write'],
     });
 
     it('displays disabled trash', function () {
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -96,12 +75,7 @@ describe('RepositoryRow', function () {
 
     it('displays disabled cancel', function () {
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -111,25 +85,20 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
-    it('sends api request on delete', async function () {
+    it('sends api request to hide upon clicking delete', async function () {
       const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
-        method: 'DELETE',
+        method: 'PUT',
         statusCode: 204,
-        body: {},
+        body: {status: 'hidden'},
       });
 
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       renderGlobalModal();
@@ -143,7 +112,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
@@ -156,65 +125,12 @@ describe('RepositoryRow', function () {
       });
 
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(cancel).toHaveBeenCalled();
-    });
-  });
-
-  describe('renders custom_scm repo', function () {
-    const organization = TestStubs.Organization({
-      access: ['org:integrations'],
-      features: ['integrations-custom-scm'],
-    });
-
-    it('displays edit button', function () {
-      render(
-        <RepositoryRow
-          repository={customRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
-        {organization}
-      );
-
-      // Trash button should display enabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeEnabled();
-      // No cancel button
-      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
-
-      // Edit button should display enabled
-      expect(screen.getByRole('button', {name: 'edit'})).toBeEnabled();
-    });
-
-    it('disables edit button when cancel pending', function () {
-      render(
-        <RepositoryRow
-          repository={customPendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
-        {organization}
-      );
-
-      // Trash button should be disabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
-
-      // Edit button should be disabled
-      expect(screen.getByRole('button', {name: 'edit'})).toBeDisabled();
-
-      // Cancel button active
-      expect(screen.queryByRole('button', {name: 'Cancel'})).toBeEnabled();
     });
   });
 });

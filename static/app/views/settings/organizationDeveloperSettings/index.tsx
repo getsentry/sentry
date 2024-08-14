@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
-import {removeSentryFunction} from 'sentry/actionCreators/sentryFunctions';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SentryApp, SentryFunction} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {
   platformEventLinkMap,
   PlatformEvents,
@@ -18,33 +20,30 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
-import SentryFunctionRow from './sentryFunctionRow';
-
-type Props = Omit<AsyncView['props'], 'params'> & {
+type Props = Omit<DeprecatedAsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-type Tab = 'public' | 'internal' | 'sentryfx';
-type State = AsyncView['state'] & {
+type Tab = 'public' | 'internal';
+type State = DeprecatedAsyncView['state'] & {
   applications: SentryApp[];
   tab: Tab;
 };
 
-class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
   analyticsView = 'developer_settings' as const;
 
   getDefaultState(): State {
     const {location} = this.props;
     const value =
-      (['public', 'internal', 'sentryfx'] as const).find(
-        tab => tab === location?.query?.type
-      ) || 'internal';
+      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
+      'internal';
 
     return {
       ...super.getDefaultState(),
@@ -60,20 +59,14 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   getTitle() {
     const {organization} = this.props;
-    return routeTitleGen(t('Developer Settings'), organization.slug, false);
+    return routeTitleGen(t('Custom Integrations'), organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const returnValue: [string, string, any?, any?][] = [
       ['applications', `/organizations/${organization.slug}/sentry-apps/`],
     ];
-    if (organization.features.includes('sentry-functions')) {
-      returnValue.push([
-        'sentryFunctions',
-        `/organizations/${organization.slug}/functions/`,
-      ]);
-    }
     return returnValue;
   }
 
@@ -87,55 +80,9 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   };
 
-  removeFunction = (organization: Organization, sentryFunction: SentryFunction) => {
-    const functionsToKeep = this.state.sentryFunctions?.filter(
-      fn => fn.name !== sentryFunction.name
-    );
-    if (!functionsToKeep) {
-      return;
-    }
-    removeSentryFunction(this.api, organization, sentryFunction).then(
-      isSuccess => {
-        if (isSuccess) {
-          this.setState({sentryFunctions: functionsToKeep});
-        }
-      },
-      () => {}
-    );
-  };
-
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
-
-  renderSentryFunction = (sentryFunction: SentryFunction) => {
-    const {organization} = this.props;
-    return (
-      <SentryFunctionRow
-        key={organization.slug + sentryFunction.name}
-        organization={organization}
-        sentryFunction={sentryFunction}
-        onRemoveFunction={this.removeFunction}
-      />
-    );
-  };
-
-  renderSentryFunctions() {
-    const {sentryFunctions} = this.state;
-
-    return (
-      <Panel>
-        <PanelHeader>{t('Sentry Functions')}</PanelHeader>
-        <PanelBody>
-          {sentryFunctions?.length ? (
-            sentryFunctions.map(this.renderSentryFunction)
-          ) : (
-            <EmptyMessage>{t('No Sentry Functions have been created yet.')}</EmptyMessage>
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  }
 
   renderApplicationRow = (app: SentryApp) => {
     const {organization} = this.props;
@@ -193,8 +140,6 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   renderTabContent(tab: Tab) {
     switch (tab) {
-      case 'sentryfx':
-        return this.renderSentryFunctions();
       case 'internal':
         return this.renderInternalIntegrations();
       case 'public':
@@ -209,16 +154,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       ['public', t('Public Integration')],
     ];
 
-    if (organization.features.includes('sentry-functions')) {
-      tabs.push(['sentryfx', t('Sentry Function')]);
-    }
-
-    const hasAuthTokens = organization.features.includes('org-auth-tokens');
-
     return (
       <div>
         <SettingsPageHeader
-          title={hasAuthTokens ? t('Custom Integrations') : t('Developer Settings')}
+          title={t('Custom Integrations')}
           body={
             <Fragment>
               {t(

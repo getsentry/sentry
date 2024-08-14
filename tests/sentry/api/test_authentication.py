@@ -1,29 +1,45 @@
+import hashlib
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
-from sentry_relay import generate_key_pair
+from rest_framework.request import Request
+from sentry_relay.auth import generate_key_pair
 
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
     RelayAuthentication,
-    TokenAuthentication,
+    RpcSignatureAuthentication,
+    UserAuthTokenAuthentication,
 )
-from sentry.models import ProjectKeyStatus, Relay
-from sentry.models.apitoken import ApiToken
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.system import SystemToken, is_system_auth
+from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    generate_request_signature,
+)
+from sentry.models.apikey import is_api_key_auth
+from sentry.models.apitoken import ApiToken, is_api_token_auth
+from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
+from sentry.models.projectkey import ProjectKeyStatus
+from sentry.models.relay import Relay
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.types.token import AuthTokenType
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestClientIdSecretAuthentication(TestCase):
     def setUp(self):
         super().setUp()
@@ -44,7 +60,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
         user, _ = self.auth.authenticate(request)
 
-        assert user == self.sentry_app.proxy_user
+        assert user.id == self.sentry_app.proxy_user.id
 
     def test_without_json_body(self):
         request = HttpRequest()
@@ -111,14 +127,16 @@ class TestDSNAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@control_silo_test
 class TestOrgAuthTokenAuthentication(TestCase):
     def setUp(self):
         super().setUp()
 
         self.auth = OrgAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
+
         self.token = "sntrys_abc123_xyz"
-        self.org_auth_token = OrgAuthToken.objects.create(
+        self.org_auth_token = self.create_org_auth_token(
             name="Test Token 1",
             token_hashed=hash_token(self.token),
             organization_id=self.org.id,
@@ -136,7 +154,9 @@ class TestOrgAuthTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous
-        assert auth == self.org_auth_token
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(
+            self.org_auth_token
+        )
 
     def test_no_match(self):
         request = HttpRequest()
@@ -146,7 +166,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_inactive_key(self):
-        self.org_auth_token.update(date_deactivated=datetime.now())
+        self.org_auth_token.update(date_deactivated=datetime.now(UTC))
         request = HttpRequest()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
 
@@ -154,17 +174,18 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@control_silo_test
 class TestTokenAuthentication(TestCase):
     def setUp(self):
         super().setUp()
 
-        self.auth = TokenAuthentication()
+        self.auth = UserAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
-        self.token = "abc123"
         self.api_token = ApiToken.objects.create(
-            token=self.token,
+            token_type=AuthTokenType.USER,
             user=self.user,
         )
+        self.token = self.api_token.plaintext_token
 
     def test_authenticate(self):
         request = HttpRequest()
@@ -175,8 +196,8 @@ class TestTokenAuthentication(TestCase):
 
         user, auth = result
         assert user.is_anonymous is False
-        assert user == self.user
-        assert auth == self.api_token
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
     def test_no_match(self):
         request = HttpRequest()
@@ -184,6 +205,92 @@ class TestTokenAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate": 1.0})
+    def test_token_hashed_with_option_off(self):
+        # see https://github.com/getsentry/sentry/pull/65941
+        # the UserAuthTokenAuthentication middleware was updated to hash tokens as
+        # they were used, this test verifies the hash
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+        expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        # trigger the authentication middleware, and thus the hashing
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        # check for the expected hash value
+        api_token.refresh_from_db()
+        assert api_token.hashed_token == expected_hash
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate": 0.0})
+    def test_token_not_hashed_with_0_rate(self):
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        # trigger the authentication middleware
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        # check for the expected hash value
+        api_token.refresh_from_db()
+        assert api_token.hashed_token is None
+
+
+@no_silo_test
+class TestTokenAuthenticationReplication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = UserAuthTokenAuthentication()
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate": 1.0})
+    def test_hash_is_replicated(self):
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+        expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            with outbox_runner():
+                # make sure the token was replicated
+                api_token_replica = ApiTokenReplica.objects.get(apitoken_id=api_token.id)
+                assert api_token.token == api_token_replica.token
+                assert (
+                    api_token_replica.hashed_token is None
+                )  # we don't expect to have a hashed value yet
+
+                # trigger the authentication middleware, and thus the hashing backfill
+                result = self.auth.authenticate(request)
+                assert result is not None
+
+                # check for the expected hash value
+                api_token.refresh_from_db()
+                assert api_token.hashed_token == expected_hash
+
+                # ApiTokenReplica should also be updated
+                api_token_replica.refresh_from_db()
+                assert api_token_replica.hashed_token == expected_hash
+
+                # just for good measure
+                assert api_token.hashed_token == api_token_replica.hashed_token
 
 
 @django_db_all
@@ -242,3 +349,149 @@ def test_statically_configured_relay(settings, internal):
     assert relay.public_key == str(pk)
     # data should be deserialized in request.relay_request_data
     assert request.relay_request_data == data
+
+
+@control_silo_test
+class TestRpcSignatureAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = RpcSignatureAuthentication()
+        self.org = self.create_organization(owner=self.user)
+
+    @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
+    def test_authenticate_success(self):
+        data = b'{"meta":{},"args":{"id":1}'
+        request = RequestFactory().post("/", data=data, content_type="application/json")
+        request = Request(request=request)
+
+        signature = generate_request_signature(request.path_info, request.body)
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = self.auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+    def test_authenticate_old_key_validates(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        with override_settings(RPC_SHARED_SECRET=["an-old-key"]):
+            signature = generate_request_signature(request.path_info, request.body)
+            request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        request = Request(request=request)
+
+        # Update settings so that we have a new key
+        with override_settings(RPC_SHARED_SECRET=["a-long-secret-key", "an-old-key"]):
+            user, token = self.auth.authenticate(request)
+
+        assert user.is_anonymous
+        assert token == signature
+
+    def test_authenticate_without_signature(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abcdef"
+
+        request = Request(request=request)
+
+        assert self.auth.authenticate(request) is None
+
+    @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
+    def test_authenticate_invalid_signature(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"
+
+        request = Request(request=request)
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_authenticate_no_shared_secret(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"
+
+        request = Request(request=request)
+
+        with override_settings(RPC_SHARED_SECRET=None):
+            with pytest.raises(RpcAuthenticationSetupException):
+                self.auth.authenticate(request)
+
+
+@no_silo_test
+class TestAuthTokens(TestCase):
+    def test_system_tokens(self):
+        sys_token = SystemToken()
+        auth_token = AuthenticatedToken.from_token(sys_token)
+
+        assert auth_token.entity_id is None
+        assert auth_token.user_id is None
+        assert is_system_auth(sys_token) and is_system_auth(auth_token)
+        assert auth_token.organization_id is None
+        assert auth_token.application_id is None
+        assert auth_token.allowed_origins == sys_token.get_allowed_origins()
+        assert auth_token.scopes == sys_token.get_scopes()
+        assert auth_token.audit_log_data == sys_token.get_audit_log_data()
+
+    def test_api_tokens(self):
+        app = self.create_sentry_app(user=self.user, organization_id=self.organization.id)
+        app_install = self.create_sentry_app_installation(
+            organization=self.organization, user=self.user, slug=app.slug
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            at = app_install.api_token
+        with assume_test_silo_mode(SiloMode.REGION):
+            atr = ApiTokenReplica.objects.get(apitoken_id=at.id)
+
+        assert at.organization_id
+
+        for token in [at, atr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == at.id
+            assert auth_token.user_id == app.proxy_user_id
+            assert is_api_token_auth(token) and is_api_token_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id == app.application_id
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()
+
+    def test_api_keys(self):
+        ak = self.create_api_key(organization=self.organization, scope_list=["projects:read"])
+        with assume_test_silo_mode(SiloMode.REGION):
+            akr = ApiKeyReplica.objects.get(apikey_id=ak.id)
+
+        for token in [ak, akr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == ak.id
+            assert auth_token.user_id is None
+            assert is_api_key_auth(token) and is_api_key_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id is None
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()
+
+    def test_org_auth_tokens(self):
+        oat = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            oatr = OrgAuthTokenReplica.objects.get(orgauthtoken_id=oat.id)
+
+        for token in [oat, oatr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == oat.id
+            assert auth_token.user_id is None
+            assert is_org_auth_token_auth(token) and is_org_auth_token_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id is None
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()

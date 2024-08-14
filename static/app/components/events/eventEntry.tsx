@@ -1,14 +1,13 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import {
-  Group,
-  IssueCategory,
-  Organization,
-  Project,
-  SharedViewOrganization,
-} from 'sentry/types';
-import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
@@ -30,6 +29,7 @@ type Props = {
   projectSlug: Project['slug'];
   group?: Group;
   isShare?: boolean;
+  sectionKey?: FoldSectionKey;
 };
 
 function EventEntryContent({
@@ -97,8 +97,6 @@ function EventEntryContent({
           data={entry.data}
           organization={organization as Organization}
           event={event}
-          isShare={isShare}
-          projectSlug={projectSlug}
         />
       );
 
@@ -110,17 +108,19 @@ function EventEntryContent({
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
-          organization={organization as Organization}
         />
       );
 
     case EntryType.DEBUGMETA:
+      if (isShare) {
+        return null;
+      }
+
       return (
         <DebugMeta
           event={event}
           projectSlug={projectSlug}
           groupId={group?.id}
-          organization={organization as Organization}
           data={entry.data}
         />
       );
@@ -160,9 +160,9 @@ export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
       customComponent={
-        <EventDataSection type={props.entry.type} title={props.entry.type}>
+        <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
-        </EventDataSection>
+        </InterimSection>
       }
     >
       <EventEntryContent {...props} />

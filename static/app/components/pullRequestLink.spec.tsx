@@ -1,13 +1,18 @@
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PullRequestLink from 'sentry/components/pullRequestLink';
 
 describe('PullRequestLink', () => {
   it('renders no url on missing externalUrl', () => {
-    const repository = TestStubs.Repository({provider: null});
-    const pullRequest = TestStubs.PullRequest({
+    const repository = RepositoryFixture({
+      provider: {id: 'unknown', name: 'Unknown Provider'},
+    });
+    const pullRequest = PullRequestFixture({
       repository,
-      externalUrl: null,
+      externalUrl: undefined,
     });
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
@@ -16,12 +21,13 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for integrations:github repositories', () => {
-    const repository = TestStubs.Repository({
+    const repository = RepositoryFixture({
       provider: {
+        name: 'GitHub',
         id: 'integrations:github',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequestFixture({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
@@ -32,12 +38,13 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for github repositories', () => {
-    const repository = TestStubs.Repository({
+    const repository = RepositoryFixture({
       provider: {
+        name: 'GitHub',
         id: 'github',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequestFixture({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
@@ -47,12 +54,13 @@ describe('PullRequestLink', () => {
   });
 
   it('renders gitlab links for integrations:gitlab repositories', () => {
-    const repository = TestStubs.Repository({
+    const repository = RepositoryFixture({
       provider: {
+        name: 'GitLab',
         id: 'integrations:gitlab',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequestFixture({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();
@@ -62,12 +70,13 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for gitlab repositories', () => {
-    const repository = TestStubs.Repository({
+    const repository = RepositoryFixture({
       provider: {
+        name: 'GitLab',
         id: 'gitlab',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequestFixture({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();

@@ -21,38 +21,43 @@ class FileSystemNodeStorage(NodeStorage):
     ...   location: "/sentry"
     """
 
-    def __init__(self, prefix_path=None):
-        self.prefix_path: str = "nodestore/"
-        if not settings.DEBUG and options_store.get("filestore.backend") == "filesystem":
-            raise ValueError("Local fileSystem should only be used in development!")
-        if prefix_path:
-            self.prefix_path = prefix_path
+    def __init__(self, path: str | None = None):
+        self.path: str = ""
 
-    def _get_bytes(self, id: str):
-        storage = get_storage()
-        path = self.node_path(id)
-        return storage.open(path).read()
+        if not settings.DEBUG:
+            raise ValueError("FileSystemNodeStorage should only be used in development!")
+        if path:
+            self.path = os.path.abspath(os.path.expanduser(path))
+        else:
+            self.path = os.path.abspath(os.path.join(os.path.dirname(__file__), "./nodes"))
 
-    def _set_bytes(self, id: str, data: bytes, ttl=0):
-        storage = get_storage()
-        path = self.node_path(id)
-        storage.save(path, BytesIO(data))
+    def _get_bytes(self, id: str) -> bytes:
+        with open(self.node_path(id), "rb") as file:
+            return file.read()
 
-    def delete(self, id):
-        storage = get_storage()
-        path = self.node_path(id)
-        storage.delete(path)
+    def _set_bytes(self, id: str, data: bytes, ttl: timedelta | None = None) -> None:
+        with open(self.node_path(id), "wb") as file:
+            file.write(data)
 
-    def cleanup(self, cutoff: datetime.datetime):
-        """
-        This driver does not have managed TTLs.  To enable TTLs you will need to enable it on your
-        bucket.
-        """
-        raise NotImplementedError
+    def delete(self, id: str) -> None:
+        os.remove(self.node_path(id))
 
-    def bootstrap(self):
-        # Nothing for filesystem backend to do during bootstrap
-        pass
+    def cleanup(self, cutoff: datetime) -> None:
+        for filename in os.listdir(self.path):
+            path = os.path.join(self.path, filename)
+            creation_datetime = datetime.fromtimestamp(os.path.getctime(path)).replace(
+                tzinfo=timezone.utc
+            )
 
-    def node_path(self, id: str):
-        return f"{self.prefix_path}{id}.json"
+            if creation_datetime > cutoff:
+                os.remove(path)
+
+    def bootstrap(self) -> None:
+        try:
+            os.mkdir(self.path)
+        except FileExistsError:
+            pass
+
+    def node_path(self, id: str) -> str:
+        return os.path.join(self.path, f"{id}.json")
+      

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from django.urls import reverse
-from django.utils.html import escape
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
 
-from sentry.models import User, UserAvatar
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.http import absolute_uri
@@ -19,8 +21,6 @@ def get_user_avatar_url(user: User | RpcUser, size: int = 20) -> str:
         except UserAvatar.DoesNotExist:
             return ""
     elif user.avatar:
-        if user.avatar is None:
-            return ""
         ident = user.avatar.ident
     else:
         return ""
@@ -36,15 +36,18 @@ def get_sentry_avatar_url() -> str:
     return str(absolute_uri(get_asset_url("sentry", url)))
 
 
-def avatar_as_html(user: User | RpcUser) -> str:
+def avatar_as_html(user: User | RpcUser, size: int = 20) -> SafeString:
     if not user:
-        return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
-            escape(get_sentry_avatar_url())
+        return format_html(
+            '<img class="avatar" src="{}" width="{}px" height="{}px" />',
+            get_sentry_avatar_url(),
+            size,
+            size,
         )
     avatar_type = user.get_avatar_type()
     if avatar_type == "upload":
-        return f'<img class="avatar" src="{escape(get_user_avatar_url(user))}" />'
+        return format_html('<img class="avatar" src="{}" />', get_user_avatar_url(user))
     elif avatar_type == "letter_avatar":
-        return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
+        return get_email_avatar(user.get_display_name(), user.get_label(), size, False)
     else:
-        return get_email_avatar(user.get_display_name(), user.get_label(), 20, True)
+        return get_email_avatar(user.get_display_name(), user.get_label(), size, True)

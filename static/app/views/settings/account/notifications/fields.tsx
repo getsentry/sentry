@@ -1,11 +1,10 @@
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 
 export type FineTuneField = {
   description: string;
   title: string;
   type: 'select';
-  defaultFieldName?: string;
   defaultValue?: string;
   options?: SelectValue<string>[];
 };
@@ -15,16 +14,13 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: t('Issue Alert Notifications'),
     description: t(
-      'Notifications from Alert Rules that your team has setup. You’ll always receive notifications from Alerts configured to be sent directly to you.'
+      "Notifications from Alert Rules that your team has setup. You'll always receive notifications from Alerts configured to be sent directly to you."
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '1', label: t('On')},
       {value: '0', label: t('Off')},
     ],
-    defaultValue: '-1',
-    defaultFieldName: 'subscribeByDefault',
   },
   workflow: {
     title: t('Workflow Notifications'),
@@ -33,13 +29,10 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '0', label: t('Always')},
       {value: '1', label: t('Only on issues I subscribe to')},
       {value: '2', label: t('Never')},
     ],
-    defaultValue: '-1',
-    defaultFieldName: 'workflowNotifications',
   },
   deploy: {
     title: t('Deploy Notifications'),
@@ -48,13 +41,10 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default')},
       {value: '2', label: t('Always')},
       {value: '3', label: t('Only on deploys with my commits')},
       {value: '4', label: t('Never')},
     ],
-    defaultValue: '-1',
-    defaultFieldName: 'deployNotifications',
   },
   reports: {
     title: t('Weekly Reports'),
@@ -68,15 +58,15 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
       {value: '1', label: t('On')},
       {value: '0', label: t('Off')},
     ],
-    defaultFieldName: 'weeklyReports',
   },
   approval: {
-    title: t('Approvals'),
-    description: t('Notifications from teammates that require review or approval.'),
+    title: t('Nudges'),
+    description: t('Notifications that require review or approval.'),
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices,
   },
+  // TODO(isabella): Once GA, replace the following with Spend Notifications
   quota: {
     title: t('Quota Notifications'),
     description: t(
@@ -97,7 +87,17 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
       {value: '1', label: t('On')},
       {value: '0', label: t('Off')},
     ],
-    defaultFieldName: 'spikeProtection',
+  },
+  brokenMonitors: {
+    title: t('Broken Monitors'),
+    description: t(
+      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+    ),
+    type: 'select',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
   },
   email: {
     title: t('Email Routing'),

@@ -1,14 +1,11 @@
 import pytest
 from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
-from freezegun import freeze_time
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 
 
-@region_silo_test
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -32,7 +29,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         url = reverse(
             "sentry-api-0-event-id-lookup",
-            kwargs={"organization_slug": self.org.slug, "event_id": self.event.event_id},
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
         )
         response = self.client.get(url, format="json")
 
@@ -46,7 +43,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def test_missing_eventid(self):
         url = reverse(
             "sentry-api-0-event-id-lookup",
-            kwargs={"organization_slug": self.org.slug, "event_id": "c" * 32},
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": "c" * 32},
         )
         response = self.client.get(url, format="json")
 
@@ -56,7 +53,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def test_ratelimit(self):
         url = reverse(
             "sentry-api-0-event-id-lookup",
-            kwargs={"organization_slug": self.org.slug, "event_id": self.event.event_id},
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
         )
         with freeze_time("2000-01-01"):
             for i in range(10):
@@ -69,14 +66,14 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
             reverse(
                 "sentry-api-0-event-id-lookup",
                 kwargs={
-                    "organization_slug": self.org.slug,
+                    "organization_id_or_slug": self.org.slug,
                     "event_id": "not-an-event",
                 },
             )
 
         url = reverse(
             "sentry-api-0-event-id-lookup",
-            kwargs={"organization_slug": self.org.slug, "event_id": 123456},
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": 123456},
         )
         resp = self.client.get(url, format="json")
 

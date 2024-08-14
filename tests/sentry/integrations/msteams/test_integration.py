@@ -3,9 +3,10 @@ from urllib.parse import urlencode
 
 import responses
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import MsTeamsIntegrationProvider
-from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 
@@ -16,7 +17,7 @@ user_id = (
 tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 

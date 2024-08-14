@@ -2,24 +2,22 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import region_silo_endpoint
+from sentry import options
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.user import UserEndpoint
-from sentry.models import UserAvatar
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.region import get_local_region
+from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 
 
-# TODO(hybridcloud) This needs to become a control_silo_endpoint again.
-# Doing this requires that we solve File uploads for ControlSilo
-#
-# This implementation deviates a bit from the typical AvatarMixin because of hybrid cloud
-# We have the usual problems with user->user_id translation, but also need to handle synchronizing
-# attributes across silos to avoid fetching user avatars from user serializers.
-# Despite updating a user attribute, user avatar FILEs live on regions. This allows us to avoid
-# running file stores on the control silo. So we simply update the user with the new attributes.
-@region_silo_endpoint
-class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
+@control_silo_endpoint
+class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     object_type = "user"
     model = UserAvatar
 
@@ -27,7 +25,7 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
         user = kwargs.pop(self.object_type, None)
         serialized_user = user_service.serialize_many(
             filter=dict(user_ids=[user.id]),
-            as_user=user,
+            as_user=serialize_rpc_user(user),
         )[0]
         return Response(serialized_user)
 
@@ -44,9 +42,12 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
         # Update the corresponding user attributes
         avatar_url = None
         if user_avatar.get_avatar_type_display() == "upload":
-            avatar_url = get_local_region().to_url(f"/avatar/{user_avatar.ident}/")
+            url_base = options.get("system.url-prefix")
+            avatar_url = f"{url_base}/avatar/{user_avatar.ident}/"
         serialized_user = user_service.update_user(
             user_id=request.user.id,
             attrs=dict(avatar_url=avatar_url, avatar_type=user_avatar.avatar_type),
         )
-        return Response(serialized_user)
+        if serialized_user:
+            return Response(serialized_user)
+        return Response(status=status.HTTP_404_NOT_FOUND)

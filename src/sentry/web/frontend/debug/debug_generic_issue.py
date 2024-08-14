@@ -1,8 +1,11 @@
-import pytz
+import zoneinfo
+
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.models import Organization, Project, Rule
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
 from sentry.utils import json
 
@@ -30,7 +33,7 @@ class DebugGenericIssueEmailView(View):
                 "rules": get_rules([rule], org, project),
                 "group": group,
                 "event": event,
-                "timezone": pytz.timezone("Europe/Vienna"),
+                "timezone": zoneinfo.ZoneInfo("Europe/Vienna"),
                 # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
                 #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
                 "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),

@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
-import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import {space} from 'sentry/styles/space';
-import {Group, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 type GroupEventHeaderProps = {
@@ -15,21 +14,19 @@ type GroupEventHeaderProps = {
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
-  const organization = useOrganization();
-
   return (
-    <DataSection>
+    <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      <StyledGlobalAppStoreConnectUpdateAlert
-        project={project}
-        organization={organization}
-      />
-    </DataSection>
+    </StyledDataSection>
   );
 }
 
-const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  margin: ${space(0.5)} 0;
+const StyledDataSection = styled(DataSection)`
+  padding: ${space(1)} ${space(2)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1.5)} ${space(4)} 0;
+  }
 `;
 
 export default GroupEventHeader;

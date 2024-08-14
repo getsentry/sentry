@@ -1,10 +1,10 @@
 from django.conf import settings
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class CreateOrganizationTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +17,6 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.browser.get("/organizations/new/")
         assert self.browser.element_exists('input[name="name"]')
         assert self.browser.element_exists('input[name="agreeTerms"]')
-        self.browser.snapshot(name="create organization")
         self.browser.element('input[name="name"]').send_keys("new org")
         self.browser.element('input[name="agreeTerms"]').click()
         self.browser.click('button[type="submit"]')

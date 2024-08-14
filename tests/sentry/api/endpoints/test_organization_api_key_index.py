@@ -1,8 +1,8 @@
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test
 class OrganizationApiKeyIndex(APITestCase):
     endpoint = "sentry-api-0-organization-api-key-index"
 

@@ -1,4 +1,4 @@
-from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
+from ..base import ModelDeletionTask, ModelRelation
 
 
 class MonitorDeletionTask(ModelDeletionTask):
@@ -6,8 +6,6 @@ class MonitorDeletionTask(ModelDeletionTask):
         from sentry.monitors import models
 
         return [
-            ModelRelation(
-                models.MonitorCheckIn, {"monitor_id": instance.id}, BulkModelDeletionTask
-            ),
+            ModelRelation(models.MonitorCheckIn, {"monitor_id": instance.id}, ModelDeletionTask),
             ModelRelation(models.MonitorEnvironment, {"monitor_id": instance.id}),
         ]

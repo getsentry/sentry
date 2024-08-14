@@ -1,15 +1,19 @@
 import sys
 
-from sentry.models.user import User
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.users.models.user import User
+from sentry.utils.settings import is_self_hosted
 
 
 def create_first_user(**kwargs):
     if User.objects.filter(is_superuser=True).exists():
         return
 
-    if not sys.stdin.isatty():
+    if not sys.stdin.isatty() and not is_self_hosted():
+        return
+
+    if not kwargs["interactive"]:
         return
 
     import click

@@ -1,18 +1,17 @@
-import {
-  Fragment,
-  LegacyRef,
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import type {LegacyRef, MutableRefObject} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import maxBy from 'lodash/maxBy';
 
 import Count from 'sentry/components/count';
 import {
+  FREQUENCY_BOX_WIDTH,
+  SpanFrequencyBox,
+} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {
   getSpanBarColours,
   ROW_HEIGHT,
-  SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
@@ -34,29 +33,25 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
-import {EventTransaction} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {EnhancedSpan, ProcessedSpanType} from './types';
-import {
-  getMeasurementBounds,
-  getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  spanTargetHash,
-} from './utils';
+import type {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
+import {getMeasurementBounds, getMeasurements, spanTargetHash} from './utils';
 
 const MARGIN_LEFT = 0;
 
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
@@ -69,14 +64,26 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
 function renderGroupedSpansToggler(props: Props) {
-  const {treeDepth, spanGrouping, renderSpanTreeConnector, toggleSpanGroup, spanBarType} =
-    props;
+  const {
+    treeDepth,
+    spanGrouping,
+    renderSpanTreeConnector,
+    toggleSpanGroup,
+    spanBarType,
+    event,
+  } = props;
 
-  const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+  const isAggregateEvent = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
+
+  const left =
+    treeDepth * (TOGGLE_BORDER_BOX / 2) +
+    MARGIN_LEFT +
+    (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
 
   return (
     <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -86,8 +93,8 @@ function renderGroupedSpansToggler(props: Props) {
         isExpanded={false}
         errored={false}
         isSpanGroupToggler
-        onClick={event => {
-          event.stopPropagation();
+        onClick={e => {
+          e.stopPropagation();
           toggleSpanGroup();
         }}
         spanBarType={spanBarType}
@@ -119,24 +126,25 @@ function renderDivider(
         dividerHandlerChildrenProps.setHover(true);
       }}
       onMouseDown={dividerHandlerChildrenProps.onDragStart}
-      onClick={event => {
+      onClick={e => {
         // we prevent the propagation of the clicks from this component to prevent
         // the span detail from being opened.
-        event.stopPropagation();
+        e.stopPropagation();
       }}
     />
   );
 }
 
 function renderMeasurements(
-  event: Readonly<EventTransaction>,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+  event: Readonly<EventTransaction | AggregateEventTransaction>,
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType,
+  measurements: Map<number, VerticalMark> | undefined
 ) {
-  const measurements = getMeasurements(event, generateBounds);
+  const barMeasurements = measurements ?? getMeasurements(event, generateBounds);
 
   return (
     <Fragment>
-      {Array.from(measurements).map(([timestamp, verticalMark]) => {
+      {Array.from(barMeasurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
         const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -172,6 +180,8 @@ export function SpanGroupBar(props: Props) {
     toggleSpanGroup,
     getCurrentLeftPos,
     spanBarType,
+    event,
+    measurements,
   } = props;
 
   const theme = useTheme();
@@ -212,19 +222,19 @@ export function SpanGroupBar(props: Props) {
 
   useEffect(() => {
     const currentRef = spanTitleRef.current;
-    const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      if (Math.abs(e.deltaY) === Math.abs(e.deltaX)) {
         return;
       }
 
-      onWheel(event.deltaX);
+      onWheel(e.deltaX);
     };
 
     if (currentRef) {
@@ -240,20 +250,39 @@ export function SpanGroupBar(props: Props) {
     };
   }, [onWheel]);
 
+  // If this is an aggregate span waterfall, we will use the span with the highest frequency in the grouping to represent
+  // the value shown in the frequency box. Using a memo because otherwise this operation will fire on every vertical scroll tick
+  const mostFrequentSpanInGroup = useMemo(() => {
+    if (event.type !== EventOrGroupType.AGGREGATE_TRANSACTION) {
+      return null;
+    }
+
+    const spanObjects = spanGrouping.map(({span}) => span);
+
+    return maxBy(spanObjects, 'frequency');
+  }, [event, spanGrouping]);
+
   return (
     <DividerHandlerManager.Consumer>
       {(
         dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
       ) => {
-        const {generateBounds, span, treeDepth, spanNumber, event} = props;
+        const {generateBounds, span, treeDepth, spanNumber} = props;
 
         const {isSpanVisibleInView: isSpanVisible} = generateBounds({
           startTimestamp: span.start_timestamp,
           endTimestamp: span.timestamp,
         });
 
+        const isAggregateEvent =
+          event.type === EventOrGroupType.AGGREGATE_TRANSACTION &&
+          mostFrequentSpanInGroup;
+
         const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-        const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+        const left =
+          treeDepth * (TOGGLE_BORDER_BOX / 2) +
+          MARGIN_LEFT +
+          (isAggregateEvent ? FREQUENCY_BOX_WIDTH : 0);
 
         return (
           <Row
@@ -274,6 +303,9 @@ export function SpanGroupBar(props: Props) {
                 }}
                 ref={spanTitleRef}
               >
+                {isAggregateEvent && (
+                  <SpanFrequencyBox span={mostFrequentSpanInGroup as AggregateSpanType} />
+                )}
                 <RowTitleContainer ref={setTransformCallback}>
                   {renderGroupedSpansToggler(props)}
                   <RowTitle
@@ -302,7 +334,7 @@ export function SpanGroupBar(props: Props) {
                 onClick={() => toggleSpanGroup()}
               >
                 {props.renderSpanRectangles()}
-                {renderMeasurements(event, generateBounds)}
+                {renderMeasurements(event, generateBounds, measurements)}
                 <SpanBarCursorGuide />
               </RowCell>
               <DividerLineGhostContainer

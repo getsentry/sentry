@@ -84,11 +84,11 @@ class OptionsTypesTest(TestCase):
             assert Dict("{foo: b: ar}")
 
     def test_sequence(self):
-        assert Sequence(()) == ()
+        assert Sequence(()) == []
         assert Sequence([]) == []
-        assert Sequence((1, 2, 3)) == (1, 2, 3)
+        assert Sequence((1, 2, 3)) == [1, 2, 3]
         assert Sequence([1, 2, 3]) == [1, 2, 3]
-        assert Sequence("[1,2,3]") == (1, 2, 3)
+        assert Sequence("[1,2,3]") == [1, 2, 3]
         with pytest.raises(InvalidTypeError):
             Sequence("{}")
         with pytest.raises(InvalidTypeError):

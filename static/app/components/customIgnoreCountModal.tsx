@@ -1,12 +1,13 @@
 import {Component, Fragment} from 'react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
@@ -15,7 +16,7 @@ type Props = ModalRenderProps & {
   countLabel: string;
   countName: CountNames;
   label: string;
-  onSelected: (statusDetails: ResolutionStatusDetails) => void;
+  onSelected: (statusDetails: IgnoredStatusDetails) => void;
   windowName: WindowNames;
   windowOptions: SelectValue<number>[];
 };
@@ -35,7 +36,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
     const {count, window} = this.state;
     const {countName, windowName} = this.props;
 
-    const statusDetails: ResolutionStatusDetails = {[countName]: count};
+    const statusDetails: IgnoredStatusDetails = {[countName]: count};
     if (window) {
       statusDetails[windowName] = window;
     }
@@ -65,7 +66,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             label={countLabel}
             name="count"
             value={count}
-            onChange={val => this.handleChange('count' as 'count', Number(val))}
+            onChange={val => this.handleChange('count' as const, Number(val))}
             required
             placeholder={t('e.g. 100')}
           />

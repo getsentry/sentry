@@ -1,20 +1,24 @@
 import {Component, Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {
-  ScrollbarManagerChildrenProps,
-  withScrollbarManager,
-} from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import type {ScrollbarManagerChildrenProps} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {withScrollbarManager} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import type {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
-import {Organization} from 'sentry/types';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types/organization';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 
+import type {EventDetail} from './newTraceDetailsContent';
+import NewTraceDetailsTransactionBar from './newTraceDetailsTransactionBar';
 import TransactionBar from './transactionBar';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import type {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
   continuingDepths: TreeDepth[];
@@ -28,9 +32,16 @@ type Props = ScrollbarManagerChildrenProps & {
   organization: Organization;
   renderedChildren: React.ReactNode[];
   traceInfo: TraceInfo;
-  transaction: TraceRoot | TraceFullDetailed;
+  traceViewRef: React.RefObject<HTMLDivElement>;
+  transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
+  isBarScrolledTo?: boolean;
+  isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
+  numOfOrphanErrors?: number;
+  onBarScrolledTo?: () => void;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
+  onlyOrphanErrors?: boolean;
 };
 
 type State = {
@@ -71,31 +82,55 @@ class TransactionGroup extends Component<Props, State> {
       onWheel,
       measurements,
       generateBounds,
+      numOfOrphanErrors,
+      onlyOrphanErrors,
+      isOrphanError,
+      traceViewRef,
+      onRowClick,
+      onBarScrolledTo,
+      isBarScrolledTo,
     } = this.props;
     const {isExpanded} = this.state;
 
+    const commonProps = {
+      location,
+      organization,
+      measurements,
+      generateBounds,
+      index,
+      transaction,
+      traceInfo,
+      continuingDepths,
+      isOrphan,
+      isLast,
+      isExpanded,
+      toggleExpandedState: this.toggleExpandedState,
+      isVisible,
+      hasGuideAnchor,
+      barColor,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
+      onWheel,
+      onlyOrphanErrors,
+      numOfOrphanErrors,
+      isOrphanError,
+    };
+
     return (
       <Fragment>
-        <TransactionBar
-          location={location}
-          organization={organization}
-          measurements={measurements}
-          generateBounds={generateBounds}
-          index={index}
-          transaction={transaction}
-          traceInfo={traceInfo}
-          continuingDepths={continuingDepths}
-          isOrphan={isOrphan}
-          isLast={isLast}
-          isExpanded={isExpanded}
-          toggleExpandedState={this.toggleExpandedState}
-          isVisible={isVisible}
-          hasGuideAnchor={hasGuideAnchor}
-          barColor={barColor}
-          addContentSpanBarRef={addContentSpanBarRef}
-          removeContentSpanBarRef={removeContentSpanBarRef}
-          onWheel={onWheel}
-        />
+        {organization.features.includes('performance-trace-details') &&
+        onBarScrolledTo ? (
+          <NewTraceDetailsTransactionBar
+            {...commonProps}
+            isBarScrolledTo={!!isBarScrolledTo}
+            onBarScrolledTo={onBarScrolledTo}
+            traceViewRef={traceViewRef}
+            onRowClick={onRowClick}
+          />
+        ) : (
+          <TransactionBar {...commonProps} />
+        )}
+
         {isExpanded && renderedChildren}
       </Fragment>
     );

@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import TagStore from 'sentry/stores/tagStore';
 
 describe('TagStore', function () {
@@ -48,7 +50,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      expect(TagStore.getIssueAttributes(TestStubs.Organization()).has).toEqual({
+      expect(TagStore.getIssueAttributes(OrganizationFixture()).has).toEqual({
         key: 'has',
         name: 'Has Tag',
         values: ['mytag', 'otherkey'],
@@ -64,7 +66,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(TestStubs.Organization());
+      const tags = TagStore.getIssueAttributes(OrganizationFixture());
       expect(tags.is).toBeTruthy();
       expect(tags.is.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
@@ -78,11 +80,8 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(
-        TestStubs.Organization({features: ['escalating-issues']})
-      );
+      const tags = TagStore.getIssueAttributes(OrganizationFixture());
       expect(tags.is.values).toContain('archived');
-      expect(tags.is.values).not.toContain('ignored');
     });
   });
 
@@ -95,7 +94,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueTags(TestStubs.Organization());
+      const tags = TagStore.getIssueTags(OrganizationFixture());
 
       // state
       expect(tags.mytag).toBeTruthy();
@@ -109,5 +108,16 @@ describe('TagStore', function () {
       expect(tags['device.family']).toBeTruthy();
       expect(tags['device.family'].key).toBe('device.family');
     });
+  });
+
+  it('returns a stable reference from getState', () => {
+    TagStore.loadTagsSuccess([
+      {
+        key: 'mytag',
+        name: 'My Custom Tag',
+      },
+    ]);
+    const state = TagStore.getState();
+    expect(Object.is(state, TagStore.getState())).toBe(true);
   });
 });

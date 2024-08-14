@@ -1,25 +1,26 @@
 import base64
 import binascii
 import posixpath
-from typing import Union
 
 import sentry_sdk
 from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
-from sentry.models import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
 
 
 class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
         cls, file_path: str, archive: ArtifactBundleArchive
-    ) -> Union[Response, FileResponse]:
+    ) -> Response | FileResponse:
         try:
             fp, headers = archive.get_file(file_path)
             file_info = archive.get_file_info(file_path)
@@ -47,6 +48,10 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, bundle_id, file_id) -> Response:
@@ -58,9 +63,9 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      file of.
         :pparam string bundle_id: the bundle_id of the artifact bundle that
                                     should contain the file identified by file_id.

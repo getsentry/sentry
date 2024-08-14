@@ -1,10 +1,8 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test
 class ProjectMemberIndexTest(APITestCase):
     def test_simple(self):
         user_1 = self.create_user("foo@localhost", username="foo")
@@ -23,8 +21,8 @@ class ProjectMemberIndexTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-member-index",
             kwargs={
-                "organization_slug": project_1.organization.slug,
-                "project_slug": project_1.slug,
+                "organization_id_or_slug": project_1.organization.slug,
+                "project_id_or_slug": project_1.slug,
             },
         )
         response = self.client.get(url)

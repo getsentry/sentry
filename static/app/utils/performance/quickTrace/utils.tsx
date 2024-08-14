@@ -3,18 +3,20 @@ import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {
   QuickTrace,
   QuickTraceEvent,
+  TraceError,
   TraceFull,
   TraceFullDetailed,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
+import type {TraceRoot} from 'sentry/views/performance/traceDetails/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
@@ -31,9 +33,7 @@ export function isCurrentEvent(
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
   }
-  return (
-    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-  );
+  return event.errors?.some(e => e.event_id === currentEvent.id) ?? false;
 }
 
 type PathNode = {
@@ -305,12 +305,28 @@ export function filterTrace(
   );
 }
 
-export function isTraceFull(transaction): transaction is TraceFull {
-  return Boolean((transaction as TraceFull).event_id);
+export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
+  transaction: TraceRoot | TraceError | QuickTraceEvent | U
+): transaction is U {
+  return 'transaction' in transaction;
 }
 
-export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
-  return Boolean((transaction as TraceFullDetailed).event_id);
+export function isTraceError(
+  transaction: TraceRoot | TraceError | TraceFullDetailed | QuickTraceEvent
+): transaction is TraceError {
+  return 'event_type' in transaction && transaction.event_type === 'error';
+}
+
+export function isTraceRoot(
+  transaction: TraceRoot | TraceError | TraceFullDetailed
+): transaction is TraceRoot {
+  return 'traceSlug' in transaction;
+}
+
+export function isTraceSplitResult<U extends object, V extends object>(
+  result: U | V
+): result is U {
+  return 'transactions' in result;
 }
 
 function handleProjectMeta(organization: OrganizationSummary, projects: number) {

@@ -1,16 +1,15 @@
 import {createStore} from 'reflux';
 
-import {Indicator} from 'sentry/actionCreators/indicator';
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 interface InternalDefinition {
-  items: any[];
   lastId: number;
 }
 interface IndicatorStoreDefinition
-  extends CommonStoreDefinition<Indicator[]>,
+  extends StrictStoreDefinition<Indicator[]>,
     InternalDefinition {
   /**
    * When this method is called directly via older parts of the application,
@@ -59,14 +58,14 @@ interface IndicatorStoreDefinition
 }
 
 const storeConfig: IndicatorStoreDefinition = {
-  items: [],
+  state: [],
   lastId: 0,
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.items = [];
+    this.state = [];
     this.lastId = 0;
   },
 
@@ -93,10 +92,10 @@ const storeConfig: IndicatorStoreDefinition = {
       }, options.duration);
     }
 
-    const newItems = append ? [...this.items, indicator] : [indicator];
+    const newItems = append ? [...this.state, indicator] : [indicator];
 
-    this.items = newItems;
-    this.trigger(this.items);
+    this.state = newItems;
+    this.trigger(this.state);
     return indicator;
   },
 
@@ -115,8 +114,8 @@ const storeConfig: IndicatorStoreDefinition = {
   },
 
   clear() {
-    this.items = [];
-    this.trigger(this.items);
+    this.state = [];
+    this.trigger(this.state);
   },
 
   remove(indicator) {
@@ -124,18 +123,18 @@ const storeConfig: IndicatorStoreDefinition = {
       return;
     }
 
-    this.items = this.items.filter(item => item !== indicator);
+    this.state = this.state.filter(item => item !== indicator);
 
     if (indicator.clearId) {
       window.clearTimeout(indicator.clearId);
       indicator.clearId = null;
     }
 
-    this.trigger(this.items);
+    this.trigger(this.state);
   },
 
   getState() {
-    return this.items;
+    return this.state;
   },
 };
 

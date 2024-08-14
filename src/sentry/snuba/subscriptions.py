@@ -1,6 +1,6 @@
 import logging
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -17,7 +17,7 @@ def create_snuba_query(
     query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
 ):
     """
-    Creates a SnubaQuery.
+    Constructs a SnubaQuery which is the postgres representation of a query in snuba
 
     :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
@@ -81,6 +81,9 @@ def update_snuba_query(
     :param event_types: A (currently) optional list of event_types that apply to this
     query. If not passed, we'll use the existing event types on the query.
     :return: A list of QuerySubscriptions
+
+    TODO: Ensure update handles activated alert rule updates
+    eg. insert start_time into query, insert release version into query, etc.
     """
     current_event_types = set(snuba_query.event_types)
     if not event_types:
@@ -92,7 +95,7 @@ def update_snuba_query(
     old_dataset = Dataset(snuba_query.dataset)
     old_query = snuba_query.query
     old_aggregate = snuba_query.aggregate
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
             type=query_type.value,
@@ -120,7 +123,9 @@ def update_snuba_query(
         )
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
+def bulk_create_snuba_subscriptions(
+    projects, subscription_type, snuba_query, query_extra: str | None = None
+) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
 
@@ -133,11 +138,15 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
+        subscriptions.append(
+            create_snuba_subscription(project, subscription_type, snuba_query, query_extra)
+        )
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query):
+def create_snuba_subscription(
+    project, subscription_type, snuba_query, query_extra: str | None = None
+) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 
@@ -152,7 +161,9 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
+        query_extra=query_extra,
     )
+
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
@@ -191,7 +202,7 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     before the update.
     :return: The QuerySubscription representing the subscription
     """
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(QuerySubscription)):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(

@@ -1,25 +1,28 @@
 import time
+from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 
-from sentry.incidents.action_handlers import MsTeamsActionHandler
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models import Integration
-from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.messaging import MessagingActionHandler
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
+from sentry.silo.base import SiloMode
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 
 from . import FireTest
 
 
-@region_silo_test(stable=True)
 @freeze_time()
-class MsTeamsActionHandlerTest(FireTest, TestCase):
+class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
-        with exempt_from_silo_limits():
-            integration = Integration.objects.create(
+        self.spec = MsTeamsMessagingSpec()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(
                 provider="msteams",
                 name="Galactic Empire",
                 external_id="D4r7h_Pl4gu315_th3_w153",
@@ -50,7 +53,9 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.msteams.card_builder import build_incident_attachment
+        from sentry.integrations.msteams.card_builder.incident_attachment import (
+            build_incident_attachment,
+        )
 
         responses.add(
             method=responses.POST,
@@ -59,7 +64,7 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
             json={},
         )
 
-        handler = MsTeamsActionHandler(self.action, incident, self.project)
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -75,6 +80,20 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="msteams",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )
+
     @responses.activate
     def test_rule_snoozed(self):
         alert_rule = self.create_alert_rule()
@@ -87,7 +106,7 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
             json={},
         )
 
-        handler = MsTeamsActionHandler(self.action, incident, self.project)
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
             handler.fire(metric_value, IncidentStatus(incident.status))

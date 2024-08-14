@@ -5,32 +5,37 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
-from sentry.mediators import InstallationNotifier
-from sentry.mediators.sentry_app_installations import Updater
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.functional import extract_lazy_object
 
 
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, installation) -> Response:
-        return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
+        return Response(
+            serialize(SentryAppInstallation.objects.get(id=installation.id), access=request.access)
+        )
 
     def delete(self, request: Request, installation) -> Response:
         installation = SentryAppInstallation.objects.get(id=installation.id)
-        user = extract_lazy_object(request.user)
-        if isinstance(user, RpcUser):
-            user = User.objects.get(id=user.id)
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
-                InstallationNotifier.run(install=installation, user=user, action="deleted")
+                InstallationNotifier.run(install=installation, user=request.user, action="deleted")
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)

@@ -1,15 +1,18 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RequestSerializer
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 
 INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
@@ -39,7 +42,11 @@ class BufferedRequest:
 
 
 @region_silo_endpoint
-class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
+class SentryAppRequestsEndpoint(RegionSentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

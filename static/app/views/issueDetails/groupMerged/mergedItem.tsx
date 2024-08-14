@@ -1,14 +1,16 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
+import type {Fingerprint} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   fingerprint: Fingerprint;
@@ -103,8 +105,9 @@ class MergedItem extends Component<Props, State> {
     return (
       <MergedGroup busy={busy}>
         <Controls expanded={!collapsed}>
-          <ActionWrapper onClick={this.handleToggle}>
+          <FingerprintLabel onClick={this.handleToggle}>
             <Tooltip
+              containerDisplayMode="flex"
               disabled={!checkboxDisabled}
               title={
                 checkboxDisabled && totalFingerprint === 1
@@ -113,24 +116,28 @@ class MergedItem extends Component<Props, State> {
               }
             >
               <Checkbox
-                id={id}
                 value={id}
                 checked={checked}
                 disabled={checkboxDisabled}
                 onChange={this.handleCheckClick}
+                size="xs"
               />
             </Tooltip>
 
-            <FingerprintLabel onClick={this.handleLabelClick} htmlFor={id}>
-              {this.renderFingerprint(id, label)}
-            </FingerprintLabel>
-          </ActionWrapper>
+            {this.renderFingerprint(id, label)}
+          </FingerprintLabel>
 
-          <div>
-            <Collapse onClick={this.handleToggleEvents}>
-              <IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />
-            </Collapse>
-          </div>
+          <Button
+            aria-label={
+              collapsed
+                ? t('Show %s fingerprints', id)
+                : t('Collapse %s fingerprints', id)
+            }
+            size="zero"
+            borderless
+            icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
+            onClick={this.handleToggleEvents}
+          />
         </Controls>
 
         {!collapsed && (
@@ -157,43 +164,33 @@ const MergedGroup = styled('div')<{busy: boolean}>`
   ${p => p.busy && 'opacity: 0.2'};
 `;
 
-const ActionWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.backgroundSecondary};
-  padding: ${space(0.5)} ${space(1)};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
+  padding: ${space(0.5)} ${space(1)};
 
-  ${MergedGroup} {
-    &:first-child & {
-      border-top: none;
-    }
-    &:last-child & {
-      border-top: none;
-      border-bottom: 1px solid ${p => p.theme.innerBorder};
-    }
+  ${MergedGroup}:not(:first-child) & {
+    border-top: 1px solid ${p => p.theme.innerBorder};
+  }
+
+  ${MergedGroup}:last-child & {
+    ${p => !p.expanded && `border-bottom: none`};
+    ${p =>
+      !p.expanded &&
+      `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
   }
 `;
 
 const FingerprintLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-
-  ${Controls} & {
-    font-weight: 400;
-    margin: 0;
-  }
-`;
-
-const Collapse = styled('span')`
-  cursor: pointer;
+  line-height: 1;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  margin: 0;
 `;
 
 const MergedEventList = styled('div')`

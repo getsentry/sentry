@@ -1,4 +1,4 @@
-import {AvatarProject} from 'sentry/types';
+import type {AvatarProject} from 'sentry/types/project';
 
 const platforms = [
   'dotnet',
@@ -14,6 +14,7 @@ const platforms = [
   'node',
   'perl',
   'php',
+  'powershell',
   'python',
   'react-native',
   'ruby',
@@ -32,6 +33,7 @@ const performancePlatforms: DocPlatform[] = [
   'javascript',
   'node',
   'php',
+  'powershell',
   'python',
   'react-native',
   'ruby',
@@ -61,12 +63,22 @@ export function getDocsPlatform(
   return null;
 }
 
-export function getConfigureTracingDocsLink(
+export function getConfigurePerformanceDocsLink(
   project: AvatarProject | undefined
 ): string | null {
   const platform = project?.platform ?? null;
   const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
   return docsPlatform === null
     ? null // this platform does not support performance
-    : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
+    : `https://docs.sentry.io/platforms/${docsPlatform}/tracing/`;
+}
+
+export function getConfigureIntegrationsDocsLink(
+  project: AvatarProject | undefined
+): string | null {
+  const platform = project?.platform ?? null;
+  const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
+  return docsPlatform === null
+    ? null // this platform does not support performance
+    : `https://docs.sentry.io/platforms/${docsPlatform}/configuration/integrations`;
 }

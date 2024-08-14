@@ -27,10 +27,18 @@ inputs:
     description: 'Is bigtable required?'
     required: false
     default: 'false'
+  redis_cluster:
+    description: 'Is redis cluster required?'
+    required: false
+    default: 'false'
+  symbolicator:
+    description: 'Is symbolicator required?'
+    required: false
+    default: 'false'
   python-version:
     description: 'python version to install'
     required: false
-    default: '3.8.16'
+    default: '3.11.8'
   pg-version:
     description: 'PostgreSQL version to use'
     default: '14'
@@ -40,9 +48,6 @@ outputs:
   yarn-cache-dir:
     description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
-  acceptance-dir:
-    description: 'Path to acceptance visual snapshot artifacts'
-    value: ${{ steps.config.outputs.acceptance-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -70,7 +75,6 @@ runs:
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
-        echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
@@ -105,11 +109,11 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+    - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: pip install -r ${{ inputs.workdir }}/requirements-dev-frozen.txt
+        install-cmd: cd ${{ inputs.workdir }} && python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
@@ -120,7 +124,6 @@ runs:
         echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
-        echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
       shell: bash --noprofile --norc -eo pipefail -ux {0}
@@ -131,7 +134,7 @@ runs:
       run: |
         cd "$WORKDIR"
         # We need to install editable otherwise things like check migration will fail.
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+        python3 -m tools.fast_editable --path .
 
     - name: Start devservices
       shell: bash --noprofile --norc -eo pipefail -ux {0}
@@ -141,6 +144,8 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        NEED_REDIS_CLUSTER: ${{ inputs.redis_cluster }}
+        NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
@@ -148,59 +153,44 @@ runs:
         sentry init
 
         # redis, postgres are needed for almost every code path.
-        services='redis postgres'
+        services=(redis postgres)
 
         if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
-          services="${services} clickhouse"
+          services+=(clickhouse)
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          services="${services} snuba"
+          services+=(snuba)
         fi
 
         if [ "$NEED_BIGTABLE" = "true" ]; then
           echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-          services="${services} bigtable"
+          services+=(bigtable)
         fi
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          services="${services} chartcuterie"
+          services+=(chartcuterie)
         fi
 
-        sentry devservices up $services &
+        if [ "$NEED_REDIS_CLUSTER" = "true" ]; then
+          services+=(redis-cluster)
+        fi
 
-        # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
+        if [ "$NEED_SYMBOLICATOR" = "true" ]; then
+          services+=(symbolicator)
+        fi
+
         if [ "$NEED_KAFKA" = "true" ]; then
-          # This is *not* the production version. Unclear reason as to why this was chosen
-          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
-          docker run \
-            --name sentry_zookeeper \
-            -d --network host \
-            -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0 \
-            &
-
-          # This is the production version; do not change w/o changing it there as well
-          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
-          docker run \
-            --name sentry_kafka \
-            -d --network host \
-            -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
-            -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
-            -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2 \
-            &
+          services+=(kafka)
         fi
 
-        wait
+        sentry devservices up "${services[@]}"
+
+        # have tests listen on the docker gateway ip so loopback can occur
+        echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 
         docker ps -a
 
         # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
         # without needing to fork it. The path needed is the one where tools are located
         cd "$WORKDIR"
-        python3 -u -S -m tools.devservices_healthcheck
-        cd -

@@ -1,24 +1,13 @@
 import invariant from 'invariant';
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import {t} from 'sentry/locale';
-import type {
-  BreadcrumbTypeDefault,
-  BreadcrumbTypeInit,
-  BreadcrumbTypeNavigation,
-  Crumb,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
-import type {
-  ReplayCrumb,
-  ReplayError,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
+
+const defaultValues = {
+  has_viewed: false,
+};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
@@ -39,6 +28,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.environment ? {environment: [apiResponse.environment]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
     ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
@@ -49,178 +39,20 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...user,
   };
 
-  // Sort the tags by key
-  const tags = Object.keys(unorderedTags)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = unorderedTags[key];
-      return acc;
-    }, {});
-
   const startedAt = new Date(apiResponse.started_at);
   invariant(isValidDate(startedAt), 'replay.started_at is invalid');
   const finishedAt = new Date(apiResponse.finished_at);
   invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
   return {
+    ...defaultValues,
     ...apiResponse,
     ...(apiResponse.started_at ? {started_at: startedAt} : {}),
     ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
-    tags,
+    tags: unorderedTags,
   };
-}
-
-export function breadcrumbFactory(
-  replayRecord: ReplayRecord,
-  errors: ReplayError[],
-  rawCrumbs: ReplayCrumb[],
-  spans: ReplaySpan[]
-): Crumb[] {
-  const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur'];
-
-  const initialUrl = replayRecord.urls?.[0] ?? replayRecord.tags.url?.join(', ');
-  const initBreadcrumb = {
-    type: BreadcrumbType.INIT,
-    timestamp: replayRecord.started_at.toISOString(),
-    level: BreadcrumbLevelType.INFO,
-    message: initialUrl,
-    data: {
-      action: 'replay-init',
-      label: t('Start recording'),
-      url: initialUrl,
-    },
-  } as BreadcrumbTypeInit;
-
-  const errorCrumbs: RawCrumb[] = errors.map(error => ({
-    type: BreadcrumbType.ERROR,
-    level: BreadcrumbLevelType.ERROR,
-    category: 'issue',
-    message: error.title,
-    data: {
-      label: error['error.type'].join(''),
-      eventId: error.id,
-      groupId: error['issue.id'] || 1,
-      groupShortId: error.issue,
-      project: error['project.name'],
-    },
-    timestamp: error.timestamp,
-  }));
-
-  const spanCrumbs: (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[] = spans
-    .filter(span =>
-      ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
-        span.op
-      )
-    )
-    .sort((a, b) => a.startTimestamp - b.startTimestamp)
-    .map(span => {
-      if (span.op.startsWith('navigation')) {
-        const [, action] = span.op.split('.');
-        try {
-          return {
-            category: 'default',
-            type: BreadcrumbType.NAVIGATION,
-            timestamp: new Date(span.startTimestamp * 1000).toISOString(),
-            level: BreadcrumbLevelType.INFO,
-            message: span.description,
-            action,
-            data: {
-              to: span.description,
-              label:
-                action === 'reload'
-                  ? t('Reload')
-                  : action === 'navigate'
-                  ? t('Page load')
-                  : t('Navigation'),
-              ...span.data,
-            },
-          };
-        } catch {
-          return null;
-        }
-      }
-      try {
-        return {
-          type: BreadcrumbType.DEBUG,
-          timestamp: new Date(span.startTimestamp * 1000).toISOString(),
-          level: BreadcrumbLevelType.INFO,
-          category: 'default',
-          data: {
-            action: span.op,
-            ...span.data,
-            label: span.op === 'largest-contentful-paint' ? t('LCP') : span.op,
-          },
-        };
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean) as (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[];
-
-  const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
-
-  const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
-    .filter(crumb => {
-      return (
-        !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '') &&
-        // Explicitly include replay breadcrumbs to ensure we have valid UI for them
-        (!crumb.category?.startsWith('replay') ||
-          crumb.category === 'replay.mutations') &&
-        (crumb.category !== 'ui.slowClickDetected' ||
-          (crumb.data as Record<string, any>)?.timeAfterClickMs >= 3000)
-      );
-    })
-    .map(crumb => {
-      if (crumb.category === 'replay.mutations') {
-        const crumbData = crumb.data as Record<string, unknown>;
-        try {
-          return {
-            ...crumb,
-            type: crumbData.limit ? BreadcrumbType.ERROR : BreadcrumbType.WARNING,
-            level: crumbData.limit
-              ? BreadcrumbLevelType.FATAL
-              : BreadcrumbLevelType.WARNING,
-            timestamp: new Date(crumb.timestamp * 1000).toISOString(),
-          };
-        } catch {
-          return null;
-        }
-      }
-
-      try {
-        return {
-          ...crumb,
-          type: BreadcrumbType.DEFAULT,
-          timestamp: new Date(crumb.timestamp * 1000).toISOString(),
-        };
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean) as RawCrumb[];
-
-  // TODO(replay): The important parts of transformCrumbs should be brought into
-  // here, we're hydrating our data and should have more control over the process.
-  const result = transformCrumbs([
-    ...(spans.length && !hasPageLoad ? [initBreadcrumb] : []),
-    ...rawCrumbsWithTimestamp,
-    ...errorCrumbs,
-    ...spanCrumbs,
-  ]);
-
-  return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
-}
-
-export function spansFactory(spans: ReplaySpan[]) {
-  return spans
-    .sort((a, b) => a.startTimestamp - b.startTimestamp)
-    .map(span => ({
-      ...span,
-      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
-      timestamp: span.startTimestamp * 1000,
-    }));
 }
 
 /**
@@ -240,10 +72,14 @@ export function replayTimestamps(
     .map(rawCrumb => rawCrumb.timestamp)
     .filter(Boolean);
   const rawSpanDataFiltered = rawSpanData.filter(
-    ({op}) => op !== 'largest-contentful-paint'
+    ({op}) => op !== 'web-vital' && op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+  const spanStartTimestamps = rawSpanDataFiltered
+    .map(span => span.startTimestamp)
+    .filter(Boolean);
+  const spanEndTimestamps = rawSpanDataFiltered
+    .map(span => span.endTimestamp)
+    .filter(Boolean);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
   // Also using `getMinMax()` so we can handle any huge arrays.

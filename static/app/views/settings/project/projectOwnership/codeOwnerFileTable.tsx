@@ -5,12 +5,13 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner, CodeownersFile, Project} from 'sentry/types';
+import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,7 +63,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw},
+          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
         }
       );
       onUpdate({...codeowner, ...data});
@@ -149,7 +150,7 @@ export function CodeOwnerFileTable({
               triggerProps={{
                 'aria-label': t('Actions'),
                 size: 'xs',
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 showChevron: false,
                 disabled,
               }}

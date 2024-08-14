@@ -1,18 +1,18 @@
 import abc
 import logging
+import secrets
+from collections.abc import Mapping
 from time import time
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+import orjson
+from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.utils import json
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -46,11 +46,11 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "code" in request.GET:
             return helper.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
@@ -85,16 +85,16 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: Request, helper, code):
+    def exchange_token(self, request: HttpRequest, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
-        return json.loads(body)
+        return orjson.loads(body)
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")
@@ -123,15 +123,15 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider, abc.ABC):
-    client_id = None
-    client_secret = None
     is_partner = False
 
+    @abc.abstractmethod
     def get_client_id(self):
-        return self.client_id
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def get_client_secret(self):
-        return self.client_secret
+        raise NotImplementedError
 
     def get_auth_pipeline(self):
         return [
@@ -141,7 +141,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
     @abc.abstractmethod
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def get_refresh_token_params(self, refresh_token):
         return {
@@ -171,7 +171,7 @@ class OAuth2Provider(Provider, abc.ABC):
             'data': self.get_oauth_data(data),
         }
         """
-        pass
+        raise NotImplementedError
 
     def update_identity(self, new_data, current_data):
         # we want to maintain things like refresh_token that might not
@@ -191,7 +191,7 @@ class OAuth2Provider(Provider, abc.ABC):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
+            payload = orjson.loads(body)
         except Exception:
             payload = {}
 

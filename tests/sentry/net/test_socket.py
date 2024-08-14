@@ -3,12 +3,12 @@ from unittest.mock import patch
 from django.test import override_settings
 
 from sentry.net.socket import ensure_fqdn, is_ipaddress_allowed, is_safe_hostname
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_blacklist
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_blocklist
 
 
 class SocketTest(TestCase):
-    @override_blacklist("10.0.0.0/8", "127.0.0.1")
+    @override_blocklist("10.0.0.0/8", "127.0.0.1")
     def test_is_ipaddress_allowed(self):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("127.0.0.1") is False
@@ -17,7 +17,7 @@ class SocketTest(TestCase):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("1.1.1.1") is True
 
-    @override_blacklist("::ffff:10.0.0.0/104", "::1/128")
+    @override_blocklist("::ffff:10.0.0.0/104", "::1/128")
     def test_is_ipaddress_allowed_ipv6(self):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("::1") is False
@@ -28,7 +28,7 @@ class SocketTest(TestCase):
         is_ipaddress_allowed.cache_clear()
         assert is_ipaddress_allowed("2001:db8:a::123") is True
 
-    @override_blacklist("10.0.0.0/8", "127.0.0.1")
+    @override_blocklist("10.0.0.0/8", "127.0.0.1")
     @patch("socket.getaddrinfo")
     def test_is_safe_hostname(self, mock_getaddrinfo):
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("81.0.0.1", 0))]

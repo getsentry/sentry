@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createTeam} from 'sentry/actionCreators/teams';
 import CreateTeamForm from 'sentry/components/teams/createTeamForm';
 import {t} from 'sentry/locale';
-import {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   organization: Organization;
   onClose?: (team: Team) => void;
-};
+}
 
 function CreateTeamModal({Body, Header, ...props}: Props) {
   const {onClose, closeModal, organization} = props;

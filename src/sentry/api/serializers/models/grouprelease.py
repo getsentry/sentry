@@ -5,7 +5,9 @@ from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import GroupRelease, Project, Release
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.tsdb.base import TSDBModel
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -13,7 +15,7 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 @register(GroupRelease)
 class GroupReleaseSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         release_list = list(Release.objects.filter(id__in=[i.release_id for i in item_list]))
         releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
 
@@ -22,7 +24,7 @@ class GroupReleaseSerializer(Serializer):
             result[item] = {"release": releases.get(item.release_id)}
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "release": attrs["release"],
             "environment": obj.environment,
@@ -41,7 +43,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self.since = since
         self.until = until
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
 
         tenant_ids = (
@@ -54,7 +56,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items = {}
+        items: dict[str, list[str]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
@@ -64,7 +66,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             since = self.since or until - (segments * interval)
 
             try:
-                stats = tsdb.get_frequency_series(
+                stats = tsdb.backend.get_frequency_series(
                     model=TSDBModel.frequent_releases_by_group,
                     items=items,
                     start=since,
@@ -83,7 +85,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 ]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

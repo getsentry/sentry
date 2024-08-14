@@ -1,13 +1,13 @@
-import {memo, useCallback, useRef} from 'react';
-import {CellMeasurerCache} from 'react-virtualized';
+import {useEffect, useRef} from 'react';
+import type {CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 import Category from './category';
 import {Data} from './data';
@@ -15,63 +15,85 @@ import Level from './level';
 import Time from './time';
 import Type from './type';
 
-type Props = {
+export interface BreadcrumbProps {
   breadcrumb: Crumb;
   cache: CellMeasurerCache;
   displayRelativeTime: boolean;
   event: Event;
   index: number;
   isLastItem: boolean;
-  onResize: () => void;
   organization: Organization;
+  parent: List;
   relativeTime: string;
-  scrollbarSize: number;
   searchTerm: string;
   style: React.CSSProperties;
+  transactionEvents: BreadcrumbTransactionEvent[] | undefined;
   meta?: Record<any, any>;
-  transactionEvents?: BreadcrumbTransactionEvent[];
-};
+}
 
-export const Breadcrumb = memo(function Breadcrumb({
-  index,
+export function Breadcrumb({
   organization,
   event,
   breadcrumb,
   relativeTime,
   displayRelativeTime,
   searchTerm,
-  onResize,
-  scrollbarSize,
   meta,
   isLastItem,
+  index,
   cache,
+  parent,
   transactionEvents,
-}: Props) {
-  const sizingRef = useRef<HTMLDivElement | null>(null);
+}: BreadcrumbProps) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
-  const resizeObserverOnResize = useCallback(() => {
-    const height = sizingRef.current?.offsetHeight ?? 0;
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-    // Values in cache are sometimes slightly off
-    // This fuzzy check prevents overly aggressive height recalcs
-    if (Math.abs(cache.getHeight(index, 0) - height) > 1) {
-      onResize();
+  useEffect(() => {
+    if (!wrapperRef.current) {
+      return undefined;
     }
-  }, [cache, index, onResize]);
+    if (window.ResizeObserver === undefined) {
+      return undefined;
+    }
 
-  useResizeObserver({
-    ref: sizingRef,
-    onResize: resizeObserverOnResize,
-  });
+    const onResizeObserver: ResizeObserverCallback = entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+
+      const height =
+        entry.contentBoxSize?.[0]?.blockSize ?? entry.borderBoxSize?.[0]?.blockSize ?? 0;
+
+      if (height === 0) {
+        return;
+      }
+
+      const oldHeight = cache.getHeight(index, 0);
+
+      if (Math.abs(oldHeight - height) > 1) {
+        cache.set(index, 0, cache.getWidth(index, 0), height);
+        // pass row and column index so that react virtualized can only update the
+        // cells after the one that has changed and avoid recomputing the entire grid
+        parent.recomputeGridSize({rowIndex: index, columnIndex: 0});
+      }
+    };
+
+    const observer = new ResizeObserver(onResizeObserver);
+    observer.observe(wrapperRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [cache, index, parent]);
 
   return (
     <Wrapper
-      ref={sizingRef}
+      ref={wrapperRef}
       error={error}
       data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
-      scrollbarSize={scrollbarSize}
       isLastItem={isLastItem}
     >
       <Type type={type} color={color} description={description} error={error} />
@@ -84,9 +106,7 @@ export const Breadcrumb = memo(function Breadcrumb({
         meta={meta}
         transactionEvents={transactionEvents}
       />
-      <div>
-        <Level level={level} searchTerm={searchTerm} />
-      </div>
+      <Level level={level} searchTerm={searchTerm} />
       <Time
         timestamp={timestamp}
         relativeTime={relativeTime}
@@ -95,15 +115,14 @@ export const Breadcrumb = memo(function Breadcrumb({
       />
     </Wrapper>
   );
-});
+}
 
 const Wrapper = styled('div')<{
   error: boolean;
   isLastItem: boolean;
-  scrollbarSize: number;
 }>`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
+  grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -111,7 +130,7 @@ const Wrapper = styled('div')<{
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, auto);
-    grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
+    grid-template-columns: max-content 1fr 74px 82px;
 
     > * {
       padding: ${space(1)};

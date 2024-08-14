@@ -9,16 +9,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
-from sentry.auth.authenticators.sms import SMSRateLimitExceeded
-from sentry.models import Authenticator, User
-from sentry.security import capture_security_activity
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.organizations.services.organization import organization_service
+from sentry.security.utils import capture_security_activity
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +111,12 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     @sudo_required
     def get(self, request: Request, user, interface_id) -> HttpResponse:
         """
@@ -139,15 +151,19 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         response["form"] = get_serializer_field_metadata(serializer_map[interface_id]())
 
         # U2fInterface has no 'secret' attribute
-        try:
+        if hasattr(interface, "secret"):
             response["secret"] = interface.secret
-        except AttributeError:
-            pass
 
         if interface_id == "totp":
+            assert isinstance(
+                interface, TotpInterface
+            ), "Interface must be a TotpInterface to get provision URL"
             response["qrcode"] = interface.get_provision_url(user.email)
 
         if interface_id == "u2f":
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interface must be a U2fInterface to start enrollement"
             publicKeyCredentialCreate, state = interface.start_enrollment(user)
             response["challenge"] = {}
             response["challenge"]["webAuthnRegisterData"] = b64encode(publicKeyCredentialCreate)
@@ -166,7 +182,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         :auth: required
         """
-        if ratelimiter.is_limited(
+        if ratelimiter.backend.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
             limit=10,
             window=86400,  # 10 per day should be fine
@@ -177,7 +193,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 status=429,
             )
 
-        # Using `request.user` here because superuser should not be able to set a user's 2fa
+        # TODO: Investigate the behavior below and see if it makes more sense to
+        # error rather than silently switch to the superuser/staff user.
+
+        # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
         if user.id != request.user.id:
             user = User.objects.get(id=request.user.id)
 
@@ -211,14 +230,15 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             else:
                 return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
+        if hasattr(interface, "secret"):
             interface.secret = request.data["secret"]
-        except KeyError:
-            pass
 
         context = {}
         # Need to update interface with phone number before validating OTP
         if "phone" in request.data:
+            assert isinstance(
+                interface, SmsInterface
+            ), "Interface must be a SmsInterface to get phone number"
             interface.phone_number = serializer.data["phone"]
 
             # Disregarding value of 'otp', if no OTP was provided,
@@ -250,6 +270,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             if "webauthn_register_state" not in request.session:
                 return Response(INVALID_AUTH_STATE, status=status.HTTP_400_BAD_REQUEST)
             state = request.session["webauthn_register_state"]
+
+            assert isinstance(interface, U2fInterface), "Interface must be a U2fInterface to enroll"
             interface.try_enroll(
                 serializer.data["challenge"],
                 serializer.data["response"],
@@ -282,6 +304,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         user.refresh_session_nonce(self.request)
         user.save()
         Authenticator.objects.auto_add_recovery_codes(user)
+
+        request.session[MFA_SESSION_KEY] = str(user.id)
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 

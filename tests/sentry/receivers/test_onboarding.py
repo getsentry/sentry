@@ -1,23 +1,23 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
-import pytz
 from django.utils import timezone
 
-from sentry.models import (
-    Integration,
+from sentry.api.invite_helper import ApiInviteHelper
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
-    OrganizationOption,
-    Rule,
 )
-from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.organizations.services.organization import organization_service
+from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.signals import (
     alert_rule_created,
     event_processed,
-    first_event_pending,
     first_event_received,
     first_replay_received,
     first_transaction_received,
@@ -28,16 +28,21 @@ from sentry.signals import (
     plugin_enabled,
     project_created,
 )
-from sentry.testutils import TestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
 class OrganizationOnboardingTaskTest(TestCase):
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
-        return Integration.objects.create(
+        return self.create_provider_integration(
             provider=provider,
             name="test",
             external_id=external_id,
@@ -52,30 +57,6 @@ class OrganizationOnboardingTaskTest(TestCase):
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
         )
-        assert task.status == OnboardingTaskStatus.COMPLETE
-        assert task.project_id == project.id
-        assert task.date_completed == project.first_event
-
-    def test_existing_pending_task(self):
-        now = timezone.now()
-        project = self.create_project(first_event=now)
-
-        first_event_pending.send(project=project, user=self.user, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization, task=OnboardingTask.FIRST_EVENT
-        )
-
-        assert task.status == OnboardingTaskStatus.PENDING
-        assert task.project_id == project.id
-
-        event = self.store_event(data={}, project_id=project.id)
-        first_event_received.send(project=project, event=event, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization, task=OnboardingTask.FIRST_EVENT
-        )
-
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert task.project_id == project.id
         assert task.date_completed == project.first_event
@@ -162,18 +143,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization=project.organization,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.COMPLETE,
-        )
-        assert task is not None
-
-    def test_first_event_pending(self):
-        now = timezone.now()
-        project = self.create_project(first_event=now)
-        first_event_pending.send(project=project, user=self.user, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization,
-            task=OnboardingTask.FIRST_EVENT,
-            status=OnboardingTaskStatus.PENDING,
         )
         assert task is not None
 
@@ -268,8 +237,17 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        self.create_member(
+        om = self.create_member(
             organization=self.organization, teams=[self.team], email="someemail@example.com"
+        )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite is not None
+        helper = ApiInviteHelper(
+            self.make_request(user=user),
+            invite,
+            None,
         )
 
         with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
@@ -279,7 +257,8 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            helper.accept_invite(user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -289,14 +268,28 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         user2 = self.create_user(email="test@example.com")
-        self.create_member(organization=self.organization, teams=[self.team], user=user2)
+        om2 = self.create_member(
+            organization=self.organization, teams=[self.team], email="blah@example.com"
+        )
+        invite = organization_service.get_invite_by_id(
+            organization_member_id=om2.id, organization_id=om2.organization_id
+        )
+        assert invite is not None
+        helper = ApiInviteHelper(
+            self.make_request(user=user2),
+            invite,
+            None,
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            helper.accept_invite(user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.INVITE_MEMBER,
             status=OnboardingTaskStatus.COMPLETE,
         )
-        assert task.data["invited_member_id"] == member.id
+        assert task.data["invited_member_id"] == om.id
 
     def test_issue_tracker_onboarding(self):
         plugin_enabled.send(
@@ -327,7 +320,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_alert_added(self):
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="issue",
@@ -391,7 +384,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_metric_added(self):
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="metric",
@@ -488,7 +481,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="issue",
@@ -496,7 +489,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             is_api_token=False,
         )
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="metric",
@@ -659,7 +652,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         In this test we also check  if the has_minified_stack_trace is being set to "True" in old projects
         """
-        old_date = datetime(2022, 12, 10, tzinfo=pytz.UTC)
+        old_date = datetime(2022, 12, 10, tzinfo=UTC)
         project = self.create_project(first_event=old_date, date_added=old_date)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -692,8 +685,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             ]
         }
 
-        # project.flags.has_minified_stack_trace = False
-        assert not project.flags.has_minified_stack_trace
+        def _project_has_minified_stack_trace(p: Project) -> bool:
+            return p.flags.has_minified_stack_trace
+
+        assert not _project_has_minified_stack_trace(project)
 
         # Store event
         self.store_event(
@@ -703,13 +698,192 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         project.refresh_from_db()
 
-        # project.flags.has_minified_stack_trace = True
-        assert project.flags.has_minified_stack_trace
+        assert _project_has_minified_stack_trace(project)
 
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
         for call_arg in record_analytics.call_args_list:
             if "first_event_with_minified_stack_trace_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_first_event_without_sourcemaps_received(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        no event with sourcemaps is received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        data = load_data("javascript")
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {"frames": [{"data": {}}]},
+                    "type": "TypeError",
+                }
+            ]
+        }
+        event = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_first_event_with_sourcemaps_received(self, record_analytics):
+        """
+        Test that an analytics event is recorded when
+        a first event with sourcemaps is received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now, platform="VueJS")
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        event = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        record_analytics.assert_called_with(
+            "first_sourcemaps_for_project.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform="VueJS",
+            url=url,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
+        self, record_analytics
+    ):
+        """
+        Test that an analytic event is triggered only once when
+        multiple events with sourcemaps are received
+        """
+        now = timezone.now()
+        project = self.create_project(first_event=now)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        # Store first event
+        event_1 = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_1, sender=type(project))
+
+        # Store second event
+        event_2 = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_2, sender=type(project))
+
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
+                count += 1
+
+        assert count == 1
+
+    @patch("sentry.analytics.record")
+    def test_old_project_sending_sourcemap_event(self, record_analytics):
+        """
+        Test that an analytics event is NOT recorded when
+        the project creation date is older than the date we defined (START_DATE_TRACKING_FIRST_EVENT_WITH_SOURCEMAPS_PER_PROJ).
+
+        In this test we also check  if the has_sourcemaps is being set to "True" in old projects
+        """
+        old_date = datetime(2022, 12, 10, tzinfo=UTC)
+        project = self.create_project(first_event=old_date, date_added=old_date)
+        project_created.send(project=project, user=self.user, sender=type(project))
+        url = "http://localhost:3000"
+        data = load_data("javascript")
+        data["tags"] = [("url", url)]
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        def _project_has_sourcemaps(p: Project) -> bool:
+            return project.flags.has_sourcemaps
+
+        assert not _project_has_sourcemaps(project)
+
+        event = self.store_event(project_id=project.id, data=data)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        project.refresh_from_db()
+
+        assert _project_has_sourcemaps(project)
+
+        # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
+        count = 0
+        for call_arg in record_analytics.call_args_list:
+            if "first_sourcemaps_for_project.sent" in call_arg[0]:
                 count += 1
 
         assert count == 0

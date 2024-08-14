@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -12,30 +12,28 @@ import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-type Props = {
-  organization: Organization;
-  projects: Project[];
-} & RouteComponentProps<{}, {}>;
-
-function OrganizationGeneralSettings(props: Props) {
+export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, {}>) {
   const api = useApi();
-
-  const {organization, projects} = props;
-  const access = new Set(organization.access);
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -69,7 +67,7 @@ function OrganizationGeneralSettings(props: Props) {
     if (updated.slug && updated.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, updated);
 
-      if (updated.features.includes('customer-domains')) {
+      if (ConfigStore.get('features').has('system:multi-region')) {
         const {organizationUrl} = updated.links;
         window.location.replace(`${organizationUrl}/settings/organization/`);
       } else {
@@ -102,21 +100,23 @@ function OrganizationGeneralSettings(props: Props) {
     });
   };
 
+  const organizationRegionInfo = OrganizationRegionAction({
+    organization,
+  });
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader title={t('Organization Settings')} />
+        <SettingsPageHeader
+          title={t('Organization Settings')}
+          action={organizationRegionInfo}
+        />
         <PermissionAlert />
 
-        <OrganizationSettingsForm
-          {...props}
-          initialData={organization}
-          access={access}
-          onSave={handleSaveForm}
-        />
+        <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 
-        {access.has('org:admin') && !organization.isDefault && (
+        {organization.access.includes('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
             <FieldGroup
@@ -142,5 +142,3 @@ function OrganizationGeneralSettings(props: Props) {
     </Fragment>
   );
 }
-
-export default withProjects(withOrganization(OrganizationGeneralSettings));

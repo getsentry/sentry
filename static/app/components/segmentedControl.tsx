@@ -1,18 +1,21 @@
 import {useMemo, useRef} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AriaRadioProps, useRadio, useRadioGroup} from '@react-aria/radio';
+import type {AriaRadioProps} from '@react-aria/radio';
+import {useRadio, useRadioGroup} from '@react-aria/radio';
 import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {RadioGroupProps, RadioGroupState, useRadioGroupState} from '@react-stately/radio';
-import {CollectionBase, ItemProps, Node} from '@react-types/shared';
+import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
+import {useRadioGroupState} from '@react-stately/radio';
+import type {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string>
   extends Omit<ItemProps<any>, 'children'> {
@@ -163,6 +166,8 @@ function Segment<Value extends string>({
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
+          // Prevent animations until the user has made a change
+          layoutDependency={isSelected}
         />
       )}
 
@@ -234,7 +239,7 @@ const SegmentWrap = styled('label')<{
   min-width: 0;
 
   ${p => p.theme.buttonPadding[p.size]}
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   ${p =>
     !p.isDisabled &&
@@ -289,7 +294,9 @@ const SegmentInteractionStateLayer = styled(InteractionStateLayer)<{
   /* Prevent small gaps between adjacent pairs of selected & hovered radios (due to their
   border radius) by extending the hovered radio's interaction state layer into and
   behind the selected radio. */
-  transition: left 0.2s, right 0.2s;
+  transition:
+    left 0.2s,
+    right 0.2s;
   ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.borderRadius} - 2px);`}
   ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.borderRadius} - 2px);`}
 `;
@@ -306,7 +313,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
       ? `
     background: ${p.theme.active};
     border-radius: ${p.theme.borderRadius};
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 3px ${p.theme.focus};
     }
 
@@ -323,7 +330,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     background: ${p.theme.backgroundElevated};
     border-radius: calc(${p.theme.borderRadius} - 1px);
     box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}

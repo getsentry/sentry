@@ -1,15 +1,21 @@
+from __future__ import annotations
+
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
+from django.http.request import HttpRequest
 from django.utils.encoding import force_str
-from django.views import View
 
-from sentry.models import AuthIdentity, User
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
+from sentry.models.authidentity import AuthIdentity
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
-
-from .view import AuthView, ConfigureView
+from sentry.plugins.base.response import DeferredResponse
+from sentry.users.models.user import User
 
 
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
@@ -17,6 +23,13 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
     MigratingIdentityId may be used in the ``id`` field of an identity
     dictionary to facilitate migrating user identities from one identifying id
     to another.
+
+    Context - when google oauth was initially created, the auth_identity key was simply
+    the provider email. This can cause issues if the customer changes their domain name,
+    and now their email is different and they're locked out of their account.
+    This logic updates their id to the provider id instead.
+
+    NOTE: this should _only_ really be relevant for google oauth implementation
     """
 
     __slots__ = ()
@@ -32,6 +45,8 @@ class Provider(PipelineProvider, abc.ABC):
     """
 
     is_partner = False
+    requires_refresh = True
+    is_saml = False
 
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
@@ -46,11 +61,11 @@ class Provider(PipelineProvider, abc.ABC):
     def key(self) -> str:
         return self._key
 
-    def get_configure_view(self) -> View:
-        """
-        Return the view which handles configuration (post-setup).
-        """
-        return ConfigureView.as_view()
+    def get_configure_view(
+        self,
+    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse | str]:
+        """Return the view which handles configuration (post-setup)."""
+        return lambda request, organization, auth_provider: ""
 
     def get_auth_pipeline(self) -> Sequence[AuthView]:
         """

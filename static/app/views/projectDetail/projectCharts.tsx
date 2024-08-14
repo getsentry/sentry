@@ -1,9 +1,10 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -21,17 +22,21 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -82,14 +87,14 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   get defaultDisplayModes() {
-    const {hasSessions, hasTransactions, organization, project} = this.props;
+    const {hasSessions, hasTransactions, project} = this.props;
 
     if (!hasSessions && !hasTransactions) {
       return [DisplayModes.ERRORS];
     }
 
     if (hasSessions && !hasTransactions) {
-      if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+      if (isPlatformANRCompatible(project?.platform)) {
         return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
@@ -99,7 +104,7 @@ class ProjectCharts extends Component<Props, State> {
       return [DisplayModes.FAILURE_RATE, DisplayModes.APDEX];
     }
 
-    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+    if (isPlatformANRCompatible(project?.platform)) {
       return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
     }
 
@@ -212,7 +217,7 @@ class ProjectCharts extends Component<Props, State> {
       },
     ];
 
-    if (organization.features.includes('anr-rate') && project?.platform === 'android') {
+    if (isPlatformANRCompatible(project?.platform)) {
       return [
         {
           value: DisplayModes.ANR_RATE,
@@ -322,8 +327,7 @@ class ProjectCharts extends Component<Props, State> {
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
-    const hasAnrRateFeature =
-      organization.features.includes('anr-rate') && project?.platform === 'android';
+    const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
 
     return (
       <Panel>

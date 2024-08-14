@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import re
+import zoneinfo
 from datetime import datetime
 from typing import Any
 
-import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -14,15 +15,16 @@ from django.utils.translation import gettext_lazy as _
 from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
-from sentry.models import User
+from sentry.users.models.user import User
 from sentry.utils.auth import find_users, logger
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
@@ -99,7 +101,7 @@ class AuthenticationForm(forms.Form):
             return False
 
         ip_address = self.request.META["REMOTE_ADDR"]
-        return ratelimiter.is_limited(f"auth:ip:{ip_address}", limit)
+        return ratelimiter.backend.is_limited(f"auth:ip:{ip_address}", limit)
 
     def _is_user_rate_limited(self):
         limit = options.get("auth.user-rate-limit")
@@ -110,7 +112,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited(f"auth:username:{username}", limit)
+        return ratelimiter.backend.is_limited(f"auth:username:{username}", limit)
 
     def clean(self) -> dict[str, Any] | None:
         username = self.cleaned_data.get("username")
@@ -231,7 +233,9 @@ class RegistrationForm(PasswordlessRegistrationForm):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(
+            password, user=User(username=self.cleaned_data.get("username"))
+        )
         return password
 
     def save(self, commit=True):
@@ -281,9 +285,13 @@ class RecoverPasswordForm(forms.Form):
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(password, user=self.user)
         return password
 
 
@@ -329,3 +337,42 @@ class TwoFactorForm(forms.Form):
             attrs={"placeholder": _("Authenticator or recovery code"), "autofocus": True}
         ),
     )
+
+
+class RelocationForm(forms.Form):
+    username = forms.CharField(max_length=128, required=False, widget=forms.TextInput())
+    password = forms.CharField(widget=forms.PasswordInput())
+    tos_check = forms.BooleanField(
+        label=_(
+            f"I agree to the <a href={settings.TERMS_URL}>Terms of Service</a> and <a href={settings.PRIVACY_URL}>Privacy Policy</a>"
+        ),
+        widget=forms.CheckboxInput(),
+        required=False,
+        initial=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(placeholder=self.user.username)
+
+    def clean_username(self):
+        value = self.cleaned_data.get("username") or self.user.username
+        value = re.sub(r"[ \n\t\r\0]*", "", value)
+        if not value:
+            return
+        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+            raise forms.ValidationError(_("An account is already registered with that username."))
+        return value.lower()
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        password_validation.validate_password(password, user=self.user)
+        return password
+
+    def clean_tos_check(self):
+        value = self.cleaned_data.get("tos_check")
+        if not value:
+            raise forms.ValidationError(
+                _("You must agree to the Terms of Service and Privacy Policy before proceeding.")
+            )

@@ -5,12 +5,10 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.incidents.models.incident import IncidentActivityType
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentActivityIndexTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-activity"
 
@@ -67,9 +65,11 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
             resp = self.get_success_response(
                 incident.organization.slug, incident.identifier, desc=0
             )
+
         assert resp.data == expected
 
         expected.reverse()
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(incident.organization.slug, incident.identifier)
+
         assert resp.data == expected

@@ -4,6 +4,8 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.tasks.beacon import send_beacon_metric
 
@@ -38,6 +40,10 @@ class MetricsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class InternalBeaconEndpoint(Endpoint):
+    owner = ApiOwner.OPEN_SOURCE
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = ()
 
     def post(self, request: Request) -> Response:

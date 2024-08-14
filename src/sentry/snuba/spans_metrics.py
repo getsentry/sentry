@@ -1,16 +1,19 @@
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
 
 from snuba_sdk import Column
 
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
+    TopSpansMetricsQueryBuilder,
 )
-from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -39,6 +42,10 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     extra_columns=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -48,53 +55,69 @@ def query(
         selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        auto_fields=auto_fields,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
-        equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
-        has_metrics=has_metrics,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        skip_tag_resolution=skip_tag_resolution,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            use_metrics_layer=use_metrics_layer,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
     )
 
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     return result
 
 
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
-    groupby: Optional[Column] = None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     metrics_query = TimeseriesSpansMetricsQueryBuilder(
         params,
         rollup,
+        snuba_params=snuba_params,
         dataset=Dataset.PerformanceMetrics,
         query=query,
         selected_columns=selected_columns,
-        functions_acl=functions_acl,
-        allow_metric_aggregates=allow_metric_aggregates,
-        use_metrics_layer=use_metrics_layer,
         groupby=groupby,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            allow_metric_aggregates=allow_metric_aggregates,
+            use_metrics_layer=use_metrics_layer,
+        ),
     )
-    result = metrics_query.run_query(referrer)
+    result = metrics_query.run_query(referrer=referrer, query_source=query_source)
 
     result = metrics_query.process_results(result)
     result["data"] = (
@@ -132,6 +155,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    snuba_params=None,
     equations=None,
     referrer=None,
     top_events=None,
@@ -139,6 +163,9 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -162,11 +189,16 @@ def top_events_timeseries(
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         top_events = query(
             selected_columns,
             query=user_query,
             params=params,
+            snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
             limit=limit,
@@ -175,6 +207,7 @@ def top_events_timeseries(
             use_aggregate_conditions=True,
             include_equation_fields=True,
             skip_tag_resolution=True,
+            query_source=query_source,
         )
 
     top_events_builder = TopSpansMetricsQueryBuilder(
@@ -182,12 +215,15 @@ def top_events_timeseries(
         params,
         rollup,
         top_events["data"],
+        snuba_params=snuba_params,
         other=False,
         query=user_query,
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopSpansMetricsQueryBuilder(
@@ -195,17 +231,18 @@ def top_events_timeseries(
             params,
             rollup,
             top_events["data"],
+            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
         )
 
-        # TODO: use bulk_snql_query
-        other_result = other_events_builder.run_query(referrer)
-        result = top_events_builder.run_query(referrer)
+        # TODO: use bulk_snuba_queries
+        other_result = other_events_builder.run_query(referrer=referrer, query_source=query_source)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
     else:
-        result = top_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
         other_result = {"data": []}
     if (
         not allow_empty
@@ -214,9 +251,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -248,11 +287,11 @@ def top_events_timeseries(
     for key, item in results.items():
         results[key] = SnubaTSResult(
             {
-                "data": discover.zerofill(
-                    item["data"], params["start"], params["end"], rollup, "time"
-                )
-                if zerofill_results
-                else item["data"],
+                "data": (
+                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else item["data"]
+                ),
                 "order": item["order"],
             },
             params["start"],

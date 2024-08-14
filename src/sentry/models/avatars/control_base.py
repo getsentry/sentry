@@ -1,6 +1,6 @@
 from sentry.db.models import BoundedBigIntegerField
 from sentry.models.avatars.base import AvatarBase
-from sentry.models.files import ControlFileBlob, File
+from sentry.models.files import ControlFile
 
 
 class ControlAvatarBase(AvatarBase):
@@ -9,16 +9,21 @@ class ControlAvatarBase(AvatarBase):
     class Meta:
         abstract = True
 
-    @classmethod
-    def file_class(cls):
-        from sentry.models import ControlFile
+    def file_class(self) -> type[ControlFile]:
+        """
+        Select the file class this avatar has used.
+        File classes can vary by the avatar as we have migrated
+        storage for saas, but self-hosted and single-tenant instances
+        did not have relations and storage migrated.
+        """
+        return ControlFile
 
-        if ControlFileBlob._storage_config():
-            return ControlFile
-        return File
+    def file_fk(self) -> str:
+        return "control_file_id"
 
-    @classmethod
-    def file_fk(cls) -> str:
-        if ControlFileBlob._storage_config():
-            return "control_file_id"
-        return "file_id"
+    def file_write_fk(self) -> str:
+        """Prefer controlfile as user/sentryapp avatars are stored in control silo"""
+        return "control_file_id"
+
+    def get_file_id(self) -> int:
+        return self.control_file_id

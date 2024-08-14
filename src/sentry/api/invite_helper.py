@@ -2,25 +2,27 @@ from __future__ import annotations
 
 import dataclasses
 from logging import Logger
-from typing import Dict, Optional
 
+from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
-from rest_framework.request import Request
 
 from sentry import audit_log, features
-from sentry.models import AuthIdentity, AuthProvider, User, UserEmail
-from sentry.services.hybrid_cloud.organization import (
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.useremail import UserEmail
+from sentry.organizations.services.organization import (
     RpcOrganizationMember,
     RpcUserInviteContext,
     organization_service,
 )
 from sentry.signals import member_joined
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(
-    request: Request, member_id: int, token: str, organization_id: int
+    request: HttpRequest, member_id: int, token: str, organization_id: int
 ) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token
@@ -28,7 +30,7 @@ def add_invite_details_to_session(
     request.session["invite_organization_id"] = organization_id
 
 
-def remove_invite_details_from_session(request: Request) -> None:
+def remove_invite_details_from_session(request: HttpRequest) -> None:
     """Deletes invite details from the request session"""
     request.session.pop("invite_member_id", None)
     request.session.pop("invite_token", None)
@@ -37,12 +39,12 @@ def remove_invite_details_from_session(request: Request) -> None:
 
 @dataclasses.dataclass
 class InviteDetails:
-    invite_token: Optional[str]
-    invite_member_id: Optional[int]
-    invite_organization_id: Optional[int]
+    invite_token: str | None
+    invite_member_id: int | None
+    invite_organization_id: int | None
 
 
-def get_invite_details(request: Request) -> InviteDetails:
+def get_invite_details(request: HttpRequest) -> InviteDetails:
     """Returns tuple of (token, member_id) from request session"""
     return InviteDetails(
         invite_token=request.session.get("invite_token", None),
@@ -55,7 +57,7 @@ class ApiInviteHelper:
     @classmethod
     def from_session_or_email(
         cls,
-        request: Request,
+        request: HttpRequest,
         organization_id: int,
         email: str,
         logger: Logger | None = None,
@@ -99,7 +101,7 @@ class ApiInviteHelper:
     @classmethod
     def from_session(
         cls,
-        request: Request,
+        request: HttpRequest,
         logger: Logger | None = None,
     ) -> ApiInviteHelper | None:
         invite_details = get_invite_details(request)
@@ -114,7 +116,7 @@ class ApiInviteHelper:
         )
         if invite_context is None:
             if logger:
-                logger.error("Invalid pending invite cookie", exc_info=True)
+                logger.exception("Invalid pending invite cookie")
             return None
 
         api_invite_helper = ApiInviteHelper(
@@ -128,7 +130,7 @@ class ApiInviteHelper:
 
     def __init__(
         self,
-        request: Request,
+        request: HttpRequest,
         invite_context: RpcUserInviteContext,
         token: str | None,
         logger: Logger | None = None,
@@ -218,10 +220,11 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            organization_service.delete_organization_member(
-                organization_member_id=self.invite_context.invite_organization_member_id,
-                organization_id=self.invite_context.organization.id,
-            )
+            if self.invite_context.invite_organization_member_id is not None:
+                organization_service.delete_organization_member(
+                    organization_member_id=self.invite_context.invite_organization_member_id,
+                    organization_id=self.invite_context.organization.id,
+                )
             return None
 
         try:
@@ -286,7 +289,7 @@ class ApiInviteHelper:
         )
         return not primary_email_is_verified
 
-    def get_onboarding_steps(self) -> Dict[str, bool]:
+    def get_onboarding_steps(self) -> dict[str, bool]:
         return {
             "needs2fa": self._needs_2fa(),
             "needsEmailVerification": self._needs_email_verification(),

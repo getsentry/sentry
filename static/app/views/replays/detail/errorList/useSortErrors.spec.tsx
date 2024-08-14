@@ -1,6 +1,7 @@
-import {act} from 'react-test-renderer';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
@@ -21,45 +22,47 @@ jest.mock('sentry/utils/useUrlParams', () => {
   };
 });
 
-const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
-  hydrateErrors(
-    TestStubs.ReplayRecord({started_at: new Date('2023-06-09T12:00:00+00:00')}),
-    [
-      TestStubs.Replay.RawReplayError({
-        'error.type': ['RangeError'],
-        timestamp: new Date('2023-06-09T12:00:00+00:00'),
-        id: '415ecb5c85ac43b19f1886bb41ddab96',
-        'issue.id': 11,
-        issue: 'JAVASCRIPT-RANGE',
-        title: 'Invalid time value',
-        'project.name': 'javascript',
-      }),
-      TestStubs.Replay.RawReplayError({
-        'error.type': ['TypeError'],
-        timestamp: new Date('2023-06-09T12:10:00+00:00'),
-        id: 'ac43b19f1886bb41ddab96415ecb5c85',
-        'issue.id': 22,
-        issue: 'NEXTJS-TYPE',
-        title: `undefined is not an object (evaluating 'e.apply').`,
-        'project.name': 'next-js',
-      }),
-      TestStubs.Replay.RawReplayError({
-        'error.type': ['TypeError'],
-        timestamp: new Date('2023-06-09T12:20:00+00:00'),
-        id: '9f1886bb41ddab96415ecb5c85ac43b1',
-        'issue.id': 22,
-        issue: 'JAVASCRIPT-UNDEF',
-        title: `Maximum update depth exceeded`,
-        'project.name': 'javascript',
-      }),
-    ]
-  );
+const {
+  errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
+  feedbackFrames: [],
+} = hydrateErrors(
+  ReplayRecordFixture({started_at: new Date('2023-06-09T12:00:00+00:00')}),
+  [
+    RawReplayErrorFixture({
+      'error.type': ['RangeError'],
+      timestamp: new Date('2023-06-09T12:00:00+00:00'),
+      id: '415ecb5c85ac43b19f1886bb41ddab96',
+      'issue.id': 11,
+      issue: 'JAVASCRIPT-RANGE',
+      title: 'Invalid time value',
+      'project.name': 'javascript',
+    }),
+    RawReplayErrorFixture({
+      'error.type': ['TypeError'],
+      timestamp: new Date('2023-06-09T12:10:00+00:00'),
+      id: 'ac43b19f1886bb41ddab96415ecb5c85',
+      'issue.id': 22,
+      issue: 'NEXTJS-TYPE',
+      title: `undefined is not an object (evaluating 'e.apply').`,
+      'project.name': 'next-js',
+    }),
+    RawReplayErrorFixture({
+      'error.type': ['TypeError'],
+      timestamp: new Date('2023-06-09T12:20:00+00:00'),
+      id: '9f1886bb41ddab96415ecb5c85ac43b1',
+      'issue.id': 22,
+      issue: 'JAVASCRIPT-UNDEF',
+      title: `Maximum update depth exceeded`,
+      'project.name': 'javascript',
+    }),
+  ]
+);
 
 describe('useSortErrors', () => {
   const items = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED, ERROR_2_NEXTJS_TYPEERROR];
 
   it('should the list by timestamp by default', () => {
-    const {result} = reactHooks.renderHook(useSortErrors, {
+    const {result} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -76,7 +79,7 @@ describe('useSortErrors', () => {
   });
 
   it('should reverse the sort order', () => {
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -99,7 +102,7 @@ describe('useSortErrors', () => {
   });
 
   it('should sort by the title field', () => {
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -127,7 +130,7 @@ describe('useSortErrors', () => {
       ERROR_2_NEXTJS_TYPEERROR,
       ERROR_1_JS_RANGEERROR,
     ];
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items: mixedItems},
     });
 

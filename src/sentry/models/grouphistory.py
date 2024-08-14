@@ -1,25 +1,31 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
+from django.conf import settings
 from django.db import models
-from django.db.models import SET_NULL, Q
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Release, Team, User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.models.group import Group
+    from sentry.models.release import Release
+    from sentry.models.team import Team
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 class GroupHistoryStatus:
@@ -54,6 +60,10 @@ class GroupHistoryStatus:
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
+
+    PRIORITY_HIGH = 21
+    PRIORITY_MEDIUM = 22
+    PRIORITY_LOW = 23
 
 
 STRING_TO_STATUS_LOOKUP = {
@@ -138,9 +148,10 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 }
 
 
-class GroupHistoryManager(BaseManager):
-    def filter_to_team(self, team):
-        from sentry.models import GroupAssignee, Project
+class GroupHistoryManager(BaseManager["GroupHistory"]):
+    def filter_to_team(self, team: "Team"):
+        from sentry.models.groupassignee import GroupAssignee
+        from sentry.models.project import Project
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
@@ -153,7 +164,7 @@ class GroupHistoryManager(BaseManager):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,
@@ -163,15 +174,17 @@ class GroupHistory(Model):
     - Issue Activity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    objects = GroupHistoryManager()
+    objects: ClassVar[GroupHistoryManager] = GroupHistoryManager()
 
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
-    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
+
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
@@ -204,13 +217,28 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (
-            ("project", "status", "release"),
-            ("group", "status"),
-            ("project", "date_added"),
+        indexes = (
+            models.Index(fields=("project", "status", "release")),
+            models.Index(fields=("group", "status")),
+            models.Index(fields=("project", "date_added")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
+
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned protocol"""
+        self.team_id = None
+        self.user_id = None
+        if actor and actor.is_user:
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
 
 
 def get_prev_history(group, status):
@@ -230,7 +258,7 @@ def get_prev_history(group, status):
 def record_group_history_from_activity_type(
     group: "Group",
     activity_type: int,
-    actor: Optional[Union["User", "Team"]] = None,
+    actor: Union["User", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     """
@@ -242,7 +270,8 @@ def record_group_history_from_activity_type(
     # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
-        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
+        if status_str is not None:
+            status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
 
     if status is not None:
         return record_group_history(group, status, actor, release)
@@ -251,19 +280,21 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
-    from sentry.models import Team, User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.models.team import Team
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
     prev_history = get_prev_history(group, status)
-    actor_id = None
+    user_id = None
+    team_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            user_id = actor.id
         elif isinstance(actor, Team):
-            actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -272,8 +303,51 @@ def record_group_history(
         group=group,
         project=group.project,
         release=release,
-        actor_id=actor_id,
+        user_id=user_id,
+        team_id=team_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
+    )
+
+
+def bulk_record_group_history(
+    groups: list["Group"],
+    status: int,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
+    release: Optional["Release"] = None,
+):
+    from sentry.models.team import Team
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
+
+    def get_prev_history_date(group, status):
+        prev_history = get_prev_history(group, status)
+        return prev_history.date_added if prev_history else None
+
+    user_id: int | None = None
+    team_id: int | None = None
+    if actor:
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
+            user_id = actor.id
+        elif isinstance(actor, Team):
+            team_id = actor.id
+        else:
+            raise ValueError("record_group_history actor argument must be RPCUser or Team")
+
+    return GroupHistory.objects.bulk_create(
+        [
+            GroupHistory(
+                organization=group.project.organization,
+                group=group,
+                project=group.project,
+                release=release,
+                team_id=team_id,
+                user_id=user_id,
+                status=status,
+                prev_history=get_prev_history(group, status),
+                prev_history_date=get_prev_history_date(group, status),
+            )
+            for group in groups
+        ]
     )

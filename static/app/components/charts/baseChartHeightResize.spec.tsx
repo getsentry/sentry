@@ -25,22 +25,18 @@ function TestContainer({children}) {
 
 describe('BaseChart', function () {
   it('can scale to full parent height when given autoHeightResize', () => {
-    const {container} = render(
+    render(
       <TestContainer>
         <BaseChart autoHeightResize />
       </TestContainer>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders with default height when autoHeightResize not provided', () => {
-    const {container} = render(
+    render(
       <TestContainer>
         <BaseChart />
       </TestContainer>
     );
-
-    expect(container).toSnapshot();
   });
 });

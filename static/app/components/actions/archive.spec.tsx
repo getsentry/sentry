@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ArchiveActions from 'sentry/components/actions/archive';
-import {ResolutionStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();
@@ -18,7 +18,7 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
     expect(onUpdate).toHaveBeenCalledWith({
-      status: ResolutionStatus.IGNORED,
+      status: GroupStatus.IGNORED,
       statusDetails: {},
       substatus: 'archived_until_escalating',
     });
@@ -53,7 +53,7 @@ describe('ArchiveActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(onUpdate).toHaveBeenCalledWith({
-      status: ResolutionStatus.IGNORED,
+      status: GroupStatus.IGNORED,
       statusDetails: {},
       substatus: 'archived_until_escalating',
     });
@@ -74,6 +74,33 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
       statusDetails: {ignoreDuration: 30},
+      substatus: 'archived_until_condition_met',
     });
+  });
+
+  it('does render archive until occurrence options', async () => {
+    render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence={false} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {
+        name: 'Until this affects an additional\u2026',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('does not render archive until occurrence options', async () => {
+    render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence />);
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {
+        name: 'Until this affects an additional\u2026',
+      })
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
+import orjson
 from requests.exceptions import RequestException
 
 from sentry import http
-from sentry.utils import json
 
 from .constants import ACCESS_TOKEN_URL
 
@@ -35,7 +35,7 @@ class FlyClient:
             raise FlyApiError(f"{e}", status=getattr(e, "status_code", 0))
         if req.status_code < 200 or req.status_code >= 300:
             raise FlyApiError(req.content, status=req.status_code)
-        return json.loads(req.content)
+        return orjson.loads(req.content)
 
     def get_info(self):
         """

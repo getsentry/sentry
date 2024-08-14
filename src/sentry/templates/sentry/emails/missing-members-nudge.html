@@ -1,0 +1,90 @@
+{% extends "sentry/emails/base.html" %}
+{% load sentry_assets %}
+{% load i18n static %}
+
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    .card-container {
+        display: flex;
+        width: 100%;
+        justify-content: left;
+        margin: 16px -7px 0px -7px;
+        padding: 0px;
+    }
+
+    .user-container {
+        width: 33%;
+        border: 1px solid #E0DCE5;
+        margin-left: 7px;
+        margin-right: 7px;
+        border-radius: 4px;
+        padding: 16px 18px;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2px;
+        font-size: 14px;
+        > img {
+            margin-right: 5px;
+        }
+    }
+
+    .subtitle {
+        font-size: 12px;
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    .email {
+        font-size: 12px;
+        text-decoration: none;
+        color: #80708F !important;
+    }
+
+    .provider-logo {
+        max-width: 16px;
+    }
+
+    .btn-container {
+        margin-top: 20px;
+    }
+  </style>
+{% endblock %}
+
+{% block main %}
+    <h3>Bring your full {{ provider }} team on board in Sentry</h3>
+
+    <p>You have developers committing code changes in your GitHub organization. Invite them to Sentry so that they can monitor their error and performance issues.</p>
+
+    <h5>Most Active Contributors</h5>
+
+    <div class="card-container">
+        {% for member in top_missing_members %}
+        <div class="user-container">
+            <div class="user-row">
+                {% if provider == "Github" %}
+                <img src="{% static 'sentry/images/logos/logo-github.svg' %}" class="provider-logo" alt="{{ provider }}"/>
+                {% endif %}
+
+                <span><a href="{{ member.profile_link }}">{{ member.external_id }}</a></span>
+            </div>
+            <div class="subtitle user-row">
+                <img src="{% absolute_asset_url 'sentry' 'images/email/commit-icon.png' %}" alt="Commits" width="16px" height="16px"/>
+                <span>{{ member.commit_count }} Recent Commits</span>
+            </div>
+            <div class="email">{{ member.email }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="btn-container">
+        <a href="{{ members_list_url }}" class="btn">View Missing Members</a>
+    </div>
+
+{% endblock %}

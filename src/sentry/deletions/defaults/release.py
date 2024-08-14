@@ -3,19 +3,17 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class ReleaseDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import (
-            Deploy,
-            Distribution,
-            Group,
-            GroupRelease,
-            GroupResolution,
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            ReleaseHeadCommit,
-            ReleaseProject,
-            ReleaseProjectEnvironment,
-        )
+        from sentry.models.deploy import Deploy
+        from sentry.models.distribution import Distribution
+        from sentry.models.group import Group
+        from sentry.models.grouprelease import GroupRelease
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.releasecommit import ReleaseCommit
+        from sentry.models.releaseenvironment import ReleaseEnvironment
+        from sentry.models.releasefile import ReleaseFile
+        from sentry.models.releaseheadcommit import ReleaseHeadCommit
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
 
         return [
             ModelRelation(Deploy, {"release_id": instance.id}),

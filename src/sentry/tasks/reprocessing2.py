@@ -1,13 +1,17 @@
 import time
+from collections.abc import Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -20,17 +24,18 @@ from sentry.utils.query import celery_run_batch_query
     queue="events.reprocessing.process_event",
     time_limit=120,
     soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
 )
 def reprocess_group(
-    project_id,
-    group_id,
-    remaining_events="delete",
-    new_group_id=None,
-    query_state=None,
-    start_time=None,
-    max_events=None,
-    acting_user_id=None,
-):
+    project_id: int,
+    group_id: int,
+    remaining_events: str = "delete",
+    new_group_id: int | None = None,
+    query_state: str | None = None,
+    start_time: float | None = None,
+    max_events: int | None = None,
+    acting_user_id: int | None = None,
+) -> None:
     sentry_sdk.set_tag("project", project_id)
     sentry_sdk.set_tag("group_id", group_id)
 
@@ -95,7 +100,7 @@ def reprocess_group(
                         start_time=start_time,
                     )
                 except CannotReprocess as e:
-                    logger.error(f"reprocessing2.{e}")
+                    logger.error("reprocessing2.%s", str(e))
                 except Exception:
                     sentry_sdk.capture_exception()
                 else:
@@ -135,20 +140,21 @@ def reprocess_group(
     queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry
 def handle_remaining_events(
-    project_id,
-    new_group_id,
-    remaining_events,
+    project_id: int,
+    new_group_id: int,
+    remaining_events: str,
     # TODO(markus): Should be mandatory arguments.
-    event_ids_redis_key=None,
-    old_group_id=None,
+    event_ids_redis_key: str | None = None,
+    old_group_id: int | None = None,
     # TODO(markus): Deprecated arguments, can remove in next version.
-    event_ids=None,
-    from_timestamp=None,
-    to_timestamp=None,
-):
+    event_ids: Sequence[str] | None = None,
+    from_timestamp: datetime | None = None,
+    to_timestamp: datetime | None = None,
+) -> None:
     """
     Delete or merge/move associated per-event data: nodestore, event
     attachments, user reports. Mark the event as "tombstoned" in Snuba.
@@ -170,7 +176,10 @@ def handle_remaining_events(
     if event_ids_redis_key is not None:
         event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
-    metrics.timing(
+    if TYPE_CHECKING:
+        assert event_ids is not None
+
+    metrics.distribution(
         "events.reprocessing.handle_remaining_events.batch_size",
         len(event_ids),
         sample_rate=1.0,
@@ -184,10 +193,10 @@ def handle_remaining_events(
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
-        nodestore.delete_multi(node_ids)
+        nodestore.backend.delete_multi(node_ids)
 
         # Tell Snuba to delete the event data.
-        eventstream.tombstone_events_unsafe(
+        eventstream.backend.tombstone_events_unsafe(
             project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
         )
     elif remaining_events == "keep":
@@ -196,7 +205,7 @@ def handle_remaining_events(
                 group_id=new_group_id
             )
 
-        eventstream.replace_group_unsafe(
+        eventstream.backend.replace_group_unsafe(
             project_id,
             event_ids,
             new_group_id=new_group_id,
@@ -222,10 +231,12 @@ def handle_remaining_events(
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def finish_reprocessing(project_id, group_id):
-    from sentry.models import Activity, Group, GroupRedirect
+def finish_reprocessing(project_id: int, group_id: int) -> None:
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+    from sentry.models.groupredirect import GroupRedirect
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Group)):
         group = Group.objects.get(id=group_id)
 
         # While we migrated all associated models at the beginning of
@@ -233,7 +244,8 @@ def finish_reprocessing(project_id, group_id):
         # to transfer manually.
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
-        activity = Activity.objects.get(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activities = Activity.objects.filter(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activity = activities[0]
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 
@@ -258,7 +270,7 @@ def finish_reprocessing(project_id, group_id):
         force_flush_batch=True,
     )
 
-    eventstream.exclude_groups(project_id, [group_id])
+    eventstream.backend.exclude_groups(project_id, [group_id])
 
     from sentry import similarity
 

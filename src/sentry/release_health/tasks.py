@@ -1,5 +1,6 @@
 import logging
-from typing import Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -7,14 +8,11 @@ from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
@@ -98,7 +96,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                 environment__organization_id=org_id,
                             )
 
-                            updates = {}
+                            updates: dict[str, Any] = {}
                             if rpe.adopted is None:
                                 updates["adopted"] = timezone.now()
 

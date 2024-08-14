@@ -13,6 +13,18 @@ class IntegrationAddedEvent(analytics.Event):
     )
 
 
+class IntegrationDisabledNotified(analytics.Event):
+    type = "integration.disabled.notified"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("provider"),
+        analytics.Attribute("integration_type"),
+        analytics.Attribute("integration_id"),
+        analytics.Attribute("user_id", required=False),
+    )
+
+
 class IntegrationIssueCreatedEvent(analytics.Event):
     type = "integration.issue.created"
 
@@ -107,11 +119,14 @@ class IntegrationStacktraceLinkEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("filepath"),
         analytics.Attribute("status"),
+        analytics.Attribute("link_fetch_iterations"),
+        analytics.Attribute("platform", required=False),
     )
 
 
 def register_analytics() -> None:
     analytics.register(IntegrationAddedEvent)
+    analytics.register(IntegrationDisabledNotified)
     analytics.register(IntegrationIssueCreatedEvent)
     analytics.register(IntegrationIssueLinkedEvent)
     analytics.register(IntegrationIssueStatusSyncedEvent)

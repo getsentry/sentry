@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from collections import defaultdict
+from typing import Any
 
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
-from sentry import features
+from sentry import features, options
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project, ProjectDebugFile
+from sentry.lang.java.proguard import open_proguard_mapper
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.utils.glob import glob_match
 
 from ..base import (
     DetectorType,
@@ -27,24 +32,32 @@ from ..types import Span
 
 
 class BaseIOMainThreadDetector(PerformanceDetector):
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
+    SPAN_PREFIX: str  # abstract
+    group_type: type[GroupType]  # abstract
+
+    def _is_io_on_main_thread(self, span: Span) -> bool:
+        raise NotImplementedError
+
+    def _fingerprint(self, span_list: list[Span]) -> str:
+        raise NotImplementedError
+
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
-        self.mapper = None
-        self.parent_to_blocked_span = defaultdict(list)
+        self.mapper: ProguardMapper | None = None
+        self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         if self._is_io_on_main_thread(span) and span.get("op", "").lower().startswith(
             self.SPAN_PREFIX
         ):
-            parent_span_id = span.get("parent_span_id")
+            parent_span_id = span["parent_span_id"]
             self.parent_to_blocked_span[parent_span_id].append(span)
 
-    def on_complete(self):
+    def on_complete(self) -> None:
         for parent_span_id, span_list in self.parent_to_blocked_span.items():
             span_list = [
                 span for span in span_list if "start_timestamp" in span and "timestamp" in span
@@ -60,7 +73,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                 offender_spans = [span for span in span_list if "span_id" in span]
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
-                    op=span_list[0].get("op"),
+                    op=span_list[0].get("op", ""),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
                     type=self.group_type,
@@ -102,19 +115,19 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     Checks for a file io span on the main thread
     """
 
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
-    IGNORED_EXTENSIONS = {".nib", ".plist"}
+    IGNORED_LIST = {"*.nib", "*.plist", "*kblayout_iphone.dat"}
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
 
-    def init(self):
-        super().init()
-        self._prepare_deobfuscation()
+    @classmethod
+    def is_detector_enabled(cls) -> bool:
+        return not options.get("performance_issues.file_io_main_thread.disabled")
 
-    def _prepare_deobfuscation(self):
+    def _prepare_deobfuscation(self) -> None:
         event = self._event
         if "debug_meta" in event:
             images = event["debug_meta"].get("images", [])
@@ -137,20 +150,19 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
                         if debug_file_path is None:
                             return
 
-                    with sentry_sdk.start_span(op="proguard.open"):
-                        mapper = ProguardMapper.open(debug_file_path)
+                    mapper = open_proguard_mapper(debug_file_path)
                     if not mapper.has_line_info:
                         return
                     self.mapper = mapper
                     return
 
-    def _deobfuscate_module(self, module: str) -> str:
+    def _deobfuscate_module(self, module: str) -> str | None:
         if self.mapper is not None:
             return self.mapper.remap_class(module)
         else:
             return module
 
-    def _deobfuscate_function(self, frame):
+    def _deobfuscate_function(self, frame: dict[str, Any]) -> str:
         if self.mapper is not None and "module" in frame and "function" in frame:
             functions = self.mapper.remap_frame(
                 frame["module"], frame["function"], frame.get("lineno") or 0
@@ -159,9 +171,11 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         else:
             return frame.get("function", "")
 
-    def _fingerprint(self, span_list) -> str:
+    def _fingerprint(self, span_list: list[Span]) -> str:
         call_stack_strings = []
         overall_stack = []
+        # only prepare deobfuscation once we need to fingerprint cause its expensive
+        self._prepare_deobfuscation()
         for span in span_list:
             for item in span.get("data", {}).get("call_stack", []):
                 module = self._deobfuscate_module(item.get("module", ""))
@@ -179,8 +193,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         data = span.get("data", {})
         if data is None:
             return False
-        _, fileext = os.path.splitext(data.get("file.path", ""))
-        if fileext in self.IGNORED_EXTENSIONS:
+        file_path = data.get("file.path", "").lower()
+        if any(glob_match(file_path, ignored_pattern) for ignored_pattern in self.IGNORED_LIST):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
@@ -193,28 +207,27 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
     """
-    Checks for a file io span on the main thread
+    Checks for a DB span on the main thread
     """
 
-    __slots__ = ("spans_involved", "stored_problems")
+    __slots__ = ("stored_problems",)
 
     SPAN_PREFIX = "db"
     type = DetectorType.DB_MAIN_THREAD
     settings_key = DetectorType.DB_MAIN_THREAD
     group_type = PerformanceDBMainThreadGroupType
 
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)
 
-    def _fingerprint(self, span_list) -> str:
+    def _fingerprint(self, span_list: list[Span]) -> str:
         description_strings = []
         for span in span_list:
-            description_strings.append(span.get("description"))
+            description_strings.append(span.get("description", ""))
         # Use set to remove dupes, and list index to preserve order
         joined_queries = "-".join(
             sorted(set(description_strings), key=lambda c: description_strings.index(c))

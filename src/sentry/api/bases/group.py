@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
 
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Group, GroupLink, GroupStatus, Organization, get_group_with_redirect
-from sentry.tasks.integrations import create_comment, update_comment
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.integrations.tasks import create_comment, update_comment
+from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
+from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +36,12 @@ class GroupPermission(ProjectPermission):
 
 
 class GroupEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, issue_id, organization_id_or_slug=None, *args, **kwargs
+    ):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
@@ -44,15 +52,18 @@ class GroupEndpoint(Endpoint):
         # string replacement, or making the endpoint aware of the URL pattern
         # that caused it to be dispatched, and reversing it with the correct
         # `issue_id` keyword argument.
-        if organization_slug:
+        if organization_id_or_slug:
             try:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                if str(organization_id_or_slug).isdecimal():
+                    organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+                else:
+                    organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 
             bind_organization_context(organization)
 
-            request._request.organization = organization
+            request._request.organization = organization  # type: ignore[attr-defined]
         else:
             organization = None
 
@@ -67,8 +78,7 @@ class GroupEndpoint(Endpoint):
 
         self.check_object_permissions(request, group)
 
-        with configure_scope() as scope:
-            scope.set_tag("project", group.project_id)
+        Scope.get_isolation_scope().set_tag("project", group.project_id)
 
         # we didn't bind context above, so do it now
         if not organization:
@@ -77,7 +87,7 @@ class GroupEndpoint(Endpoint):
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
 
-        request._request.organization = group.project.organization
+        request._request.organization = group.project.organization  # type: ignore[attr-defined]
 
         kwargs["group"] = group
 

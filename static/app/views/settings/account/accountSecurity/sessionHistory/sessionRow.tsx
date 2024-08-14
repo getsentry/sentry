@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
-import {InternetProtocol} from 'sentry/types';
+import type {InternetProtocol} from 'sentry/types/user';
 
 import {tableLayout} from './utils';
 
@@ -36,7 +36,7 @@ export default SessionRow;
 
 const IpAddress = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 const CountryCode = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

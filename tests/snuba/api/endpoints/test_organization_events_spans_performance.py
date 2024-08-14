@@ -9,15 +9,15 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
+    URL: str
     FEATURES = [
         "organizations:global-views",
     ]
@@ -28,7 +28,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.URL,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
@@ -70,6 +70,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                 "op": "http.server",
                 "hash": "0a7c0d32f132a132",
                 "exclusive_time": 4.0,
+                "trace_id": "a" * 32,
             }
 
         if "spans" not in kwargs:
@@ -177,6 +178,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                             "startTimestamp",
                             "finishTimestamp",
                             "exclusiveTime",
+                            "trace",
                         ]:
                             assert span[key] == expected_span[key], key
 
@@ -275,6 +277,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                                     self.min_ago + timedelta(seconds=8)
                                 ).timestamp(),
                                 "exclusiveTime": 4.0,
+                                "trace": "a" * 32,
                             }
                         ],
                     },
@@ -405,7 +408,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
         return results
 
 
-@region_silo_test
 class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-performance"
 
@@ -416,7 +418,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 
         url = reverse(
             self.URL,
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.FEATURES):
@@ -823,13 +825,52 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_exclude_op_filter(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "excludeSpanOp": "http.server",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            [self.suspect_span_results("django.middleware", event)],
+        )
+
+        assert mock_raw_snql_query.call_count == 1
+        # the first call should also contain the additional condition on the span op
+        assert (
+            Condition(
+                lhs=Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
+                op=Op.NOT_IN,
+                rhs=Function("tuple", ["http.server"]),
+            )
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
+        )
+
     def test_bad_group_filter(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
                 data={
                     "project": self.project.id,
-                    "spanGroup": "cd",
+                    "spanGroup": "foo",
                 },
                 format="json",
             )
@@ -838,7 +879,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.data == {
             "spanGroup": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]
@@ -1099,7 +1140,6 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         self.assert_suspect_span(response.data, [results])
 
 
-@region_silo_test
 class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans"
 
@@ -1110,7 +1150,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         url = reverse(
             self.URL,
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.FEATURES):
@@ -1149,7 +1189,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": ["http.server:ab"]},
+                data={"project": self.project.id, "span": ["http.server:foo"]},
                 format="json",
             )
 
@@ -1157,7 +1197,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]
@@ -1475,6 +1515,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1579,6 +1620,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=4)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["b", "c"]
                         ],
@@ -1651,6 +1693,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1726,6 +1769,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                                 "finishTimestamp": (
                                     self.min_ago + timedelta(seconds=5)
                                 ).timestamp(),
+                                "trace": "a" * 32,
                             }
                             for x in ["d", "e", "f"]
                         ],
@@ -1737,7 +1781,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         self.assert_span_examples(response.data, expected_result)
 
 
-@region_silo_test
 class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTestBase):
     URL = "sentry-api-0-organization-events-spans-stats"
 
@@ -1773,7 +1816,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": ["http.server:ab"]},
+                data={"project": self.project.id, "span": ["http.server:foo"]},
                 format="json",
             )
 
@@ -1781,7 +1824,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]

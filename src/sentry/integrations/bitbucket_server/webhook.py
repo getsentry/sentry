@@ -1,18 +1,25 @@
 import logging
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from typing import Any
 
-from django.db import IntegrityError, transaction
-from django.http import Http404, HttpResponse
-from django.utils import timezone
+import orjson
+import sentry_sdk
+from django.db import IntegrityError, router, transaction
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
-from rest_framework.request import Request
 
-from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
+from sentry.integrations.models.integration import Integration
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import json
+from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
+from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -20,7 +27,7 @@ PROVIDER_NAME = "integrations:bitbucket_server"
 
 
 class Webhook:
-    def __call__(self, organization, integration_id, event):
+    def __call__(self, organization: Organization, integration_id: int, event: Mapping[str, Any]):
         raise NotImplementedError
 
     def update_repo_data(self, repo, event):
@@ -34,7 +41,9 @@ class Webhook:
 
 
 class PushEventWebhook(Webhook):
-    def __call__(self, organization, integration_id, event):
+    def __call__(
+        self, organization: Organization, integration_id: int, event: Mapping[str, Any]
+    ) -> HttpResponse:
         authors = {}
 
         try:
@@ -44,13 +53,13 @@ class PushEventWebhook(Webhook):
                 external_id=str(event["repository"]["id"]),
             )
         except Repository.DoesNotExist:
-            raise Http404()
+            return HttpResponse(status=404)
 
         provider = repo.get_provider()
         try:
             installation = provider.get_installation(integration_id, organization.id)
         except Integration.DoesNotExist:
-            raise Http404()
+            return HttpResponse(status=404)
 
         try:
             client = installation.get_client()
@@ -64,10 +73,19 @@ class PushEventWebhook(Webhook):
 
         for change in event["changes"]:
             from_hash = None if change.get("fromHash") == "0" * 40 else change.get("fromHash")
-            for commit in client.get_commits(
-                project_name, repo_name, from_hash, change.get("toHash")
-            ):
+            try:
+                commits = client.get_commits(
+                    project_name, repo_name, from_hash, change.get("toHash")
+                )
+            except ApiHostError:
+                return HttpResponse(status=409)
+            except ApiUnauthorized:
+                return HttpResponse(status=400)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                return HttpResponse(status=400)
 
+            for commit in commits:
                 if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                     continue
 
@@ -85,8 +103,7 @@ class PushEventWebhook(Webhook):
                 else:
                     author = authors[author_email]
                 try:
-                    with transaction.atomic():
-
+                    with transaction.atomic(router.db_for_write(Commit)):
                         Commit.objects.create(
                             repository_id=repo.id,
                             organization_id=organization.id,
@@ -101,26 +118,30 @@ class PushEventWebhook(Webhook):
                 except IntegrityError:
                     pass
 
+        return HttpResponse(status=204)
 
+
+@region_silo_view
 class BitbucketServerWebhookEndpoint(View):
-    _handlers = {"repo:refs_changed": PushEventWebhook}
+    _handlers: dict[str, type[Webhook]] = {"repo:refs_changed": PushEventWebhook}
 
-    def get_handler(self, event_type):
+    def get_handler(self, event_type) -> type[Webhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id, integration_id) -> HttpResponse:
+    def post(self, request: HttpRequest, organization_id, integration_id) -> HttpResponseBase:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
-                f"{PROVIDER_NAME}.webhook.invalid-organization",
+            logger.exception(
+                "%s.webhook.invalid-organization",
+                PROVIDER_NAME,
                 extra={"organization_id": organization_id, "integration_id": integration_id},
             )
             return HttpResponse(status=400)
@@ -128,15 +149,16 @@ class BitbucketServerWebhookEndpoint(View):
         body = bytes(request.body)
         if not body:
             logger.error(
-                f"{PROVIDER_NAME}.webhook.missing-body", extra={"organization_id": organization.id}
+                "%s.webhook.missing-body", PROVIDER_NAME, extra={"organization_id": organization.id}
             )
             return HttpResponse(status=400)
 
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.error(
-                f"{PROVIDER_NAME}.webhook.missing-event",
+            logger.exception(
+                "%s.webhook.missing-event",
+                PROVIDER_NAME,
                 extra={"organization_id": organization.id, "integration_id": integration_id},
             )
             return HttpResponse(status=400)
@@ -145,14 +167,13 @@ class BitbucketServerWebhookEndpoint(View):
             return HttpResponse(status=204)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
-            logger.error(
-                f"{PROVIDER_NAME}.webhook.invalid-json",
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
+            logger.exception(
+                "%s.webhook.invalid-json",
+                PROVIDER_NAME,
                 extra={"organization_id": organization.id, "integration_id": integration_id},
-                exc_info=True,
             )
             return HttpResponse(status=400)
 
-        handler()(organization, integration_id, event)
-        return HttpResponse(status=204)
+        return handler()(organization, integration_id, event)

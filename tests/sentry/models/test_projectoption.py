@@ -1,9 +1,7 @@
-from sentry.models import ProjectOption
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test(stable=True)
 class ProjectOptionManagerTest(TestCase):
     def test_set_value(self):
         ProjectOption.objects.set_value(self.project, "foo", "bar")

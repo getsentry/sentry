@@ -1,3 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -6,22 +10,35 @@ import CreateAlertButton, {
 } from 'sentry/components/createAlertButton';
 import GuideStore from 'sentry/stores/guideStore';
 import EventView from 'sentry/utils/discover/eventView';
+import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 const onClickMock = jest.fn();
 
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    jest.mocked(useProjects).mockReturnValue({
+      projects: [],
+      onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+  });
 
   afterEach(() => {
     jest.resetAllMocks();
   });
 
   it('should trigger onClick callback', async () => {
-    const context = TestStubs.routerContext();
-
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -31,10 +48,9 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />,
-      {context}
+      />
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -48,20 +64,31 @@ describe('CreateAlertFromViewButton', () => {
       ...organization,
       access: [],
     };
-    const noAccessProj = {
-      ...TestStubs.Project(),
-      access: [],
-    };
+    const projects = [
+      {
+        ...ProjectFixture(),
+        access: [],
+      },
+    ];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     render(
       <CreateAlertFromViewButton
         organization={noAccessOrg}
         eventView={eventView}
-        projects={[noAccessProj]}
+        projects={projects}
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -73,20 +100,31 @@ describe('CreateAlertFromViewButton', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
-    const noAccessProj = {
-      ...TestStubs.Project(),
-      access: [],
-    };
+    const projects = [
+      {
+        ...ProjectFixture(),
+        access: [],
+      },
+    ];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     render(
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[noAccessProj]}
+        projects={projects}
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization}]),
         organization,
       }
     );
@@ -104,18 +142,29 @@ describe('CreateAlertFromViewButton', () => {
     };
     const projects = [
       {
-        ...TestStubs.Project(),
-        id: 1,
+        ...ProjectFixture(),
+        id: '1',
         slug: 'admin-team',
-        access: ['alerts:write'],
+        access: ['alerts:write' as const],
       },
       {
-        ...TestStubs.Project(),
-        id: 2,
+        ...ProjectFixture(),
+        id: '2',
         slug: 'contributor-team',
-        access: ['alerts:read'],
+        access: ['alerts:read' as const],
       },
     ];
+
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     render(
       <CreateAlertFromViewButton
@@ -125,7 +174,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -139,28 +187,42 @@ describe('CreateAlertFromViewButton', () => {
       access: [],
     };
 
-    render(<CreateAlertButton organization={noAccessOrg} showPermissionGuide />, {
-      organization: noAccessOrg,
-    });
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={noAccessOrg}
+        showPermissionGuide
+      />,
+      {
+        organization: noAccessOrg,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_member']));
   });
 
   it('shows a guide for org-owner/manager', () => {
-    const adminAccessOrg = {
+    const adminAccessOrg = OrganizationFixture({
       ...organization,
       access: ['org:write'],
-    };
-
-    render(<CreateAlertButton organization={adminAccessOrg} showPermissionGuide />, {
-      organization: adminAccessOrg,
     });
+
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={adminAccessOrg}
+        showPermissionGuide
+      />,
+      {
+        organization: adminAccessOrg,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_owner']));
   });
 
   it('redirects to alert wizard with no project', async () => {
-    render(<CreateAlertButton organization={organization} />, {
+    render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
     });
     await userEvent.click(screen.getByRole('button'));
@@ -175,9 +237,16 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to alert wizard with a project', () => {
-    render(<CreateAlertButton organization={organization} projectSlug="proj-slug" />, {
-      organization,
-    });
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={organization}
+        projectSlug="proj-slug"
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByRole('button')).toHaveAttribute(
       'href',
@@ -186,7 +255,19 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const context = TestStubs.routerContext();
+    const router = RouterFixture();
+
+    const projects = [ProjectFixture()];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
@@ -197,13 +278,13 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={projects}
         onClick={onClickMock}
       />,
-      {context}
+      {router}
     );
     await userEvent.click(screen.getByRole('button'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({
         query: 'event.type:error ',

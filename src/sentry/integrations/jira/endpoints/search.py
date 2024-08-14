@@ -1,36 +1,51 @@
+from typing import Any
+
 from bs4 import BeautifulSoup
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
+from .. import JiraIntegration
 from ..utils import build_user_choice
 
 
 @control_silo_endpoint
 class JiraSearchEndpoint(IntegrationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     """
     Called by our front end when it needs to make requests to Jira's API for data.
     """
 
     provider = "jira"
 
-    def _get_integration(self, organization, integration_id):
+    def _get_integration(self, organization: RpcOrganization, integration_id: int) -> Integration:
         return Integration.objects.get(
             organizationintegration__organization_id=organization.id,
             id=integration_id,
             provider=self.provider,
         )
 
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:
             return Response(status=404)
         installation = integration.get_installation(organization.id)
+        if not isinstance(installation, JiraIntegration):
+            raise NotFound("Integration by that id is not a JiraIntegration.")
         jira_client = installation.get_client()
 
         field = request.GET.get("field")

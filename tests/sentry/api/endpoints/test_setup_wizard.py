@@ -1,8 +1,10 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SetupWizardTest(APITestCase):
     def test_simple(self):
         self.create_project(name="foo")

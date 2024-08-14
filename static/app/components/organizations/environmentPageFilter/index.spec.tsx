@@ -7,9 +7,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
     {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -38,14 +37,14 @@ describe('EnvironmentPageFilter', function () {
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -69,7 +68,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('handles multiple selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -90,43 +89,39 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles clear', async function () {
-    render(<EnvironmentPageFilter />, {
-      context: routerContext,
+  it('handles reset', async function () {
+    const onReset = jest.fn();
+    render(<EnvironmentPageFilter onReset={onReset} />, {
+      router,
       organization,
     });
 
-    // Open menu
+    // Open the menu, select project-1
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
-
-    // Select prod & stage
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
-
-    // prod & stage are selected
+    await userEvent.click(screen.getByRole('row', {name: 'prod'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {environment: ['prod', 'stage']},
+        query: {environment: ['prod']},
       })
     );
 
-    // Open menu again, click "Clear"
-    await userEvent.click(screen.getByRole('button', {name: 'prod, stage'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    // Open menu again & click "Reset"
+    await userEvent.click(screen.getByRole('button', {name: 'prod'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
-    // Trigger button was updated
+    // Trigger button was updated, onReset was called
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
+    expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', function () {
+  it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
     // Confirm initial selection
-    expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'All Envs'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateEnvironments(['prod'], router));
@@ -136,13 +131,8 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
-      project: undefined,
       projects: [
         {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
         {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -159,7 +149,8 @@ describe('EnvironmentPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: [],
+      memberProjects: projects,
+      nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
       router: desyncRouter,
@@ -167,7 +158,7 @@ describe('EnvironmentPageFilter', function () {
     });
 
     render(<EnvironmentPageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 

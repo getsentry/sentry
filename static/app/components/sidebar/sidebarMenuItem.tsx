@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import SidebarMenuItemLink from './sidebarMenuItemLink';
@@ -32,7 +33,7 @@ const menuItemStyles = (
 
   &:hover,
   &:active,
-  &.focus-visible {
+  &:focus-visible {
     background: ${p.theme.backgroundSecondary};
     color: ${p.theme.textColor};
     outline: none;

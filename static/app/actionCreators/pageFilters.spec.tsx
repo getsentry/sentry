@@ -1,3 +1,6 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -14,9 +17,14 @@ import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-describe('PageFilters ActionCreators', function () {
-  const organization = TestStubs.Organization();
+const {organization, projects} = initializeOrg({
+  projects: [
+    {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+    {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
+  ],
+});
 
+describe('PageFilters ActionCreators', function () {
   beforeEach(function () {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
@@ -28,7 +36,7 @@ describe('PageFilters ActionCreators', function () {
     const key = `global-selection:${organization.slug}`;
 
     beforeEach(() => {
-      router = TestStubs.router();
+      router = RouterFixture();
       localStorage.setItem(
         key,
         JSON.stringify({
@@ -51,7 +59,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -82,7 +91,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         skipLoadLastUsed: true,
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -105,7 +115,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {},
         shouldPersist: false,
         router,
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -141,7 +152,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -165,7 +177,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -198,7 +211,8 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -230,7 +244,8 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
@@ -261,7 +276,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
       });
@@ -290,6 +306,61 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
+    it('does not invalidate all projects from query params', function () {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '-1',
+        },
+        memberProjects: projects,
+        nonMemberProjects: [],
+        shouldEnforceSingleProject: false,
+        router,
+      });
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [-1],
+          environments: [],
+        },
+        new Set(),
+        true
+      );
+    });
+
+    it('does invalidate all projects from query params if forced into single project', function () {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '-1',
+        },
+        memberProjects: projects,
+        nonMemberProjects: [],
+        // User does not have access to global views
+        shouldEnforceSingleProject: true,
+        router,
+      });
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
+        },
+        new Set(),
+        true
+      );
+    });
+
     it('does not add non-pinned filters to query for pages with new page filters', function () {
       // Mock storage to have a saved value
       const pageFilterStorageMock = jest
@@ -311,7 +382,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -342,7 +414,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: [],
+        memberProjects: projects,
+        nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
 
@@ -359,6 +432,46 @@ describe('PageFilters ActionCreators', function () {
 
       pageFilterStorageMock.mockRestore();
     });
+
+    it('retrieves filters from a separate key when storageNamespace is provided', function () {
+      const starfishKey = `global-selection:starfish:${organization.slug}`;
+      localStorage.setItem(
+        starfishKey,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        shouldEnforceSingleProject: false,
+        storageNamespace: 'starfish',
+      });
+
+      expect(localStorage.getItem).toHaveBeenCalledWith(starfishKey);
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [1],
+        }),
+        new Set(['projects', 'environments']),
+        true
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: ['1'],
+          },
+        })
+      );
+    });
   });
 
   describe('updateProjects()', function () {
@@ -368,7 +481,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('updates history when queries are different', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {project: '2'},
@@ -384,7 +497,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
     it('does not update history when queries are the same', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {project: '1'},
@@ -399,7 +512,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('updates history when queries are different with replace', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {project: '2'},
@@ -414,7 +527,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not update history when queries are the same with replace', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {project: '1'},
@@ -426,7 +539,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not override an absolute date selection', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
@@ -443,7 +556,7 @@ describe('PageFilters ActionCreators', function () {
 
   describe('updateEnvironments()', function () {
     it('updates single', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {environment: 'test'},
@@ -458,7 +571,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('updates multiple', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {environment: 'test'},
@@ -473,7 +586,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('removes environment', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {environment: 'test'},
@@ -487,7 +600,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not override an absolute date selection', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {
@@ -512,7 +625,7 @@ describe('PageFilters ActionCreators', function () {
 
   describe('updateDateTime()', function () {
     it('updates statsPeriod when there is no existing stats period', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {},
@@ -529,7 +642,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('updates statsPeriod when there is an existing stats period', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {statsPeriod: '14d'},
@@ -546,7 +659,7 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('changes to absolute date', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {statsPeriod: '24h'},
@@ -566,7 +679,7 @@ describe('PageFilters ActionCreators', function () {
 
   describe('revertToPinnedFilters()', function () {
     it('reverts all filters that are desynced from localStorage', function () {
-      const router = TestStubs.router({
+      const router = RouterFixture({
         location: {
           pathname: '/test/',
           query: {},

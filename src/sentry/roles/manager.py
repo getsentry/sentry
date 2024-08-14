@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import re
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, FrozenSet, Generic, Iterable, Mapping, Sequence, Tuple, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.utils import warnings
 
@@ -22,18 +23,19 @@ class Role(abc.ABC):
     id: str
     name: str
     desc: str
-    scopes: FrozenSet[str]
+    scopes: frozenset[str]
     is_retired: bool = False
+    is_team_roles_allowed: bool = True
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
 
     @classmethod
     def from_config(
-        cls: Type[R],
+        cls: type[R],
         parent: RoleManager,
         priority: int,
-        desc: str = "",
+        desc: str,
         scopes: Iterable[str] = (),
         **kwargs: Any,
     ) -> R:
@@ -84,6 +86,7 @@ class RoleLevel(Generic[R]):
         self._id_map = {r.id: r for r in self._priority_seq}
 
         self._choices = tuple((r.id, r.name) for r in self._priority_seq)
+        self._descriptions = tuple((r.id, r.desc) for r in self._priority_seq)
         self._default = self._id_map[default_id] if default_id else self._priority_seq[0]
         self._top_dog = self._priority_seq[-1]
 
@@ -99,8 +102,11 @@ class RoleLevel(Generic[R]):
     def get_all(self) -> Sequence[R]:
         return self._priority_seq
 
-    def get_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[tuple[str, str]]:
         return self._choices
+
+    def get_descriptions(self) -> Sequence[tuple[str, str]]:
+        return self._descriptions
 
     def get_default(self) -> R:
         return self._default
@@ -118,7 +124,7 @@ class RoleLevel(Generic[R]):
             if any(role.has_scope(scope) for scope in scopes):
                 yield role
 
-    def get_sorted_roles(self, roles: Iterable[str]) -> Iterable[Role]:
+    def get_sorted_roles(self, roles: Iterable[str]) -> list[R]:
         return sorted(
             [self.get(role) for role in roles],
             key=lambda r: r.priority,
@@ -129,8 +135,8 @@ class RoleLevel(Generic[R]):
 class RoleManager:
     def __init__(
         self,
-        org_config: Iterable[Mapping[str, str]],
-        team_config: Iterable[Mapping[str, str]],
+        org_config: Iterable[Mapping[str, Any]],
+        team_config: Iterable[Mapping[str, Any]],
         default_org_role: str | None = None,
     ) -> None:
         self.organization_roles: RoleLevel[OrganizationRole] = RoleLevel(
@@ -152,7 +158,7 @@ class RoleManager:
     @staticmethod
     def _make_minimum_team_role_map(
         organization_roles: RoleLevel[OrganizationRole], team_roles: RoleLevel[TeamRole]
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         def get_mapped_org_role(team_role: TeamRole) -> OrganizationRole | None:
             if team_role.is_minimum_role_for is None:
                 return None
@@ -190,7 +196,7 @@ class RoleManager:
     def get_all(self) -> Sequence[OrganizationRole]:
         return self.organization_roles.get_all()
 
-    def get_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[tuple[str, str]]:
         return self.organization_roles.get_choices()
 
     def get_default(self) -> OrganizationRole:

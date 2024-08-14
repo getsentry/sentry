@@ -1,41 +1,109 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
+import os
+import re
 import sys
-from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
+import threading
+import typing
+from collections.abc import Callable, Collection, Generator, Iterable, MutableSet, Sequence
+from contextlib import contextmanager, nullcontext
+from dataclasses import dataclass
+from typing import Any, Literal, cast
 from unittest import TestCase
 
 import pytest
-from django.conf import settings
-from django.db import connections, router
+from django.apps import apps
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
-from django.db.models.signals import post_migrate
-from django.db.transaction import get_connection
 from django.test import override_settings
 
-from sentry import deletions
-from sentry.db.models.base import ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.deletions.base import BaseDeletionTask
-from sentry.models import Actor, NotificationSetting
-from sentry.silo import SiloMode
-from sentry.testutils.region import override_regions
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
+from sentry.silo.safety import match_fence_query
+from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
+
+if typing.TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel, ModelSiloLimit
 
 TestMethod = Callable[..., None]
 
-region_map = [
-    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
-]
+SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+
+
+def monkey_patch_single_process_silo_mode_state():
+    class LocalSiloModeState(threading.local):
+        mode: SiloMode | None = None
+        region: Region | None = None
+
+    state = LocalSiloModeState()
+
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
+        assert state.mode is None, (
+            "Re-entrant invariant broken! Use exit_single_process_silo_context "
+            "to explicit pass 'fake' RPC boundaries."
+        )
+
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = mode
+        state.region = region
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    @contextlib.contextmanager
+    def exit() -> Generator[None]:
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = None
+        state.region = None
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    def get_mode() -> SiloMode | None:
+        return state.mode
+
+    def get_region() -> Region | None:
+        return state.region
+
+    SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+
+
+def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    from sentry.api.utils import generate_region_url
+
+    single_tenants = frozenset(single_tenants)
+    return tuple(
+        Region(
+            name=name,
+            snowflake_id=index + 1,
+            address=generate_region_url(name),
+            category=(
+                RegionCategory.SINGLE_TENANT
+                if name in single_tenants
+                else RegionCategory.MULTI_TENANT
+            ),
+        )
+        for (index, name) in enumerate(names)
+    )
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    from sentry.db.models.base import ModelSiloLimit
+
     silo_limit = getattr(t._meta, "silo_limit", None)
     if not isinstance(silo_limit, ModelSiloLimit):
         raise ValueError(
@@ -44,88 +112,167 @@ def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     return silo_limit
 
 
-class SiloModeTest:
+class SubclassNotSiloDecoratedException(Exception):
+    pass
+
+
+def _get_test_name_suffix(silo_mode: SiloMode) -> str:
+    name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
+    return f"__In{name}Mode"
+
+
+def strip_silo_mode_test_suffix(name: str) -> str:
+    for silo_mode in SiloMode:
+        suffix = _get_test_name_suffix(silo_mode)
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
+class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
-    Tests marked to work in monolith mode are always executed.
-    Tests marked additionally to work in silo or control mode only do so when the test is marked as stable=True
+    A test marked with a single silo mode runs only in that mode by default. An
+    `include_monolith_run=True` will add a secondary run in monolith mode.
+
+    If a test is marked with both control and region modes, then the primary run will
+    be in monolith mode and a secondary run will be generated in each silo mode.
+
+    When testing on more than one mode, if the decorator is on a test case class,
+    an additional class is dynamically generated and added to the module for Pytest
+    to pick up. For example, if you write
+
+    ```
+        @control_silo_test(include_monolith_run=True)
+        class MyTest(TestCase):
+            def setUp(self):      ...
+            def test_stuff(self): ...
+    ```
+
+    then your result set should include test runs for both `MyTest` (in control mode)
+    and `MyTest__InMonolithMode`.
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
         self.silo_modes = frozenset(silo_modes)
 
-    @staticmethod
-    def _find_all_test_methods(test_class: type) -> Iterable[TestMethod]:
-        for attr_name in dir(test_class):
-            if attr_name.startswith("test_") or attr_name == "test":
-                attr = getattr(test_class, attr_name)
-                if callable(attr):
-                    yield attr
+    def __call__(
+        self,
+        decorated_obj: Any = None,
+        *,
+        regions: Sequence[Region] = (),
+        include_monolith_run: bool = False,
+    ) -> Any:
+        silo_modes = self.silo_modes
+        if include_monolith_run:
+            silo_modes |= frozenset([SiloMode.MONOLITH])
 
-    def _is_acceptance_test(self, test_class: type) -> bool:
-        from sentry.testutils import AcceptanceTestCase
+        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
+        return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
-        return issubclass(test_class, AcceptanceTestCase)
 
-    def _create_mode_methods(
-        self, test_class: type, test_method: TestMethod
-    ) -> Iterable[Tuple[str, TestMethod]]:
-        def method_for_mode(mode: SiloMode) -> Iterable[Tuple[str, TestMethod]]:
-            def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-                with override_settings(
-                    SILO_MODE=mode,
-                    SINGLE_SERVER_SILO_MODE=self._is_acceptance_test(test_class),
-                    SENTRY_SUBNET_SECRET="secret",
-                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                ):
-                    with override_regions(region_map):
-                        if mode == SiloMode.REGION:
-                            with override_settings(SENTRY_REGION="na"):
-                                test_method(*args, **kwargs)
-                        else:
-                            test_method(*args, **kwargs)
+@dataclass(frozen=True)
+class _SiloModeTestModification:
+    """Encapsulate the set of changes made to a test class by a SiloModeTestDecorator."""
 
-            functools.update_wrapper(replacement_test_method, test_method)
-            modified_name = f"{test_method.__name__}__in_{str(mode).lower()}_silo"
-            replacement_test_method.__name__ = modified_name
-            yield modified_name, replacement_test_method
+    silo_modes: frozenset[SiloMode]
+    regions: tuple[Region, ...]
 
-        for mode in self.silo_modes:
-            # Currently, test classes that are decorated already handle the monolith mode as the default
-            # because the original test method remains -- this is different from the pytest variant
-            # that actually strictly parameterizes the existing test.  This reduces a redundant run of MONOLITH
-            # mode.
-            if mode == SiloMode.MONOLITH:
-                continue
-            yield from method_for_mode(mode)
+    def __post_init__(self) -> None:
+        if not self.silo_modes:
+            raise ValueError("silo_modes must not be empty")
 
-    def _add_silo_modes_to_methods(self, test_class: type) -> type:
-        for test_method in self._find_all_test_methods(test_class):
-            for (new_method_name, new_test_method) in self._create_mode_methods(
-                test_class, test_method
-            ):
-                setattr(test_class, new_method_name, new_test_method)
-        return test_class
+    @contextmanager
+    def test_config(self, silo_mode: SiloMode):
+        with (
+            override_regions(self.regions) if self.regions else nullcontext(),
+            assume_test_silo_mode(silo_mode, can_be_monolith=False),
+        ):
+            yield
 
-    def __call__(self, decorated_obj: Any = None, stable: bool = False) -> Any:
-        if decorated_obj:
-            return self._call(decorated_obj, stable)
+    def _create_overriding_test_class(
+        self, test_class: type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
+    ) -> type[TestCase]:
+        silo_mode_attr = "__silo_mode_override"
 
-        def receive_decorated_obj(f: Any) -> Any:
-            return self._call(f, stable)
+        @contextmanager
+        def create_context(obj: TestCase) -> Generator[None]:
+            tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
 
-        return receive_decorated_obj
+            if type(obj) is not tagged_class:
+                # This condition indicates that the test case inherits the silo mode
+                # attribute from a superclass. Although we could just test in that
+                # mode, doing so would silently skip other modes if the superclass is
+                # supposed to be tested in more than one mode. So, enforce a general
+                # rule that test case subclasses must have decorators of their own.
+                sup = tagged_class.__name__
+                sub = type(obj).__name__
+                raise SubclassNotSiloDecoratedException(
+                    f"A test class ({sub}) extends a silo-decorated test class ({sup}) "
+                    f"without a silo decorator of its own. Add a decorator to {sub}. "
+                    f"(You probably want to copy and paste the decorator from {sup}. "
+                    f"If you don't want to run {sub} in a silo mode at all, use "
+                    f"`@no_silo_test`.)"
+                )
+
+            with self.test_config(tagged_mode):
+                yield
+
+        # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
+        # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
+        # test method in order to use override_settings correctly in django test cases.
+
+        def _callSetUp(obj: TestCase) -> Any:
+            with create_context(obj):
+                return TestCase._callSetUp(obj)  # type: ignore[attr-defined]
+
+        def _callTestMethod(obj: TestCase, method: Any) -> Any:
+            with create_context(obj):
+                return TestCase._callTestMethod(obj, method)  # type: ignore[attr-defined]
+
+        new_methods = {"_callSetUp": _callSetUp, "_callTestMethod": _callTestMethod}
+        name = test_class.__name__ + name_suffix
+        new_class = type(name, (test_class,), new_methods)
+        setattr(new_class, silo_mode_attr, (new_class, silo_mode))
+        return cast(type[TestCase], new_class)
+
+    def _arrange_silo_modes(self) -> tuple[SiloMode, Collection[SiloMode]]:
+        """Select which silo modes will be tested by the original and dynamic classes.
+
+        The return value is a (primary, secondary) pair. The "primary" silo mode is
+        the one to be tested by the decorated class without changing its name. The
+        "secondary" modes are tested by dynamically generated classes that are added
+        to the module namespace.
+        """
+        if len(self.silo_modes) == 1:
+            (only_mode,) = self.silo_modes
+            return only_mode, ()
+        non_monolith_modes = [m for m in self.silo_modes if m != SiloMode.MONOLITH]
+        if len(non_monolith_modes) == 1:
+            (other_mode,) = non_monolith_modes
+            return other_mode, (SiloMode.MONOLITH,)
+        else:
+            return SiloMode.MONOLITH, non_monolith_modes
+
+    def _add_siloed_test_classes_to_module(self, test_class: type[TestCase]) -> type[TestCase]:
+        primary_mode, secondary_modes = self._arrange_silo_modes()
+
+        for silo_mode in secondary_modes:
+            siloed_test_class = self._create_overriding_test_class(
+                test_class, silo_mode, _get_test_name_suffix(silo_mode)
+            )
+
+            module = sys.modules[test_class.__module__]
+            setattr(module, siloed_test_class.__name__, siloed_test_class)
+
+        # Return the value to be wrapped by the original decorator
+        return self._create_overriding_test_class(test_class, primary_mode)
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
-            with override_settings(SILO_MODE=silo_mode):
-                with override_regions(region_map):
-                    if silo_mode == SiloMode.REGION:
-                        with override_settings(SENTRY_REGION="na"):
-                            test_method(*args, **kwargs)
-                    else:
-                        test_method(*args, **kwargs)
+            with self.test_config(silo_mode):
+                test_method(*args, **kwargs)
 
         orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)
@@ -135,170 +282,251 @@ class SiloModeTest:
             )
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
-        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes, key=str))(
-            new_test_method
-        )
 
-    def _call(self, decorated_obj: Any, stable: bool) -> Any:
+        return pytest.mark.parametrize("silo_mode", self.silo_modes)(new_test_method)
+
+    def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
         is_function = inspect.isfunction(decorated_obj)
 
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
-        # Only run non monolith tests when they are marked stable or we are explicitly running for that mode.
-        if not (stable or settings.FORCE_SILOED_TESTS):
-            # In this case, simply force the current silo mode (monolith)
+        if SENTRY_USE_MONOLITH_DBS:
+            # In this case, skip modifying the object and let it run in the default
+            # silo mode (monolith)
             return decorated_obj
 
         if is_test_case_class:
-            return self._add_silo_modes_to_methods(decorated_obj)
+            return self._add_siloed_test_classes_to_module(decorated_obj)
 
         return self._mark_parameterized_by_silo_mode(decorated_obj)
 
 
-all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
-no_silo_test = SiloModeTest(SiloMode.MONOLITH)
-control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
-region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
+all_silo_test = SiloModeTestDecorator(*SiloMode)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass in CONTROL, REGION and MONOLITH modes.
+"""
+
+no_silo_test = SiloModeTestDecorator(SiloMode.MONOLITH)
+"""
+Apply to test functions/classes to indicate that tests are
+free of silo mode logic and hybrid cloud service usage.
+"""
+
+control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to CONTROL.
+"""
+
+region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to REGION.
+"""
+
+
+# assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?
+#
+# These two functions are similar ways to express the same thing. Generally,
+# assume_test_silo_mode_of is preferable because it does more to communicate your
+# intent and matches the style used by functions such as `router.db_for_write`. But
+# assume_test_silo_mode is used in more places because it has existed longer.
 
 
 @contextmanager
-def exempt_from_silo_limits() -> Generator[None, None, None]:
-    """Exempt test setup code from silo mode checks.
-
-    This can be used to decorate functions that are used exclusively in setting
-    up test cases, so that those functions don't produce false exceptions from
-    writing to tables that wouldn't be allowed in a certain SiloModeTest case.
-
-    It can also be used as a context manager to enclose setup code within a test
-    method. Such setup code would ideally be moved to the test class's `setUp`
-    method or a helper function where possible, but this is available as a
-    kludge when that's too inconvenient. For example:
-
-    ```
-    @SiloModeTest(SiloMode.REGION)
-    class MyTest(TestCase):
-        def test_something(self):
-            with exempt_from_mode_limits():
-                org = self.create_organization()  # would be wrong if under test
-            do_something(org)  # the actual code under test
-    ```
+def assume_test_silo_mode(
+    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+) -> Any:
+    """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
+    test code in a special silo context.
+    In monolith mode, this context manager has no effect.
+    This context manager, should never be run outside of test contexts.  In fact, it depends on test code that will
+    not exist in production!
+    When run in either Region or Control silo modes, it forces the settings.SILO_MODE to the desired_silo.
+    Notably, this won't be thread safe, so again, only use this in factories and test cases, not code, or you'll
+    have a nightmare when your (threaded) acceptance tests bleed together and do whacky things :o)
+    Use this in combination with factories or test setup code to create models that don't correspond with your
+    given test mode.
     """
-    with override_settings(SILO_MODE=SiloMode.MONOLITH):
+    # Only swapping the silo mode if we are already in a silo mode.
+    if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        desired_silo = SiloMode.MONOLITH
+
+    with override_settings(SILO_MODE=desired_silo):
+        if desired_silo == SiloMode.REGION:
+            region_dir = get_test_env_directory()
+            if region_name is None:
+                with region_dir.swap_to_default_region():
+                    yield
+            else:
+                with region_dir.swap_to_region_by_name(region_name):
+                    yield
+        else:
+            with override_settings(SENTRY_REGION=None):
+                yield
+
+
+@contextmanager
+def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = True) -> Any:
+    from sentry.db.models.base import ModelSiloLimit
+
+    """Potentially swap to the silo mode to match the provided model classes.
+
+    The argument should be one or more model classes that are scoped to exactly one
+    non-monolith mode. That is, they must be tagged with `control_silo_model` or
+    `region_silo_model`. The enclosed context is swapped into the appropriate
+    mode, allowing the model to be accessed.
+
+    If no silo-scoped models are provided, no mode swap is performed.
+
+    The intent is that you list the cross-silo models that you intend to access
+    within the block. However, this is for the sake of expressiveness only. The
+    context will not actually check that you access only those models; it will allow
+    you to access any model that happens to share the same silo mode.
+    """
+
+    def unpack_modes() -> Iterable[SiloMode]:
+        for model in models:
+            try:
+                meta = getattr(model, "_meta")
+            except AttributeError as e:
+                raise ValueError(
+                    f"Expected a model class with a _meta attribute: {model.__name__} did not have `_meta`"
+                ) from e
+
+            silo_limit: ModelSiloLimit | None = getattr(meta, "silo_limit", None)
+            if silo_limit:
+                yield from silo_limit.modes
+
+    unique_modes = {mode for mode in unpack_modes() if mode != SiloMode.MONOLITH}
+    if not unique_modes:
+        yield
+        return
+    if len(unique_modes) > 1:
+        model_names = [m.__name__ for m in models]
+        raise ValueError(
+            f"Models ({model_names!r}) don't share a unique silo mode ({unique_modes!r})"
+        )
+    (mode,) = unique_modes
+
+    with assume_test_silo_mode(mode, can_be_monolith):
         yield
 
 
-def reset_test_role(role: str, using: str, create_role: bool) -> None:
-    connection_names = [conn.alias for conn in connections.all()]
-
-    if create_role:
-        role_exists = False
-        with get_connection(using).cursor() as connection:
-            connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-            role_exists = connection.fetchone()
-
-        if role_exists:
-            # Drop role permissions on each connection, or we can't drop the role.
-            for alias in connection_names:
-                with get_connection(alias).cursor() as conn:
-                    conn.execute(f"REASSIGN OWNED BY {role} TO postgres")
-                    conn.execute(f"DROP OWNED BY {role} CASCADE")
-
-            # Drop and re-create the role as required.
-            with get_connection(using).cursor() as conn:
-                conn.execute(f"DROP ROLE {role}")
-
-        with get_connection(using).cursor() as conn:
-            conn.execute(f"CREATE ROLE {role}")
-
-    # Create permissions on the current connection as we'll build up permissions incrementally.
-    with get_connection(using).cursor() as conn:
-        conn.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
+def protected_table(table: str, operation: str) -> re.Pattern:
+    return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
 
-_role_created: bool = False
-_role_privileges_created: MutableMapping[str, bool] = {}
+_protected_operations: list[re.Pattern] = []
 
 
-def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
-    global _role_created
-    if "pytest" not in sys.modules:
-        return
-
+def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.models import (
-        Organization,
-        OrganizationMapping,
-        OrganizationMember,
-        OrganizationMemberMapping,
-    )
-    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
-    if not app_config or app_config.name != "sentry":
-        return
+    if len(_protected_operations):
+        return _protected_operations
 
-    with get_connection(using).cursor() as conn:
-        conn.execute("SET ROLE 'postgres'")
-
-    if not _role_privileges_created.get(using, False):
-        reset_test_role(role="postgres_unprivileged", using=using, create_role=not _role_created)
-        _role_created = True
-        _role_privileges_created[using] = True
-
-    # Protect Foreign Keys using hybrid cloud models from being deleted without using the privileged user.
-    # Deletion should only occur when the developer is actively aware of the need to generate outboxes.
+    # Protect Foreign Keys using hybrid cloud models from being deleted without using the
+    # privileged user. Deletion should only occur when the developer is actively aware
+    # of the need to generate outboxes.
     seen_models: MutableSet[type] = set()
-    for model in iter_models(app_config.name):
-        for field in model._meta.fields:
-            if not isinstance(field, HybridCloudForeignKey):
-                continue
-            fk_model = field.foreign_model
-            if fk_model is None or fk_model in seen_models:
-                continue
-            seen_models.add(fk_model)
+    for app_config in apps.get_app_configs():
+        for model in iter_models(app_config.name):
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
+                    continue
+                fk_model = field.foreign_model
+                if fk_model is None or fk_model in seen_models:
+                    continue
+                seen_models.add(fk_model)
+                _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+            if issubclass(model, ReplicatedControlModel) or issubclass(
+                model, ReplicatedRegionModel
+            ):
+                _protected_operations.append(protected_table(model._meta.db_table, "insert"))
+                _protected_operations.append(protected_table(model._meta.db_table, "update"))
+                _protected_operations.append(protected_table(model._meta.db_table, "delete"))
 
-            restrict_role(
-                role="postgres_unprivileged", model=fk_model, revocation_type="DELETE", using=using
-            )
-
-    # Protect organization members from being updated without also invoking the correct outbox logic.
-    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
-    # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
-    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="UPDATE")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="UPDATE")
-    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
-    # identifiers are not snowflake ids.
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
-
-    restrict_role(
-        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
+    # Protect inserts/updates that require outbox messages.
+    _protected_operations.extend(
+        [
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
+            protected_table("sentry_organizationmember", "insert"),
+            protected_table("sentry_organizationmember", "update"),
+            protected_table("sentry_organizationmember", "delete"),
+            protected_table("sentry_organizationmembermapping", "insert"),
+        ]
     )
 
-
-# Listen to django's migration signal so that we're not trapped inside
-# test method transactions.
-post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
+    return _protected_operations
 
 
-def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:
-    if router.db_for_write(model) != using:
-        return
+def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
+    """
+    Validate a list of queries to ensure that protected queries
+    are wrapped in role_override fence values.
 
-    using = router.db_for_write(model)
-    with get_connection(using).cursor() as connection:
-        connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
+    See sentry.db.postgres.roles for where fencing queries come from.
+    """
+    context_queries = 5
+    fence_depth = 0
+    start_fence_index = 0
+
+    for index, query in enumerate(queries):
+        sql = query["sql"]
+        # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result
+        # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
+        # the VT TypeVar for Dict.
+        if sql is None:
+            continue  # type: ignore[unreachable]
+        match = match_fence_query(sql)
+        if match:
+            operation = match.group("operation")
+            if operation == "start":
+                fence_depth += 1
+                start_fence_index = index
+            elif operation == "end":
+                fence_depth = max(fence_depth - 1, 0)
+            else:
+                raise AssertionError("Invalid fencing operation encounted")
+
+        for protected in get_protected_operations():
+            if protected.match(sql) and fence_depth == 0:
+                start = max(0, start_fence_index - context_queries)
+                end = min(index + context_queries, len(queries))
+
+                query_slice = queries[start:end]
+                msg = [
+                    "Found protected operation without explicit outbox escape!",
+                    "",
+                    sql,
+                    "",
+                    "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
+                    "If you are confident that outboxes are being generated, wrap the "
+                    "operation that generates this query with the `unguarded_write()` ",
+                    "context manager to resolve this failure. For example:",
+                    "",
+                    "with unguarded_write(using=router.db_for_write(OrganizationMembership):",
+                    "    member.delete()",
+                    "",
+                    "Query logs:",
+                    "",
+                ]
+                for query in query_slice:
+                    msg.append(query["sql"])
+                    if query["sql"] == sql:
+                        msg.append("^" * len(sql))
+
+                raise AssertionError("\n".join(msg))
 
 
-def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
-    from django.apps import apps
-
+def iter_models(app_name: str | None = None) -> Iterable[type[Model]]:
     for app, app_models in apps.all_models.items():
         if app == app_name or app_name is None:
             for model in app_models.values():
@@ -311,7 +539,7 @@ def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
                 yield model
 
 
-def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | None = None) -> None:
+def validate_models_have_silos(exemptions: set[type[Model]], app_name: str | None = None) -> None:
     for model in iter_models(app_name):
         if model in exemptions:
             continue
@@ -323,17 +551,20 @@ def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | Non
 
 
 def validate_no_cross_silo_foreign_keys(
-    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
-) -> Set[Any]:
-    seen: Set[Any] = set()
+    exemptions: set[tuple[type[Model], type[Model]]], app_name: str | None = None
+) -> set[Any]:
+    seen: set[Any] = set()
     for model in iter_models(app_name):
         seen |= validate_model_no_cross_silo_foreign_keys(model, exemptions)
     return seen
 
 
 def validate_no_cross_silo_deletions(
-    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
+    exemptions: set[tuple[type[Model], type[Model]]], app_name: str | None = None
 ) -> None:
+    from sentry import deletions
+    from sentry.deletions.base import BaseDeletionTask
+
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
@@ -350,9 +581,11 @@ def validate_no_cross_silo_deletions(
 
 
 def _is_relation_cross_silo(
-    model: Type[Model],
-    related: Type[Model],
+    model: type[Model] | Literal["self"],
+    related: type[Model] | Literal["self"],
 ) -> bool:
+    if model == "self" or related == "self":
+        return False
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             return True
@@ -360,9 +593,11 @@ def _is_relation_cross_silo(
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
-    model: Type[Model],
-    related: Type[Model],
+    model: type[Model] | Literal["self"],
+    related: type[Model] | Literal["self"],
 ) -> None:
+    if model == "self" or related == "self":
+        return
     for mode in _model_silo_limit(model).modes:
         if mode not in _model_silo_limit(related).modes:
             raise ValueError(
@@ -370,13 +605,9 @@ def validate_relation_does_not_cross_silo_foreign_keys(
             )
 
 
-def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
     # HybridCloudForeignKey can point to region models if they have snowflake ids
-    if issubclass(related_model, SnowflakeIdMixin):
-        return
-
-    # This particular relation is being removed before we go multi region.
-    if related_model is Actor and model is NotificationSetting:
+    if uses_snowflake_id(related_model):
         return
 
     # but they cannot point to region models otherwise.
@@ -387,10 +618,12 @@ def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
 
 
 def validate_model_no_cross_silo_foreign_keys(
-    model: Type[Model],
-    exemptions: Set[Tuple[Type[Model], Type[Model]]],
-) -> Set[Any]:
-    seen: Set[Any] = set()
+    model: type[Model],
+    exemptions: set[tuple[type[Model], type[Model]]],
+) -> set[Any]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
+    seen: set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:

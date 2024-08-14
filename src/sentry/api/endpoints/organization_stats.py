@@ -2,15 +2,25 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        # Deprecated APIs remain private until removed
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve Event Counts for an Organization
@@ -22,7 +32,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
-        :pparam string organization_slug: the slug of the organization for
+        :pparam string organization_id_or_slug: the id or slug of the organization for
                                           which the stats should be
                                           retrieved.
         :qparam string stat: the name of the stat to query (``"received"``,

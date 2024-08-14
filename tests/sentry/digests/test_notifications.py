@@ -1,67 +1,63 @@
-from collections import defaultdict
-from functools import cached_property, reduce
+from __future__ import annotations
 
-from sentry.digests import Record
+import uuid
+from functools import cached_property
+
 from sentry.digests.notifications import (
-    Notification,
+    Digest,
+    _bind_records,
+    _group_records,
+    _sort_digest,
     event_to_record,
-    group_records,
-    rewrite_record,
-    sort_group_contents,
-    sort_rule_groups,
     split_key,
     unsplit_key,
 )
-from sentry.models import Rule
+from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWithRuleObjects
+from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
-class RewriteRecordTestCase(TestCase):
+class BindRecordsTestCase(TestCase):
+    notification_uuid = str(uuid.uuid4())
+
     @cached_property
-    def rule(self):
+    def rule(self) -> Rule:
         return self.event.project.rule_set.all()[0]
 
     @cached_property
-    def record(self):
-        return event_to_record(self.event, (self.rule,))
+    def record(self) -> Record:
+        return event_to_record(self.event, (self.rule,), self.notification_uuid)
+
+    @property
+    def group_mapping(self) -> dict[int, Group]:
+        return {self.event.group.id: self.event.group}
+
+    @property
+    def rule_mapping(self) -> dict[int, Rule]:
+        return {self.rule.id: self.rule}
 
     def test_success(self):
-        assert rewrite_record(
-            self.record,
-            project=self.event.project,
-            groups={self.event.group.id: self.event.group},
-            rules={self.rule.id: self.rule},
-        ) == Record(
-            self.record.key,
-            Notification(self.record.value.event, [self.rule]),
-            self.record.timestamp,
-        )
+        (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
+        assert record == self.record.with_rules([self.rule])
 
     def test_without_group(self):
-        # If the record can't be associated with a group, it should be returned as None.
-        assert (
-            rewrite_record(
-                self.record, project=self.event.project, groups={}, rules={self.rule.id: self.rule}
-            )
-            is None
-        )
+        # If the record can't be associated with a group, it should be dropped
+        assert not _bind_records([self.record], {}, self.rule_mapping)
 
     def test_filters_invalid_rules(self):
-        assert rewrite_record(
-            self.record,
-            project=self.event.project,
-            groups={self.event.group.id: self.event.group},
-            rules={},
-        ) == Record(
-            self.record.key, Notification(self.record.value.event, []), self.record.timestamp
-        )
+        # If the record can't be associated with a rule, the rule should be dropped
+        (record,) = _bind_records([self.record], self.group_mapping, {})
+        assert record == self.record.with_rules([])
 
 
-@region_silo_test(stable=True)
 class GroupRecordsTestCase(TestCase):
+    notification_uuid = str(uuid.uuid4())
+
     @cached_property
     def rule(self):
         return self.project.rule_set.all()[0]
@@ -72,17 +68,20 @@ class GroupRecordsTestCase(TestCase):
             for i in range(3)
         ]
         group = events[0].group
+        assert group is not None
         records = [
-            Record(event.event_id, Notification(event, [self.rule]), event.datetime)
+            RecordWithRuleObjects(
+                event.event_id,
+                NotificationWithRuleObjects(event, [self.rule], self.notification_uuid),
+                event.datetime.timestamp(),
+            )
             for event in events
         ]
-        assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
-            self.rule: {group: records}
-        }
+        ret = _group_records(records, {group.id: group}, {self.rule.id: self.rule})
+        assert ret == {self.rule: {group: records}}
 
 
-@region_silo_test(stable=True)
-class SortRecordsTestCase(TestCase):
+class SortDigestTestCase(TestCase):
     def test_success(self):
         Rule.objects.create(
             project=self.project,
@@ -99,18 +98,12 @@ class SortRecordsTestCase(TestCase):
         rules = list(self.project.rule_set.all())
         groups = [self.create_group() for _ in range(3)]
 
-        groups[0].event_count = 10
-        groups[0].user_count = 4
+        event_counts = {groups[0].id: 10, groups[1].id: 5, groups[2].id: 5}
+        user_counts = {groups[0].id: 4, groups[1].id: 2, groups[2].id: 1}
 
-        groups[1].event_count = 5
-        groups[1].user_count = 2
+        grouped: Digest = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
 
-        groups[2].event_count = 5
-        groups[2].user_count = 1
-
-        grouped = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
-
-        ret = sort_rule_groups(sort_group_contents(grouped))
+        ret = _sort_digest(grouped, event_counts, user_counts)
 
         # ensure top-level keys are sorted
         assert tuple(ret) == (rules[1], rules[0])
@@ -123,7 +116,6 @@ class SortRecordsTestCase(TestCase):
         }
 
 
-@region_silo_test(stable=True)
 class SplitKeyTestCase(TestCase):
     def test_old_style_key(self):
         assert split_key(f"mail:p:{self.project.id}") == (
@@ -161,7 +153,6 @@ class SplitKeyTestCase(TestCase):
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
 
-@region_silo_test(stable=True)
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
         assert (

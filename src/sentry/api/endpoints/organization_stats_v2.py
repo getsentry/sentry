@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, Dict, List
+from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -7,16 +7,19 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.utils import InvalidParams as InvalidParamsApi
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.exceptions import InvalidParams
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -26,7 +29,7 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
 )
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.outcomes import Outcome
 
@@ -66,7 +69,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     groupBy = serializers.MultipleChoiceField(
-        list(GROUPBY_MAP.keys()),
+        choices=list(GROUPBY_MAP.keys()),
         required=True,
         help_text=(
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
@@ -96,7 +99,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replays", "profiles"),
+        ("error", "transaction", "attachment", "replay", "profile", "monitor"),
         required=False,
         help_text=(
             "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
@@ -115,34 +118,38 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
 
 
 class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
-    by: Dict[str, Any]
-    totals: Dict[str, Any]
-    series: Dict[str, Any]
+    by: dict[str, Any]
+    totals: dict[str, Any]
+    series: dict[str, Any]
 
 
 class StatsApiResponse(TypedDict):
     start: str
     end: str
-    intervals: List[str]
-    groups: List[_StatsGroup]
+    intervals: list[str]
+    groups: list[_StatsGroup]
 
 
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
-class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+class OrganizationStatsEndpointV2(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.ENTERPRISE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
-    public = {"GET"}
+    permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
@@ -157,6 +164,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
+
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(
@@ -209,8 +217,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super().handle_query_errors():
+            with handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams, InvalidQuery, InvalidParamsApi) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))

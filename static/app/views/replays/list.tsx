@@ -1,19 +1,32 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysFilters from 'sentry/views/replays/list/filters';
-import ReplaysList from 'sentry/views/replays/list/replaysList';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import ListContent from 'sentry/views/replays/list/listContent';
+import ReplayTabs from 'sentry/views/replays/tabs';
+
+const ReplayListPageHeaderHook = HookOrDefault({
+  hookName: 'component:replay-list-page-header',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
-  const {slug: orgSlug} = useOrganization();
+  const organization = useOrganization();
+  const {allMobileProj} = useAllMobileProj();
 
   return (
-    <SentryDocumentTitle title={`Session Replay — ${orgSlug}`}>
+    <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -24,19 +37,36 @@ function ReplaysListContainer() {
               )}
               docsUrl="https://docs.sentry.io/product/session-replay/"
             />
+            {allMobileProj ? (
+              <FeatureBadge
+                type="beta"
+                title={t(
+                  'Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs.'
+                )}
+              />
+            ) : null}
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs selected="replays" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <ReplaysFilters />
-            <ReplaysList />
+            <LayoutGap>
+              <ReplayListPageHeaderHook />
+              <ListContent />
+            </LayoutGap>
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const LayoutGap = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
 
 export default ReplaysListContainer;

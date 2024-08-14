@@ -1,7 +1,7 @@
 import logging
+import zoneinfo
 from datetime import datetime
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
@@ -11,16 +11,26 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
-from sentry.auth.superuser import is_active_superuser
+from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.useremail import UserEmail
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -28,8 +38,8 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.all_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
@@ -62,11 +72,26 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
+    defaultIssueEvent = serializers.ChoiceField(
+        choices=(
+            ("recommended", _("Recommended")),
+            ("latest", _("Latest")),
+            ("oldest", _("Oldest")),
+        ),
+        required=False,
+    )
+    issueDetailsNewExperienceQ42023 = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exclude(id=self.instance.id).exists():
+        if (
+            User.objects.filter(username__iexact=value)
+            # Django throws an exception if `id` is `None`, which it will be when we're importing
+            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
+            # make Django happy here.
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+        ):
             raise serializers.ValidationError("That username is already in use.")
         return value
 
@@ -116,12 +141,22 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
 
 class DeleteUserSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(required=False), required=True)
+    organizations = serializers.ListField(
+        child=serializers.CharField(required=False), required=True
+    )
     hardDelete = serializers.BooleanField(required=False)
 
 
 @control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    permission_classes = (UserAndStaffPermission,)
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details
@@ -147,9 +182,23 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
         :param string theme: UI theme, either "light", "dark", or "system"
+        :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        if not request.access.has_permission("users.admin"):
+        if "username" in request.data:
+            verified_email_found = UserEmail.objects.filter(
+                user_id=user.id, email=request.data["username"], is_verified=True
+            ).exists()
+            if not verified_email_found:
+                return Response({"detail": "Verified email address is not found."}, status=400)
+
+        # We want to prevent superusers from setting users to superuser or staff
+        # because this is only done through _admin. This will always be enforced
+        # once the feature flag is removed.
+        can_elevate_user = has_elevated_mode(request) and request.access.has_permission(
+            "users.admin"
+        )
+        if not can_elevate_user:
             if not user.is_superuser and request.data.get("isSuperuser"):
                 return Response(
                     {"detail": "Missing required permission to add superuser."},
@@ -161,9 +210,13 @@ class UserDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        if request.access.has_permission("users.admin"):
+        if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
-        elif is_active_superuser(request):
+        # With superuser read/write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser. Once the feature flag is
+        # removed and we only check is_active_staff, we can remove this comment.
+        elif has_elevated_mode(request):
+            # TODO(schew2381): Rename to staff serializer
             serializer_cls = SuperuserUserSerializer
         else:
             serializer_cls = UserSerializer
@@ -183,7 +236,9 @@ class UserDetailsEndpoint(UserEndpoint):
             "language": "language",
             "timezone": "timezone",
             "stacktraceOrder": "stacktrace_order",
+            "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
+            "issueDetailsNewExperienceQ42023": "issue_details_new_experience_q4_2023",
         }
 
         options_result = serializer_options.validated_data
@@ -220,44 +275,68 @@ class UserDetailsEndpoint(UserEndpoint):
         :param list organizations: List of organization ids to remove
         :auth required:
         """
-
         serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # from `frontend/remove_account.py`
-        org_list = Organization.objects.filter(
-            member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user_id=user.id,
+        org_mappings = OrganizationMapping.objects.filter(
+            organization_id__in=OrganizationMemberMapping.objects.filter(
+                user_id=user.id, role__in=[r.id for r in roles.with_scope("org:admin")]
+            ).values("organization_id"),
             status=OrganizationStatus.ACTIVE,
         )
 
         org_results = []
-        for org in org_list:
-            org_results.append({"organization": org, "single_owner": org.has_single_owner()})
+        for org in org_mappings:
+            first_two_owners = OrganizationMemberMapping.objects.filter(
+                organization_id=org.organization_id, role__in=[roles.get_top_dog().id]
+            )[:2]
+            has_single_owner = len(first_two_owners) == 1
+            org_results.append(
+                {
+                    "organization_id": org.organization_id,
+                    "single_owner": has_single_owner,
+                }
+            )
 
-        avail_org_slugs = {o["organization"].slug for o in org_results}
-        orgs_to_remove = set(serializer.validated_data.get("organizations")).intersection(
-            avail_org_slugs
-        )
+        avail_org_ids = {o["organization_id"] for o in org_results}
+        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_ids_to_remove = OrganizationMapping.objects.filter(
+            slug__in=requested_org_slugs_to_remove
+        ).values_list("organization_id", flat=True)
+
+        orgs_to_remove = set(requested_org_ids_to_remove).intersection(avail_org_ids)
 
         for result in org_results:
             if result["single_owner"]:
-                orgs_to_remove.add(result["organization"].slug)
+                orgs_to_remove.add(result["organization_id"])
 
-        for org_slug in orgs_to_remove:
-            client.delete(path=f"/organizations/{org_slug}/", request=request, is_sudo=True)
+        for org_id in orgs_to_remove:
+            org_delete_response = organization_service.delete_organization(
+                organization_id=org_id, user=serialize_generic_user(request.user)
+            )
+            if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
+                post_org_pending_deletion(
+                    request=request,
+                    org_delete_response=org_delete_response,
+                )
 
         remaining_org_ids = [
-            o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)
+            o.organization_id
+            for o in org_mappings
+            if o.organization_id in avail_org_ids.difference(orgs_to_remove)
         ]
 
         if remaining_org_ids:
-            for member in OrganizationMember.objects.filter(
-                organization__in=remaining_org_ids, user_id=user.id
+            for member_mapping in OrganizationMemberMapping.objects.filter(
+                organization_id__in=remaining_org_ids, user_id=user.id
             ):
-                member.delete()
+                organization_service.delete_organization_member(
+                    organization_id=member_mapping.organization_id,
+                    organization_member_id=member_mapping.organizationmember_id,
+                )
 
         logging_data = {
             "actor_id": request.user.id,
@@ -266,9 +345,12 @@ class UserDetailsEndpoint(UserEndpoint):
         }
 
         hard_delete = serializer.validated_data.get("hardDelete", False)
+        can_delete = has_elevated_mode(request) and request.access.has_permission("users.admin")
 
         # Only active superusers can hard delete accounts
-        if hard_delete and not request.access.has_permission("users.admin"):
+        # This will be changed to only active staff can delete accounts once the
+        # staff feature flag is removed.
+        if hard_delete and not can_delete:
             return Response(
                 {"detail": "Missing required permission to hard delete account."},
                 status=status.HTTP_403_FORBIDDEN,

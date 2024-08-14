@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
@@ -17,11 +17,11 @@ import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FieldGroup from '../fieldGroup';
-import FieldControl from '../fieldGroup/fieldControl';
-import {FieldGroupProps} from '../fieldGroup/types';
+import type {FieldGroupProps} from '../fieldGroup/types';
 import FormContext from '../formContext';
-import FormModel, {MockModel} from '../model';
-import {FieldValue} from '../types';
+import type FormModel from '../model';
+import {MockModel} from '../model';
+import type {FieldValue} from '../types';
 
 import FormFieldControlState from './controlState';
 
@@ -53,6 +53,7 @@ const propsToObserve = [
   'inline',
   'visible',
   'disabled',
+  'disabledReason',
 ] satisfies Array<keyof FormFieldProps>;
 
 interface FormFieldPropModel extends FormFieldProps {
@@ -66,7 +67,7 @@ type ObserverdPropNames = (typeof propsToObserve)[number];
 
 type ObservedPropResolver = [
   ObserverdPropNames,
-  () => ResolvedObservableProps[ObserverdPropNames]
+  () => ResolvedObservableProps[ObserverdPropNames],
 ];
 
 /**
@@ -74,6 +75,7 @@ type ObservedPropResolver = [
  */
 interface ObservableProps {
   disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
+  disabledReason?: ObservedFnOrValue<{}, FieldGroupProps['disabledReason']>;
   help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
   highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
   inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
@@ -85,6 +87,7 @@ interface ObservableProps {
  */
 interface ResolvedObservableProps {
   disabled?: FieldGroupProps['disabled'];
+  disabledReason?: FieldGroupProps['disabledReason'];
   help?: FieldGroupProps['help'];
   highlighted?: FieldGroupProps['highlighted'];
   inline?: FieldGroupProps['inline'];
@@ -130,7 +133,7 @@ interface BaseProps {
   /**
    * The alert type to use when saveOnBlur is false
    */
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
@@ -172,6 +175,7 @@ type ResolvedProps = BaseProps & FieldGroupProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,
+  | 'children'
   | 'className'
   | 'name'
   | 'hideErrorMessage'
@@ -317,10 +321,10 @@ function FormField(props: FormFieldProps) {
         saveMessage,
         saveMessageAlertType,
         selectionInfoFunction,
-        hideControlState,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
+        children: _children,
         ...otherProps
       } = props;
 
@@ -335,52 +339,42 @@ function FormField(props: FormFieldProps) {
             id={id}
             className={className}
             flexibleControlStateSize={flexibleControlStateSize}
+            controlState={
+              <FormFieldControlState
+                model={model}
+                name={name}
+                hideErrorMessage={hideErrorMessage}
+              />
+            }
             {...fieldProps}
           >
-            {({alignRight, disabled, inline}) => (
-              <FieldControl
-                inline={inline}
-                alignRight={alignRight}
-                flexibleControlStateSize={flexibleControlStateSize}
-                hideControlState={hideControlState}
-                controlState={
-                  <FormFieldControlState
-                    model={model}
-                    name={name}
-                    hideErrorMessage={hideErrorMessage}
-                  />
-                }
-              >
-                <Observer>
-                  {() => {
-                    const error = model.getError(name);
-                    const value = model.getValue(name);
+            <Observer>
+              {() => {
+                const error = model.getError(name);
+                const value = model.getValue(name);
 
-                    return (
-                      <Fragment>
-                        {props.children({
-                          ref: handleInputMount,
-                          ...fieldProps,
-                          model,
-                          name,
-                          id,
-                          onKeyDown: handleKeyDown,
-                          onChange: handleChange,
-                          onBlur: handleBlur,
-                          // Fixes react warnings about input switching from controlled to uncontrolled
-                          // So force to empty string for null values
-                          value: value === null ? '' : value,
-                          error,
-                          disabled,
-                          initialData: model.initialData,
-                          'aria-describedby': `${id}_help`,
-                        })}
-                      </Fragment>
-                    );
-                  }}
-                </Observer>
-              </FieldControl>
-            )}
+                return (
+                  <Fragment>
+                    {props.children({
+                      ref: handleInputMount,
+                      ...fieldProps,
+                      model,
+                      name,
+                      id,
+                      onKeyDown: handleKeyDown,
+                      onChange: handleChange,
+                      onBlur: handleBlur,
+                      // Fixes react warnings about input switching from controlled to uncontrolled
+                      // So force to empty string for null values
+                      value: value === null ? '' : value,
+                      error,
+                      initialData: model.initialData,
+                      'aria-describedby': `${id}_help`,
+                    })}
+                  </Fragment>
+                );
+              }}
+            </Observer>
           </FieldGroup>
           {selectionInfoFunction && (
             <Observer>

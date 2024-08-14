@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import * as React from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +9,13 @@ jest.mock('react', () => {
   return {
     ...jest.requireActual('react'),
     useRef: jest.fn(),
+  };
+});
+// XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
+jest.mock('framer-motion', () => {
+  return {
+    ...jest.requireActual('framer-motion'),
+    AnimatePresence: jest.fn().mockImplementation(({children}) => <div>{children}</div>),
   };
 });
 

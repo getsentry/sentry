@@ -1,22 +1,22 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   EntrySpans,
   Event,
   EventGroupComponent,
   EventGroupVariant,
-  EventGroupVariantType,
-} from 'sentry/types';
+} from 'sentry/types/event';
+import {EventGroupVariantType} from 'sentry/types/event';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
@@ -131,6 +131,22 @@ class GroupVariant extends Component<Props, State> {
               size="xs"
               position="top"
               title={t('Overrides the default grouping by a custom fingerprinting rule')}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
+        addFingerprintInfo(data, variant);
+        break;
+      case EventGroupVariantType.BUILT_IN_FINGERPRINT:
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t(
+                'Overrides the default grouping by a Sentry defined fingerprinting rule'
+              )}
             />
           </TextWithQuestionTooltip>,
         ]);

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
+from typing import Any
 
 from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project
-from sentry.rules import EventState
+from sentry.models.project import Project
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -140,7 +140,9 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

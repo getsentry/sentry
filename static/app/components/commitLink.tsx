@@ -1,9 +1,10 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
-import {getShortCommitHash} from 'sentry/utils';
+import type {Repository} from 'sentry/types/integrations';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
 type CommitFormatterParameters = {
   baseUrl: string;
@@ -12,29 +13,29 @@ type CommitFormatterParameters = {
 
 type CommitProvider = {
   commitUrl: (opts: CommitFormatterParameters) => string;
-  icon: React.ReactNode;
+  icon: React.ComponentType<SVGIconProps>;
   providerIds: string[];
 };
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
 const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
   {
-    icon: <IconGithub size="xs" />,
+    icon: IconGithub,
     providerIds: ['github', 'integrations:github', 'integrations:github_enterprise'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
   {
-    icon: <IconBitbucket size="xs" />,
+    icon: IconBitbucket,
     providerIds: ['bitbucket', 'integrations:bitbucket'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commits/${commitId}`,
   },
   {
-    icon: <IconVsts size="xs" />,
+    icon: IconVsts,
     providerIds: ['visualstudio', 'integrations:vsts'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
   {
-    icon: <IconGitlab size="xs" />,
+    icon: IconGitlab,
     providerIds: ['gitlab', 'integrations:gitlab'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
@@ -42,18 +43,31 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 
 type Props = {
   commitId?: string;
+  commitTitle?: string;
   inline?: boolean;
   onClick?: () => void;
   repository?: Repository;
   showIcon?: boolean;
 };
 
-function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Props) {
+function CommitLink({
+  inline,
+  commitId,
+  repository,
+  showIcon = true,
+  onClick,
+  commitTitle,
+}: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
   }
 
-  const shortId = getShortCommitHash(commitId);
+  let label: string;
+  if (commitTitle) {
+    label = commitTitle;
+  } else {
+    label = getShortCommitHash(commitId);
+  }
 
   const providerData = SUPPORTED_PROVIDERS.find(provider => {
     if (!repository.provider) {
@@ -63,7 +77,7 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
   });
 
   if (providerData === undefined) {
-    return <span>{shortId}</span>;
+    return <span>{label}</span>;
   }
 
   const commitUrl =
@@ -73,20 +87,22 @@ function CommitLink({inline, commitId, repository, showIcon = true, onClick}: Pr
       baseUrl: repository.url,
     });
 
+  const Icon = providerData.icon;
+
   return !inline ? (
-    <Button
+    <LinkButton
       external
       href={commitUrl}
       size="sm"
-      icon={showIcon ? providerData.icon : null}
+      icon={showIcon ? <Icon size="sm" /> : null}
       onClick={onClick}
     >
-      {shortId}
-    </Button>
+      {label}
+    </LinkButton>
   ) : (
     <ExternalLink href={commitUrl} onClick={onClick}>
-      {showIcon ? providerData.icon : null}
-      {' ' + shortId}
+      {showIcon ? <Icon size="xs" /> : null}
+      {' ' + label}
     </ExternalLink>
   );
 }

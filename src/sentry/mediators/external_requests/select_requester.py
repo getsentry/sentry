@@ -2,14 +2,15 @@ import logging
 from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
+from django.utils.functional import cached_property
+
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
@@ -29,6 +30,7 @@ class SelectRequester(Mediator):
     uri = Param(str)
     query = Param(str, required=False)
     dependent_data = Param(str, required=False)
+    using = None
 
     def call(self):
         return self._make_request()
@@ -76,7 +78,6 @@ class SelectRequester(Mediator):
                 },
             )
             response = {}
-
         if not self._validate_response(response):
             raise APIError()
 
@@ -93,6 +94,9 @@ class SelectRequester(Mediator):
         choices = []
 
         for option in resp:
+            if not ("value" in option and "label" in option):
+                raise APIError("Missing `value` or `label` in option data")
+
             choices.append([option["value"], option["label"]])
             if option.get("default"):
                 response["defaultValue"] = option["value"]
@@ -109,6 +113,6 @@ class SelectRequester(Mediator):
             "Sentry-App-Signature": self.sentry_app.build_signature(""),
         }
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app

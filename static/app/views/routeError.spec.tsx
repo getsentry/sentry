@@ -6,7 +6,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import RouteError from 'sentry/views/routeError';
 
 describe('RouteError', function () {
-  const {routerContext} = initializeOrg({
+  const {router} = initializeOrg({
     router: {
       routes: [
         {path: '/'},
@@ -20,7 +20,7 @@ describe('RouteError', function () {
 
   it('captures errors with sentry', async function () {
     render(<RouteError error={new Error('Big Bad Error')} />, {
-      context: routerContext,
+      router,
     });
 
     await waitFor(() =>

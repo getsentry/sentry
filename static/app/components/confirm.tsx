@@ -1,7 +1,9 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
@@ -284,11 +286,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       return message;
     }
 
-    return (
-      <p>
-        <strong>{message}</strong>
-      </p>
-    );
+    return <p style={{wordWrap: 'break-word'}}>{message}</p>;
   }
 
   render() {

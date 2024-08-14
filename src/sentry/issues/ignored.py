@@ -2,25 +2,25 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Dict, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import (
-    Group,
-    GroupInboxRemoveAction,
-    GroupSnooze,
-    GroupStatus,
-    Project,
-    User,
-    remove_group_from_inbox,
-)
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.project import Project
 from sentry.signals import issue_archived
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ def handle_archived_until_escalating(
     acting_user: User | None,
     projects: Sequence[Project],
     sender: Any,
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -79,9 +79,9 @@ def handle_archived_until_escalating(
 def handle_ignored(
     group_ids: Sequence[Group],
     group_list: Sequence[Group],
-    status_details: Dict[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | None,
-    user: User,
+    user: User | RpcUser,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
@@ -112,7 +112,9 @@ def handle_ignored(
             if ignore_count and not ignore_window:
                 state["times_seen"] = group.times_seen
             if ignore_user_count and not ignore_user_window:
-                state["users_seen"] = group.count_users_seen()
+                state["users_seen"] = group.count_users_seen(
+                    referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED.value
+                )
             GroupSnooze.objects.create_or_update(
                 group=group,
                 values={
@@ -131,7 +133,7 @@ def handle_ignored(
             )
             with in_test_hide_transaction_boundary():
                 serialized_user = user_service.serialize_many(
-                    filter=dict(user_ids=[user.id]), as_user=user
+                    filter=dict(user_ids=[user.id]), as_user=serialize_generic_user(user)
                 )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,

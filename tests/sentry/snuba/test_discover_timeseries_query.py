@@ -4,11 +4,11 @@ from unittest.mock import patch
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TransactionMetric
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.search.events.types import EventsResponse
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
@@ -55,14 +55,18 @@ class TimeseriesBase(SnubaTestCase, TestCase):
         )
 
 
-class TimeseriesQueryTest(TimeseriesBase):
+class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={"project_id": [self.project.id]},
+                params={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "project_id": [self.project.id],
+                },
                 rollup=1800,
             )
 
@@ -463,13 +467,14 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
     def test_project_filter_adjusts_filter(self, mock_query):
         """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
         project2 = self.create_project(organization=self.organization)
-        top_events = {
+        top_events: EventsResponse = {
             "data": [
                 {
                     "project": self.project.slug,
                     "project.id": self.project.id,
                 }
-            ]
+            ],
+            "meta": {"fields": {}, "tips": {}},
         }
         start = before_now(minutes=5)
         end = before_now(seconds=1)
@@ -520,7 +525,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
     def test_timestamp_fields(self, mock_query):
         timestamp1 = before_now(days=2, minutes=5)
         timestamp2 = before_now(minutes=2)
-        top_events = {
+        top_events: EventsResponse = {
             "data": [
                 {
                     "timestamp": iso_format(timestamp1),
@@ -532,7 +537,8 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                     "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
                     "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
                 },
-            ]
+            ],
+            "meta": {"fields": {}, "tips": {}},
         }
         start = before_now(days=3, minutes=10)
         end = before_now(minutes=1)

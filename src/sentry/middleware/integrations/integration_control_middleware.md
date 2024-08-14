@@ -2,7 +2,7 @@
 
 ## Background
 
-Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Region Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Region Silo** (e.g. `Repostitory`, `Commit`, `ExternalIssue`, `Organization`, etc.).
+Hybrid Cloud requires running Sentry in two different instances which communicate with one another; Control and Region Silos. The integration authentication data (`Integration`, and `OrganizationIntegration` models) will be stored in the **Control Silo**, but the associated models integrations may affect will be stored in the **Region Silo** (e.g. `Repository`, `Commit`, `ExternalIssue`, `Organization`, etc.).
 
 Incoming webhooks fired by integration providers notify us when changes occur in their system (e.g. someone assigns an issue in slack, or a PR resolving an issue is merged on GitHub). These are **always** received by the Control Silo, so we need parsers to intercept these requests to forward the data to the relevant silos.
 
@@ -10,9 +10,9 @@ Incoming webhooks fired by integration providers notify us when changes occur in
 
 The magic happens in the [`IntegrationControlMiddleware`](src/sentry/middleware/integrations/integration_control.py). Here, we do the following steps:
 
-- If an HTTP request is received to `/extensions/*`  (which is the prefix for all our webhooks) it is further inspected. If not, we fall through this middleware.
+- If an HTTP request is received to `/extensions/*` (which is the prefix for all our webhooks) it is further inspected. If not, we fall through this middleware.
 - Next, we try to identify the parser from the provider, since these requests follow the pattern `/extensions/provider/webhook-path/`. If no parser is registered, we fall through this middleware
-- If we've found a parser ([`BaseRequestParser`](src/sentry/middleware/integrations/parsers/base.py)), we defer to it for responding to the request, rather than falling through.
+- If we've found a parser ([`BaseRequestParser`](src/sentry/integrations/middleware/hybrid_cloud/parsers.py)), we defer to it for responding to the request, rather than falling through.
 
 The parsers vary per integration but they follow the same basic steps:
 
@@ -22,9 +22,8 @@ The parsers vary per integration but they follow the same basic steps:
 - Lastly, identify the relevant Region Silos we need to forward to from looking at the `OrganizationMapping`s.
 - Now, depending on the payload we can choose how to respond to the initial request:
   - Some requests will require synchronous responses with an expected response pattern, (e.g. Slack).
-  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/models/outbox.py), (e.g. GitHub).
+  - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/hybridcloud/models/outbox.py), (e.g. GitHub).
   - And others may require fanning out identical webhooks to multiple regions where the integration is installed on an organization, (e.g. Jira).
-
 
 ## Adding Integration Parsers
 
@@ -40,8 +39,7 @@ class ExampleRequestParser(BaseRequestParser):
 
     def get_response(self):
         # You can use the url router to identify the endpoint/view the request is headed to
-        view_class = self.match.func.view_class
-        if view_class in [ExampleConfigureView, ExampleSetupView]:
+        if self.view_class in [ExampleConfigureView, ExampleSetupView]:
             return self.get_response_from_control_silo()
 
         # This method calls self.get_organizations_from_integration which calls self.get_integration_from_request.

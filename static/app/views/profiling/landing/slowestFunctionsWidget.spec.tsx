@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,7 +7,7 @@ import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunc
 
 describe('SlowestFunctionsWidget', function () {
   beforeEach(function () {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
     });
@@ -24,7 +26,7 @@ describe('SlowestFunctionsWidget', function () {
       statusCode: 400,
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -43,12 +45,12 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
+          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -65,12 +67,14 @@ describe('SlowestFunctionsWidget', function () {
         data: [
           {
             'project.id': 1,
+            fingerprint: 123,
             package: 'foo',
             function: 'bar',
             'sum()': 150,
           },
           {
             'project.id': 1,
+            fingerprint: 456,
             package: 'baz',
             function: 'qux',
             'sum()': 100,
@@ -80,7 +84,7 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
+          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
@@ -106,6 +110,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-1',
             'count()': 1000,
+            'p75()': 100000,
             'sum()': 1000000,
             'examples()': [
               'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -115,6 +120,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-2',
             'count()': 2500,
+            'p75()': 50000,
             'sum()': 500000,
             'examples()': ['cccccccccccccccccccccccccccccccc'],
           },
@@ -123,8 +129,8 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'project.id:1 package:foo function:bar',
-          field: ['transaction', 'count()', 'sum()', 'examples()'],
+          query: 'project.id:1 fingerprint:123',
+          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
         }),
       ],
     });
@@ -137,6 +143,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-3',
             'count()': 2000,
+            'p75()': 200000,
             'sum()': 2000000,
             'examples()': [
               'dddddddddddddddddddddddddddddddd',
@@ -146,6 +153,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-4',
             'count()': 3500,
+            'p75()': 70000,
             'sum()': 700000,
             'examples()': ['ffffffffffffffffffffffffffffffff'],
           },
@@ -154,13 +162,13 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'project.id:1 package:baz function:qux',
-          field: ['transaction', 'count()', 'sum()', 'examples()'],
+          query: 'project.id:1 fingerprint:456',
+          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
         }),
       ],
     });
 
-    render(<SlowestFunctionsWidget widgetHeight="100px" />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -171,14 +179,14 @@ describe('SlowestFunctionsWidget', function () {
     // headers
     expect(screen.getByText('Transaction')).toBeInTheDocument();
     expect(screen.getByText('Count')).toBeInTheDocument();
-    expect(screen.getByText('Total Self Time')).toBeInTheDocument();
+    expect(screen.getByText('Time Spent')).toBeInTheDocument();
 
     // first row
     const transaction1 = screen.getByText('transaction-1');
     expect(transaction1).toBeInTheDocument();
     expect(transaction1).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/flamechart/?frameName=bar&framePackage=foo'
+      '/organizations/org-slug/profiling/profile/proj-slug/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/flamegraph/?frameName=bar&framePackage=foo'
     );
     expect(screen.getByText('1k')).toBeInTheDocument();
     expect(screen.getByText('1.00ms')).toBeInTheDocument();
@@ -188,7 +196,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction2).toBeInTheDocument();
     expect(transaction2).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/cccccccccccccccccccccccccccccccc/flamechart/?frameName=bar&framePackage=foo'
+      '/organizations/org-slug/profiling/profile/proj-slug/cccccccccccccccccccccccccccccccc/flamegraph/?frameName=bar&framePackage=foo'
     );
     expect(screen.getByText('2.5k')).toBeInTheDocument();
     expect(screen.getByText('0.50ms')).toBeInTheDocument();
@@ -203,7 +211,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction3).toBeInTheDocument();
     expect(transaction3).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/dddddddddddddddddddddddddddddddd/flamechart/?frameName=qux&framePackage=baz'
+      '/organizations/org-slug/profiling/profile/proj-slug/dddddddddddddddddddddddddddddddd/flamegraph/?frameName=qux&framePackage=baz'
     );
     expect(screen.getByText('2k')).toBeInTheDocument();
     expect(screen.getByText('2.00ms')).toBeInTheDocument();
@@ -213,7 +221,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(transaction4).toBeInTheDocument();
     expect(transaction4).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/proj-slug/ffffffffffffffffffffffffffffffff/flamechart/?frameName=qux&framePackage=baz'
+      '/organizations/org-slug/profiling/profile/proj-slug/ffffffffffffffffffffffffffffffff/flamegraph/?frameName=qux&framePackage=baz'
     );
     expect(screen.getByText('3.5k')).toBeInTheDocument();
     expect(screen.getByText('0.70ms')).toBeInTheDocument();

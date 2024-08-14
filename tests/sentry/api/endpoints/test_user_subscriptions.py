@@ -2,8 +2,9 @@ import pytest
 from django.conf import settings
 
 from sentry import newsletter
-from sentry.models import UserEmail
-from sentry.testutils import APITestCase
+from sentry.models.useremail import UserEmail
+from sentry.newsletter.dummy import DummyNewsletter
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -16,22 +17,21 @@ class UserSubscriptionsNewsletterTest(APITestCase):
     endpoint = "sentry-api-0-user-subscriptions"
     method = "put"
 
+    @pytest.fixture(autouse=True)
+    def enable_newsletter(self):
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            yield
+
     def setUp(self):
         self.user = self.create_user(email="foo@example.com")
         self.login_as(self.user)
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        self.addCleanup(disable_newsletter)
-        newsletter.backend.enable()
 
     def test_get_subscriptions(self):
         self.get_success_response(self.user.id, method="get")
 
     def test_subscribe(self):
         self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
-        results = newsletter.get_subscriptions(self.user)["subscriptions"]
+        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == 123
         assert results[0].subscribed
@@ -46,7 +46,7 @@ class UserSubscriptionsNewsletterTest(APITestCase):
 
     def test_unsubscribe(self):
         self.get_success_response(self.user.id, listId="123", subscribed=False, status_code=204)
-        results = newsletter.get_subscriptions(self.user)["subscriptions"]
+        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == 123
         assert not results[0].subscribed
@@ -54,8 +54,8 @@ class UserSubscriptionsNewsletterTest(APITestCase):
 
     def test_default_subscription(self):
         self.get_success_response(self.user.id, method="post", subscribed=True, status_code=204)
-        results = newsletter.get_subscriptions(self.user)["subscriptions"]
+        results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
-        assert results[0].list_id == newsletter.get_default_list_id()
+        assert results[0].list_id == newsletter.backend.get_default_list_id()
         assert results[0].subscribed
         assert results[0].verified

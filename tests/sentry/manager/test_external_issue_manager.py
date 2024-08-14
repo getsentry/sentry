@@ -1,10 +1,11 @@
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
-@region_silo_test(stable=True)
 class ExternalIssueManagerTest(TestCase):
     def setUp(self):
         self.project = self.create_project(organization=self.organization)

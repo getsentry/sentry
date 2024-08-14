@@ -6,32 +6,46 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import search
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.utils import handle_query_errors
+from sentry.middleware import is_frontend_request
 from sentry.snuba import spans_indexed, spans_metrics
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 
 
 @region_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({"count": 0})
 
         dataset = self.get_dataset(request)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=request.query_params.get("query"),
-                referrer="api.organization-events-meta",
+                referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
+                # TODO: @athena - add query_source when all datasets support it
+                # query_source=(
+                #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                # ),
             )
 
         return Response({"count": result["data"][0]["count"]})
@@ -42,10 +56,16 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 @region_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response([])
 
@@ -61,11 +81,11 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     status=400,
                 )
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
-                    request, organization, projects, params.get("environment")
+                    request, organization, projects, snuba_params.environments
                 )
                 query_kwargs["limit"] = 5
                 try:
@@ -83,10 +103,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
-                results = search.query(**query_kwargs)
+                results_cursor = search.backend.query(**query_kwargs)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
-            results = list(results)
+            results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
                 results,
@@ -101,9 +121,15 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
 @region_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization) -> Response:
+        is_frontend = is_frontend_request(request)
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({})
 
@@ -113,6 +139,15 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         second_bound = request.GET.get("secondBound")
         upper_bound = request.GET.get("upperBound")
         column = request.GET.get("column", "span.self_time")
+        selected_columns = request.GET.getlist("additionalFields", []) + [
+            "project",
+            "transaction.id",
+            column,
+            "timestamp",
+            "span_id",
+            "profile_id",
+            "trace",
+        ]
 
         if lower_bound is None or upper_bound is None:
             bound_results = spans_metrics.query(
@@ -120,9 +155,11 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                     f"p50({column}) as first_bound",
                     f"p95({column}) as second_bound",
                 ],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
+                query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
             )
             if len(bound_results["data"]) != 1:
                 raise ParseError("Could not find bounds")
@@ -138,10 +175,14 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
                 f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
                 f"rounded_time({buckets})",
+                "profile_id",
             ],
-            params=params,
+            orderby=["-profile_id"],
+            params={},
+            snuba_params=snuba_params,
             query=request.query_params.get("query"),
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
         span_ids = []
         for row in result["data"]:
@@ -152,14 +193,20 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(middle)
             if top:
                 span_ids.append(top)
-        if len(span_ids) == 0:
-            return Response({"data": []})
+
+        if len(span_ids) > 0:
+            query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
+        else:
+            query = request.query_params.get("query")
 
         result = spans_indexed.query(
-            selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],
+            selected_columns=selected_columns,
             orderby=["timestamp"],
-            params=params,
-            query=f"span_id:[{','.join(span_ids)}]",
+            params={},
+            snuba_params=snuba_params,
+            query=query,
+            limit=9,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
         return Response({"data": result["data"]})

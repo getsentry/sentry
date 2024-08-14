@@ -1,17 +1,26 @@
+from __future__ import annotations
+
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.user import RegionSiloUserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
+from sentry.users.services.user import RpcUser
 
 
-@control_silo_endpoint
-class UserOrganizationsEndpoint(UserEndpoint):
-    def get(self, request: Request, user) -> Response:
-        queryset = user.get_orgs()
+@region_silo_endpoint
+class UserOrganizationsEndpoint(RegionSiloUserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    def get(self, request: Request, user: RpcUser) -> Response:
+        queryset = Organization.objects.get_for_user_ids({user.id})
 
         query = request.GET.get("query")
         if query:

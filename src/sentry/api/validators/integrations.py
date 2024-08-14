@@ -1,13 +1,12 @@
-from typing import List, Optional, Set
-
 from sentry.api.exceptions import ParameterValidationError
-from sentry.types.integrations import ExternalProviders, get_provider_enum
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum
 
 
 def validate_provider(
     provider: str,
-    available_providers: Optional[Set[ExternalProviders]] = None,
-    context: Optional[List[str]] = None,
+    available_providers: set[ExternalProviders] | None = None,
+    context: list[str] | None = None,
 ) -> ExternalProviders:
     provider_option = get_provider_enum(provider)
     if not provider_option:
@@ -19,7 +18,3 @@ def validate_provider(
             f'The provider "{provider}" is not supported. We currently accept {available_providers} identities.'
         )
     return provider_option
-
-
-def validate_provider_option(provider: Optional[str]) -> Optional[ExternalProviders]:
-    return validate_provider(provider) if provider else None

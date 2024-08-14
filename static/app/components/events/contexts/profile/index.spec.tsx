@@ -1,9 +1,13 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventContext} from 'sentry/components/events/contexts/profile';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const organization = TestStubs.Organization({
+const organization = OrganizationFixture({
   features: ['profiling'],
 });
 
@@ -13,8 +17,8 @@ const profileContext = {
   profile_id: profileId,
 };
 
-const event = TestStubs.Event();
-const project = TestStubs.Project();
+const event = EventFixture();
+const project = ProjectFixture();
 
 describe('profile event context', function () {
   beforeEach(function () {
@@ -43,6 +47,6 @@ describe('profile event context', function () {
 
     expect(screen.getByText('Profile ID')).toBeInTheDocument();
     expect(screen.getByText(profileId)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View Profile'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: profileId})).toBeInTheDocument();
   });
 });

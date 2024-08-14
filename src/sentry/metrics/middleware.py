@@ -1,6 +1,6 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import local
-from typing import Generator, List, Optional, Union
 
 from django.conf import settings
 
@@ -47,10 +47,10 @@ def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
 
 
 _THREAD_LOCAL_TAGS = local()
-_GLOBAL_TAGS: List[Tags] = []
+_GLOBAL_TAGS: list[Tags] = []
 
 
-def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]:
+def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> list[Tags]:
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:
@@ -120,44 +120,100 @@ class MiddlewareWrapper(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.incr(key, instance, current_tags, amount, sample_rate)
+        return self.inner.incr(
+            key, instance, current_tags, amount, sample_rate, unit, stacklevel + 1
+        )
 
     def timing(
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.timing(key, value, instance, current_tags, sample_rate)
+        return self.inner.timing(key, value, instance, current_tags, sample_rate, stacklevel + 1)
 
     def gauge(
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.gauge(key, value, instance, current_tags, sample_rate)
+        return self.inner.gauge(
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
+        )
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        current_tags = get_current_global_tags()
+        if tags is not None:
+            current_tags.update(tags)
+        current_tags = _filter_tags(key, current_tags)
+
+        return self.inner.distribution(
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
+        )
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        current_tags = get_current_global_tags()
+        if tags is not None:
+            current_tags.update(tags)
+
+        return self.inner.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            current_tags,
+            stacklevel + 1,
+        )

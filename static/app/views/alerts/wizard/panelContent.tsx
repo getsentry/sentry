@@ -2,22 +2,25 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
-import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
 import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
+import diagramSpanMetrics from 'sentry-images/spot/alerts-wizard-span-metrics.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 
-import {AlertType} from './options';
+import type {AlertType} from './options';
 
 type PanelContent = {
-  description: string;
+  description: React.ReactNode;
   examples: string[];
   docsLink?: string;
   illustration?: string;
@@ -119,15 +122,56 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramCLS,
   },
-  custom: {
+  custom_transactions: {
     description: t(
-      'Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
+      'Alert on performance metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
     ),
     examples: [
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
     ],
-    illustration: diagramCustom,
+    illustration: diagramCustomTransaction,
+  },
+  custom_metrics: {
+    description: t(
+      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
+    ),
+    examples: [
+      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
+      t(
+        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
+      ),
+    ],
+    illustration: diagramCustomMetrics,
+  },
+  span_metrics: {
+    description: tct(
+      'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
+      {
+        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
+      }
+    ),
+    examples: [
+      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
+      t(
+        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
+      ),
+    ],
+    illustration: diagramSpanMetrics,
+  },
+  llm_tokens: {
+    description: t(
+      'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
+    ),
+    examples: [t('When there are more than 100,000 tokens used within an hour')],
+    illustration: diagramCustomMetrics,
+  },
+  llm_cost: {
+    description: t(
+      'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
+    ),
+    examples: [t('When there are more than $100 used by LLM  within an hour')],
+    illustration: diagramCustomMetrics,
   },
   crash_free_sessions: {
     description: t(

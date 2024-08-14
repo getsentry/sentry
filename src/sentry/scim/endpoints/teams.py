@@ -1,21 +1,22 @@
 import logging
 import re
-from typing import List
+from typing import Any
 
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
-from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, extend_schema_serializer, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import audit_log
-from sentry.api.base import control_silo_endpoint
-from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
-from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
+from sentry.api.endpoints.team_details import TeamDetailsEndpoint
+from sentry.api.endpoints.team_details import TeamDetailsSerializer as TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -32,10 +33,15 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
+from ...signals import team_created
+from ...utils.snowflake import MaxSnowflakeRetryError
 from .constants import (
     SCIM_400_INTEGRITY_ERROR,
     SCIM_400_INVALID_FILTER,
@@ -50,6 +56,7 @@ from .utils import (
     SCIMApiError,
     SCIMEndpoint,
     SCIMFilterError,
+    SCIMListBaseResponse,
     SCIMQueryParamSerializer,
     parse_filter_conditions,
 )
@@ -57,9 +64,10 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@extend_schema_serializer(dict)
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
-    value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    value = serializers.JSONField(required=False)
     path = serializers.CharField(required=False)
     # TODO: define exact schema for value
     # TODO: actually use these in the patch request for validation
@@ -71,12 +79,71 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
+@extend_schema_serializer(exclude_fields="schemas")
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
     schemas = serializers.ListField(child=serializers.CharField(), required=True)
-
     Operations = serializers.ListField(
-        child=SCIMTeamPatchOperationSerializer(), required=True, source="operations"
+        child=SCIMTeamPatchOperationSerializer(),
+        required=True,
+        source="operations",
+        help_text="""The list of operations to perform. Valid operations are:
+* Renaming a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "value": {
+            "id": 23,
+            "displayName": "newName"
+        }
+    }]
+}
+```
+* Adding a member to a team:
+```json
+{
+    "Operations": [{
+        "op": "add",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample@example.com"
+            }
+        ]
+    }]
+}
+```
+* Removing a member from a team:
+```json
+{
+    "Operations": [{
+        "op": "remove",
+        "path": "members[value eq \"23\"]"
+    }]
+}
+```
+* Replacing an entire member set of a team:
+```json
+{
+    "Operations": [{
+        "op": "replace",
+        "path": "members",
+        "value": [
+            {
+                "value": 23,
+                "display": "testexample2@sentry.io"
+            },
+            {
+                "value": 24,
+                "display": "testexample3@sentry.io"
+            }
+        ]
+    }]
+}
+```
+""",
     )
 
 
@@ -84,33 +151,26 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
-    Resources: List[OrganizationTeamSCIMSerializerResponse]
+class SCIMListTeamsResponse(SCIMListBaseResponse):
+    Resources: list[OrganizationTeamSCIMSerializerResponse]
 
 
 @extend_schema(tags=["SCIM"])
-@control_silo_endpoint
-class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
+@region_silo_endpoint
+class OrganizationSCIMTeamIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "POST"}
-
-    def team_serializer_for_post(self):
-        return TeamSCIMSerializer(expand=["members"])
-
-    def should_add_creator_to_team(self, request: Request):
-        return False
 
     @extend_schema(
         operation_id="List an Organization's Paginated Teams",
-        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListResponseDict
+                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListTeamsResponse
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -118,12 +178,12 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         },
         examples=SCIMExamples.LIST_ORG_PAGINATED_TEAMS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
         Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
-        - Note that the members field will only contain up to 10000 members.
-        """
 
+        Note that the members field will only contain up to 10,000 members.
+        """
         query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
@@ -148,19 +208,19 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             on_results=on_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
             default_per_page=query_params["count"],
-            queryset=queryset,
             cursor_cls=SCIMCursor,
         )
 
     @extend_schema(
         operation_id="Provision a New Team",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
-                "schemas": serializers.ListField(serializers.CharField()),
-                "displayName": serializers.CharField(),
-                "members": serializers.ListField(serializers.IntegerField()),
+                "displayName": serializers.CharField(
+                    help_text="The slug of the team that is shown in the UI.",
+                    required=True,
+                ),
             },
         ),
         responses={
@@ -171,11 +231,13 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         },
         examples=SCIMExamples.PROVISION_NEW_TEAM,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
         """
-        Create a new team bound to an organization via a SCIM Groups POST Request.
+        Create a new team bound to an organization via a SCIM Groups POST
+        Request. The slug will have a normalization of uppercases/spaces to
+        lowercases and dashes.
+
         Note that teams are always created with an empty member set.
-        The endpoint will also do a normalization of uppercase / spaces to lowercase and dashes.
         """
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
@@ -186,18 +248,65 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
                 "idp_provisioned": True,
             }
         )
-        metrics.incr("sentry.scim.team.provision", tags={"organization": organization})
-        return super().post(request, organization)
+        metrics.incr("sentry.scim.team.provision")
+        serializer = TeamPostSerializer(data=request.data)
+
+        if serializer.is_valid():
+            result = serializer.validated_data
+
+            try:
+                with transaction.atomic(router.db_for_write(Team)):
+                    team = Team.objects.create(
+                        name=result.get("name") or result["slug"],
+                        slug=result["slug"],
+                        idp_provisioned=result.get("idp_provisioned", False),
+                        organization_id=organization.id,
+                    )
+
+                team_created.send_robust(
+                    organization_id=organization.id,
+                    user_id=request.user.id,
+                    team_id=team.id,
+                    sender=None,
+                )
+            except (IntegrityError, MaxSnowflakeRetryError):
+                return Response(
+                    {
+                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
+                        "detail": CONFLICTING_SLUG_ERROR,
+                    },
+                    status=409,
+                )
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=team.id,
+                event=audit_log.get_event_id("TEAM_ADD"),
+                data=team.get_audit_log_data(),
+            )
+            return Response(
+                serialize(team, request.user, TeamSCIMSerializer(expand=["members"])),
+                status=201,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=["SCIM"])
-@control_silo_endpoint
+@region_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "PATCH", "DELETE"}
 
-    def convert_args(self, request: Request, organization_slug, team_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(
+        self, request: Request, organization_id_or_slug: int | str, team_id, *args, **kwargs
+    ):
+        args, kwargs = super().convert_args(request, organization_id_or_slug)
         try:
             kwargs["team"] = self._get_team(kwargs["organization"], team_id)
         except Team.DoesNotExist:
@@ -216,7 +325,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Team",
-        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_SLUG],
+        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: TeamSCIMSerializer,
@@ -248,7 +357,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 # if a member already belongs to a team, do nothing
                 continue
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
                     request=request,
@@ -261,7 +370,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def _remove_members_operation(self, request: Request, member_id, team):
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
@@ -283,19 +392,21 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
-        if serializer.is_valid():
-            team = serializer.save()
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=team.id,
-                event=audit_log.get_event_id("TEAM_EDIT"),
-                data=team.get_audit_log_data(),
-            )
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+
+        team = serializer.save()
+        self.create_audit_entry(
+            request=request,
+            organization=team.organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_EDIT"),
+            data=team.get_audit_log_data(),
+        )
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -306,63 +417,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     )
     def patch(self, request: Request, organization, team):
         """
-        Update a team's attributes with a SCIM Group PATCH Request. Valid operations are:
-
-        * Renaming a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "value": {
-                    "id": 23,
-                    "displayName": "newName"
-                }
-            }]
-        }
-        ```
-        * Adding a member to a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "add",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample@example.com"
-                    }
-                ]
-            }]
-        }
-        ```
-        * Removing a member from a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "remove",
-                "path": "members[value eq \"23\"]"
-            }]
-        }
-        ```
-        * Replacing an entire member set of a team:
-        ```json
-        {
-            "Operations": [{
-                "op": "replace",
-                "path": "members",
-                "value": [
-                    {
-                        "value": 23,
-                        "display": "testexample2@sentry.io"
-                    },
-                    {
-                        "value": 24,
-                        "display": "testexample3@sentry.io"
-                    }
-                ]
-            }]
-        }
-        ```
+        Update a team's attributes with a SCIM Group PATCH Request.
         """
 
         serializer = SCIMTeamPatchRequestSerializer(data=request.data)
@@ -375,7 +430,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
                 team.save()
 
@@ -393,9 +448,11 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         if path == "members":
                             # delete all the current team members
                             # and replace with the ones in the operation list
-                            with transaction.atomic():
-                                queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
-                                queryset.delete()
+                            with transaction.atomic(router.db_for_write(OrganizationMember)):
+                                existing = list(
+                                    OrganizationMemberTeam.objects.filter(team_id=team.id)
+                                )
+                                OrganizationMemberTeam.objects.bulk_delete(existing)
                                 self._add_members_operation(request, operation, team)
                         # azure and okta handle team name change operation differently
                         elif path is None:
@@ -420,8 +477,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Delete an Individual Team",
-        parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
-        request=None,
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
@@ -433,7 +489,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
-        metrics.incr("sentry.scim.team.delete", tags={"organization": organization})
+        metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
     def put(self, request: Request, organization, team) -> Response:

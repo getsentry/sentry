@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models.apigrant import ApiGrant
+from sentry.models.useremail import UserEmail
 from sentry.utils import jwt as jwt_utils
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -21,11 +23,13 @@ class OpenIDToken:
         self,
         aud,
         sub,
+        shared_secret,
         iss="https://sentry.io",
         exp=None,
         iat=None,
         nonce=None,
     ):
+        self.shared_secret = shared_secret
         self.aud = aud
         self.sub = sub
         self.iss = iss
@@ -33,7 +37,7 @@ class OpenIDToken:
         self.exp = exp if exp else default_expiration()
         self.iat = iat if iat else timezone.now()
 
-    def get_encrypted_id_token(self):
+    def get_signed_id_token(self, grant: ApiGrant) -> str:
         headers = {
             "alg": "HS256",
             "typ": "JWT",
@@ -45,6 +49,28 @@ class OpenIDToken:
             "exp": self.exp,
             "iat": self.iat,
         }
+        user_details = self._get_user_details(grant=grant)
+        claims.update(user_details)
         if self.nonce:
             claims["nonce"] = self.nonce
-        return jwt_utils.encode(claims, "secret", headers={**headers, "alg": "HS256"})
+        return jwt_utils.encode(claims, self.shared_secret, headers={**headers, "alg": "HS256"})
+
+    def _get_user_details(self, grant: ApiGrant) -> dict:
+        user_details = {}
+        if grant.has_scope("profile"):
+            profile_details = {
+                "name": grant.user.name,
+                "avatar_type": grant.user.avatar_type,
+                "avatar_url": grant.user.avatar_url,
+                "date_joined": str(grant.user.date_joined),
+            }
+            user_details.update(profile_details)
+        if grant.has_scope("email"):
+            for user_email in UserEmail.objects.filter(user=grant.user):
+                if user_email.is_primary():
+                    email_details = {
+                        "email": user_email.email,
+                        "email_verified": user_email.is_verified,
+                    }
+                    user_details.update(email_details)
+        return user_details

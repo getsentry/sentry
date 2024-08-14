@@ -1,177 +1,126 @@
+import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Placeholder from 'sentry/components/placeholder';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconPlay} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import type {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import {IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  event: Event;
+  analyticsContext: string;
+  eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
+  focusTab?: TabKey;
+  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event}: Props) {
-  const routes = useRoutes();
+function getReplayAnalyticsStatus({
+  fetchError,
+  replayRecord,
+}: {
+  fetchError?: RequestError;
+  replayRecord?: ReplayRecord;
+}) {
+  if (fetchError) {
+    return 'error';
+  }
+
+  if (replayRecord?.is_archived) {
+    return 'archived';
+  }
+
+  if (replayRecord) {
+    return 'success';
+  }
+
+  return 'none';
+}
+
+function ReplayPreview({
+  analyticsContext,
+  fullReplayButtonProps,
+  eventTimestampMs,
+  focusTab,
+  orgSlug,
+  replaySlug,
+}: Props) {
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
+  const organization = useOrganization();
 
-  const eventTimestamp = event.dateCreated
-    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
-    : 0;
-
-  const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
-
+  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
   const initialTimeOffsetMs = useMemo(() => {
-    if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs);
+    if (eventTimestampMs && startTimestampMs) {
+      return Math.abs(eventTimestampMs - startTimestampMs);
     }
 
     return 0;
-  }, [eventTimestamp, startTimestampMs]);
+  }, [eventTimestampMs, startTimestampMs]);
 
-  if (fetchError) {
-    const reasons = [
-      t('The replay was rate-limited and could not be accepted.'),
-      t('The replay has been deleted by a member in your organization.'),
-      t('There were network errors and the replay was not saved.'),
-      tct('[link:Read the docs] to understand why.', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-        ),
-      }),
-    ];
+  useRouteAnalyticsParams({
+    event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
+  });
 
+  if (replayRecord?.is_archived) {
     return (
-      <Alert
-        type="info"
-        showIcon
-        data-test-id="replay-error"
-        trailingItems={
-          <Button
-            external
-            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
-            size="xs"
-          >
-            {t('Read Docs')}
-          </Button>
-        }
-      >
-        <p>
-          {t(
-            'The replay for this event cannot be found. This could be due to these reasons:'
-          )}
-        </p>
-        <List symbol="bullet">
-          {reasons.map((reason, i) => (
-            <ListItem key={i}>{reason}</ListItem>
-          ))}
-        </List>
+      <Alert type="warning" data-test-id="replay-error">
+        <Flex gap={space(0.5)}>
+          <IconDelete color="gray500" size="sm" />
+          {t('The replay for this event has been deleted.')}
+        </Flex>
       </Alert>
     );
   }
 
-  if (fetching || !replayRecord) {
+  if (fetchError) {
+    trackAnalytics('replay.render-missing-replay-alert', {
+      organization,
+      surface: 'issue details - old preview',
+    });
+    return <MissingReplayAlert orgSlug={orgSlug} />;
+  }
+
+  if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
-      />
+      <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
     );
   }
 
-  const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
-    query: {
-      referrer: getRouteStringFromRoutes(routes),
-      t_main: 'console',
-      t: initialTimeOffsetMs / 1000,
-    },
-  };
-
   return (
-    <ReplayContextProvider
+    <StaticReplayPreview
+      focusTab={focusTab}
       isFetching={fetching}
+      analyticsContext={analyticsContext}
       replay={replay}
-      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
-    >
-      <PlayerContainer data-test-id="player-container">
-        <StaticPanel>
-          <ReplayPlayer isPreview />
-        </StaticPanel>
-        <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
-            {t('Open Replay')}
-          </Button>
-        </CTAOverlay>
-        <BadgeContainer>
-          <FeatureText>{t('Replays')}</FeatureText>
-        </BadgeContainer>
-      </PlayerContainer>
-    </ReplayContextProvider>
+      replayId={replayId}
+      fullReplayButtonProps={fullReplayButtonProps}
+      initialTimeOffsetMs={initialTimeOffsetMs}
+    />
   );
 }
 
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  margin-bottom: ${space(2)};
-  background: ${p => p.theme.background};
-  gap: ${space(1)};
-  max-height: 448px;
-`;
-
-const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const CTAOverlay = styled('div')`
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.5);
-`;
-
-const BadgeContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
-  background: ${p => p.theme.background};
-  border-radius: 2.25rem;
-  padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  gap: 0 ${space(0.25)};
-`;
-
-const FeatureText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 0;
-  color: ${p => p.theme.text};
-`;
-
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
 

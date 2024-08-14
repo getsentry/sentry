@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
     def setUp(self):
         self.create_release(project=self.project, version="abcdabc")
@@ -26,7 +24,7 @@ class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
         for timestamp in last_release.values():
             event = self.create_event("c", release="1.0a", timestamp=iso_format(timestamp))
 
-        self.url = f"/api/0/issues/{event.group.id}/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
 
         self.login_as(user=self.user)
 

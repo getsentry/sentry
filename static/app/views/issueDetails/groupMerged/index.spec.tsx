@@ -1,5 +1,12 @@
+import {DetailedEventsFixture} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
 import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
@@ -7,7 +14,7 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 jest.mock('sentry/api');
 
 describe('Issues -> Merged View', function () {
-  const events = TestStubs.DetailedEvents();
+  const events = DetailedEventsFixture();
   const mockData = {
     merged: [
       {
@@ -23,22 +30,17 @@ describe('Issues -> Merged View', function () {
     ],
   };
 
-  beforeAll(function () {
+  beforeEach(function () {
+    GroupingStore.init();
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/?limit=50&query=',
+      url: '/organizations/org-slug/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });
 
-  beforeEach(() => {
-    GroupingStore.init();
-  });
-
-  it('renders initially with loading component', function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      project: {
-        slug: 'projectId',
-      },
+  it('renders initially with loading component', async function () {
+    const {organization, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -57,17 +59,15 @@ describe('Issues -> Merged View', function () {
         routes={router.routes}
         router={router}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await act(tick);
   });
 
   it('renders with mocked data', async function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      project: {
-        slug: 'projectId',
-      },
+    const {organization, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -75,7 +75,7 @@ describe('Issues -> Merged View', function () {
       },
     });
 
-    const {container} = render(
+    render(
       <GroupMergedView
         organization={organization}
         project={project}
@@ -86,11 +86,9 @@ describe('Issues -> Merged View', function () {
         routes={router.routes}
         router={router}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    expect(container).toSnapshot();
   });
 });

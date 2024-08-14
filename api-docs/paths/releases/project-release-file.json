@@ -5,18 +5,18 @@
     "operationId": "Retrieve a Project Release's File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The id or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"
@@ -90,18 +90,18 @@
     "operationId": "Update a Project Release File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The id or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"
@@ -189,18 +189,18 @@
     "operationId": "Delete a Project Release's File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the release belongs to.",
+        "description": "The id or slug of the organization the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The id or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"

@@ -1,16 +1,16 @@
+import orjson
 from django.urls import reverse
 
-from sentry.models import SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 def assert_response_json(response, data):
     """
     Normalizes unicode strings by encoding/decoding expected output
     """
-    assert json.loads(response.content) == json.loads(json.dumps(data))
+    assert orjson.loads(response.content) == orjson.loads(orjson.dumps(data))
 
 
 class OrganizationSentryAppsTest(APITestCase):
@@ -64,6 +64,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     ],
                     "popularity": SentryApp._meta.get_field("popularity").default,
                     "avatars": [],
+                    "metadata": {},
                 }
             ],
         )

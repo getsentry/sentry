@@ -1,8 +1,9 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project, Team, TeamWithProjects} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project, TeamWithProjects} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 

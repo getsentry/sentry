@@ -7,18 +7,25 @@ import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {UserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = {
   issueId: string;
-  orgId: string;
+  orgSlug: string;
   report: UserReport;
   className?: string;
+  showEventLink?: boolean;
 };
 
-export function EventUserFeedback({className, report, orgId, issueId}: Props) {
+export function EventUserFeedback({
+  className,
+  report,
+  orgSlug,
+  issueId,
+  showEventLink = true,
+}: Props) {
   const user = report.user || {
     name: report.name,
     email: report.email,
@@ -50,9 +57,9 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
               {report.email}
             </CopyButton>
 
-            {report.eventID && (
+            {report.eventID && showEventLink && (
               <ViewEventLink
-                to={`/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
+                to={`/organizations/${orgSlug}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
               >
                 {t('View event')}
               </ViewEventLink>
@@ -83,12 +90,12 @@ const Items = styled('div')`
 const CopyButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const StyledIconCopy = styled(IconCopy)``;
 
 const ViewEventLink = styled(Link)`
-  font-weight: 300;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: 0.9em;
 `;

@@ -8,19 +8,24 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
-import useResolveRoute from 'sentry/utils/useResolveRoute';
-import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
 
 function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
+  // Allow null as we could be in an org-less User account view.
+  const currentOrganization = useOrganization({allowNull: true});
 
-  const route = useResolveRoute(
+  const route = resolveRoute(
     `/organizations/${organization.slug}/issues/`,
+    currentOrganization,
     organization
   );
 
@@ -38,17 +43,16 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 }
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
-  const currentOrganization = useOrganization({allowNull: true});
-  const route = useResolveRoute('/organizations/new/');
-
   if (!canCreateOrganization) {
     return null;
   }
-
+  const configFeatures = ConfigStore.get('features');
+  const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
+  const route = '/organizations/new/';
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
-  if (currentOrganization?.features.includes('customer-domains')) {
-    menuItemProps.href = route;
+  if (configFeatures.has('system:multi-region')) {
+    menuItemProps.href = sentryUrl + route;
     menuItemProps.openInNewTab = false;
   } else {
     menuItemProps.to = route;
@@ -70,13 +74,14 @@ function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boo
 
 type Props = {
   canCreateOrganization: boolean;
-  organizations: OrganizationSummary[];
 };
 
 /**
  * Switch Organization Menu Label + Sub Menu
  */
-function SwitchOrganization({organizations, canCreateOrganization}: Props) {
+function SwitchOrganization({canCreateOrganization}: Props) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
   return (
     <DeprecatedDropdownMenu isNestedDropdown>
       {({isOpen, getMenuProps, getActorProps}) => (
@@ -107,7 +112,7 @@ function SwitchOrganization({organizations, canCreateOrganization}: Props) {
               {...getMenuProps({})}
             >
               <OrganizationList role="list">
-                {sortBy(organizations, ['status.id']).map(organization => {
+                {sortBy(organizations, ['status.id', 'name']).map(organization => {
                   return (
                     <OrganizationMenuItem
                       key={organization.slug}
@@ -128,10 +133,7 @@ function SwitchOrganization({organizations, canCreateOrganization}: Props) {
   );
 }
 
-const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
-
-export {SwitchOrganization};
-export default SwitchOrganizationContainer;
+export default SwitchOrganization;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: ${space(1)};

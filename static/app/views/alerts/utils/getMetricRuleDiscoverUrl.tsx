@@ -1,15 +1,20 @@
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 
 interface MetricRuleDiscoverUrlOptions {
-  orgSlug: string;
+  organization: Organization;
   projects: Project[];
   timePeriod: Omit<TimePeriodType, 'display' | 'label'>;
   extraQueryParams?: Partial<NewQuery>;
+  openInDiscoverDataset?: SavedQueryDatasets;
   query?: string;
   rule?: MetricRule;
 }
@@ -23,15 +28,21 @@ interface MetricRuleDiscoverUrlOptions {
  * - Start and end are the period's values selected in the chart header
  */
 export function getMetricRuleDiscoverUrl({
-  orgSlug,
+  organization,
+  openInDiscoverDataset,
   ...rest
 }: MetricRuleDiscoverUrlOptions) {
+  const orgSlug = organization.slug;
   const discoverView = getMetricRuleDiscoverQuery(rest);
   if (!discoverView || !rest.rule) {
     return '';
   }
 
-  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgSlug);
+  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(
+    orgSlug,
+    false,
+    hasDatasetSelector(organization) ? openInDiscoverDataset : undefined
+  );
   const timeWindowString = `${rest.rule.timeWindow}m`;
 
   return {
@@ -46,9 +57,9 @@ export function getMetricRuleDiscoverQuery({
   timePeriod,
   query,
   extraQueryParams,
-}: Omit<MetricRuleDiscoverUrlOptions, 'orgSlug'>) {
+}: Omit<MetricRuleDiscoverUrlOptions, 'organization' | 'openInDiscoverDataset'>) {
   if (!projects || !projects.length || !rule) {
-    return '';
+    return null;
   }
 
   const aggregateAlias = getAggregateAlias(rule.aggregate);
@@ -70,7 +81,7 @@ export function getMetricRuleDiscoverQuery({
 
   const eventQuery: NewQuery = {
     id: undefined,
-    name: (rule && rule.name) || 'Transactions',
+    name: rule?.name || 'Transactions',
     fields,
     orderby: `-${aggregateAlias}`,
     query: query ?? rule.query ?? '',

@@ -6,13 +6,12 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
     get_event,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.slow_db_query_detector import SlowDBQueryDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -21,7 +20,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):
@@ -34,7 +32,7 @@ class SlowDBQueryDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_calls_detect_slow_span(self):
-        no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
+        no_slow_span_event = create_event([create_span("db", 499.0)] * 1)
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
 
@@ -138,19 +136,6 @@ class SlowDBQueryDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        slow_span_event = create_event(
-            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
-        )
-
-        detector = SlowDBQueryDetector(self._settings, slow_span_event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
 
     def test_respects_project_option(self):
         project = self.create_project()

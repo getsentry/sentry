@@ -1,9 +1,9 @@
-import {Component} from 'react';
+import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {setActiveProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -11,11 +11,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, User} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -34,9 +35,8 @@ type Props = {
   api: Client;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
   loadingProjects: boolean;
-  orgId: string;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   projects: Project[];
   /**
    * If true, this will not change `state.loading` during `fetchData` phase
@@ -52,6 +52,8 @@ type State = {
   project: Project | null;
 };
 
+const ProjectContext = createContext<Project | null>(null);
+
 /**
  * Higher-order component that sets `project` as a child context
  * value to be accessed by child elements.
@@ -59,11 +61,7 @@ type State = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-class ProjectContext extends Component<Props, State> {
-  static childContextTypes = {
-    project: SentryTypes.Project,
-  };
-
+class ProjectContextProvider extends Component<Props, State> {
   state = this.getInitialState();
 
   getInitialState(): State {
@@ -73,12 +71,6 @@ class ProjectContext extends Component<Props, State> {
       errorType: null,
       memberList: [],
       project: null,
-    };
-  }
-
-  getChildContext() {
-    return {
-      project: this.state.project,
     };
   }
 
@@ -92,7 +84,7 @@ class ProjectContext extends Component<Props, State> {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.projectId === this.props.projectId) {
+    if (nextProps.projectSlug === this.props.projectSlug) {
       return;
     }
 
@@ -102,7 +94,7 @@ class ProjectContext extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, _prevState: State) {
-    if (prevProps.projectId !== this.props.projectId) {
+    if (prevProps.projectSlug !== this.props.projectSlug) {
       this.fetchData();
     }
 
@@ -154,16 +146,15 @@ class ProjectContext extends Component<Props, State> {
   }
 
   identifyProject() {
-    const {projects, projectId} = this.props;
-    const projectSlug = projectId;
+    const {projects, projectSlug} = this.props;
     return projects.find(({slug}) => slug === projectSlug) || null;
   }
 
   async fetchData() {
-    const {orgId, projectId, skipReload} = this.props;
+    const {organization, projectSlug, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
-    const hasAccess = activeProject && activeProject.hasAccess;
+    const hasAccess = activeProject?.hasAccess;
 
     this.setState((state: State) => ({
       // if `skipReload` is true, then don't change loading state
@@ -175,7 +166,7 @@ class ProjectContext extends Component<Props, State> {
     if (activeProject && hasAccess) {
       setActiveProject(null);
       const projectRequest = this.props.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+        `/projects/${organization.slug}/${projectSlug}/`
       );
 
       try {
@@ -197,7 +188,7 @@ class ProjectContext extends Component<Props, State> {
         });
       }
 
-      fetchOrgMembers(this.props.api, orgId, [activeProject.id]);
+      fetchOrgMembers(this.props.api, organization.slug, [activeProject.id]);
 
       return;
     }
@@ -217,7 +208,9 @@ class ProjectContext extends Component<Props, State> {
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
-      await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+      await this.props.api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/`
+      );
     } catch (error) {
       this.setState({
         loading: false,
@@ -240,7 +233,11 @@ class ProjectContext extends Component<Props, State> {
     }
 
     if (!error && project) {
-      return typeof children === 'function' ? children({project}) : children;
+      return (
+        <ProjectContext.Provider value={project}>
+          {typeof children === 'function' ? children({project}) : children}
+        </ProjectContext.Provider>
+      );
     }
 
     switch (errorType) {
@@ -275,9 +272,9 @@ class ProjectContext extends Component<Props, State> {
   }
 }
 
-export {ProjectContext};
+export {ProjectContext, ProjectContextProvider};
 
-export default withApi(withOrganization(withProjects(ProjectContext)));
+export default withApi(withOrganization(withProjects(ProjectContextProvider)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;

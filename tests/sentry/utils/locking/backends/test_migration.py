@@ -1,4 +1,3 @@
-from typing import Optional
 from unittest import TestCase
 
 import pytest
@@ -14,7 +13,7 @@ class DummyLockBackend(LockBackend):
     def __init__(self):
         self._locks = {}
 
-    def acquire(self, key: str, duration: int, routing_key: Optional[str] = None) -> None:
+    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         if self.locked(key=key, routing_key=routing_key):
             raise Exception(f"Could not acquire ({key}, {routing_key})")
         self._locks[(key, routing_key)] = duration

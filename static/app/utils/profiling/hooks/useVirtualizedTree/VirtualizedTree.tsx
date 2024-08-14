@@ -1,4 +1,4 @@
-import {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
@@ -134,7 +134,7 @@ export class VirtualizedTree<T extends TreeLike> {
     value: boolean,
     opts?: {expandChildren: boolean}
   ) {
-    // Because node.setExpanded handles toggling the node and all it's children, we still need to update the
+    // Because node.setExpanded handles toggling the node and all its children, we still need to update the
     // flattened list. To do that w/o having to rebuild the entire tree, we can just remove the node and add them
     const removedOrAddedNodes = node.setExpanded(value, opts);
 
@@ -176,7 +176,7 @@ export class VirtualizedTree<T extends TreeLike> {
   }
 
   getAllExpandedNodes(previouslyExpandedNodes: Set<T>): Set<T> {
-    const expandedNodes = new Set<T>([...previouslyExpandedNodes]);
+    const expandedNodes = new Set<T>(previouslyExpandedNodes);
 
     function visit(node: VirtualizedTreeNode<T>) {
       if (node.expanded) {

@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 import sentry_kafka_schemas
 import sentry_sdk
@@ -29,9 +29,9 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
         self.__topic = topic
         self.__enforce_schema = enforce_schema
         self.__next_step = next_step
-        self.__last_record_time: Optional[float] = None
+        self.__last_record_time: float | None = None
 
-        self.__codec: Optional[sentry_kafka_schemas.codecs.Codec[Any]]
+        self.__codec: sentry_kafka_schemas.codecs.Codec[Any] | None
         try:
             self.__codec = sentry_kafka_schemas.get_codec(topic)
         except sentry_kafka_schemas.SchemaNotFound:
@@ -45,7 +45,7 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
         else:
             now = time.time()
             if self.__last_record_time is None or self.__last_record_time + 1.0 < now:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.add_attachment(bytes=message.payload.value, filename="message.txt")
                     scope.set_tag("topic", self.__topic)
 
@@ -63,7 +63,7 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
     def poll(self) -> None:
         self.__next_step.poll()
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.join(timeout)
 
     def close(self) -> None:

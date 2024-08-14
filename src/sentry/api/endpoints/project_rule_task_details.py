@@ -2,16 +2,23 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import Rule, RuleStatus
+from sentry.models.rule import Rule
 
 
 @region_silo_endpoint
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
-    permission_classes = [ProjectSettingPermission]
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    permission_classes = (ProjectSettingPermission,)
 
     def get(self, request: Request, project, task_uuid) -> Response:
         """
@@ -35,7 +42,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
                 rule = Rule.objects.get(
                     project=project,
                     id=int(rule_id),
-                    status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                    status=ObjectStatus.ACTIVE,
                 )
                 context["rule"] = serialize(rule, request.user)
             except Rule.DoesNotExist:

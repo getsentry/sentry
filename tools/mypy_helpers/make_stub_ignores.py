@@ -13,10 +13,6 @@ import tempfile
 PAT = re.compile('(?:library stub for module named |Skipping analyzing )"([^"]+)"')
 
 
-def _format_mods(mods: list[str]) -> str:
-    return "".join(f'    "{mod}",\n' for mod in mods)
-
-
 def main() -> int:
     shutil.rmtree(".mypy_cache", ignore_errors=True)
 
@@ -41,6 +37,10 @@ def main() -> int:
             match = PAT.search(line)
             if match is not None and match[1] not in seen:
                 seen.add(match[1])
+
+    # google's weird namespace package breaks mypy's errors
+    assert {s for s in seen if s.startswith("google.cloud.")}, "google.cloud got typed!"
+    seen.add("google.cloud")
 
     mods: list[str] = []
     for mod in sorted(seen):

@@ -3,8 +3,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.utils import timezone
 
-from sentry.models import Activity, Deploy
-from sentry.notifications.notifications.activity import ReleaseActivityNotification
+from sentry.models.activity import Activity
+from sentry.models.deploy import Deploy
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 
@@ -72,6 +73,7 @@ class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
             )
+        assert first_project is not None
 
         assert (
             f"{first_project.slug} | [Notification Settings](http://testserver/settings/account/notifications/deploy/?referrer=release\\_activity-msteams-user)"

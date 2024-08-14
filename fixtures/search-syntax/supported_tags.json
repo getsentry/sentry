@@ -72,9 +72,11 @@
         "operator": ">",
         "value": {
           "type": "valueNumber",
-          "rawValue": 0,
           "value": "0",
-          "unit": null
+          "unit": null,
+          "parsed": {
+            "value": 0
+          }
         }
       },
       {"type": "spaces", "value": ""}

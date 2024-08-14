@@ -1,11 +1,9 @@
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:performance-view"
 
@@ -18,8 +16,8 @@ class ProjectTransactionThresholdTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-transaction-threshold",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -77,6 +75,32 @@ class ProjectTransactionThresholdTest(APITestCase):
             project=self.project, organization=self.project.organization
         ).exists()
 
+    def test_update_single_field_project_threshold(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "metric": "lcp",
+                    "threshold": "300",
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["threshold"] == "300"
+        assert response.data["metric"] == "lcp"
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={
+                    "threshold": "400",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["threshold"] == "400"
+        assert response.data["metric"] == "lcp"
+
     def test_project_threshold_permissions(self):
         user = self.create_user()
         # user without project-write permissions
@@ -88,7 +112,10 @@ class ProjectTransactionThresholdTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         ProjectTransactionThreshold.objects.create(

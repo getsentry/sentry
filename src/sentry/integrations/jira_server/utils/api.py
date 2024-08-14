@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
 
 if TYPE_CHECKING:
-    from sentry.models import Integration
+    from sentry.integrations.models.integration import Integration
 
 logger = logging.getLogger(__name__)
 
 
 def get_assignee_email(
-    integration: Integration,
+    integration: RpcIntegration | Integration,
     assignee: Mapping[str, str],
 ) -> str | None:
     """Get email from `assignee`."""
@@ -20,7 +23,7 @@ def get_assignee_email(
 
 
 def handle_assignee_change(
-    integration: Integration,
+    integration: RpcIntegration | Integration,
     data: Mapping[str, Any],
 ) -> None:
     assignee_changed = any(
@@ -50,7 +53,9 @@ def handle_assignee_change(
     sync_group_assignee_inbound(integration, email, issue_key, assign=True)
 
 
-def handle_status_change(integration, data):
+def handle_status_change(
+    integration: RpcIntegration | Integration, data: Mapping[str, Any]
+) -> None:
     status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
     if not status_changed:
         return
@@ -66,9 +71,14 @@ def handle_status_change(integration, data):
         )
         return
 
-    for org_id in integration.organizationintegration_set.values_list("organization_id", flat=True):
-        installation = integration.get_installation(org_id)
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id,
+        providers=[integration.provider],
+    )
+    for oi in org_integrations:
+        installation = integration.get_installation(oi.organization_id)
 
-        installation.sync_status_inbound(
-            issue_key, {"changelog": changelog, "issue": data["issue"]}
-        )
+        if hasattr(installation, "sync_status_inbound"):
+            installation.sync_status_inbound(
+                issue_key, {"changelog": changelog, "issue": data["issue"]}
+            )

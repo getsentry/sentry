@@ -7,9 +7,9 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.base import DetectorType
 from sentry.utils.performance_issues.detectors.mn_plus_one_db_span_detector import (
     MNPlusOneDBSpanDetector,
 )
@@ -21,15 +21,17 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class MNPlusOneDBDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = MNPlusOneDBSpanDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], settings: dict[DetectorType, Any] | None = None
+    ) -> list[PerformanceProblem]:
+        detector_settings = settings or self._settings
+        detector = MNPlusOneDBSpanDetector(detector_settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -127,6 +129,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
+                call("is_standalone_spans", False),
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call(
                     "_pi_m_n_plus_one_db_fp",
@@ -168,3 +171,34 @@ class MNPlusOneDBDetectorTest(TestCase):
         detector = MNPlusOneDBSpanDetector(settings, event)
 
         assert not detector.is_creation_allowed_for_project(project)
+
+    def test_respects_n_plus_one_db_duration_threshold(self):
+        project = self.create_project()
+
+        # Total duration subceeds the threshold
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"n_plus_one_db_duration_threshold": 500},
+        )
+
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project_id=project.id)
+        assert self.find_problems(event, settings) == []
+
+        # Total duration exceeds the threshold
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"n_plus_one_db_duration_threshold": 100},
+        )
+
+        settings = get_detection_settings(project_id=project.id)
+        assert len(self.find_problems(event, settings)) == 1
+
+    # The mocked event has span duration that doesn't make up at least 10% of the total offender spans duration.
+    def test_db_spans_duration_subceeds_pct(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
+        assert self.find_problems(event) == []

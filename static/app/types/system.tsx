@@ -1,8 +1,9 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
+import type {ParntershipAgreementType} from './hooks';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
@@ -10,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
-  SU_ACCESS_FORM = 'SuperuserAccessForm',
+  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -73,6 +74,11 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
+    /**
+     * Is populated with promises/strings of commonly used data.
+     */
+    __sentry_preload: Record<string, any>;
+
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {
@@ -114,6 +120,10 @@ declare global {
   }
 }
 
+export interface Region {
+  name: string;
+  url: string;
+}
 interface CustomerDomain {
   organizationUrl: string | undefined;
   sentryUrl: string;
@@ -130,12 +140,17 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
+  isSelfHostedErrorsOnly: boolean;
   languageCode: string;
   lastOrganization: string | null;
   links: {
@@ -144,20 +159,25 @@ export interface Config {
     sentryUrl: string;
     superuserUrl?: string;
   };
+  // A list of regions that the user has membership in.
+  memberRegions: Region[];
   /**
    * This comes from django (django.contrib.messages)
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
   privacyUrl: string | null;
-
+  // The list of regions the user has has access to.
+  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
+  shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
@@ -165,6 +185,11 @@ export interface Config {
   termsUrl: string | null;
   theme: 'light' | 'dark';
   urlPrefix: string;
+  /**
+   * The user should not be accessible directly except during
+   * app initialization. Use `useUser` or ConfigStore instead.
+   * @deprecated
+   */
   user: User;
   userIdentity: {
     email: string;
@@ -179,6 +204,14 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
+  relocationConfig?: {
+    selectableRegions: string[];
+  };
+  shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
     id: string;
@@ -202,29 +235,191 @@ export type Broadcast = {
   title: string;
 };
 
-export type SentryServiceIncident = {
-  affectedComponents: Array<{
-    name: string;
-    status: 'degraded_performance' | 'partial_outage' | 'major_outage' | 'operational';
-    updatedAt: string;
-  }>;
-  createdAt: string;
-  id: string;
-  name: string;
-  status: string;
-  updates: Array<{
-    body: string;
-    status: string;
-    updatedAt: string;
-  }>;
-  url: string;
-};
+// XXX(epurkhiser): The components list can be generated using jq
+//
+// curl -s https://status.sentry.io/api/v2/components.json \
+// | jq -r '
+//   .components
+//   | map({key: (.name | gsub( "[^a-zA-Z]"; "_") | ascii_upcase ), value:.id})
+//   | map("\(.key) = \"\(.value)\",")
+//   | .[]'
+// | sort
 
-export type SentryServiceStatus = {
-  incidents: SentryServiceIncident[];
-  indicator: 'major' | 'minor' | 'none';
-  url: string;
-};
+/**
+ * Mapping of components to IDs
+ *
+ * Should be kept in sync with https://status.sentry.io/api/v2/components.json
+ */
+export const enum StatusPageComponent {
+  ALERTING = 'sykq5vtjw8zx',
+  API = 'qywmfv7jr0pd',
+  AUTHENTICATION_SERVICES = 'f5rs5z9q0dtk',
+  AZURE_DEVOPS = 'tn9py6p7f85x',
+  CUSTOM_METRICS = '7wrqyj84ltw7',
+  DASHBOARD = 'khtl9dcky3lb',
+  ELECTRON_SYMBOL_SERVER = '3jzzl28504tq',
+  EMAIL = 'tjmyq3lb26w0',
+  EU_ATTACHMENT_INGESTION = 'ztwsc8ff50v9',
+  EU_CRON_MONITORING = 'qnj485gffb6v',
+  EU_ERRORS = 'yqdr3zmyjv12',
+  EU_ERROR_INGESTION = '1yf02ms0qsl7',
+  EU_INGESTION = 'xmpnd79f7t51',
+  EU_PROFILE_INGESTION = 'xbljnbzl9c77',
+  EU_REPLAY_INGESTION = '3zhbl35gmbp0',
+  EU_SPAN_INGESTION = '7rv05jl5qp0w',
+  EU_TRANSACTION_INGESTION = 'tlkrt7x46b52',
+  GITHUB = 'lqps2hvc2400',
+  GOOGLE = 'bprcc4mhbhmm',
+  HEROKU = '6g5bq169xp2s',
+  INTEGRATION_PIPELINE = '6gtdt9t60dl0',
+  MICROSOFT_SYMBOL_SERVER = '216356jwwrxq',
+  MICROSOFT_TEAMS = 'z57k9q3r5jsh',
+  NOTIFICATION_DELIVERY = 'rmq51qyvxfjh',
+  PAGERDUTY = 'jd3tvjnx5l1f',
+  PASSWORD_BASED = 'ml2wmx3hzlnn',
+  SAML_BASED_SINGLE_SIGN_ON = 'hsbnk3hxcckr',
+  SLACK = 'jkpcsxvvv2hf',
+  STRIPE = '87stwrsyk6ls',
+  THIRD_PARTY_INTEGRATIONS = 'yhfrrcmppvgh',
+  US_ATTACHMENT_INGESTION = 'cycj4r32g25w',
+  US_CRON_MONITORING = '6f1r28lydc6h',
+  US_ERRORS = 'bctv81yt9s6w',
+  US_ERROR_INGESTION = '51yszynm4xyv',
+  US_INGESTION = '76x1wwzzfj5c',
+  US_PROFILE_INGESTION = '52t4t3ww2qcn',
+  US_REPLAY_INGESTION = 'zxkxxtspk64g',
+  US_SPAN_INGESTION = 'qd7tzrk5q8xm',
+  US_TRANSACTION_INGESTION = 'bdg4djkxjxmk',
+}
+
+export type StatusPageServiceStatus =
+  | 'operational'
+  | 'degraded_performance'
+  | 'major_outage'
+  | 'partial_outage';
+
+export interface StatusPageIncidentComponent {
+  /**
+   * ISO 8601 component creation time
+   */
+  created_at: string;
+  description: string;
+  group: boolean;
+  group_id: string;
+  id: StatusPageComponent;
+  name: string;
+  only_show_if_degraded: boolean;
+  page_id: string;
+  position: number;
+  showcase: boolean;
+  /**
+   * Date of the component becoming active
+   */
+  start_date: string;
+  status: StatusPageServiceStatus;
+  /**
+   * ISO 8601 component update time
+   */
+  updated_at: string;
+}
+
+export interface StatusPageAffectedComponent {
+  code: StatusPageComponent;
+  name: string;
+  new_status: StatusPageServiceStatus;
+  old_status: StatusPageServiceStatus;
+}
+
+export interface StatusPageIncidentUpdate {
+  /**
+   * Components affected by the update
+   */
+  affected_components: StatusPageAffectedComponent[];
+  /**
+   * Message to display for this update
+   */
+  body: string;
+  /**
+   * ISO Update creation time
+   */
+  created_at: string;
+  /**
+   * ISO Update display time
+   */
+  display_at: string;
+  /**
+   * Unique ID of the incident
+   */
+  id: string;
+  /**
+   * Unique ID of the incident
+   */
+  incident_id: string;
+  /**
+   * Status of the incident for tihs update
+   */
+  status: 'resolved' | 'monitoring' | 'investigating';
+  /**
+   * ISO Update update time
+   */
+  updated_at: string;
+}
+
+// See: https://doers.statuspage.io/api/v2/incidents/
+export interface StatuspageIncident {
+  /**
+   * Components related to this incident
+   */
+  components: StatusPageIncidentComponent[];
+  /**
+   * ISO 8601 created time
+   */
+  created_at: string;
+  /**
+   * Unique ID of the incident
+   */
+  id: string;
+  /**
+   * The impact of the incident
+   */
+  impact: 'none' | 'minor' | 'major';
+  /**
+   * Updates for this incident
+   */
+  incident_updates: StatusPageIncidentUpdate[];
+  /**
+   * ISO 8601 time monitoring began
+   */
+  monitoring_at: string | undefined;
+  /**
+   * Name of the incident
+   */
+  name: string;
+  /**
+   * The status page page ID
+   */
+  page_id: string;
+  /**
+   * ISO 8601 last updated time
+   */
+  resolved_at: string | undefined;
+  /**
+   * Short URL of the incident
+   */
+  shortlink: string;
+  /**
+   * ISO 8601 incident start time
+   */
+  started_at: string | undefined;
+  /**
+   * Current status of the incident
+   */
+  status: 'resolved' | 'unresolved';
+  /**
+   * ISO 8601 last updated time
+   */
+  updated_at: string | undefined;
+}
 
 export type PromptActivity = {
   dismissedTime?: number;

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import uuid
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Callable, Mapping, Optional, Union
 
 from snuba_sdk import Column as SnQLColumn
 from snuba_sdk import Condition, Direction, Op, OrderBy
@@ -10,7 +12,7 @@ from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events import builder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -21,10 +23,10 @@ from sentry.search.events.fields import (
     NumberRange,
     NumericColumn,
     SnQLFunction,
-    SnQLStringArg,
+    TimestampArg,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -55,12 +57,12 @@ class Column:
 
     # the internal name in snuba
     column: str
-    # type kind/type associated with this column
+    # data type associated with this column
     kind: Kind
     # the external name to expose
-    alias: Optional[str] = None
+    alias: str | None = None
     # some kinds will have an unit associated with it
-    unit: Optional[Unit] = None
+    unit: Unit | None = None
 
 
 COLUMNS = [
@@ -68,7 +70,7 @@ COLUMNS = [
     Column(alias="project_id", column="project_id", kind=Kind.INTEGER),
     Column(alias="transaction", column="transaction_name", kind=Kind.STRING),
     Column(alias="timestamp", column="timestamp", kind=Kind.DATE),
-    Column(alias="fingerprint", column="fingerprint", kind=Kind.INTEGER),
+    Column(alias="_fingerprint", column="fingerprint", kind=Kind.INTEGER),
     Column(alias="function", column="name", kind=Kind.STRING),
     Column(alias="package", column="package", kind=Kind.STRING),
     Column(alias="is_application", column="is_application", kind=Kind.INTEGER),
@@ -96,9 +98,7 @@ AGG_STATE_COLUMNS = [
 
 
 class ProfileFunctionColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias
@@ -137,20 +137,20 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         "project_id",
         "transaction",
         "timestamp",
-        "fingerprint",
+        "_fingerprint",
         "function",
         "package",
         "is_application",
         "platform.name",
     }
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "fingerprint": self._fingerprint_filter_converter,
             "message": self._message_filter_converter,
@@ -158,10 +158,10 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
 
-    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         try:
             return Condition(
-                self.builder.column("fingerprint"),
+                self.builder.resolve_column("fingerprint"),
                 Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
                 int(search_filter.value.value),
             )
@@ -170,47 +170,29 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 "Invalid value for fingerprint condition. Accepted values are numeric."
             )
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
-
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
+            "fingerprint": self._resolve_fingerprint_alias,
             PROJECT_ALIAS: self._resolve_project_slug_alias,
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
         }
+
+    def _resolve_fingerprint_alias(self, alias: str) -> SelectType:
+        # HACK: temporarily truncate the fingerprint to 32 bits
+        # as snuba cannot handle 64 bit unsigned fingerprints
+        # once we migrate to a 32 bit unsigned fingerprint
+        # we can remove this field alias and directly use the column
+        #
+        # When removing this, make sure to update the test helper to
+        # generate 32 bit function fingerprints as well.
+        return Function("toUInt32", [self.builder.column("_fingerprint")], alias)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
@@ -230,28 +212,96 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "cpm",  # calls per minute
+                    snql_aggregate=lambda args, alias: self._resolve_cpm(args, alias),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "cpm_before",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(args, alias, "less"),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "cpm_after",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(
+                        args, alias, "greater"
+                    ),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "cpm_delta",
+                    required_args=[TimestampArg("timestamp")],
+                    snql_aggregate=self._resolve_cpm_delta,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
                     "count_unique",
                     required_args=[ProfileFunctionColumnArg("column")],
                     snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "worst",
+                    snql_aggregate=lambda _, alias: Function(
+                        "replaceAll",
+                        [
+                            Function(
+                                "toString",
+                                [Function("argMaxMerge", [SnQLColumn("worst")])],
+                            ),
+                            "-",
+                            "",
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                ),
+                SnQLFunction(
                     "examples",
                     snql_aggregate=lambda _, alias: Function(
-                        "arrayMap",
+                        # The worst may collide with one of the examples, so make sure to filter it out.
+                        "arrayDistinct",
                         [
-                            # TODO: should this transform be moved to snuba?
-                            Lambda(
-                                ["x"],
-                                Function(
-                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
-                                ),
-                            ),
                             Function(
-                                "arrayPushFront",
+                                "arrayFilter",
                                 [
-                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
-                                    Function("argMaxMerge", [SnQLColumn("worst")]),
+                                    # Filter out the profile ids for processed profiles
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "notEquals",
+                                            [Identifier("x"), uuid.UUID(int=0).hex],
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayMap",
+                                        [
+                                            # TODO: should this transform be moved to snuba?
+                                            Lambda(
+                                                ["x"],
+                                                Function(
+                                                    "replaceAll",
+                                                    [
+                                                        Function("toString", [Identifier("x")]),
+                                                        "-",
+                                                        "",
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayPushFront",
+                                                [
+                                                    Function(
+                                                        "groupUniqArrayMerge(5)",
+                                                        [SnQLColumn("examples")],
+                                                    ),
+                                                    Function("argMaxMerge", [SnQLColumn("worst")]),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
                                 ],
                             ),
                         ],
@@ -260,7 +310,39 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     default_result_type="string",  # TODO: support array type
                 ),
                 SnQLFunction(
-                    "percentiles",
+                    "unique_examples",
+                    snql_aggregate=lambda args, alias: Function(
+                        "arrayFilter",
+                        [
+                            # Filter out the profile ids for processed profiles
+                            Lambda(
+                                ["x"],
+                                Function(
+                                    "notEquals",
+                                    [Identifier("x"), uuid.UUID(int=0).hex],
+                                ),
+                            ),
+                            Function(
+                                "arrayMap",
+                                [
+                                    # TODO: should this transform be moved to snuba?
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "replaceAll",
+                                            [Function("toString", [Identifier("x")]), "-", ""],
+                                        ),
+                                    ),
+                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                ),
+                SnQLFunction(
+                    "percentile",
                     required_args=[
                         ProfileFunctionNumericColumn("column"),
                         NumberRange("percentile", 0, 1),
@@ -339,19 +421,69 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "slope",
-                    required_args=[SnQLStringArg("column", allowed_strings=AGG_STATE_COLUMNS)],
+                    "percentile_before",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "less"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_after",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile_cond(
+                        args, alias, "greater"
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "percentile_delta",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
+                    snql_aggregate=self._resolve_percentile_delta,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "regression_score",
+                    required_args=[
+                        ProfileFunctionNumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        TimestampArg("timestamp"),
+                    ],
                     snql_aggregate=lambda args, alias: Function(
-                        "tupleElement",
+                        "minus",
                         [
                             Function(
-                                "simpleLinearRegression",
+                                "multiply",
                                 [
-                                    Function("toUInt32", [SnQLColumn("timestamp")]),
-                                    Function("finalizeAggregation", [SnQLColumn(args["column"])]),
+                                    self._resolve_cpm_cond(args, None, "greater"),
+                                    self._resolve_percentile_cond(args, None, "greater"),
                                 ],
                             ),
-                            1,
+                            Function(
+                                "multiply",
+                                [
+                                    self._resolve_cpm_cond(args, None, "less"),
+                                    self._resolve_percentile_cond(args, None, "less"),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
@@ -396,7 +528,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> str | None:
         try:
             col = COLUMN_MAP[column]
             if col.unit:
@@ -409,9 +541,9 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return Function(
             "arrayElement",
@@ -421,6 +553,121 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     [args["column"]],
                 ),
                 1,
+            ],
+            alias,
+        )
+
+    def _resolve_cpm(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+    ) -> SelectType:
+        assert (
+            self.builder.params.end is not None and self.builder.params.start is not None
+        ), f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
+        interval = (self.builder.params.end - self.builder.params.start).total_seconds()
+
+        return Function(
+            "divide",
+            [
+                Function("countMerge", [SnQLColumn("count")]),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_cpm_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        timestamp = args["timestamp"]
+        if cond == "greater":
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.end: {self.builder.params.end} - timestamp: {timestamp}"
+            interval = (self.builder.params.end - timestamp).total_seconds()
+        elif cond == "less":
+            assert isinstance(self.builder.params.start, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.start: {self.builder.params.start} - timestamp: {timestamp}"
+            interval = (timestamp - self.builder.params.start).total_seconds()
+        else:
+            raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countMergeIf",
+                    [
+                        SnQLColumn("count"),
+                        Function(
+                            cond,
+                            [
+                                self.builder.column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                Function("divide", [interval, 60]),
+            ],
+            alias,
+        )
+
+    def _resolve_cpm_delta(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                self._resolve_cpm_cond(args, None, "greater"),
+                self._resolve_cpm_cond(args, None, "less"),
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_cond(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None,
+        cond: str,
+    ) -> SelectType:
+        return Function(
+            "arrayElement",
+            [
+                Function(
+                    f'quantilesMergeIf({args["percentile"]})',
+                    [
+                        args["column"],
+                        Function(
+                            cond,
+                            [
+                                self.builder.column("timestamp"),
+                                args["timestamp"],
+                            ],
+                        ),
+                    ],
+                ),
+                1,
+            ],
+            alias,
+        )
+
+    def _resolve_percentile_delta(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                self._resolve_percentile_cond(args, None, "greater"),
+                self._resolve_percentile_cond(args, None, "less"),
             ],
             alias,
         )

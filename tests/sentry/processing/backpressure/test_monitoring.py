@@ -1,7 +1,13 @@
+from collections.abc import MutableMapping
+
 import pytest
 from django.test.utils import override_settings
 
-from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_health
+from sentry.processing.backpressure.health import (
+    UnhealthyReasons,
+    is_consumer_healthy,
+    record_consumer_health,
+)
 from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
@@ -30,7 +36,9 @@ def test_loading_definitions() -> None:
 
 
 def test_check_redis_health() -> None:
-    cluster = redis.redis_clusters.get("default")
+    _, cluster, _ = redis.get_dynamic_cluster_from_options(
+        setting="tess", config={"cluster": "default"}
+    )
     services = {"redis": Redis(cluster)}
 
     with override_options(
@@ -38,8 +46,8 @@ def test_check_redis_health() -> None:
             "backpressure.high_watermarks.redis": 1.0,
         }
     ):
-        service_health = check_service_health(services)
-        assert service_health["redis"] is True
+        unhealthy_services = check_service_health(services)
+        assert not unhealthy_services["redis"]
 
     with override_options(
         {
@@ -47,38 +55,39 @@ def test_check_redis_health() -> None:
             "backpressure.high_watermarks.redis": 0.0,
         }
     ):
-        service_health = check_service_health(services)
-        assert service_health["redis"] is False
+        unhealthy_services = check_service_health(services)
+        assert unhealthy_services["redis"]
 
 
 @override_options(
     {
         "backpressure.checking.enabled": True,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
 def test_record_consumer_health() -> None:
-    service_health = {
-        "celery": True,
-        "attachments-store": True,
-        "processing-store": True,
-        "processing-locks": True,
-        "post-process-locks": True,
+    unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
+        "celery": [],
+        "attachments-store": [],
+        "processing-store": [],
+        "processing-locks": [],
+        "post-process-locks": [],
     }
-    record_consumer_health(service_health)
+    record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is True
 
-    service_health["celery"] = False
-    record_consumer_health(service_health)
+    unhealthy_services["celery"] = Exception("Couldn't check celery")
+    record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is False
 
     with pytest.raises(KeyError):
         record_consumer_health(
             {
-                "sellerie": True,  # oops
-                "attachments-store": True,
-                "processing-store": True,
-                "processing-locks": True,
-                "post-process-locks": True,
+                "sellerie": [],  # oops
+                "attachments-store": [],
+                "processing-store": [],
+                "processing-locks": [],
+                "post-process-locks": [],
             }
         )

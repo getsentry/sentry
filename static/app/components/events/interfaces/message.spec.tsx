@@ -1,13 +1,14 @@
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Message} from 'sentry/components/events/interfaces/message';
 
 describe('Message entry', function () {
-  const routerContext = TestStubs.routerContext();
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       entries: [
         {
           type: 'message',
@@ -25,11 +26,10 @@ describe('Message entry', function () {
           },
         },
       },
-    };
+    });
     render(<Message data={{formatted: null}} event={event} />, {
-      context: routerContext,
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

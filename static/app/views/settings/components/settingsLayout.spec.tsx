@@ -1,8 +1,11 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+
+import {BreadcrumbProvider} from './settingsBreadcrumb/context';
 
 describe('SettingsLayout', function () {
   const {routerProps} = initializeOrg();
@@ -10,14 +13,8 @@ describe('SettingsLayout', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization()],
+      body: [OrganizationFixture()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -38,25 +35,23 @@ describe('SettingsLayout', function () {
   }
 
   it('renders', function () {
-    const {container} = render(
-      <BreadcrumbContextProvider>
+    render(
+      <BreadcrumbProvider>
         <SettingsLayout {...routerProps}>content</SettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('can render navigation', function () {
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsLayout
           {...routerProps}
           renderNavigation={() => <nav aria-label="Test Nav" />}
         >
           content
         </SettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     expect(getTestnav()).toBeInTheDocument();
@@ -64,7 +59,7 @@ describe('SettingsLayout', function () {
 
   it('can toggle mobile navigation', async function () {
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsLayout
           {...routerProps}
           renderNavigation={opts =>
@@ -73,7 +68,7 @@ describe('SettingsLayout', function () {
         >
           content
         </SettingsLayout>
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     expect(getTestnav()).not.toBeInTheDocument();

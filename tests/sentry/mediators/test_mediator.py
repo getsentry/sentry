@@ -3,12 +3,13 @@ import types
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.db import router
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
 class Double:
@@ -21,13 +22,14 @@ class MockMediator(Mediator):
     user = Param(dict)
     name = Param(str, default=lambda self: self.user["name"])
     age = Param(int, required=False)
+    using = router.db_for_write(User)
 
     def call(self):
         with self.log():
             pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestMediator(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
@@ -135,6 +137,8 @@ class TestMediator(TestCase):
 
     def test_automatic_transaction(self):
         class TransactionMediator(Mediator):
+            using = router.db_for_write(User)
+
             def call(self):
                 User.objects.create(username="beep")
                 raise RuntimeError()

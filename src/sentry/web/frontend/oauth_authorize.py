@@ -2,15 +2,20 @@ import logging
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
-from django.http import HttpRequest, HttpResponse
+from django.db import IntegrityError, router, transaction
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api")
+logger = logging.getLogger("sentry.api.oauth_authorize")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -68,7 +73,7 @@ class OAuthAuthorizeView(AuthLoginView):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: HttpRequest, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -204,7 +209,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -270,7 +275,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def approve(self, request: HttpRequest, application, **params):
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
                     application=application, user_id=request.user.id, scope_list=params["scopes"]
                 )
@@ -284,12 +289,28 @@ class OAuthAuthorizeView(AuthLoginView):
                         auth.scope_list.append(scope)
                 auth.save()
 
+        metrics.incr(
+            "oauth_authorize.get.approve",
+            sample_rate=1.0,
+            tags={
+                "response_type": params["response_type"],
+            },
+        )
+
         if params["response_type"] == "code":
             grant = ApiGrant.objects.create(
                 user_id=request.user.id,
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
+            )
+            logger.info(
+                "approve.grant",
+                extra={
+                    "response_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": params["scopes"],
+                },
             )
             return self.redirect_response(
                 params["response_type"],
@@ -302,6 +323,16 @@ class OAuthAuthorizeView(AuthLoginView):
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+            )
+
+            logger.info(
+                "approve.token",
+                extra={
+                    "response_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": " ".join(token.get_scopes()),
+                    "state": params["state"],
+                },
             )
 
             return self.redirect_response(

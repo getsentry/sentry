@@ -25,10 +25,8 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.utils import get_teams_for_users
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
-from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.testutils.cases import TestCase
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -162,51 +160,27 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
-@region_silo_test(stable=True)
-class ConvertJavaScriptConsoleTagTest(TestCase):
-    def test_valid(self):
-        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
-        with self.feature("organizations:javascript-console-error-tag"):
-            result = convert_query_values(filters, [self.project], self.user, None)
-            assert result[0].value.raw_value is True
-
-    def test_invalid(self):
-        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
-        with self.feature({"organizations:javascript-console-error-tag": False}) and pytest.raises(
-            InvalidSearchQuery,
-            match="The empty_stacktrace.js_console filter is not supported for this organization",
-        ):
-            convert_query_values(filters, [self.project], self.user, None)
-
-
-@region_silo_test(stable=True)
 class ConvertQueryValuesTest(TestCase):
-    @with_feature("organizations:assign-to-me")
     def test_valid_assign_me_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "me"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
-    @with_feature("organizations:assign-to-me")
     def test_valid_assign_me_no_converter(self):
         search_val = SearchValue("me")
         filters = [SearchFilter(SearchKey("something"), "=", search_val)]
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == search_val.raw_value
 
-    @with_feature("organizations:assign-to-me")
     def test_valid_assign_my_teams_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("my_teams"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "my_teams"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
-    @with_feature("organizations:assign-to-me")
     def test_valid_assign_my_teams_no_converter(self):
         search_val = SearchValue("my_teams")
         filters = [SearchFilter(SearchKey("something"), "=", search_val)]
@@ -214,10 +188,9 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
     def test_valid_converter(self):
-        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
-        expected = value_converters["assigned_to"](
-            [filters[0].value.raw_value], [self.project], self.user, None
-        )
+        raw_value = "me"
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue(raw_value))]
+        expected = value_converters["assigned_to"]([raw_value], [self.project], self.user, None)
         filters = convert_query_values(filters, [self.project], self.user, None)
         assert filters[0].value.raw_value == expected
 
@@ -228,7 +201,6 @@ class ConvertQueryValuesTest(TestCase):
         assert filters[0].value.raw_value == search_val.raw_value
 
 
-@region_silo_test(stable=True)
 class ConvertStatusValueTest(TestCase):
     def test_valid(self):
         for status_string, status_val in STATUS_QUERY_CHOICES.items():
@@ -245,15 +217,18 @@ class ConvertStatusValueTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="invalid status value"):
             convert_query_values(filters, [self.project], self.user, None)
 
-        filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
         with pytest.raises(
             InvalidSearchQuery,
             match=r"Aggregate filters \(count_unique\(user\)\) are not supported in issue searches.",
         ):
-            convert_query_values(filters, [self.project], self.user, None)
+            convert_query_values(
+                [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))],
+                [self.project],
+                self.user,
+                None,
+            )
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ConvertSubStatusValueTest(TestCase):
     def test_valid(self):
         for substatus_string, substatus_val in SUBSTATUS_UPDATE_CHOICES.items():
@@ -275,7 +250,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -288,7 +263,7 @@ class ConvertSubStatusValueTest(TestCase):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
             SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
-            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -300,7 +275,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_incl_excl_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -312,7 +287,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_incl_excl_substatus_with_status(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
             SearchFilter(SearchKey("status"), "=", SearchValue(["ignored"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
@@ -325,7 +300,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_excl_excl_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "!=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -335,14 +310,27 @@ class ConvertSubStatusValueTest(TestCase):
         ]
 
 
-@region_silo_test(stable=True)
+class ConvertPriorityValueTest(TestCase):
+    def test_valid(self):
+        for priority in PriorityLevel:
+            filters = [
+                SearchFilter(SearchKey("issue.priority"), "=", SearchValue([priority.to_str()]))
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [priority]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertActorOrNoneValueTest(TestCase):
     def test_user(self):
         assert convert_actor_or_none_value(
             ["me"], [self.project], self.user, None
         ) == convert_user_value(["me"], [self.project], self.user, None)
 
-    @with_feature("organizations:assign-to-me")
     def test_my_team(self):
         assert convert_actor_or_none_value(
             ["my_teams"], [self.project], self.user, None
@@ -357,26 +345,27 @@ class ConvertActorOrNoneValueTest(TestCase):
         ) == [self.team]
 
     def test_invalid_team(self):
-        assert (
-            convert_actor_or_none_value(["#never_upgrade"], [self.project], self.user, None)[0].id
-            == 0
-        )
+        ret = convert_actor_or_none_value(["#never_upgrade"], [self.project], self.user, None)[0]
+        assert ret is not None
+        assert ret.id == 0
 
 
-@region_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
-        assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
+        result = convert_user_value(["me"], [self.project], self.user, None)
+        assert result[0].id == self.user.id
+        assert result[0].username == self.user.username
 
     def test_specified_user(self):
         user = self.create_user()
-        assert convert_user_value([user.username], [self.project], self.user, None) == [user]
+        result = convert_user_value([user.username], [self.project], self.user, None)
+        assert result[0].id == user.id
+        assert result[0].username == user.username
 
     def test_invalid_user(self):
-        assert convert_user_value(["fake-user"], [], None, None)[0].id == 0
+        assert convert_user_value(["fake-user"], [], self.user, None)[0].id == 0
 
 
-@region_silo_test(stable=True)
 class ConvertReleaseValueTest(TestCase):
     def test(self):
         assert convert_release_value(["123"], [self.project], self.user, None) == "123"
@@ -387,7 +376,6 @@ class ConvertReleaseValueTest(TestCase):
         assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
 
 
-@region_silo_test(stable=True)
 class ConvertFirstReleaseValueTest(TestCase):
     def test(self):
         assert convert_first_release_value(["123"], [self.project], self.user, None) == ["123"]
@@ -400,7 +388,6 @@ class ConvertFirstReleaseValueTest(TestCase):
         assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]
 
 
-@region_silo_test(stable=True)
 class ConvertCategoryValueTest(TestCase):
     def test(self):
         error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
@@ -421,7 +408,6 @@ class ConvertCategoryValueTest(TestCase):
             convert_category_value(["hellboy"], [self.project], self.user, None)
 
 
-@region_silo_test(stable=True)
 class ConvertTypeValueTest(TestCase):
     def test(self):
         assert convert_type_value(["error"], [self.project], self.user, None) == [1]
@@ -438,7 +424,6 @@ class ConvertTypeValueTest(TestCase):
             convert_type_value(["hellboy"], [self.project], self.user, None)
 
 
-@region_silo_test(stable=True)
 class DeviceClassValueTest(TestCase):
     def test(self):
         assert convert_device_class_value(["high"], [self.project], self.user, None) == ["3"]

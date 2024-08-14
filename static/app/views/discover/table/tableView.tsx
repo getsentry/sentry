@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
@@ -11,16 +10,18 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
@@ -29,25 +30,29 @@ import {
   getFieldRenderer,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
-  Column,
   fieldAlignment,
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {
-  eventDetailsRouteWithEventView,
-  generateEventSlug,
-} from 'sentry/utils/discover/urls';
+  type DiscoverDatasets,
+  DisplayModes,
+  SavedQueryDatasets,
+  TOP_N,
+} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -63,7 +68,7 @@ import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
-import {TableColumn} from './types';
+import type {TableColumn} from './types';
 
 export type TableViewProps = {
   error: string | null;
@@ -81,7 +86,9 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -89,7 +96,7 @@ export type TableViewProps = {
  * The `TableView` is marked with leading _ in its method names. It consumes
  * the EventView object given in its props to generate new EventView objects
  * for actions like resizing column.
-
+ *
  * The entire state of the table view (or event view) is co-located within
  * the EventView object. This object is fed from the props.
  *
@@ -111,7 +118,7 @@ function TableView(props: TableViewProps) {
     columnIndex: number,
     nextColumn: TableColumn<keyof TableDataRow>
   ) {
-    const {location, eventView} = props;
+    const {location, eventView, organization, queryDataset} = props;
 
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
@@ -119,7 +126,10 @@ function TableView(props: TableViewProps) {
     pushEventViewToLocation({
       location,
       nextEventView,
-      extraQuery: pickRelevantLocationQueryStrings(location),
+      extraQuery: {
+        ...pickRelevantLocationQueryStrings(location),
+        ...appendQueryDatasetParam(organization, queryDataset),
+      },
     });
   }
 
@@ -128,9 +138,14 @@ function TableView(props: TableViewProps) {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] {
-    const {organization, eventView, tableData, location, isHomepage} = props;
+    const {organization, eventView, tableData, location, isHomepage, queryDataset} =
+      props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
+
+    const isTransactionsDataset =
+      hasDatasetSelector(organization) &&
+      queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
     if (isHeader) {
       if (hasAggregates) {
@@ -183,19 +198,43 @@ function TableView(props: TableViewProps) {
     if (!hasIdField) {
       let value = dataRow.id;
 
-      if (tableData && tableData.meta) {
+      if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const eventSlug = generateEventSlug(dataRow);
+      let target;
 
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
-        eventView,
-        isHomepage,
-      });
+      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
+        const project = dataRow.project || dataRow['project.name'];
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
+        if (!dataRow.trace) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = generateLinkToEventInTraceView({
+          traceSlug: dataRow.trace,
+          eventId: dataRow.id,
+          projectSlug: dataRow.project || dataRow['project.name'],
+          timestamp: dataRow.timestamp,
+          organization,
+          isHomepage,
+          location,
+          eventView,
+          type: 'discover',
+          source: TraceViewSources.DISCOVER,
+        });
+      }
 
       const eventIdLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -222,7 +261,7 @@ function TableView(props: TableViewProps) {
   function _renderGridHeaderCell(
     column: TableColumn<keyof TableDataRow>
   ): React.ReactNode {
-    const {eventView, location, tableData} = props;
+    const {eventView, location, tableData, organization, queryDataset} = props;
     const tableMeta = tableData?.meta;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -239,7 +278,10 @@ function TableView(props: TableViewProps) {
 
       return {
         ...location,
-        query: queryStringObject,
+        query: {
+          ...queryStringObject,
+          ...appendQueryDatasetParam(organization, queryDataset),
+        },
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
@@ -275,7 +317,15 @@ function TableView(props: TableViewProps) {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const {isFirstPage, eventView, location, organization, tableData, isHomepage} = props;
+    const {
+      isFirstPage,
+      eventView,
+      location,
+      organization,
+      tableData,
+      isHomepage,
+      queryDataset,
+    } = props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -294,15 +344,44 @@ function TableView(props: TableViewProps) {
     const unit = tableData.meta.units?.[columnKey];
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
-    if (columnKey === 'id') {
-      const eventSlug = generateEventSlug(dataRow);
+    const isTransactionsDataset =
+      hasDatasetSelector(organization) &&
+      queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
-        eventView,
-        isHomepage,
-      });
+    if (columnKey === 'id') {
+      let target;
+
+      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link.
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
+        if (!dataRow.trace) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = generateLinkToEventInTraceView({
+          traceSlug: dataRow.trace?.toString(),
+          eventId: dataRow.id,
+          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
+          timestamp: dataRow.timestamp,
+          organization,
+          isHomepage,
+          location,
+          eventView,
+          type: 'discover',
+          source: TraceViewSources.DISCOVER,
+        });
+      }
 
       const idLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -337,14 +416,19 @@ function TableView(props: TableViewProps) {
         </TransactionLink>
       );
     } else if (columnKey === 'trace') {
+      const timestamp = getTimeStampFromTableDateField(
+        dataRow['max(timestamp)'] ?? dataRow.timestamp
+      );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
-        const target = getTraceDetailsUrl(
+        const target = getTraceDetailsUrl({
           organization,
-          String(dataRow.trace),
+          traceSlug: String(dataRow.trace),
           dateSelection,
-          {}
-        );
+          timestamp,
+          location,
+          source: TraceViewSources.DISCOVER,
+        });
 
         cell = (
           <Tooltip title={t('View Trace')}>
@@ -449,6 +533,7 @@ function TableView(props: TableViewProps) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements,
+      dataset,
     } = props;
 
     openModal(
@@ -461,6 +546,7 @@ function TableView(props: TableViewProps) {
           columns={eventView.getColumns().map(col => col.column)}
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
+          dataset={dataset}
         />
       ),
       {modalCss, closeEvents: 'escape-key'}
@@ -472,7 +558,8 @@ function TableView(props: TableViewProps) {
     column: TableColumn<keyof TableDataRow>
   ) {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, location, tableData, isHomepage} = props;
+      const {eventView, organization, location, tableData, isHomepage, queryDataset} =
+        props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -516,7 +603,13 @@ function TableView(props: TableViewProps) {
           });
 
           browserHistory.push(
-            normalizeUrl(nextView.getResultsViewUrlTarget(organization.slug, isHomepage))
+            normalizeUrl(
+              nextView.getResultsViewUrlTarget(
+                organization.slug,
+                isHomepage,
+                hasDatasetSelector(organization) ? queryDataset : undefined
+              )
+            )
           );
 
           return;
@@ -538,7 +631,11 @@ function TableView(props: TableViewProps) {
       }
       nextView.query = query.formatString();
 
-      const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+      const target = nextView.getResultsViewUrlTarget(
+        organization.slug,
+        isHomepage,
+        hasDatasetSelector(organization) ? queryDataset : undefined
+      );
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(normalizeUrl(target));
@@ -546,7 +643,7 @@ function TableView(props: TableViewProps) {
   }
 
   function handleUpdateColumns(columns: Column[]): void {
-    const {organization, eventView, location, isHomepage} = props;
+    const {organization, eventView, location, isHomepage, queryDataset} = props;
 
     // metrics
     trackAnalytics('discover_v2.update_columns', {
@@ -556,7 +653,8 @@ function TableView(props: TableViewProps) {
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
       organization.slug,
-      isHomepage
+      isHomepage,
+      hasDatasetSelector(organization) ? queryDataset : undefined
     );
     // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
     const previousYAxis = decodeList(location.query.yAxis);
@@ -577,6 +675,7 @@ function TableView(props: TableViewProps) {
       location,
       onChangeShowTags,
       showTags,
+      queryDataset,
     } = props;
 
     return (
@@ -591,11 +690,13 @@ function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
+        supportsInvestigationRule
+        queryDataset={queryDataset}
       />
     );
   }
 
-  const {error, eventView, isLoading, location, organization, tableData} = props;
+  const {error, eventView, isLoading, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -603,31 +704,26 @@ function TableView(props: TableViewProps) {
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
     : eventView.hasIdField()
-    ? []
-    : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
-
-  const replayIds = tableData?.data?.map(row => String(row.replayId)).filter(Boolean);
+      ? []
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
   return (
-    <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-      <GridEditable
-        isLoading={isLoading}
-        error={error}
-        data={tableData ? tableData.data : []}
-        columnOrder={columnOrder}
-        columnSortBy={columnSortBy}
-        title={t('Results')}
-        grid={{
-          renderHeadCell: _renderGridHeaderCell as any,
-          renderBodyCell: _renderGridBodyCell as any,
-          onResizeColumn: _resizeColumn as any,
-          renderPrependColumns: _renderPrependColumns as any,
-          prependColumnWidths,
-        }}
-        headerButtons={renderHeaderButtons}
-        location={location}
-      />
-    </ReplayIdCountProvider>
+    <GridEditable
+      isLoading={isLoading}
+      error={error}
+      data={tableData ? tableData.data : []}
+      columnOrder={columnOrder}
+      columnSortBy={columnSortBy}
+      title={t('Results')}
+      grid={{
+        renderHeadCell: _renderGridHeaderCell as any,
+        renderBodyCell: _renderGridBodyCell as any,
+        onResizeColumn: _resizeColumn as any,
+        renderPrependColumns: _renderPrependColumns as any,
+        prependColumnWidths,
+      }}
+      headerButtons={renderHeaderButtons}
+    />
   );
 }
 

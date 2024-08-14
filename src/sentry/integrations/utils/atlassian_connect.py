@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest
-from jwt import InvalidSignatureError
+from jwt import ExpiredSignatureError, InvalidSignatureError
 from rest_framework.request import Request
 
-from sentry.models import Integration
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
+from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
 
@@ -93,8 +93,10 @@ def get_integration_from_jwt(
             if key_id
             else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
         )
-    except InvalidSignatureError:
-        raise AtlassianConnectValidationError("Signature is invalid")
+    except InvalidSignatureError as e:
+        raise AtlassianConnectValidationError("Signature is invalid") from e
+    except ExpiredSignatureError as e:
+        raise AtlassianConnectValidationError("Signature is expired") from e
 
     verify_claims(decoded_claims, path, query_params, method)
 

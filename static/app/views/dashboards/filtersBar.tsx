@@ -1,23 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReleasesSelectControl from './releasesSelectControl';
-import {DashboardFilterKeys, DashboardFilters} from './types';
+import type {DashboardFilters} from './types';
+import {DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
@@ -53,7 +55,7 @@ export default function FiltersBar({
       <PageFilterBar condensed>
         <ProjectPageFilter disabled={isEditingDashboard} />
         <EnvironmentPageFilter disabled={isEditingDashboard} />
-        <DatePageFilter alignDropdown="left" disabled={isEditingDashboard} />
+        <DatePageFilter disabled={isEditingDashboard} />
       </PageFilterBar>
       <Fragment>
         <FilterButtons>
@@ -74,6 +76,7 @@ export default function FiltersBar({
           </FilterButtons>
         )}
       </Fragment>
+      <ToggleOnDemand />
     </Wrapper>
   );
 }

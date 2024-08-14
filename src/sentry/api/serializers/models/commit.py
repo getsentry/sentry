@@ -1,9 +1,12 @@
 from collections import defaultdict
-from typing import Mapping
+from collections.abc import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.release import Author, CommitAuthor, get_users_for_authors
-from sentry.models import Commit, PullRequest, Repository
+from sentry.api.serializers.models.release import Author, get_users_for_authors
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 
 
 def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
@@ -25,7 +28,7 @@ class CommitSerializer(Serializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         if "author" not in self.exclude:
             users_by_author = get_users_for_commits(item_list, user)
         else:
@@ -60,7 +63,7 @@ class CommitSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         d = {
             "id": obj.key,
             "message": obj.message,
@@ -82,8 +85,8 @@ class CommitWithReleaseSerializer(CommitSerializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user):
-        from sentry.models import ReleaseCommit
+    def get_attrs(self, item_list, user, **kwargs):
+        from sentry.models.releasecommit import ReleaseCommit
 
         attrs = super().get_attrs(item_list, user)
         releases_by_commit = defaultdict(list)
@@ -96,7 +99,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
             attrs[item]["releases"] = releases_by_commit[item.id]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["releases"] = [
             {

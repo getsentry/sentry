@@ -2,18 +2,25 @@ import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {Column} from 'sentry/utils/discover/fields';
-import {FieldKey} from 'sentry/utils/fields';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {
+  AGGREGATIONS,
+  type Column,
+  ERROR_FIELDS,
+  ERRORS_AGGREGATION_FUNCTIONS,
+  TRANSACTION_FIELDS,
+} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {type AggregationKey, FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -27,6 +34,7 @@ type Props = {
   onApply: (columns: Column[]) => void;
   organization: Organization;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
@@ -41,6 +49,7 @@ function ColumnEditModal(props: Props) {
     onApply,
     closeModal,
     customMeasurements,
+    dataset,
   } = props;
 
   // Only run once for each organization.id.
@@ -58,20 +67,49 @@ function ColumnEditModal(props: Props) {
     closeModal();
   }
 
-  const fieldOptions = generateFieldOptions({
-    organization,
-    tagKeys,
-    measurementKeys,
-    spanOperationBreakdownKeys,
-    customMeasurements:
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
-            key,
-            functions,
-          }))
-        : undefined,
-  });
+  let fieldOptions: ReturnType<typeof generateFieldOptions>;
+
+  if (dataset === DiscoverDatasets.ERRORS) {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      fieldKeys: ERROR_FIELDS,
+      aggregations: Object.keys(AGGREGATIONS)
+        .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+        .reduce((obj, key) => {
+          obj[key] = AGGREGATIONS[key];
+          return obj;
+        }, {}),
+    });
+  } else if (dataset === DiscoverDatasets.TRANSACTIONS) {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements: Object.values(customMeasurements ?? {}).map(
+        ({key, functions}) => ({
+          key,
+          functions,
+        })
+      ),
+      fieldKeys: TRANSACTION_FIELDS,
+    });
+  } else {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements: Object.values(customMeasurements ?? {}).map(
+        ({key, functions}) => ({
+          key,
+          functions,
+        })
+      ),
+    });
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -103,9 +141,9 @@ function ColumnEditModal(props: Props) {
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button priority="default" href={DISCOVER2_DOCS_URL} external>
+          <LinkButton priority="default" href={DISCOVER2_DOCS_URL} external>
             {t('Read the Docs')}
-          </Button>
+          </LinkButton>
           <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
             {t('Apply')}
           </Button>

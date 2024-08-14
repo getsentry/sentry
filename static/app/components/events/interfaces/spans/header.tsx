@@ -18,13 +18,13 @@ import {
   getHumanDuration,
   pickBarColor,
   rectOfContent,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -37,27 +37,18 @@ import {
 } from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
-import {
-  EnhancedProcessedSpanType,
-  ParsedTraceType,
-  RawSpanType,
-  TickAlignment,
-} from './types';
-import {
-  boundsGenerator,
-  getMeasurements,
-  getSpanOperation,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-} from './utils';
+import type {EnhancedProcessedSpanType, ParsedTraceType, RawSpanType} from './types';
+import {TickAlignment} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
+import {boundsGenerator, getMeasurements, getSpanOperation} from './utils';
 
 type PropType = {
   dragProps: DragManagerChildrenProps;
-  event: EventTransaction;
+  event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
@@ -726,7 +717,7 @@ const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.gray300};
   font-size: 10px;
-  font-weight: 500;
+  ${p => p.theme.fontWeightNormal};
   font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;
@@ -826,7 +817,7 @@ export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boole
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const MinimapBackground = styled('div')`
+export const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
@@ -976,3 +967,4 @@ const RightSidePane = styled('div')`
 `;
 
 export default TraceViewHeader;
+export {ActualMinimap};

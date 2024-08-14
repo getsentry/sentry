@@ -1,41 +1,43 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
-import {TrendChangeType, TrendFunctionField, TrendView} from './types';
+import type {TrendFunctionField, TrendView} from './types';
+import {TrendChangeType} from './types';
 import {
   DEFAULT_MAX_DURATION,
   DEFAULT_TRENDS_STATS_PERIOD,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   modifyTransactionNameTrendsQuery,
   modifyTrendsViewDefaultPeriod,
   resetCursors,
@@ -256,7 +258,7 @@ class TrendsContent extends Component<Props, State> {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
+                  <DatePageFilter />
                 </PageFilterBar>
                 {organization.features.includes('performance-new-trends') ? (
                   <StyledTransactionNameSearchBar
@@ -317,24 +319,6 @@ class TrendsContent extends Component<Props, State> {
                   )}
                 />
               </ListContainer>
-              <Feature features={['organizations:performance-trendsv2-dev-only']}>
-                <ListContainer>
-                  <ChangedTransactions
-                    trendChangeType={TrendChangeType.IMPROVED}
-                    previousTrendFunction={previousTrendFunction}
-                    trendView={trendView}
-                    location={location}
-                    setError={this.setError}
-                  />
-                  <ChangedTransactions
-                    trendChangeType={TrendChangeType.REGRESSION}
-                    previousTrendFunction={previousTrendFunction}
-                    trendView={trendView}
-                    location={location}
-                    setError={this.setError}
-                  />
-                </ListContainer>
-              </Feature>
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>

@@ -1,23 +1,26 @@
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations import IntegrationFeatures
-from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
-from sentry.utils.json import JSONData
+from sentry.users.models.user import User
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -35,7 +38,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
         if self.action == "link":
@@ -48,6 +51,13 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user
@@ -60,18 +70,24 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return has_issue_sync or has_issue_basic
 
     def _has_issue_feature_on_integration(self, integration: RpcIntegration):
-        return integration_service.has_feature(
-            provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-        ) or integration_service.has_feature(
-            provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-        )
+        return integration.has_feature(
+            feature=IntegrationFeatures.ISSUE_BASIC
+        ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
 
-    def create_issue_activity(self, request: Request, group, installation, external_issue):
+    def create_issue_activity(
+        self,
+        request: Request,
+        group: Group,
+        installation: IntegrationInstallation,
+        external_issue: ExternalIssue,
+        new: bool,
+    ):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
             "location": installation.get_issue_url(external_issue.key),
             "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": new,
         }
         Activity.objects.create(
             project=group.project,
@@ -93,9 +109,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "Action is required and should be either link or create"})
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -104,9 +122,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         config = None
         try:
             if action == "link":
@@ -138,9 +154,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -149,9 +167,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         try:
             data = installation.get_issue(external_issue_id, data=request.data)
         except IntegrationFormError as exc:
@@ -192,7 +208,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"non_field_errors": [str(e)]}, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -203,7 +219,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrityError:
             return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
-        self.create_issue_activity(request, group, installation, external_issue)
+        self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
@@ -222,9 +238,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -233,9 +251,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         try:
             data = installation.create_issue(request.data)
         except IntegrationFormError as exc:
@@ -256,7 +272,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -276,7 +292,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
-        self.create_issue_activity(request, group, installation, external_issue)
+        self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         # TODO(jess): return serialized issue
         url = data.get("url") or installation.get_issue_url(external_issue.key)
@@ -300,9 +316,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "External ID required"}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -318,7 +336,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except ExternalIssue.DoesNotExist:
             return Response(status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupLink)):
             GroupLink.objects.get_group_issues(group, external_issue_id).delete()
 
             # check if other groups reference this external issue

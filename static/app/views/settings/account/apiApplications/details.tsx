@@ -1,26 +1,60 @@
-import {RouteComponentProps} from 'react-router';
+import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;
 type State = {
   app: ApiApplication;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ApiApplicationsDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
+  rotateClientSecret = async () => {
+    try {
+      const rotateResponse = await this.api.requestPromise(
+        `/api-applications/${this.props.params.appId}/rotate-secret/`,
+        {
+          method: 'POST',
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Your new Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <TextCopyInput aria-label={t('new-client-secret')}>
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
+  };
+
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
 
@@ -71,7 +105,19 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
                       {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
-                    <em>hidden</em>
+                    <ClientSecret>
+                      <HiddenSecret>{t('hidden')}</HiddenSecret>
+                      <Confirm
+                        onConfirm={this.rotateClientSecret}
+                        message={t(
+                          'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                        )}
+                      >
+                        <Button size="xs" priority="danger">
+                          Rotate client secret
+                        </Button>
+                      </Confirm>
+                    </ClientSecret>
                   )
                 }
               </FormField>
@@ -90,5 +136,17 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
     );
   }
 }
+
+const HiddenSecret = styled('span')`
+  width: 100px;
+  font-style: italic;
+`;
+
+const ClientSecret = styled('div')`
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  margin-right: 0;
+`;
 
 export default ApiApplicationsDetails;

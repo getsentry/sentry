@@ -1,18 +1,21 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import compact from 'lodash/compact';
-import mean from 'lodash/mean';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
   getDiffInMinutes,
   SIX_HOURS,
   SIXTY_DAYS,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {SessionApiResponse, SessionFieldWithOperation, SessionStatus} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {
+  SessionApiResponse,
+  SessionFieldWithOperation,
+} from 'sentry/types/organization';
+import {SessionStatus} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
@@ -327,8 +330,8 @@ export function filterSessionsInTimeWindow(
   });
 
   const groups = sessions.groups.map(group => {
-    const series = {};
-    const totals = {};
+    const series: Record<string, number[]> = {};
+    const totals: Record<string, number> = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
       series[field] = group.series[field].filter((value, index) => {
@@ -340,13 +343,15 @@ export function filterSessionsInTimeWindow(
         return isBetween;
       });
       if (field.startsWith('p50')) {
-        totals[field] = mean(series[field]);
+        // Calculate the mean of the current field.
+        const base = series[field] ?? [];
+        totals[field] = base.reduce((acc, curr) => acc + curr, 0) / base.length;
       }
       if (field.startsWith('count_unique')) {
-        /* E.g. users
-        We cannot sum here because users would not be unique anymore.
-        User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
-        This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now) */
+        // E.g. users
+        // We cannot sum here because users would not be unique anymore.
+        // User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
+        // This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now)
         totals[field] = group.totals[field];
       }
     });

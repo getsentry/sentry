@@ -7,13 +7,14 @@ from sentry import eventstore
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
 class EventStorageTest(TestCase):
     def setUp(self):
         self.eventstorage = EventStorage()
@@ -39,7 +40,7 @@ class EventStorageTest(TestCase):
         event = Event(project_id=self.project.id, event_id="a" * 32)
         event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
-        self.eventstorage.bind_nodes([event, event2], "data")
+        self.eventstorage.bind_nodes([event, event2])
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == "user1"
 

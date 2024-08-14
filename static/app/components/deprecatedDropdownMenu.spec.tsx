@@ -25,8 +25,7 @@ describe('dropdownMenuDeprecated', function () {
   }
 
   it('renders', function () {
-    const {container} = render(<DeprecatedDropdownImplementation />);
-    expect(container).toSnapshot();
+    render(<DeprecatedDropdownImplementation />);
   });
 
   it('can toggle dropdown menu with actor', async function () {
@@ -135,10 +134,10 @@ describe('dropdownMenuDeprecated', function () {
     );
 
     // Make sure this is only called when menu is open
-    expect(addSpy).not.toHaveBeenCalled();
+    expect(addSpy).not.toHaveBeenCalledWith('click', expect.anything(), true);
 
     await userEvent.click(screen.getByRole('button'));
-    expect(addSpy).toHaveBeenCalled();
+    expect(addSpy).toHaveBeenCalledWith('click', expect.anything(), true);
     expect(removeSpy).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button'));

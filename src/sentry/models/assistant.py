@@ -1,20 +1,21 @@
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 
 
-@control_silo_only_model
+@control_silo_model
 class AssistantActivity(Model):
     """Records user interactions with the assistant guides."""
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     guide_id = BoundedPositiveIntegerField()
@@ -23,7 +24,7 @@ class AssistantActivity(Model):
     # Time the user dismissed the guide. If this is set, viewed_ts will be null.
     dismissed_ts = models.DateTimeField(null=True)
     # Whether the user found the guide useful.
-    useful = models.NullBooleanField(null=True)
+    useful = models.BooleanField(null=True)
 
     __repr__ = sane_repr("user", "guide_id", "viewed_ts", "dismissed_ts", "useful")
 

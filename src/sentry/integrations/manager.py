@@ -1,21 +1,24 @@
-__all__ = ["IntegrationManager"]
+from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Iterator, Type
+from collections.abc import Iterable, Iterator
+from typing import Any
 
 from sentry.exceptions import NotRegistered
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
+
+__all__ = ["IntegrationManager"]
 
 
 # Ideally this and PluginManager abstracted from the same base, but
 # InstanceManager has become convoluted and wasteful
 class IntegrationManager:
     def __init__(self) -> None:
-        self.__values: Dict[str, Type[IntegrationProvider]] = {}
+        self.__values: dict[str, type[IntegrationProvider]] = {}
 
-    def __iter__(self) -> Iterator[Type[IntegrationProvider]]:
+    def __iter__(self) -> Iterator[IntegrationProvider]:
         return iter(self.all())
 
-    def all(self) -> Iterable[Type[IntegrationProvider]]:
+    def all(self) -> Iterable[IntegrationProvider]:
         for key in self.__values.keys():
             integration = self.get(key)
             if integration.visible:
@@ -31,10 +34,10 @@ class IntegrationManager:
     def exists(self, key: str) -> bool:
         return key in self.__values
 
-    def register(self, cls: Type[IntegrationProvider]) -> None:
+    def register(self, cls: type[IntegrationProvider]) -> None:
         self.__values[cls.key] = cls
 
-    def unregister(self, cls: Type[IntegrationProvider]) -> None:
+    def unregister(self, cls: type[IntegrationProvider]) -> None:
         try:
             if self.__values[cls.key] != cls:
                 # don't allow unregistering of arbitrary provider
@@ -43,3 +46,11 @@ class IntegrationManager:
             # we gracefully handle a missing provider
             return
         del self.__values[cls.key]
+
+
+default_manager = IntegrationManager()
+all = default_manager.all
+get = default_manager.get
+exists = default_manager.exists
+register = default_manager.register
+unregister = default_manager.unregister

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
-import {Node} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
 
 import {space} from 'sentry/styles/space';
 
-import {MenuItemProps} from './item';
+import type {MenuItemProps} from './item';
 
 type DropdownMenuSectionProps = {
   children: React.ReactNode;
@@ -37,7 +37,7 @@ const DropdownMenuSectionWrap = styled('li')`
 
 const Heading = styled('span')`
   display: inline-block;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   text-transform: uppercase;

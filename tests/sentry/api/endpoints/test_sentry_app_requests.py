@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
 
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
+pytestmark = [requires_snuba]
 
-class SentryAppRequestsTest(APITestCase):
+
+class SentryAppRequestsGetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
@@ -34,9 +35,6 @@ class SentryAppRequestsTest(APITestCase):
             name="Internal app", organization=self.org
         )
 
-
-@region_silo_test(stable=True)
-class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_superuser_sees_unowned_published_requests(self):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -243,7 +241,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
             event="issue.assigned",
             url=self.unpublished_app.webhook_url,
             error_id=self.event_id,
-            project_id="1000",
+            project_id=1000,
         )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])

@@ -11,13 +11,12 @@ from sentry.issues.grouptype import (
     GroupTypeRegistry,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
-    PerformanceNPlusOneGroupType,
+    PerformanceHTTPOverheadGroupType,
     ProfileJSONDecodeType,
     get_group_type_by_slug,
     get_group_types_by_category,
 )
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
 
 
 class BaseGroupTypeTest(TestCase):
@@ -31,7 +30,6 @@ class BaseGroupTypeTest(TestCase):
         self.registry_patcher.__exit__(None, None, None)
 
 
-@region_silo_test
 class GroupTypeTest(BaseGroupTypeTest):
     def test_get_types_by_category(self) -> None:
         @dataclass(frozen=True)
@@ -118,7 +116,6 @@ class GroupTypeTest(BaseGroupTypeTest):
         assert TestGroupType.noise_config.expiry_time == timedelta(hours=12)
 
 
-@region_silo_test
 class GroupTypeReleasedTest(BaseGroupTypeTest):
     def test_released(self) -> None:
         @dataclass(frozen=True)
@@ -166,14 +163,14 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 class GroupRegistryTest(BaseGroupTypeTest):
     def test_get_visible(self) -> None:
         registry = GroupTypeRegistry()
-        registry.add(PerformanceNPlusOneGroupType)
+        registry.add(PerformanceHTTPOverheadGroupType)
         registry.add(ProfileJSONDecodeType)
         assert registry.get_visible(self.organization) == []
-        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
-            assert registry.get_visible(self.organization) == [PerformanceNPlusOneGroupType]
+        with self.feature(PerformanceHTTPOverheadGroupType.build_visible_feature_name()):
+            assert registry.get_visible(self.organization) == [PerformanceHTTPOverheadGroupType]
         registry.add(ErrorGroupType)
-        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
+        with self.feature(PerformanceHTTPOverheadGroupType.build_visible_feature_name()):
             assert set(registry.get_visible(self.organization)) == {
-                PerformanceNPlusOneGroupType,
+                PerformanceHTTPOverheadGroupType,
                 ErrorGroupType,
             }

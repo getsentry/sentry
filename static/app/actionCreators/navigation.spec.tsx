@@ -1,15 +1,18 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Config} from 'sentry/types/system';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('navigation ActionCreator', () => {
   let router: InjectedRouter;
+  let configState: Config;
 
   beforeEach(() => {
     ProjectsStore.init();
@@ -20,12 +23,14 @@ describe('navigation ActionCreator', () => {
       },
     });
     router = initialData.router;
-    ProjectsStore.loadInitialData(initialData.organization.projects);
+    ProjectsStore.loadInitialData(initialData.projects);
+    configState = ConfigStore.getState();
   });
 
   afterEach(() => {
     ProjectsStore.reset();
     jest.resetAllMocks();
+    ConfigStore.loadInitialData(configState);
   });
 
   it('should get project from query parameters', () => {
@@ -102,14 +107,11 @@ describe('navigation ActionCreator', () => {
   });
 
   it('normalizes URLs for customer domains', function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: {
-        subdomain: 'albertos-apples',
-        organizationUrl: 'https://albertos-apples.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-    };
+    ConfigStore.set('customerDomain', {
+      subdomain: 'albertos-apples',
+      organizationUrl: 'https://albertos-apples.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     navigateTo('/settings/org-slug/projects/', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/projects/');

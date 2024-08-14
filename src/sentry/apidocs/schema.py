@@ -18,7 +18,7 @@ class SentrySchema(AutoSchema):
             return docstring[0]
         return super().get_operation_id()
 
-    def get_description(self) -> str:
+    def get_description(self) -> str:  # type: ignore[override]
         """
         Docstring is used as a description for the endpoint. The operation ID is included in this.
         """

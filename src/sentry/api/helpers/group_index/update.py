@@ -1,65 +1,59 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime, timedelta, timezone
+from typing import Any
+from urllib.parse import urlparse
 
 import rest_framework
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
+from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
+from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
-from sentry.models import (
-    TOMBSTONE_FIELDS_FROM_GROUP,
-    Activity,
-    Actor,
-    ActorTuple,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Project,
-    Release,
-    Team,
-    User,
-    follows_semver_versioning_scheme,
-    remove_group_from_inbox,
-)
-from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.models.groupinbox import GroupInboxRemoveAction
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.project import Project
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import issue_resolved
-from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.actor import Actor, ActorType
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -78,13 +72,13 @@ def handle_discard(
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be discarded.", code=400
+            detail="Only error issues can be discarded."
         )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
@@ -112,18 +106,18 @@ def handle_discard(
 
 def self_subscribe_and_assign_issue(
     acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
-) -> ActorTuple | None:
+) -> Actor | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
     # representation of current user
     if acting_user:
         GroupSubscription.objects.subscribe(
-            user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
+            subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
 
         if self_assign_issue == "1" and not group.assignee_set.exists():
-            return ActorTuple(type=User, id=acting_user.id)
+            return Actor(id=acting_user.id, actor_type=ActorType.USER)
     return None
 
 
@@ -171,7 +165,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[Group],
+    group_ids: Sequence[int] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -209,7 +203,7 @@ def update_groups(
             },
         )
         if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors, code=400)
+            raise serializers.ValidationError(serializer.errors)
 
     if serializer is None:
         return
@@ -227,7 +221,6 @@ def update_groups(
         )
         if user_options:
             self_assign_issue = user_options[0].value
-
     if search_fn and not group_ids:
         try:
             cursor_result, _ = search_fn(
@@ -252,7 +245,6 @@ def update_groups(
 
     discard = result.get("discard")
     if discard:
-
         return handle_discard(request, list(queryset), projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
@@ -262,6 +254,13 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
+    if "priority" in result:
+        handle_priority(
+            priority=result["priority"],
+            group_list=group_list,
+            actor=acting_user,
+            project_lookup=project_lookup,
+        )
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
@@ -271,14 +270,17 @@ def update_groups(
                     {"detail": "Cannot set resolved in next release for multiple projects."},
                     status=400,
                 )
+            # may not be a release yet
             release = (
                 status_details.get("inNextRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
+                .order_by("-sort")
+                .first()
             )
+
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
@@ -295,6 +297,34 @@ def update_groups(
                 new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
+            res_status = GroupResolution.Status.pending
+        elif status_details.get("inUpcomingRelease"):
+            if len(projects) > 1:
+                return Response(
+                    {"detail": "Cannot set resolved in upcoming release for multiple projects."},
+                    status=400,
+                )
+            release = (
+                status_details.get("inUpcomingRelease")
+                or Release.objects.filter(
+                    projects=projects[0], organization_id=projects[0].organization_id
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .order_by("-sort")[0]
+            )
+            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+            activity_data = {"version": ""}
+
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
+            new_status_details = {
+                "inUpcomingRelease": True,
+            }
+            if serialized_user:
+                new_status_details["actor"] = serialized_user[0]
+            res_type = GroupResolution.Type.in_upcoming_release
+            res_type_str = "in_upcoming_release"
             res_status = GroupResolution.Status.pending
         elif status_details.get("inRelease"):
             # TODO(jess): We could update validation to check if release
@@ -348,7 +378,7 @@ def update_groups(
             activity_data = {}
             new_status_details = {}
 
-        now = timezone.now()
+        now = django_timezone.now()
         metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
         # if we've specified a commit, let's see if its already been released
@@ -373,7 +403,7 @@ def update_groups(
             except IndexError:
                 release = None
         for group in group_list:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Group)):
                 resolution = None
                 created = None
                 if release:
@@ -480,7 +510,7 @@ def update_groups(
                         group=group, defaults=resolution_params
                     )
                     if not created:
-                        resolution.update(datetime=timezone.now(), **resolution_params)
+                        resolution.update(datetime=django_timezone.now(), **resolution_params)
 
                 if commit:
                     GroupLink.objects.create(
@@ -500,7 +530,7 @@ def update_groups(
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
                 group.resolved_at = now
-                if affected:
+                if affected and not options.get("groups.enable-post-update-signal"):
                     post_save.send(
                         sender=Group,
                         instance=group,
@@ -530,7 +560,9 @@ def update_groups(
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
-                        activity.send_notification()
+                        transaction.on_commit(
+                            lambda: activity.send_notification(), router.db_for_write(Group)
+                        )
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
@@ -560,11 +592,7 @@ def update_groups(
                 )
                 new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
 
-        has_escalating_issues = len(group_list) > 0 and features.has(
-            "organizations:escalating-issues", group_list[0].organization
-        )
-
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
             #                we should centralize the logic for validating and defaulting substatus values
             #                and refactor pre_save and the above new_substatus assignment to account for this
@@ -573,7 +601,7 @@ def update_groups(
             )
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
                     result["statusDetails"] = handle_archived_until_escalating(
                         group_list, acting_user, projects, sender=update_groups
                     )
@@ -595,7 +623,6 @@ def update_groups(
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
                 sender=update_groups,
-                activity_type=activity_type,
             )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
@@ -605,6 +632,7 @@ def update_groups(
             if res_type in (
                 GroupResolution.Type.in_next_release,
                 GroupResolution.Type.in_release,
+                GroupResolution.Type.in_upcoming_release,
             ):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(
@@ -649,6 +677,30 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
+        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+        metrics.incr(
+            "grouping.merge_issues",
+            sample_rate=1.0,
+            tags={
+                # We assume that if someone's merging groups, they're from the same platform
+                "platform": group_list[0].platform or "unknown",
+                "sdk": group_list[0].sdk or "unknown",
+                # TODO: It's probably cleaner to just send this value from the front end
+                "referer": (
+                    "issue stream"
+                    if re.search(issue_stream_regex, referer)
+                    else (
+                        "similar issues tab"
+                        if re.search(similar_issues_tab_regex, referer)
+                        else "unknown"
+                    )
+                ),
+            },
+        )
 
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
@@ -695,13 +747,13 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group],
+    group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
 ) -> None:
     """
-    Creates bookmarks and subscriptions for a user, or deletes the exisitng bookmarks.
+    Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
     if is_bookmarked:
         for group in group_list:
@@ -711,13 +763,18 @@ def handle_is_bookmarked(
                 user_id=acting_user.id if acting_user else None,
             )
             GroupSubscription.objects.subscribe(
-                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
+                subscriber=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
             )
     elif is_bookmarked is False:
         GroupBookmark.objects.filter(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
+        if group_list:
+            GroupSubscription.objects.filter(
+                user_id=acting_user.id,
+                group__in=group_ids,
+            ).delete()
 
 
 def handle_has_seen(
@@ -743,10 +800,29 @@ def handle_has_seen(
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
+                    values={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+
+
+def handle_priority(
+    priority: str,
+    group_list: Sequence[Group],
+    actor: User | None,
+    project_lookup: dict[int, Project],
+) -> None:
+    for group in group_list:
+        priority_value = PriorityLevel.from_str(priority) if priority else None
+
+        update_priority(
+            group=group,
+            priority=priority_value,
+            sender="manual_update_priority",
+            actor=actor,
+            project=project_lookup[group.project_id],
+        )
+        group.update(priority_locked_at=django_timezone.now())
 
 
 def handle_is_public(
@@ -792,13 +868,13 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: str,
-    assigned_by: str,
-    integration: str,
+    assigned_actor: Actor,
+    assigned_by: str | None,
+    integration: str | None,
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-) -> Actor | None:
+) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
 
@@ -814,9 +890,8 @@ def handle_assigned_to(
         else dict()
     )
     if assigned_actor:
+        resolved_actor = assigned_actor.resolve()
         for group in group_list:
-            resolved_actor: RpcUser | Team = assigned_actor.resolve()
-
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra
             )
@@ -828,8 +903,7 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=assignment["updated_assignment"],
             )
-        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
-
+        return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
@@ -841,3 +915,4 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=True,
             )
+        return None

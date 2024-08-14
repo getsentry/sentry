@@ -1,27 +1,28 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
+import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import Tag from 'sentry/components/badge/tag';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
+import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
-} from 'sentry/types';
-import {
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';
@@ -36,25 +37,25 @@ import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
 
-type Tab = 'overview' | 'configurations';
+export type Tab = 'overview' | 'configurations' | 'features';
 
-type AlertType = React.ComponentProps<typeof Alert> & {
+interface AlertType extends AlertProps {
   text: string;
-};
+}
 
 type State = {
   tab: Tab;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{integrationSlug: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
-class AbstractIntegrationDetailedView<
+abstract class AbstractIntegrationDetailedView<
   P extends Props = Props,
-  S extends State = State
-> extends AsyncComponent<P, S> {
+  S extends State = State,
+> extends DeprecatedAsyncComponent<P, S> {
   tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {
@@ -183,10 +184,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns the list of configurations for the integration
-  renderConfigurations() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
-  }
+  abstract renderConfigurations(): React.ReactNode;
 
   /**
    * Actually implemented methods below
@@ -423,7 +421,7 @@ const NameContainer = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -433,7 +431,7 @@ const IconCloseCircle = styled(IconClose)`
   margin-right: ${space(1)};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
+export const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div
     style={{
       display: 'flex',
@@ -498,7 +496,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 12px;
 `;
 

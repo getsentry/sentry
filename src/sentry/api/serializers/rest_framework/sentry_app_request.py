@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.urls import reverse
 
 from sentry import eventstore
 from sentry.api.serializers import Serializer
-from sentry.models import Organization, Project, SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 

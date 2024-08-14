@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-restricted-imports
-import {ReactEventHandler} from 'react';
+import type {ReactEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {PanelHeader} from 'sentry/components/panels';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -12,10 +12,12 @@ type Props = {
   onNext: ReactEventHandler;
   onPrevious: ReactEventHandler;
   previousDisabled: boolean;
+  className?: string;
   headerText?: React.ReactNode;
 };
 
 function ScreenshotPagination({
+  className,
   previousDisabled,
   nextDisabled,
   headerText,
@@ -23,9 +25,9 @@ function ScreenshotPagination({
   onNext,
 }: Props) {
   return (
-    <Wrapper lightText>
+    <Wrapper className={className} lightText>
       <Button
-        icon={<IconChevron direction="left" size="xs" />}
+        icon={<IconChevron direction="left" />}
         aria-label={t('Previous')}
         size="xs"
         disabled={previousDisabled}
@@ -33,7 +35,7 @@ function ScreenshotPagination({
       />
       <span data-test-id="pagination-header-text">{headerText}</span>
       <Button
-        icon={<IconChevron direction="right" size="xs" />}
+        icon={<IconChevron direction="right" />}
         aria-label={t('Next')}
         size="xs"
         disabled={nextDisabled}

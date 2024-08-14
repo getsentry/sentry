@@ -1,18 +1,17 @@
 import type {
+  AggregateSpanType,
+  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {IssueType} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory} from './group';
+import type {IssueAttachment, IssueCategory, IssueType} from './group';
+import type {PlatformKey} from './project';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
-// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
-export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -49,12 +48,18 @@ export type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+type EventGroupVariantKey =
+  | 'built-in-fingerprint'
+  | 'custom-fingerprint'
+  | 'app'
+  | 'default'
+  | 'system';
 
 export enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
   PERFORMANCE_PROBLEM = 'performance-problem',
@@ -92,6 +97,10 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
+interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
+}
+
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -107,6 +116,7 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
+  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -174,7 +184,6 @@ export type Frame = {
   absPath: string | null;
   colNo: number | null;
   context: Array<[number, string]>;
-  errors: Array<any> | null;
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -182,7 +191,7 @@ export type Frame = {
   lineNo: number | null;
   module: string | null;
   package: string | null;
-  platform: PlatformType | null;
+  platform: PlatformKey | null;
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
@@ -197,6 +206,7 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
@@ -262,8 +272,10 @@ export enum EventOrGroupType {
   HPKP = 'hpkp',
   EXPECTCT = 'expectct',
   EXPECTSTAPLE = 'expectstaple',
+  NEL = 'nel',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  AGGREGATE_TRANSACTION = 'aggregateTransaction',
   GENERIC = 'generic',
 }
 
@@ -289,14 +301,14 @@ export enum EntryType {
   RESOURCES = 'resources',
 }
 
-type EntryDebugMeta = {
+export type EntryDebugMeta = {
   data: {
     images: Array<Image | null>;
   };
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: Array<RawCrumb>;
   };
@@ -315,13 +327,18 @@ export type EntryException = {
   type: EntryType.EXCEPTION;
 };
 
-type EntryStacktrace = {
+export type EntryStacktrace = {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
 };
 
 export type EntrySpans = {
   data: RawSpanType[];
+  type: EntryType.SPANS;
+};
+
+export type AggregateEntrySpans = {
+  data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
 
@@ -615,14 +632,20 @@ export interface ThreadPoolInfoContext {
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
+  PROFILER_ID = 'profiler_id',
 }
 
 export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
+  [ProfileContextKey.PROFILER_ID]?: string;
+}
+
+export enum ReplayContextKey {
+  REPLAY_ID = 'replay_id',
 }
 
 export interface ReplayContext {
-  replay_id: string;
+  [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
 export interface BrowserContext {
@@ -635,7 +658,7 @@ export interface ResponseContext {
   type: 'response';
 }
 
-type EventContexts = {
+export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
@@ -657,7 +680,7 @@ type EventContexts = {
   unity?: UnityContext;
 };
 
-export type Measurement = {value: number; unit?: string};
+export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
@@ -766,10 +789,11 @@ interface EventBase {
   nextEventID?: string | null;
   oldestEventID?: string | null;
   packages?: Record<string, string>;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   previousEventID?: string | null;
   projectSlug?: string;
   release?: EventRelease | null;
+  resolvedWith?: string[];
   sdk?: {
     name: string;
     version: string;
@@ -789,10 +813,45 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
+  entries: (
+    | EntrySpans
+    | EntryRequest
+    | EntryDebugMeta
+    | AggregateEntrySpans
+    | EntryBreadcrumbs
+  )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
+  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
+}
+
+export interface AggregateEventTransaction
+  extends Omit<
+    EventTransaction,
+    | 'crashFile'
+    | 'culprit'
+    | 'dist'
+    | 'dateReceived'
+    | 'errors'
+    | 'location'
+    | 'metadata'
+    | 'message'
+    | 'occurrence'
+    | 'type'
+    | 'size'
+    | 'user'
+    | 'eventID'
+    | 'fingerprints'
+    | 'id'
+    | 'projectID'
+    | 'tags'
+    | 'title'
+  > {
+  count: number;
+  frequency: number;
+  total: number;
+  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {

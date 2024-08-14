@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconClose, IconInfo} from 'sentry/icons';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export const useDismissReqRespBodiesAlert = () => {
   const organization = useOrganization();
@@ -20,68 +20,6 @@ export const useDismissReqRespBodiesAlert = () => {
     key: `${organization.id}:replay-network-bodies-alert-dismissed`,
   });
 };
-
-export function ReqRespBodiesAlert({
-  isNetworkDetailsSetup,
-}: {
-  isNetworkDetailsSetup: boolean;
-}) {
-  const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
-
-  if (isDismissed) {
-    return null;
-  }
-
-  const message = isNetworkDetailsSetup
-    ? tct(
-        'Click on a [fetch] or [xhr] request to see request and response bodies. [link].',
-        {
-          fetch: <code>fetch</code>,
-          xhr: <code>xhr</code>,
-          link: (
-            <ExternalLink
-              href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
-              onClick={dismiss}
-            >
-              {t('Learn More')}
-            </ExternalLink>
-          ),
-        }
-      )
-    : tct('Start collecting the body of requests and responses. [link].', {
-        link: (
-          <ExternalLink
-            href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
-            onClick={dismiss}
-          >
-            {t('Learn More')}
-          </ExternalLink>
-        ),
-      });
-  return (
-    <StyledAlert
-      icon={<IconInfo />}
-      opaque={false}
-      showIcon
-      type="info"
-      trailingItems={
-        <StyledButton priority="link" size="sm" onClick={dismiss}>
-          <IconClose color="gray500" size="sm" />
-        </StyledButton>
-      }
-    >
-      {message}
-    </StyledAlert>
-  );
-}
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  color: inherit;
-`;
 
 export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
   const title =
@@ -116,7 +54,7 @@ export function Setup({
   showSnippet,
   visibleTab,
 }: {
-  item: NetworkSpan;
+  item: SpanFrame;
   projectId: string;
   showSnippet: Output;
   visibleTab: TabKey;
@@ -130,11 +68,13 @@ export function Setup({
     organization,
     projectId: [projectId],
   });
-  const sdkNeedsUpdate = !isFetching && needsUpdate;
+  const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
+  const {replay} = useReplayContext();
+  const isVideoReplay = replay?.isVideoReplay();
 
   const url = item.description || 'http://example.com';
 
-  return (
+  return isVideoReplay ? null : (
     <SetupInstructions
       minVersion="7.53.1"
       sdkNeedsUpdate={sdkNeedsUpdate}
@@ -172,8 +112,13 @@ function SetupInstructions({
     );
   }
 
+  function trimUrl(oldUrl: string): string {
+    const end = oldUrl.indexOf('?') > 0 ? oldUrl.indexOf('?') : oldUrl.length;
+    return oldUrl.substring(0, end);
+  }
+
   const urlSnippet = `
-      networkDetailAllowUrls: ['${url}'],`;
+      networkDetailAllowUrls: ['${trimUrl(url)}'],`;
   const headersSnippet = `
       networkRequestHeaders: ['X-Custom-Header'],
       networkResponseHeaders: ['X-Custom-Header'],`;
@@ -184,7 +129,7 @@ function SetupInstructions({
 
   const code = `Sentry.init({
   integrations: [
-    new Replay({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
+    Sentry.replayIntegration({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
     }),
   ],
 })`;
@@ -193,8 +138,8 @@ function SetupInstructions({
     showSnippet === Output.SETUP
       ? t('Capture Request and Response Headers and Bodies')
       : visibleTab === 'details'
-      ? t('Capture Request and Response Headers')
-      : t('Capture Request and Response Bodies');
+        ? t('Capture Request and Response Headers')
+        : t('Capture Request and Response Bodies');
 
   return (
     <StyledInstructions data-test-id="network-setup-steps">
@@ -211,14 +156,17 @@ function SetupInstructions({
           }
         )}
       </p>
-      {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
-        <Alert type="warning">
-          {tct('Add [url] to your [field] list to start capturing data.', {
-            url: <code>{url}</code>,
-            field: <code>networkDetailAllowUrls</code>,
-          })}
-        </Alert>
-      )}
+      <NetworkUrlWrapper>
+        {showSnippet === Output.URL_SKIPPED &&
+          url !== '[Filtered]' &&
+          tct(
+            'Add the following to your [field] list to start capturing data: [alert] ',
+            {
+              field: <code>networkDetailAllowUrls</code>,
+              alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
+            }
+          )}
+      </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
           {tct('Enable [field] to capture both Request and Response bodies.', {
@@ -246,6 +194,14 @@ function SetupInstructions({
     </StyledInstructions>
   );
 }
+
+const StyledTextCopyInput = styled(TextCopyInput)`
+  margin-top: ${space(0.5)};
+`;
+
+const NetworkUrlWrapper = styled('div')`
+  margin: ${space(1)} 0 ${space(1.5)} 0;
+`;
 
 const NoMarginAlert = styled(Alert)`
   margin: 0;

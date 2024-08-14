@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.mixins import IssueSyncMixin
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 UNSET = object()
@@ -23,23 +26,31 @@ logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
+def get_vsts_external_id(data: Mapping[str, Any]) -> str:
+    external_id = data["resourceContainers"]["collection"]["id"]
+    return str(external_id)
+
+
 @region_silo_endpoint
 class WorkItemWebhook(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     authentication_classes = ()
     permission_classes = ()
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = request.data
         try:
+            data = request.data
             event_type = data["eventType"]
-            external_id = data["resourceContainers"]["collection"]["id"]
-        except KeyError as e:
+            external_id = get_vsts_external_id(data=request.data)
+        except Exception as e:
             logger.info("vsts.invalid-webhook-payload", extra={"error": str(e)})
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
-
             integration = integration_service.get_integration(
                 provider=PROVIDER_KEY, external_id=external_id
             )
@@ -124,9 +135,7 @@ def handle_status_change(
     )
 
     for org_integration in org_integrations:
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=org_integration.organization_id
-        )
+        installation = integration.get_installation(organization_id=org_integration.organization_id)
         if isinstance(installation, IssueSyncMixin):
             installation.sync_status_inbound(
                 external_issue_key,

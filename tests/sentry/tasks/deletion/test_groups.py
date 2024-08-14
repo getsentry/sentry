@@ -2,14 +2,19 @@ from uuid import uuid4
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
-from sentry.models import Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect, GroupStatus
-from sentry.tasks.deletion import delete_groups
-from sentry.testutils import TestCase
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupredirect import GroupRedirect
+from sentry.tasks.deletion.groups import delete_groups
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class DeleteGroupTest(TestCase):
     def test_simple(self):
         event_id = "a" * 32
@@ -37,6 +42,7 @@ class DeleteGroupTest(TestCase):
             project_id=project.id,
         )
 
+        assert event.group is not None
         group = event.group
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
@@ -45,8 +51,8 @@ class DeleteGroupTest(TestCase):
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
-        assert nodestore.get(node_id)
-        assert nodestore.get(node_id_2)
+        assert nodestore.backend.get(node_id)
+        assert nodestore.backend.get(node_id_2)
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
@@ -54,5 +60,5 @@ class DeleteGroupTest(TestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.get(node_id)
-        assert not nodestore.get(node_id_2)
+        assert not nodestore.backend.get(node_id)
+        assert not nodestore.backend.get(node_id_2)

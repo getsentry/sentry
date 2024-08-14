@@ -3,13 +3,13 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {AvatarProject, Project} from 'sentry/types';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -83,30 +83,24 @@ type DefaultProps = {
 
 type Props = {
   api: Client;
-
   children: RenderFunc;
-
   /**
    * Organization slug
    */
   orgId: string;
-
   /**
    * List of projects that have we already have summaries for (i.e. from store)
    */
   projects: Project[];
-
   /**
    * Whether to fetch all the projects in the organization of which the user
    * has access to
-   * */
+   */
   allProjects?: boolean;
-
   /**
    * Number of projects to return when not using `props.slugs`
    */
   limit?: number;
-
   /**
    * List of project ids to look for summaries for, this can be from `props.projects`,
    * otherwise fetch from API
@@ -295,8 +289,8 @@ class BaseProjects extends Component<Props, State> {
         projectsMap.has(slug)
           ? projectsMap.get(slug)
           : passthroughPlaceholderProject
-          ? {slug}
-          : null
+            ? {slug}
+            : null
       )
       .filter(defined);
 
@@ -412,7 +406,7 @@ class BaseProjects extends Component<Props, State> {
       // while we load actual project data
       projects: this.state.initiallyLoaded
         ? [...this.state.fetchedProjects, ...this.state.projectsFromStore]
-        : (slugs && slugs.map(slug => ({slug}))) || [],
+        : slugs?.map(slug => ({slug})) || [],
 
       // This is set when we fail to find some slugs from both store and API
       isIncomplete: this.state.isIncomplete,
@@ -475,10 +469,10 @@ async function fetchProjects(
     query?: string;
   } = {
     // Never return latestDeploys project property from api
-    collapse: ['latestDeploys'],
+    collapse: ['latestDeploys', 'unusedFeatures'],
   };
 
-  if (slugs && slugs.length) {
+  if (slugs?.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
   }
 
@@ -496,7 +490,7 @@ async function fetchProjects(
   }
 
   if (allProjects) {
-    const projects = ProjectsStore.getAll();
+    const projects = ProjectsStore.getState().projects;
     const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {
@@ -537,7 +531,17 @@ async function fetchProjects(
   };
 }
 
-export function getAnalyicsDataForProject(project?: Project | null) {
+interface ProjectAnalyticsData {
+  project_age: number;
+  project_has_minified_stack_trace: boolean;
+  project_has_replay: boolean;
+  project_id: number;
+  project_platform: string;
+}
+
+export function getAnalyicsDataForProject(
+  project?: Project | null
+): ProjectAnalyticsData {
   return {
     project_has_replay: project?.hasReplays ?? false,
     project_has_minified_stack_trace: project?.hasMinifiedStackTrace ?? false,

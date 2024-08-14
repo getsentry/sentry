@@ -47,10 +47,10 @@ The replacement rules are interpreted by Relay to match and replace `*`, and to 
 
 import logging
 from collections import UserDict, defaultdict
-from typing import Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import TypeAlias, Union
 
 import sentry_sdk
-from typing_extensions import TypeAlias
 
 from .base import Clusterer, ReplacementRule
 from .rule_validator import RuleValidator
@@ -68,6 +68,10 @@ MERGED = Merged()
 #: Separator by which we build the tree
 SEP = "/"
 
+#: Maximum tree depth. URLs with more than 200 segments do not seem useful,
+#: and we occasionally run into `RecursionError`s.
+MAX_DEPTH = 200
+
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +80,16 @@ class TreeClusterer(Clusterer):
     def __init__(self, *, merge_threshold: int) -> None:
         self._merge_threshold = merge_threshold
         self._tree = Node()
-        self._rules: Optional[List[ReplacementRule]] = None
+        self._rules: list[ReplacementRule] | None = None
 
     def add_input(self, strings: Iterable[str]) -> None:
         for string in strings:
-            parts = string.split(SEP)
+            parts = string.split(SEP, maxsplit=MAX_DEPTH)
             node = self._tree
             for part in parts:
                 node = node.setdefault(part, Node())
 
-    def get_rules(self) -> List[ReplacementRule]:
+    def get_rules(self) -> list[ReplacementRule]:
         """Computes the rules for the current tree."""
         self._extract_rules()
         self._clean_rules()
@@ -116,7 +120,7 @@ class TreeClusterer(Clusterer):
         self._rules.sort(key=len, reverse=True)
 
     @staticmethod
-    def _build_rule(path: List["Edge"]) -> ReplacementRule:
+    def _build_rule(path: list["Edge"]) -> ReplacementRule:
         path_str = SEP.join(["*" if isinstance(key, Merged) else key for key in path])
         path_str += "/**"
         return ReplacementRule(path_str)
@@ -130,7 +134,7 @@ Edge: TypeAlias = Union[str, Merged]
 class Node(UserDict):
     """Keys in this dict are names of the children"""
 
-    def paths(self, ancestors: Optional[List[Edge]] = None) -> Iterable[List[Edge]]:
+    def paths(self, ancestors: list[Edge] | None = None) -> Iterable[list[Edge]]:
         """Collect all paths and subpaths through the graph"""
         if ancestors is None:
             ancestors = []

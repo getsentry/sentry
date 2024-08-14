@@ -1,6 +1,8 @@
-import selectEvent from 'react-select-event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -9,7 +11,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
@@ -38,8 +40,8 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const organization = OrganizationFixture({features: ['performance-view']});
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',
     version: 2,
@@ -47,7 +49,7 @@ describe('TransactionThresholdModal', function () {
     fields: ['count()'],
     orderby: '-count',
     query: '',
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     environment: [],
@@ -71,39 +73,43 @@ describe('TransactionThresholdModal', function () {
   it('can update threshold', async function () {
     mountModal(eventView, organization, onApply);
 
-    await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.clear(await screen.findByRole('spinbutton'));
     await userEvent.type(screen.getByRole('spinbutton'), '1000{enter}');
 
     await userEvent.click(screen.getByTestId('apply-threshold'));
 
-    expect(postTransactionThresholdMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/project-transaction-threshold-override/',
-      expect.objectContaining({
-        data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
-      })
-    );
+    await waitFor(() => {
+      expect(postTransactionThresholdMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/project-transaction-threshold-override/',
+        expect.objectContaining({
+          data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
+        })
+      );
+    });
   });
 
   it('can update metric', async function () {
     mountModal(eventView, organization, onApply);
 
     await selectEvent.select(
-      screen.getByText('Largest Contentful Paint'),
+      await screen.findByText('Largest Contentful Paint'),
       'Transaction Duration'
     );
 
     await userEvent.click(screen.getByTestId('apply-threshold'));
 
-    expect(postTransactionThresholdMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/project-transaction-threshold-override/',
-      expect.objectContaining({
-        data: {
-          metric: 'duration',
-          threshold: 400,
-          transaction: 'transaction/threshold',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(postTransactionThresholdMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/project-transaction-threshold-override/',
+        expect.objectContaining({
+          data: {
+            metric: 'duration',
+            threshold: 400,
+            transaction: 'transaction/threshold',
+          },
+        })
+      );
+    });
   });
 
   it('can clear metrics', async function () {
@@ -123,7 +129,7 @@ describe('TransactionThresholdModal', function () {
       },
     });
 
-    await userEvent.click(screen.getByTestId('reset-all'));
+    await userEvent.click(await screen.findByTestId('reset-all'));
 
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
     // Replace with project fallback

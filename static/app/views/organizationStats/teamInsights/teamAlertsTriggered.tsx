@@ -5,25 +5,26 @@ import round from 'lodash/round';
 
 import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {formatPercentage} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {ColorOrAlias} from 'sentry/utils/theme';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
-type AlertsTriggered = Record<string, number>;
+export type AlertsTriggered = Record<string, number>;
 
 type AlertsTriggeredRule = MetricRule & {
   totalThisWeek: number;

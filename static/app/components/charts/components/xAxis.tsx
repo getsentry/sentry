@@ -1,22 +1,22 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {truncationFormatter, useShortInterval} from 'sentry/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
 type HelperProps =
   | 'isGroupedByDate'
   | 'useShortDate'
   | 'start'
   | 'end'
   | 'period'
+  | 'xAxis'
   | 'utc';
 
-type Props = ChartProps['xAxis'] &
-  Pick<ChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
+export type XAxisProps = BaseChartProps['xAxis'] &
+  Pick<BaseChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
 function XAxis({
   isGroupedByDate,
@@ -30,7 +30,7 @@ function XAxis({
 
   addSecondsToTimeFormat = false,
   ...props
-}: Props): XAXisComponentOption {
+}: XAxisProps): XAXisComponentOption {
   const AxisLabelFormatter = (value: string, index: number) => {
     const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
     const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;

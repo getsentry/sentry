@@ -1,10 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectPlatform(Model):
     """
     Tracks usage of a platform for a given project.
@@ -12,7 +13,7 @@ class ProjectPlatform(Model):
     Note: This model is used solely for analytics.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField()
     platform = models.CharField(max_length=64)

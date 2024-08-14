@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -27,7 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import InlineDocs from './inlineDocs';
-import {GapSpanType} from './types';
+import type {GapSpanType} from './types';
 
 interface GapSpanDetailsProps {
   event: Readonly<EventTransaction>;
@@ -51,33 +51,40 @@ export function GapSpanDetails({
 
   const profileGroup = useProfileGroup();
 
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
-
   const profile = useMemo(() => {
+    const threadId = profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
     if (!defined(threadId)) {
       return null;
     }
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, threadId]);
+  }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
 
-  const transactionHasProfile = defined(threadId) && defined(profile);
+  const transactionHasProfile = defined(profile);
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile) {
       return FlamegraphModel.Example();
     }
 
-    return new FlamegraphModel(profile, threadId, {});
-  }, [transactionHasProfile, profile, threadId]);
+    return new FlamegraphModel(profile, {});
+  }, [transactionHasProfile, profile]);
+
+  // The most recent profile formats should contain a timestamp indicating
+  // the beginning of the profile. This timestamp can be after the start
+  // timestamp on the transaction, so we need to account for the gap and
+  // make sure the relative start timestamps we compute for the span is
+  // relative to the start of the profile.
+  //
+  // If the profile does not contain a timestamp, we fall back to using the
+  // start timestamp on the transaction. This won't be as accurate but it's
+  // the next best thing.
+  const startTimestamp = profile?.timestamp ?? event.startTimestamp;
 
   const relativeStartTimestamp = transactionHasProfile
-    ? span.start_timestamp - event.startTimestamp
+    ? span.start_timestamp - startTimestamp
     : 0;
   const relativeStopTimestamp = transactionHasProfile
-    ? span.timestamp - event.startTimestamp
+    ? span.timestamp - startTimestamp
     : flamegraph.configSpace.width;
 
   // Found the profile, render the preview
@@ -136,9 +143,9 @@ export function GapSpanDetails({
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button size="sm" priority="primary" href={docsLink} external>
+        <LinkButton size="sm" priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
-        </Button>
+        </LinkButton>
         <ManualInstrumentationInstruction />
       </InstructionsContainer>
     </Container>
@@ -277,7 +284,7 @@ const Image = styled('img')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  height: 300px;
+  height: 310px;
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;

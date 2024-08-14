@@ -3,9 +3,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import onboarding_tasks
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models import OnboardingTaskStatus
+from sentry.models.organizationonboardingtask import OnboardingTaskStatus
 
 
 class OnboardingTaskPermission(OrganizationPermission):
@@ -14,10 +16,13 @@ class OnboardingTaskPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:
-
         task_id = onboarding_tasks.get_task_lookup_by_key(request.data["task"])
         if task_id is None:
             return Response({"detail": "Invalid task key"}, status=422)

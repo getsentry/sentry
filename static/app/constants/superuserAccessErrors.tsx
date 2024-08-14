@@ -4,6 +4,7 @@ export enum ErrorCodes {
   INVALID_PASSWORD = 'Incorrect password',
   INVALID_SSO_SESSION = 'Your SSO Session has expired, please reauthenticate',
   INVALID_ACCESS_CATEGORY = 'Please fill out the access category and reason correctly',
-  NO_AUTHENTICATOR = 'Please add a U2F authenticator to your account',
-  UNKNOWN_ERROR = 'An error ocurred, please try again',
+  MISSING_PASSWORD_OR_U2F = 'Password or U2F challenge/response was not sent',
+  NO_AUTHENTICATOR = 'Please add a U2F authenticator to your Sentry account',
+  UNKNOWN_ERROR = 'An error occurred, please try again',
 }

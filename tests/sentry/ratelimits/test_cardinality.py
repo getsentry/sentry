@@ -1,4 +1,4 @@
-from typing import Collection, Optional, Sequence
+from collections.abc import Collection, Sequence
 
 import pytest
 
@@ -26,7 +26,7 @@ class LimiterHelper:
         self.quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
         self.timestamp = 3600
 
-    def add_value(self, value: int) -> Optional[int]:
+    def add_value(self, value: int) -> int | None:
         values = self.add_values([value])
         if values:
             (value,) = values
@@ -176,14 +176,14 @@ def test_sliding(limiter: RedisCardinalityLimiter):
     assert admissions == expected
 
 
-def test_sampling(limiter: RedisCardinalityLimiter):
+def test_sampling(limiter: RedisCardinalityLimiter) -> None:
     """
     demonstrate behavior when "shard sampling" is active. If one out of 10
     shards for an organization are stored, it is still possible to limit the
     exactly correct amount of hashes, for certain hash values.
     """
-    limiter.num_physical_shards = 1
-    limiter.num_shards = 10
+    limiter.impl.num_physical_shards = 1
+    limiter.impl.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill up the physical shard

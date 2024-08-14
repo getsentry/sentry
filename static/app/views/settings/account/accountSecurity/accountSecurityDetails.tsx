@@ -5,18 +5,18 @@
  * Also displays 2fa method specific details.
  */
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Authenticator, AuthenticatorDevice} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
@@ -50,14 +50,14 @@ type Props = {
 
 type State = {
   authenticator: Authenticator | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class AccountSecurityDetails extends AsyncView<Props, State> {
+class AccountSecurityDetails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Security');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {params} = this.props;
     const {authId} = params;
 
@@ -220,7 +220,7 @@ const AuthenticatorDates = styled('div')`
 `;
 
 const DateLabel = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PhoneWrapper = styled('div')`
@@ -228,6 +228,6 @@ const PhoneWrapper = styled('div')`
 `;
 
 const Phone = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-left: ${space(1)};
 `;

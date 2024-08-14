@@ -1,21 +1,22 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from rest_framework import serializers
 
-from sentry.models import Commit, Repository
+from sentry.models.commit import Commit
+from sentry.models.repository import Repository
 
 
 class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 
-    def validate_repository(self, value: str) -> "Repository":
+    def validate_repository(self, value: str) -> Repository:
         project = self.context["project"]
         try:
-            value = Repository.objects.get(organization_id=project.organization_id, name=value)
+            return Repository.objects.get(organization_id=project.organization_id, name=value)
         except Repository.DoesNotExist:
             raise serializers.ValidationError("Unable to find the given repository.")
-        return value
 
     def validate(self, attrs: Mapping[str, Any]) -> Commit:
         attrs = super().validate(attrs)

@@ -1,11 +1,7 @@
-from django.urls import reverse
-
-from sentry.models import GroupSubscription
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class GroupParticipantsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -17,10 +13,8 @@ class GroupParticipantsTest(APITestCase):
         # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
         # decision to permanently remove either path schema is a TODO.
         return (
-            lambda group: reverse("sentry-api-0-group-stats", args=[group.id]),
-            lambda group: reverse(
-                "sentry-api-0-organization-group-stats", args=[self.organization.slug, group.id]
-            ),
+            lambda group: f"/api/0/issues/{group.id}/participants/",
+            lambda group: f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/participants/",
         )
 
     def test_simple(self):
@@ -33,6 +27,5 @@ class GroupParticipantsTest(APITestCase):
             path = path_func(group)
 
             response = self.client.get(path)
-
-            assert len(response.data) == 1
+            assert len(response.data) == 1, response
             assert response.data[0]["id"] == str(self.user.id)

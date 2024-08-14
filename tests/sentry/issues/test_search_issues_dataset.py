@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta
 
-from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import json
-from sentry.utils.snuba import _snql_query
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.utils.snuba import raw_snql_query
 
 
 class DatasetTest(SnubaTestCase, TestCase):
@@ -30,9 +28,5 @@ class DatasetTest(SnubaTestCase, TestCase):
         }
         request = json_to_snql(json_body, "search_issues")
         request.validate()
-        identity = lambda x: x
-        resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
-        assert resp[0].status == 200
-        stuff = json.loads(resp[0].data)
-
-        assert len(stuff["data"]) == 0
+        result = raw_snql_query(request)
+        assert len(result["data"]) == 0

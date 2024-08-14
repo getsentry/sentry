@@ -1,8 +1,8 @@
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test(stable=True)
+@no_silo_test
 class PhabricatorTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -17,5 +17,4 @@ class PhabricatorTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("phabricator settings")
         assert self.browser.element_exists(".ref-plugin-config-phabricator")

@@ -3,18 +3,19 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {Project} from 'sentry/types/project';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
 
@@ -24,6 +25,7 @@ type Props = {
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
+  project: Project;
   showDetails: boolean;
 };
 
@@ -34,6 +36,7 @@ function DebugFileRow({
   downloadRole,
   onDelete,
   orgSlug,
+  project,
 }: Props) {
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
@@ -99,18 +102,18 @@ function DebugFileRow({
                 )}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="xs"
-                  icon={<IconDownload size="xs" />}
+                  icon={<IconDownload />}
                   href={downloadUrl}
                   disabled={!hasRole}
                 >
                   {t('Download')}
-                </Button>
+                </LinkButton>
               </Tooltip>
             )}
           </Role>
-          <Access access={['project:write']}>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip
                 disabled={hasAccess}
@@ -124,7 +127,7 @@ function DebugFileRow({
                 >
                   <Button
                     priority="danger"
-                    icon={<IconDelete size="xs" />}
+                    icon={<IconDelete />}
                     size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"

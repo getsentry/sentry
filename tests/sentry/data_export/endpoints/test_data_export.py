@@ -1,14 +1,15 @@
-from freezegun import freeze_time
+from __future__ import annotations
+
+from typing import Any
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.search.utils import parse_datetime_string
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import MAX_FIELDS
 
 
-@region_silo_test(stable=True)
 class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
@@ -24,7 +25,7 @@ class DataExportTest(APITestCase):
         self.login_as(user=self.user)
 
     def make_payload(self, payload_type, extras=None, overwrite=False):
-        payload = {}
+        payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {
                 "query_type": ExportQueryType.ISSUES_BY_TAG_STR,
@@ -176,7 +177,9 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("discover", {"field": ["min()"]})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["min: expected 1 argument(s)"]}
+        assert response.data == {
+            "non_field_errors": ["min: expected 1 argument(s) but got 0 argument(s)"]
+        }
 
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self):
@@ -311,3 +314,56 @@ class DataExportTest(APITestCase):
         query_info = data_export.query_info
         assert query_info["field"] == ["count()"]
         assert query_info["equations"] == ["count() / 2"]
+
+    def test_valid_dataset(self):
+        """
+        Ensures that equations are handled
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "issuePlatform"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "issuePlatform"
+
+    def test_valid_dataset_transactions(self):
+        """
+        Tests that the transactions dataset is valid
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "transactions"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "transactions"
+
+    def test_valid_dataset_errors(self):
+        """
+        Tests that the errors dataset is valid
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "errors"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "errors"
+
+    def test_invalid_dataset(self):
+        """
+        Ensures that equations are handled
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "somefakedataset"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_response(self.org.slug, **payload)
+        assert response.status_code == 400

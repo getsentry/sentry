@@ -1,8 +1,10 @@
-import moment from 'moment';
+import type moment from 'moment-timezone';
 
-import {EventQuery} from 'sentry/actionCreators/events';
-import {EventsStatsData, Project} from 'sentry/types';
-import EventView, {LocationQuery} from 'sentry/utils/discover/eventView';
+import type {EventQuery} from 'sentry/actionCreators/events';
+import type {EventsStatsData} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {
   middle?: string;
@@ -15,6 +17,7 @@ export type TrendsQuery = EventQuery &
   LocationQuery & {
     interval?: string;
     middle?: string;
+    topEvents?: number;
     trendFunction?: string;
     trendType?: TrendChangeType;
   };

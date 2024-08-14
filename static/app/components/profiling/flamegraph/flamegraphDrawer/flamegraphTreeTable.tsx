@@ -1,3 +1,4 @@
+import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -5,76 +6,36 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {relativeWeight} from 'sentry/utils/profiling/units/units';
+
 import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+  CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
+  CallTreeDynamicColumnsContainer,
+  CallTreeFixedColumnsContainer,
+  CallTreeTable,
+  CallTreeTableContainer,
+  CallTreeTableDynamicColumns,
+  CallTreeTableFixedColumns,
+  CallTreeTableGhostRow,
+  CallTreeTableHeader,
+  CallTreeTableHeaderButton,
+  CallTreeTableRow,
+  makeCallTreeTableSortFunction,
+  syncCallTreeTableScroll,
+} from '../callTreeTable';
 
-import {FrameCallersTableCell} from './flamegraphDrawer';
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
-import {FlamegraphTreeTableRow} from './flamegraphTreeTableRow';
-
-function makeSortFunction(
-  property: 'total weight' | 'self weight' | 'name',
-  direction: 'asc' | 'desc'
-) {
-  if (property === 'total weight') {
-    return direction === 'desc'
-      ? (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return b.node.node.totalWeight - a.node.node.totalWeight;
-        }
-      : (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return a.node.node.totalWeight - b.node.node.totalWeight;
-        };
-  }
-
-  if (property === 'self weight') {
-    return direction === 'desc'
-      ? (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return b.node.node.selfWeight - a.node.node.selfWeight;
-        }
-      : (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return a.node.node.selfWeight - b.node.node.selfWeight;
-        };
-  }
-
-  if (property === 'name') {
-    return direction === 'desc'
-      ? (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return a.node.frame.name.localeCompare(b.node.frame.name);
-        }
-      : (
-          a: VirtualizedTreeNode<FlamegraphFrame>,
-          b: VirtualizedTreeNode<FlamegraphFrame>
-        ) => {
-          return b.node.frame.name.localeCompare(a.node.frame.name);
-        };
-  }
-
-  throw new Error(`Unknown sort property ${property}`);
-}
 
 function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
   return n.node.node.isDirectRecursive();
@@ -86,6 +47,8 @@ interface FlamegraphTreeTableProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
+  onBottomUpClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
+  onTopDownClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
   recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   tree: FlamegraphFrame[];
@@ -99,24 +62,41 @@ export function FlamegraphTreeTable({
   canvasPoolManager,
   canvasScheduler,
   getFrameColor,
-  formatDuration,
   recursion,
   flamegraph,
+  onBottomUpClick,
+  onTopDownClick,
 }: FlamegraphTreeTableProps) {
-  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
-    null
-  );
+  const [scrollContainerRef, setFixedScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+  const [dynamicScrollContainerRef, setDynamicScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
   const sortFunction = useMemo(() => {
-    return makeSortFunction(sort, direction);
+    return makeCallTreeTableSortFunction(sort, direction);
   }, [sort, direction]);
 
-  const [clickedContextMenuNode, setClickedContextMenuClose] =
+  const [clickedContextMenuNode, setClickedContextMenuNode] =
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
-  const contextMenu = useContextMenu({container: scrollContainerRef});
+
+  const [tableParentContainer, setTableParentContainer] = useState<HTMLDivElement | null>(
+    null
+  );
+  const contextMenu = useContextMenu({container: tableParentContainer});
+
+  const onRowContextMenu = useCallback(
+    (item: VirtualizedTreeNode<FlamegraphFrame>) => {
+      return (e: React.MouseEvent<Element, MouseEvent>) => {
+        setClickedContextMenuNode(item);
+        contextMenu.handleContextMenu(e);
+      };
+    },
+    [contextMenu]
+  );
 
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
@@ -130,7 +110,7 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
 
-  const onHighlightAllOccurencesClick = useCallback(() => {
+  const onHighlightAllOccurrencesClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
     }
@@ -146,94 +126,132 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const renderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] = useCallback(
-    (
-      r,
-      {
-        handleRowClick,
-        handleRowMouseEnter,
-        handleExpandTreeNode,
-        handleRowKeyDown,
-        selectedNodeIndex,
-      }
-    ) => {
-      return (
-        <FlamegraphTreeTableRow
-          ref={n => {
-            r.ref = n;
-          }}
-          key={r.key}
-          node={r.item}
-          style={r.styles}
-          referenceNode={referenceNode}
-          frameColor={getFrameColor(r.item.node)}
-          formatDuration={formatDuration}
-          tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-          onClick={handleRowClick}
-          onExpandClick={handleExpandTreeNode}
-          onKeyDown={handleRowKeyDown}
-          onMouseEnter={handleRowMouseEnter}
-          onContextMenu={evt => {
-            setClickedContextMenuClose(r.item);
-            contextMenu.handleContextMenu(evt);
-          }}
-        />
-      );
-    },
-    [contextMenu, formatDuration, referenceNode, getFrameColor]
-  );
+  const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
+    useCallback(
+      (
+        r,
+        {
+          handleRowClick,
+          handleRowMouseEnter,
+          handleExpandTreeNode,
+          handleRowKeyDown,
+          selectedNodeIndex,
+        }
+      ) => {
+        return (
+          <CallTreeTableRow
+            key={r.key}
+            ref={n => {
+              r.ref = n;
+            }}
+            top={r.styles.top}
+            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+            onKeyDown={handleRowKeyDown}
+            onClick={handleRowClick}
+            onMouseEnter={handleRowMouseEnter}
+            onContextMenu={onRowContextMenu(r.item)}
+          >
+            <CallTreeTableFixedColumns
+              node={r.item}
+              type="time"
+              referenceNode={referenceNode}
+              totalWeight={r.item.node.node.totalWeight}
+              selfWeight={r.item.node.node.selfWeight}
+              relativeSelfWeight={relativeWeight(
+                referenceNode.node.totalWeight,
+                r.item.node.node.selfWeight
+              )}
+              relativeTotalWeight={relativeWeight(
+                referenceNode.node.totalWeight,
+                r.item.node.node.totalWeight
+              )}
+              frameColor={getFrameColor(r.item.node)}
+              formatDuration={flamegraph.formatter}
+              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+              onExpandClick={handleExpandTreeNode}
+            />
+          </CallTreeTableRow>
+        );
+      },
+      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
+    );
 
-  // This is slighlty unfortunate and ugly, but because our two columns are sticky
-  // we need to scroll the container to the left when we scroll to a node. This
-  // should be resolved when we split the virtualization between containers and sync scroll,
-  // but is a larger undertaking and will take a bit longer
+  const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
+    useCallback(
+      (
+        r,
+        {
+          handleRowClick,
+          handleRowMouseEnter,
+          handleExpandTreeNode,
+          handleRowKeyDown,
+          selectedNodeIndex,
+        }
+      ) => {
+        return (
+          <CallTreeTableRow
+            key={r.key}
+            ref={n => {
+              r.ref = n;
+            }}
+            top={r.styles.top}
+            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+            onKeyDown={handleRowKeyDown}
+            onClick={handleRowClick}
+            onMouseEnter={handleRowMouseEnter}
+            onContextMenu={onRowContextMenu(r.item)}
+          >
+            <CallTreeTableDynamicColumns
+              node={r.item}
+              type="time"
+              referenceNode={referenceNode}
+              frameColor={getFrameColor(r.item.node)}
+              formatDuration={flamegraph.formatter}
+              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
+              onExpandClick={handleExpandTreeNode}
+            />
+          </CallTreeTableRow>
+        );
+      },
+      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
+    );
   const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
     useCallback(
       (
         node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
-        scrollContainer: HTMLElement | null,
+        scrollContainer: HTMLElement | HTMLElement[] | null,
         coordinates?: {depth: number; top: number}
       ) => {
-        if (node) {
-          const lastCell = node.ref?.lastChild?.firstChild as
-            | HTMLElement
-            | null
-            | undefined;
-          if (lastCell) {
-            lastCell.scrollIntoView({
-              block: 'nearest',
-            });
-
-            const left = -328 + (node.item.depth * 14 + 8);
-            scrollContainer?.scrollBy({
-              left,
-            });
-          }
-        } else if (coordinates) {
-          const left = -328 + (coordinates.depth * 14 + 8);
-          scrollContainer?.scrollBy({
-            left,
-          });
-        }
+        syncCallTreeTableScroll({node, scrollContainer, coordinates});
       },
       []
     );
 
+  const scrollContainers = useMemo(() => {
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(
+      c => !!c
+    ) as HTMLElement[];
+  }, [dynamicScrollContainerRef, scrollContainerRef]);
+
   const {
-    renderedItems,
-    scrollContainerStyles,
-    containerStyles,
+    items: renderItems,
+    scrollContainerStyles: scrollContainerStyles,
+    containerStyles: fixedContainerStyles,
     handleSortingChange,
     handleScrollTo,
-    clickedGhostRowRef,
-    hoveredGhostRowRef,
+    handleExpandTreeNode,
+    handleRowClick,
+    handleRowKeyDown,
+    handleRowMouseEnter,
+    selectedNodeIndex,
+    clickedGhostRowRef: clickedGhostRowRef,
+    hoveredGhostRowRef: hoveredGhostRowRef,
   } = useVirtualizedTree({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     onScrollToNode,
-    renderRow,
-    scrollContainer: scrollContainerRef,
+    scrollContainer: scrollContainers,
     rowHeight: 24,
     tree,
   });
@@ -246,7 +264,7 @@ export function FlamegraphTreeTable({
       setDirection(newDirection);
       setSort(newSort);
 
-      const sortFn = makeSortFunction(newSort, newDirection);
+      const sortFn = makeCallTreeTableSortFunction(newSort, newDirection);
       handleSortingChange(sortFn);
     },
     [sort, direction, handleSortingChange]
@@ -257,16 +275,20 @@ export function FlamegraphTreeTable({
       handleScrollTo(el => el.node === frame.node);
     }
 
+    canvasScheduler.on('zoom at frame', onShowInTableView);
     canvasScheduler.on('show in table view', onShowInTableView);
-    return () => canvasScheduler.off('show in table view', onShowInTableView);
+    return () => {
+      canvasScheduler.off('show in table view', onShowInTableView);
+      canvasScheduler.off('zoom at frame', onShowInTableView);
+    };
   }, [canvasScheduler, handleScrollTo]);
 
   return (
     <FrameBar>
-      <FrameCallersTable>
-        <FrameCallersTableHeader>
+      <CallTreeTable>
+        <CallTreeTableHeader>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('self weight')}>
+            <CallTreeTableHeaderButton onClick={() => onSortChange('self weight')}>
               <InteractionStateLayer />
               <span>
                 {t('Self Time')}{' '}
@@ -281,10 +303,10 @@ export function FlamegraphTreeTable({
               {sort === 'self weight' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
+            </CallTreeTableHeaderButton>
           </FrameWeightCell>
           <FrameWeightCell>
-            <TableHeaderButton onClick={() => onSortChange('total weight')}>
+            <CallTreeTableHeaderButton onClick={() => onSortChange('total weight')}>
               <InteractionStateLayer />
               <span>
                 {t('Total Time')}{' '}
@@ -299,87 +321,72 @@ export function FlamegraphTreeTable({
               {sort === 'total weight' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
+            </CallTreeTableHeaderButton>
           </FrameWeightCell>
-          <FrameNameCell>
-            <TableHeaderButton onClick={() => onSortChange('name')}>
+          <div>
+            <CallTreeTableHeaderButton onClick={() => onSortChange('name')}>
               <InteractionStateLayer />
               {t('Frame')}{' '}
               {sort === 'name' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
               ) : null}
-            </TableHeaderButton>
-          </FrameNameCell>
-        </FrameCallersTableHeader>
-        <FlamegraphTreeContextMenu
-          onZoomIntoFrameClick={handleZoomIntoFrameClick}
-          onHighlightAllFramesClick={onHighlightAllOccurencesClick}
-          contextMenu={contextMenu}
-        />
-        <TableItemsContainer>
-          {/*
+            </CallTreeTableHeaderButton>
+          </div>
+        </CallTreeTableHeader>
+        <CallTreeTableContainer ref={setTableParentContainer}>
+          <FlamegraphTreeContextMenu
+            onZoomIntoFrameClick={handleZoomIntoFrameClick}
+            onHighlightAllFramesClick={onHighlightAllOccurrencesClick}
+            contextMenu={contextMenu}
+            onBottomUpClick={onBottomUpClick}
+            onTopDownClick={onTopDownClick}
+          />
+          <CallTreeFixedColumnsContainer>
+            {/*
           The order of these two matters because we want clicked state to
           be on top of hover in cases where user is hovering a clicked row.
            */}
-          <div ref={hoveredGhostRowRef} />
-          <div ref={clickedGhostRowRef} />
-          <div
-            ref={setScrollContainerRef}
-            style={scrollContainerStyles}
-            onContextMenu={contextMenu.handleContextMenu}
-          >
-            <div style={containerStyles}>
-              {renderedItems}
-              {/*
-              This is a ghost row, we stretch its width and height to fit the entire table
-              so that borders on columns are shown across the entire table and not just the rows.
-              This is useful when number of rows does not fill up the entire table height.
-             */}
-              <GhostRowContainer>
-                <FrameCallersTableCell />
-                <FrameCallersTableCell />
-                <FrameCallersTableCell style={{width: '100%'}} />
-              </GhostRowContainer>
+            <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return fixedRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+                <CallTreeTableGhostRow />
+              </div>
             </div>
-          </div>
-        </TableItemsContainer>
-      </FrameCallersTable>
+          </CallTreeFixedColumnsContainer>
+          <CallTreeDynamicColumnsContainer>
+            {/*
+          The order of these two matters because we want clicked state to
+          be on top of hover in cases where user is hovering a clicked row.
+           */}
+            <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
+              <div style={fixedContainerStyles}>
+                {renderItems.map(r => {
+                  return dynamicRenderRow(r, {
+                    handleRowClick: handleRowClick(r.key),
+                    handleRowMouseEnter: handleRowMouseEnter(r.key),
+                    handleExpandTreeNode,
+                    handleRowKeyDown,
+                    selectedNodeIndex,
+                  });
+                })}
+              </div>
+            </div>
+          </CallTreeDynamicColumnsContainer>
+          <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
+          <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
+        </CallTreeTableContainer>
+      </CallTreeTable>
     </FrameBar>
   );
 }
-
-const TableItemsContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background: ${p => p.theme.background};
-`;
-
-const GhostRowContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  pointer-events: none;
-  position: absolute;
-  height: 100%;
-  z-index: -1;
-`;
-
-const TableHeaderButton = styled('button')`
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 ${space(1)};
-  border: none;
-  background-color: ${props => props.theme.surface200};
-  transition: background-color 100ms ease-in-out;
-  line-height: 24px;
-
-  svg {
-    width: 10px;
-    height: 10px;
-  }
-`;
 
 const FrameBar = styled('div')`
   overflow: auto;
@@ -391,46 +398,6 @@ const FrameBar = styled('div')`
   grid-area: table;
 `;
 
-const FrameCallersTable = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin: 0;
-  overflow: auto;
-  max-height: 100%;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-
 const FrameWeightCell = styled('div')`
-  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
-`;
-
-const FrameNameCell = styled('div')`
-  flex: 1 1 100%;
-`;
-
-const FrameCallersTableHeader = styled('div')`
-  top: 0;
-  position: sticky;
-  z-index: 1;
-  display: flex;
-  flex: 1;
-
-  > div {
-    position: relative;
-    border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.background};
-    white-space: nowrap;
-
-    &:last-child {
-      flex: 1;
-    }
-
-    &:not(:last-child) {
-      border-right: 1px solid ${p => p.theme.border};
-    }
-  }
+  width: ${CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;

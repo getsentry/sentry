@@ -1,17 +1,29 @@
-import {Fragment, useEffect} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import {createPortal} from 'react-dom';
-import {SerializedStyles, useTheme} from '@emotion/react';
+import type {SerializedStyles} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import {space} from 'sentry/styles/space';
-import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
+import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
+import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
-import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
+interface TooltipContextProps {
+  /**
+   * Specifies the DOM node where the tooltip should be rendered.
+   * This is particularly useful for making the tooltip interactive within specific contexts,
+   * such as inside a modal. By default the tooltip is rendered in the 'document.body'.
+   */
+  container: Parameters<typeof createPortal>[1];
+}
 
-interface InternalTooltipProps extends UseHoverOverlayProps {
+export const TooltipContext = createContext<TooltipContextProps>({
+  container: document.body,
+});
+
+interface TooltipProps extends UseHoverOverlayProps {
   /**
    * The content to show in the tooltip popover
    */
@@ -27,14 +39,14 @@ interface InternalTooltipProps extends UseHoverOverlayProps {
   overlayStyle?: React.CSSProperties | SerializedStyles;
 }
 
-// Warning: This component is conditionally exported end-of-file based on IS_ACCEPTANCE_TEST env variable
-export function DO_NOT_USE_TOOLTIP({
+function Tooltip({
   children,
   overlayStyle,
   title,
   disabled = false,
   ...hoverOverlayProps
-}: InternalTooltipProps) {
+}: TooltipProps) {
+  const {container} = useContext(TooltipContext);
   const theme = useTheme();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
@@ -67,7 +79,7 @@ export function DO_NOT_USE_TOOLTIP({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, document.body)}
+      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, container)}
     </Fragment>
   );
 }
@@ -82,28 +94,5 @@ const TooltipContent = styled(Overlay)`
   text-align: center;
 `;
 
-interface TooltipProps extends InternalTooltipProps {
-  /**
-   * Stops tooltip from being opened during tooltip visual acceptance.
-   * Should be set to true if tooltip contains unisolated data (eg. dates)
-   */
-  disableForVisualTest?: boolean;
-}
-
-// Tooltip will enhance the internal tooltip with the open/close functionality
-// used in src/sentry/utils/pytest/selenium.py so that tooltips can be opened
-// and closed for specific snapshots.
-
-function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
-  if (IS_ACCEPTANCE_TEST) {
-    return disableForVisualTest ? (
-      <Fragment>{props.children}</Fragment>
-    ) : (
-      <AcceptanceTestTooltip {...props} />
-    );
-  }
-
-  return <DO_NOT_USE_TOOLTIP {...props} />;
-}
-
-export {Tooltip, TooltipProps};
+export type {TooltipProps};
+export {Tooltip};

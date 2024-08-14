@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, List, Sequence, Tuple
+from typing import Any
 
 from sentry.eventstore.models import Event
 from sentry.integrations.message_builder import (
@@ -11,28 +13,30 @@ from sentry.integrations.message_builder import (
     format_actor_option,
     format_actor_options,
 )
-from sentry.integrations.msteams.card_builder import (
-    ME,
-    MSTEAMS_URL_FORMAT,
+from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
+from sentry.integrations.msteams.card_builder.block import (
     Action,
     AdaptiveCard,
     Block,
     ColumnSetBlock,
     ContainerBlock,
+    ShowCardAction,
+    SubmitAction,
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.models import Group, GroupStatus, Project, Rule
-from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder
 from .block import (
     ActionType,
+    ContentAlignment,
     TextSize,
     TextWeight,
-    VerticalContentAlignment,
-    create_action_block,
     create_action_set_block,
     create_column_block,
     create_column_set_block,
@@ -43,6 +47,8 @@ from .block import (
     create_input_choice_set_block,
     create_text_block,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
@@ -56,6 +62,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
         # we need nested data or else Teams won't handle the payload correctly
+        assert self.event.group is not None
         return {
             "payload": {
                 "actionType": action_type,
@@ -66,10 +73,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             }
         }
 
-    def build_group_title(self) -> TextBlock:
+    def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
         text = build_attachment_title(self.group)
-
-        link = self.group.get_absolute_url(params={"referrer": "msteams"})
+        params = {"referrer": "msteams"}
+        if notification_uuid:
+            params.update({"notification_uuid": notification_uuid})
+        link = self.group.get_absolute_url(params=params)
 
         title_text = f"[{text}]({link})"
         return create_text_block(
@@ -107,7 +116,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             IssueConstants.DATE_FORMAT.format(date=date_str),
             size=TextSize.SMALL,
             weight=TextWeight.LIGHTER,
-            horizontalAlignment="Center",
+            horizontalAlignment=ContentAlignment.CENTER,
             wrap=False,
         )
 
@@ -122,11 +131,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         date_column = create_column_block(
             self.create_date_block(),
-            verticalContentAlignment=VerticalContentAlignment.CENTER,
+            verticalContentAlignment=ContentAlignment.CENTER,
         )
 
         return create_column_set_block(
-            image_column,
+            create_column_block(image_column),
             text_column,
             date_column,
         )
@@ -137,7 +146,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card_title: str,
         input_id: str,
         submit_button_title: str,
-        choices: Sequence[Tuple[str, Any]],
+        choices: Sequence[tuple[str, Any]],
         default_choice: Any = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
@@ -145,7 +154,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             text=create_input_choice_set_block(
                 id=input_id, choices=choices, default_choice=default_choice
             ),
-            actions=[create_action_block(ActionType.SUBMIT, title=submit_button_title, data=data)],
+            actions=[SubmitAction(type=ActionType.SUBMIT, title=submit_button_title, data=data)],
         )
 
     def create_issue_action_block(
@@ -166,13 +175,13 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         """
         if toggled:
             data = self.generate_action_payload(reverse_action)
-            return create_action_block(ActionType.SUBMIT, title=reverse_action_title, data=data)
+            return SubmitAction(type=ActionType.SUBMIT, title=reverse_action_title, data=data)
 
         data = self.generate_action_payload(action)
         card = self.build_input_choice_card(data=data, **card_kwargs)
-        return create_action_block(ActionType.SHOW_CARD, title=action_title, card=card)
+        return ShowCardAction(type=ActionType.SHOW_CARD, title=action_title, card=card)
 
-    def get_teams_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_teams_choices(self) -> Sequence[tuple[str, str]]:
         teams = self.group.project.teams.all().order_by("slug")
         return [("Me", ME)] + [
             (team["text"], team["value"]) for team in format_actor_options(teams)
@@ -223,6 +232,16 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             default_choice=ME,
         )
 
+        logger.info(
+            "msteams.build_group_actions",
+            extra={
+                "group_id": self.group.id,
+                "project_id": self.group.project.id,
+                "organization": self.group.project.organization.id,
+                "ignore_action": ignore_action,
+            },
+        )
+
         return create_container_block(
             create_action_set_block(
                 resolve_action,
@@ -243,9 +262,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def build_group_card(
-        self,
-    ) -> AdaptiveCard:
+    def build_group_card(self, notification_uuid: str | None = None) -> AdaptiveCard:
         """
         The issue (group) card has the following components stacked vertically,
         1. The issue title which links to the issue.
@@ -259,7 +276,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             futher reveal cards with dropdowns for selecting options.
         """
         # Explicit typing to satisfy mypy.
-        fields: List[Block | None] = [
+        fields: list[Block | None] = [
             self.build_group_descr(),
             self.build_group_footer(),
             self.build_assignee_note(),
@@ -267,6 +284,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         ]
 
         return super().build(
-            title=self.build_group_title(),
+            title=self.build_group_title(notification_uuid=notification_uuid),
             fields=fields,
         )

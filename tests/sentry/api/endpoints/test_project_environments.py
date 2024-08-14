@@ -1,11 +1,9 @@
 from django.urls import reverse
 
-from sentry.models import Environment, EnvironmentProject
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test
 class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -22,7 +20,10 @@ class ProjectEnvironmentsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-environments",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -47,7 +48,10 @@ class ProjectEnvironmentsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-environments",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content

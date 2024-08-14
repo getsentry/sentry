@@ -11,62 +11,58 @@ from fixtures.vsts import (
     WORK_ITEM_UPDATED,
     WORK_ITEM_UPDATED_STATUS,
 )
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models import (
-    Activity,
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Identity,
-    IdentityProvider,
-    Integration,
-)
-from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.identity import Identity
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test(stable=True)
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
         self.access_token = "1234567890"
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
-        self.model = Integration.objects.create(
-            provider="vsts",
-            external_id=self.account_id,
-            name="vsts_name",
-            metadata={
-                "domain_name": self.instance,
-                "subscription": {"id": 1234, "secret": self.shared_secret},
-            },
-        )
-        self.identity_provider = IdentityProvider.objects.create(type="vsts")
-        self.identity = Identity.objects.create(
-            idp=self.identity_provider,
-            user=self.user,
-            external_id="vsts_id",
-            data={
-                "access_token": self.access_token,
-                "refresh_token": "qwertyuiop",
-                "expires": int(time()) + int(1234567890),
-            },
-        )
-        self.org_integration = self.model.add_organization(
-            self.organization, self.user, self.identity.id
-        )
-        self.org_integration.config = {
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-        }
-        self.org_integration.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.model = self.create_provider_integration(
+                provider="vsts",
+                external_id=self.account_id,
+                name="vsts_name",
+                metadata={
+                    "domain_name": self.instance,
+                    "subscription": {"id": 1234, "secret": self.shared_secret},
+                },
+            )
+            self.identity_provider = self.create_identity_provider(type="vsts")
+            self.identity = Identity.objects.create(
+                idp=self.identity_provider,
+                user=self.user,
+                external_id="vsts_id",
+                data={
+                    "access_token": self.access_token,
+                    "refresh_token": "qwertyuiop",
+                    "expires": int(time()) + int(1234567890),
+                },
+            )
+            self.org_integration = self.model.add_organization(
+                self.organization, self.user, self.identity.id
+            )
+            assert self.org_integration is not None
+            self.org_integration.config = {
+                "sync_status_reverse": True,
+                "sync_status_forward": True,
+                "sync_comments": True,
+                "sync_forward_assignment": True,
+                "sync_reverse_assignment": True,
+            }
+            self.org_integration.save()
         self.integration = VstsIntegration(self.model, self.organization.id)
 
         self.user_to_assign = self.create_user("sentryuseremail@email.com")

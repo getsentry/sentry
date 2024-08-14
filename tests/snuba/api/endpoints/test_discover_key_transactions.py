@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from typing import Any, Protocol
+
+from django.http.response import HttpResponse
 from django.urls import reverse
 
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
-from sentry.models import ProjectTeam
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.models.projectteam import ProjectTeam
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.pagination import override_pagination_limit
 from sentry.utils.samples import load_data
 
 
@@ -20,7 +25,11 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
         self.features = ["organizations:performance-view"]
 
 
-@region_silo_test
+class ClientCallable(Protocol):
+    def __call__(self, url: str, data: dict[str, Any], format: str, **kwargs: Any) -> HttpResponse:
+        ...
+
+
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -28,17 +37,16 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
     def test_key_transaction_without_feature(self):
         project = self.create_project(name="qux", organization=self.org)
-        functions = [self.client.get, self.client.post, self.client.delete]
-        for function in functions:
-            response = function(
-                self.url,
-                data={
-                    "project": [self.project.id, project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": "myteams",
-                },
-                format="json",
-            )
+        data = {
+            "project": [self.project.id, project.id],
+            "transaction": self.event_data["transaction"],
+            "team": "myteams",
+        }
+        for response in (
+            self.client.get(self.url, data=data, format="json"),
+            self.client.post(self.url, data=data, format="json"),
+            self.client.delete(self.url, data=data, format="json"),
+        ):
             assert response.status_code == 404, response.content
 
     def test_get_key_transaction_multiple_projects(self):
@@ -663,7 +671,6 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
 
 
-@region_silo_test
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -859,6 +866,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
         ]
 
+    @override_pagination_limit(5)
     def test_get_key_transaction_list_pagination(self):
         user = self.create_user()
         self.login_as(user=user)
@@ -866,7 +874,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         project = self.create_project(name="baz", organization=org)
 
         teams = []
-        for i in range(123):
+        for i in range(8):
             team = self.create_team(organization=org, name=f"Team {i:02d}")
             self.create_team_membership(team, user=user)
             project.add_team(team)
@@ -877,14 +885,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                 },
                 format="json",
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 100
+        assert len(response.data) == 5
         links = {
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()
@@ -894,10 +902,11 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
 
         # get the second page
         with self.feature(self.features):
+            assert links["next"]["cursor"] is not None
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                     "cursor": links["next"]["cursor"],
                 },
@@ -905,7 +914,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 23
+        assert len(response.data) == 3
         links = {
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()

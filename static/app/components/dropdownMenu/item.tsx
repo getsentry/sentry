@@ -1,17 +1,18 @@
 import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
-import {useHover, useKeyboard, usePress} from '@react-aria/interactions';
+import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
-import {TreeState} from '@react-stately/tree';
-import {Node} from '@react-types/shared';
-import {LocationDescriptor} from 'history';
+import type {TreeState} from '@react-stately/tree';
+import type {Node} from '@react-types/shared';
+import type {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
+import type {MenuListItemProps} from 'sentry/components/menuListItem';
 import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
-  MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -29,7 +30,7 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   children?: MenuItemProps[];
   /**
-   * Plass a class name to the menu item.
+   * Pass a class name to the menu item.
    */
   className?: string;
   /**
@@ -37,7 +38,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
-  /*
+  /**
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.
    */
@@ -127,15 +128,11 @@ function BaseDropdownMenuItem(
       state.selectionManager.toggleSelection(node.key);
       return;
     }
-    key && onAction?.(key);
+    defined(key) && onAction?.(key);
   };
 
   // Open submenu on hover
   const {hoverProps, isHovered} = useHover({});
-  // Toggle submenu on press
-  const {pressProps} = usePress({
-    onPress: () => state.selectionManager.toggleSelection(node.key),
-  });
   const prevIsHovered = usePrevious(isHovered);
   const prevIsFocused = usePrevious(isFocused);
   useEffect(() => {
@@ -200,13 +197,7 @@ function BaseDropdownMenuItem(
 
   // Merged menu item props, class names are combined, event handlers chained,
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const mergedProps = mergeProps(
-    props,
-    menuItemProps,
-    hoverProps,
-    keyboardProps,
-    pressProps
-  );
+  const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
   const itemLabel = node.rendered ?? label;
   const innerWrapProps = {as: to ? Link : 'div', to};
 
@@ -225,7 +216,7 @@ function BaseDropdownMenuItem(
       trailingItems={
         isSubmenu ? (
           <Fragment>
-            {trailingItems}
+            {trailingItems as React.ReactNode}
             <IconChevron size="xs" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (

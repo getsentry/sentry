@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {TeamWithProjects} from 'sentry/types';
+import type {TeamWithProjects} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import Header from '../header';
 
@@ -27,7 +28,7 @@ type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, isLoading, isError} = useUserTeams();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -53,6 +54,10 @@ function TeamStatsHealth({location, router}: Props) {
     );
   }
 
+  if (isError) {
+    return <LoadingError />;
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Project Health')} orgSlug={organization.slug} />
@@ -65,8 +70,8 @@ function TeamStatsHealth({location, router}: Props) {
           currentTeam={currentTeam}
         />
 
-        {!initiallyLoaded && <LoadingIndicator />}
-        {initiallyLoaded && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('Crash Free Sessions')}

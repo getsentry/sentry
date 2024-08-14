@@ -3,9 +3,12 @@ from unittest.mock import patch
 import responses
 
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class TestServiceHooks(TestCase):
@@ -63,6 +66,7 @@ class TestServiceHooks(TestCase):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
         )
+        assert event.group is not None
 
         process_service_hook(self.hook.id, event)
         body = get_payload_v0(event)

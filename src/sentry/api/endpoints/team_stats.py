@@ -2,15 +2,23 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Environment, Project
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
 class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     def get(self, request: Request, team) -> Response:
         """
         Retrieve Event Counts for a Team
@@ -25,8 +33,8 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         Query ranges are limited to Sentry's configured time-series
         resolutions.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string team_slug: the slug of the team.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string team_id_or_slug: the id or slug of the team.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``)
         :qparam timestamp since: a timestamp to set the start of the query
@@ -48,7 +56,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
             return Response([])
 
         data = list(
-            tsdb.get_range(
+            tsdb.backend.get_range(
                 model=TSDBModel.project,
                 keys=[p.id for p in projects],
                 **self._parse_args(request, environment_id),

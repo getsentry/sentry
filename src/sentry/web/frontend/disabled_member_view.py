@@ -2,12 +2,14 @@ from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.request import Request
 
-from sentry.models import OrganizationMember
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
+from sentry.web.frontend.base import control_silo_view
 
 from .react_page import ReactPageView
 
 
+@control_silo_view
 class DisabledMemberView(ReactPageView):
     def is_member_disabled_from_limit(self, request: Request, organization):
         return False
@@ -19,7 +21,7 @@ class DisabledMemberView(ReactPageView):
             member = organization_service.check_membership_by_id(
                 user_id=user.id, organization_id=organization.id
             )
-            if not member.flags["member-limit:restricted"]:
+            if member and not member.flags["member-limit:restricted"]:
                 return self.redirect(
                     reverse("sentry-organization-issue-list", args=[organization.slug])
                 )

@@ -1,10 +1,11 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {tn} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {
@@ -148,7 +149,7 @@ const Counter = styled('div')`
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};

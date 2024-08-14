@@ -10,7 +10,6 @@ import django.db.models.manager
 import django.utils.timezone
 from django.conf import settings
 from django.db import migrations, models
-from django.utils.timezone import utc
 
 import bitfield.models
 import sentry.db.mixin
@@ -29,14 +28,14 @@ import sentry.db.models.fields.uuid
 import sentry.models.apiapplication
 import sentry.models.apigrant
 import sentry.models.apitoken
-import sentry.models.authenticator
 import sentry.models.broadcast
 import sentry.models.groupshare
 import sentry.models.integrations.sentry_app
 import sentry.models.integrations.sentry_app_installation
 import sentry.models.scheduledeletion
 import sentry.models.servicehook
-import sentry.models.user
+import sentry.users.models.authenticator
+import sentry.users.models.user
 import sentry.utils.security.hash
 from sentry.new_migrations.migrations import CheckedMigration
 
@@ -46,13 +45,13 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+    is_post_deployment = False
 
     replaces = [
         ("sentry", "0001_squashed_0200_release_indices"),
@@ -88,11 +87,9 @@ class Migration(CheckedMigration):
         ("sentry", "0230_sentry_app_config_jsonfield"),
         ("sentry", "0231_alert_rule_comparison_delta"),
         ("sentry", "0232_backfill_missed_semver_releases"),
-        ("sentry", "0233_recreate_subscriptions_in_snuba"),
         ("sentry", "0234_grouphistory"),
         ("sentry", "0235_add_metricskeyindexer_table"),
         ("sentry", "0236_remove_legacy_key_transactions"),
-        ("sentry", "0237_recreate_subscriptions_in_snuba"),
         ("sentry", "0238_remove_scheduleddeletion_aborted"),
         ("sentry", "0239_drop_scheduleddeletion_aborted"),
         ("sentry", "0240_grouphistory_index"),
@@ -166,7 +163,6 @@ class Migration(CheckedMigration):
         ("sentry", "0308_remove_alert_type_column"),
         ("sentry", "0309_fix_many_to_many_field"),
         ("sentry", "0310_sentry_functions_add_webhooks"),
-        ("sentry", "0311_backfill_slack_settings"),
         ("sentry", "0312_has_profiles_flag"),
         ("sentry", "0313_sentry_functions_env_variables"),
         ("sentry", "0314_bit_int_for_org_and_project_id"),
@@ -394,7 +390,7 @@ class Migration(CheckedMigration):
                 "verbose_name_plural": "users",
             },
             managers=[
-                ("objects", sentry.models.user.UserManager(cache_fields=["pk"])),
+                ("objects", sentry.users.models.user.UserManager(cache_fields=["pk"])),
             ],
         ),
         migrations.CreateModel(
@@ -1382,7 +1378,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_project",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
         ),
         migrations.CreateModel(
             name="ProjectAvatar",
@@ -2220,7 +2216,7 @@ class Migration(CheckedMigration):
                     ("organization_id", "provider", "external_id"),
                 },
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
         ),
         migrations.AddField(
             model_name="release",
@@ -3176,30 +3172,30 @@ class Migration(CheckedMigration):
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),
                 ),
                 (
-                    "environment",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "environment_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Environment",
+                        db_index=True,
                     ),
                 ),
                 (
-                    "group",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Group"
+                    "group_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        null=True,
+                        db_index=True,
                     ),
                 ),
                 (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
+                    "project_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True,
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_userreport",
-                "unique_together": {("project", "event_id")},
-                "index_together": {("project", "date_added"), ("project", "event_id")},
+                "unique_together": {("project_id", "event_id")},
+                "index_together": {("project_id", "date_added"), ("project_id", "event_id")},
             },
         ),
         migrations.CreateModel(
@@ -4340,18 +4336,19 @@ class Migration(CheckedMigration):
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),
                 ),
                 (
-                    "file",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.File",
+                    "file_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True,
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_eventattachment",
-                "unique_together": {("project_id", "event_id", "file")},
-                "index_together": {("project_id", "date_added")},
+                "unique_together": {("project_id", "event_id", "file_id")},
+                "index_together": {
+                    ("project_id", "date_added"),
+                    ("project_id", "date_added", "file_id"),
+                },
             },
         ),
         migrations.AlterUniqueTogether(
@@ -5486,24 +5483,6 @@ class Migration(CheckedMigration):
                 null=True,
             ),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx" ON "sentry_eventattachment" ("project_id", "date_added", "file_id");\n                    ',
-                    reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx";\n                        ',
-                    hints={"tables": ["sentry_eventattachment"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="eventattachment",
-                    index_together={
-                        ("project_id", "date_added", "file"),
-                        ("project_id", "date_added"),
-                    },
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="alertrule",
             name="organization",
@@ -6069,15 +6048,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
-                    model_name="activity",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
                     model_name="auditlogentry",
                     name="actor",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -6096,15 +6066,6 @@ class Migration(CheckedMigration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="audit_targets",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="organizationonboardingtask",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
                         to=settings.AUTH_USER_MODEL,
                     ),
                 ),
@@ -6422,115 +6383,6 @@ class Migration(CheckedMigration):
             name="last_commit_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="eventattachment",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.File",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="environment",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Environment",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="group",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Group",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="project",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Project",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.AddField(
-                    model_name="eventattachment",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, default=1
-                    ),
-                    preserve_default=False,
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="environment_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="group_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="project_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, default=1
-                    ),
-                    preserve_default=False,
-                ),
-                migrations.RemoveField(
-                    model_name="eventattachment",
-                    name="file",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="eventattachment",
-                    unique_together={("project_id", "event_id", "file_id")},
-                ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="environment",
-                ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="group",
-                ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="project",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="userreport",
-                    unique_together={("project_id", "event_id")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="eventattachment",
-                    index_together={
-                        ("project_id", "date_added", "file_id"),
-                        ("project_id", "date_added"),
-                    },
-                ),
-                migrations.AlterIndexTogether(
-                    name="userreport",
-                    index_together={("project_id", "event_id"), ("project_id", "date_added")},
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="dashboardwidget",
             name="display_type",
@@ -6724,11 +6576,6 @@ class Migration(CheckedMigration):
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;",
                     hints={"tables": ["sentry_team"]},
                 ),
-                migrations.RunSQL(
-                    sql='ALTER TABLE sentry_team ADD CONSTRAINT "sentry_team_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;',
-                    reverse_sql="ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS sentry_team_actor_idx_fk_sentry_actor_id;",
-                    hints={"tables": ["sentry_team"]},
-                ),
             ],
             state_operations=[
                 migrations.AddField(
@@ -6747,14 +6594,20 @@ class Migration(CheckedMigration):
             model_name="alertrule",
             name="owner",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Actor"
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Actor",
+                db_constraint=False,
             ),
         ),
         migrations.AddField(
             model_name="rule",
             name="owner",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Actor"
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Actor",
+                db_constraint=False,
             ),
         ),
         migrations.AlterField(
@@ -6835,7 +6688,9 @@ class Migration(CheckedMigration):
                 (
                     "actor",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Actor"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Actor",
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -6870,18 +6725,7 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_externalactor"]},
                 ),
             ],
-            state_operations=[
-                migrations.AlterField(
-                    model_name="externalactor",
-                    name="integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        default=1,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
-                    ),
-                    preserve_default=False,
-                ),
-            ],
+            state_operations=[],
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
@@ -7867,7 +7711,10 @@ class Migration(CheckedMigration):
                 (
                     "actor",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Actor"
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Actor",
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -7969,7 +7816,10 @@ class Migration(CheckedMigration):
             model_name="grouphistory",
             name="actor",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.Actor"
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="sentry.Actor",
+                db_constraint=False,
             ),
         ),
         migrations.SeparateDatabaseAndState(
@@ -8659,11 +8509,6 @@ class Migration(CheckedMigration):
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
         ),
         migrations.AlterField(
-            model_name="eventuser",
-            name="project_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
-        ),
-        migrations.AlterField(
             model_name="grouprelease",
             name="project_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
@@ -9130,7 +8975,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
             ],
             options={
@@ -9159,7 +9006,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
                 ("region_name", models.CharField(max_length=48)),
             ],
@@ -9300,7 +9149,7 @@ class Migration(CheckedMigration):
         migrations.AlterField(
             model_name="authenticator",
             name="config",
-            field=sentry.models.authenticator.AuthenticatorConfig(editable=False),
+            field=sentry.users.models.authenticator.AuthenticatorConfig(editable=False),
         ),
         migrations.CreateModel(
             name="MonitorEnvironment",
@@ -9318,7 +9167,9 @@ class Migration(CheckedMigration):
                 (
                     "environment",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Environment",
+                        db_constraint=False,
                     ),
                 ),
                 (
@@ -9689,13 +9540,17 @@ class Migration(CheckedMigration):
                         related_name="team_from_actor",
                         to="sentry.Actor",
                         unique=True,
+                        db_constraint=False,
                     ),
                 ),
                 migrations.AlterField(
                     model_name="alertrule",
                     name="owner",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.Actor"
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="sentry.Actor",
+                        db_constraint=False,
                     ),
                 ),
             ],
@@ -10035,7 +9890,10 @@ class Migration(CheckedMigration):
             model_name="rule",
             name="owner",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.SET_NULL, to="sentry.Actor"
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="sentry.Actor",
+                db_constraint=False,
             ),
         ),
         migrations.AddField(

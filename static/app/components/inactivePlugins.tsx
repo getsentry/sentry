@@ -1,12 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
 
 type Props = {
   onEnablePlugin: (plugin: Plugin) => void;
@@ -61,7 +63,7 @@ const IntegrationButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: #889ab0;
   letter-spacing: 0.1px;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   border: 1px solid #eee;
   background: inherit;

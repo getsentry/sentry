@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
-from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -9,15 +8,21 @@ from snuba_sdk.function import Function
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.utils.pytest.fixtures import django_db_all
-
-# pin a timestamp for now so tests results dont change
-now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
-today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
-def params():
+def now():
+    return datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture
+def today(now):
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+@pytest.fixture
+def params(now, today):
     organization = Factories.create_organization()
     team = Factories.create_team(organization=organization)
     project1 = Factories.create_project(organization=organization, teams=[team])
@@ -44,6 +49,7 @@ def params():
             'package:""',
             Condition(Column("package"), Op("="), ""),
             id="empty package",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             '!package:""',
@@ -62,12 +68,12 @@ def params():
         ),
         pytest.param(
             "fingerprint:123",
-            Condition(Column("fingerprint"), Op("="), 123),
+            Condition(Function("toUInt32", [Column("fingerprint")], "fingerprint"), Op("="), 123),
             id="fingerprint",
         ),
         pytest.param(
             "!fingerprint:123",
-            Condition(Column("fingerprint"), Op("!="), 123),
+            Condition(Function("toUInt32", [Column("fingerprint")], "fingerprint"), Op("!="), 123),
             id="not fingerprint",
         ),
     ],
@@ -81,64 +87,3 @@ def test_where(params, search, condition):
         selected_columns=["count()"],
     )
     assert condition in builder.where
-
-
-@pytest.mark.parametrize(
-    "search,condition",
-    [
-        pytest.param(
-            "slope(avg):>0",
-            Condition(
-                Function(
-                    "tupleElement",
-                    [
-                        Function(
-                            "simpleLinearRegression",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                Function("finalizeAggregation", [Column("avg")]),
-                            ],
-                        ),
-                        1,
-                    ],
-                    "sentry_slope_avg",
-                ),
-                Op(">"),
-                0,
-            ),
-            id="regression",
-        ),
-        pytest.param(
-            "slope(avg):<0",
-            Condition(
-                Function(
-                    "tupleElement",
-                    [
-                        Function(
-                            "simpleLinearRegression",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                Function("finalizeAggregation", [Column("avg")]),
-                            ],
-                        ),
-                        1,
-                    ],
-                    "sentry_slope_avg",
-                ),
-                Op("<"),
-                0,
-            ),
-            id="improvement",
-        ),
-    ],
-)
-@django_db_all
-def test_having(params, search, condition):
-    builder = ProfileFunctionsQueryBuilder(
-        Dataset.Functions,
-        params,
-        query=search,
-        selected_columns=["count()"],
-        use_aggregate_conditions=True,
-    )
-    assert condition in builder.having

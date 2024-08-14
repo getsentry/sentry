@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, MutableMapping, Sequence
+from collections.abc import MutableMapping, Sequence
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import SentryAppInstallation, User
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 @register(SentryAppInstallation)
@@ -34,15 +36,16 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, install, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
+        access = kwargs.get("access")
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug},
-            "uuid": install.uuid,
-            "status": SentryAppInstallationStatus.as_str(install.status),
+            "uuid": obj.uuid,
+            "status": SentryAppInstallationStatus.as_str(obj.status),
         }
 
-        if install.api_grant:
-            data["code"] = install.api_grant.code
+        if obj.api_grant and access and access.has_scope("org:integrations"):
+            data["code"] = obj.api_grant.code
 
         return data

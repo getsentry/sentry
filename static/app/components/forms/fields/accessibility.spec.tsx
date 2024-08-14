@@ -1,5 +1,3 @@
-import selectEvent from 'react-select-event';
-
 import {
   fireEvent,
   render,
@@ -7,6 +5,7 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
 
@@ -49,6 +48,12 @@ describe('Field accessibility', function () {
         <SeparatorField />
         <HiddenField name="hidden" defaultValue="itsHidden" />
         <TextField label="My Text Input" help="This is a text input" name="myTextInput" />
+        <TextField
+          hideLabel
+          label="My hidden label Text Input"
+          help="This is a text input where the label is not visible"
+          name="myTextInputHideLabel"
+        />
         <NumberField
           label="My Number Input"
           help="This is a number input"
@@ -106,6 +111,16 @@ describe('Field accessibility', function () {
           help="This is a select field field"
           name="mySelectbox"
         />
+        <SelectField
+          multiple
+          label="My Multiple Select"
+          options={[
+            {value: 'item1', label: 'Item 1'},
+            {value: 'item2', label: 'Item 2'},
+          ]}
+          help="This is a multiple select field filed"
+          name="myMultiSelectBox"
+        />
       </Form>
     );
 
@@ -120,6 +135,11 @@ describe('Field accessibility', function () {
     await userEvent.type(textInput, 'testing');
     expect(textInput).toHaveValue('testing');
     expect(model.getValue('myTextInput')).toBe('testing');
+
+    // Text Input using `hideLabel`
+    expect(
+      screen.getByRole('textbox', {name: 'My hidden label Text Input'})
+    ).toBeInTheDocument();
 
     // Number field
     const numberInput = screen.getByRole('spinbutton', {name: 'My Number Input'});
@@ -192,5 +212,16 @@ describe('Field accessibility', function () {
 
     await selectEvent.select(select, ['Item 2']);
     expect(model.getValue('mySelectbox')).toBe('item2');
+
+    // Multiple Select field
+    //
+    // The input is a textbox, and we can test with `selectEvent`
+    const multiSelect = screen.getByRole('textbox', {name: 'My Multiple Select'});
+
+    await selectEvent.select(multiSelect, ['Item 1']);
+    expect(model.getValue('myMultiSelectBox')).toEqual(['item1']);
+
+    await selectEvent.select(multiSelect, ['Item 2']);
+    expect(model.getValue('myMultiSelectBox')).toEqual(['item1', 'item2']);
   });
 });

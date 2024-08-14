@@ -4,7 +4,7 @@ import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.pagerduty_service import PagerDutyService
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -13,12 +13,14 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.testutils import APITestCase
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 
-@region_silo_test(stable=True)
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
@@ -136,7 +138,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 assert serialize(action) in response.data
 
     def test_post_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -227,6 +229,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
 
+    def test_post_org_member(self):
+        user = self.create_user("hornet@hk.com")
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user)
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects],
+        }
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
     @patch.dict(NotificationAction._registry, {})
     def test_post_raises_validation_from_registry(self):
         error_message = "oops-idea-installed"
@@ -246,7 +263,12 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    def test_post_with_slack_validation(self):
+    @mock_slack_response(
+        "chat_scheduleMessage",
+        body={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
+    )
+    @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
+    def test_post_with_slack_validation(self, mock_delete, mock_schedule):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -264,25 +286,6 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="POST",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
-        )
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
@@ -323,12 +326,14 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="abc",
-            organization_integration_id=second_integration.organizationintegration_set.first().id,
-        )
-        data["targetIdentifier"] = service.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = second_integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
+                service_name=service_name,
+                integration_key="abc",
+            )
+        data["targetIdentifier"] = service["id"]
         response = self.get_error_response(
             self.organization.slug,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -336,20 +341,22 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="def",
-            organization_integration_id=integration.organizationintegration_set.first().id,
-        )
-        data["targetIdentifier"] = service.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
+                service_name=service_name,
+                integration_key="def",
+            )
+        data["targetIdentifier"] = service["id"]
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
             method="POST",
             **data,
         )
-        assert response.data["targetIdentifier"] == service.id
-        assert response.data["targetDisplay"] == service.service_name
+        assert response.data["targetIdentifier"] == service["id"]
+        assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self):
@@ -382,3 +389,63 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         # Relation table has been updated
         notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
         assert len(notif_action_projects) == len(self.projects)
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__success(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__missing_access(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        non_admin_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects] + [non_admin_project.slug],
+        }
+
+        assert not registration.validate_action.called
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
+        assert (
+            "You do not have permission to create notification actions for projects"
+            in response.data["detail"]
+        )

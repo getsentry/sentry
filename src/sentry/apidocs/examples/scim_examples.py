@@ -32,7 +32,7 @@ class SCIMExamples:
 
     LIST_ORG_PAGINATED_TEAMS = [
         OpenApiExample(
-            "listGroups",
+            "List an orgs's paginated teams",
             value={
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                 "totalResults": 1,
@@ -88,7 +88,7 @@ class SCIMExamples:
 
     QUERY_INDIVIDUAL_TEAM = [
         OpenApiExample(
-            "Successful response",
+            "Query individual team",
             value={
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
                 "id": "23232",
@@ -103,7 +103,7 @@ class SCIMExamples:
 
     QUERY_ORG_MEMBER = [
         OpenApiExample(
-            "Successful response",
+            "Query org member",
             value={
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
                 "id": "102",

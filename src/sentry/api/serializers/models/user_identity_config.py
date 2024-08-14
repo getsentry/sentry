@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, MutableMapping, Optional, Union
+from typing import Any, Union
 
-import sentry.integrations
+from django.db.models.base import Model
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import ControlSiloOrganizationSerializer
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.identity import is_login_provider
-from sentry.models import AuthIdentity, Identity
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.integrations.manager import default_manager as integrations
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
 from social_auth.models import UserSocialAuth
 
 from . import user_social_auth
@@ -57,10 +61,10 @@ class UserIdentityConfig:
     name: str
     status: Status
     is_login: bool
-    organization_id: Optional[int] = None
-    date_added: Optional[datetime] = None
-    date_verified: Optional[datetime] = None
-    date_synced: Optional[datetime] = None
+    organization_id: int | None = None
+    date_added: datetime | None = None
+    date_verified: datetime | None = None
+    date_synced: datetime | None = None
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
@@ -84,7 +88,7 @@ class UserIdentityConfig:
             try:
                 provider = identity.get_provider()
             except NotRegistered:
-                provider = sentry.integrations.get(identity.idp.type)
+                provider = integrations.get(identity.idp.type)
 
             return base(
                 provider=UserIdentityProvider.adapt(provider),
@@ -106,14 +110,14 @@ class UserIdentityConfig:
         else:
             raise TypeError
 
-    def get_model_type_for_category(self) -> type:
+    def get_model_type_for_category(self) -> type[Model]:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[UserIdentityConfig], user: Any, **kwargs: Any
+        self, item_list: list[UserIdentityConfig], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {

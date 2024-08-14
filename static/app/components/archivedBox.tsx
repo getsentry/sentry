@@ -1,14 +1,16 @@
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import {Group, GroupSubstatus, Organization, ResolutionStatusDetails} from 'sentry/types';
+import type {Group, IgnoredStatusDetails} from 'sentry/types/group';
+import {GroupSubstatus} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface ArchivedBoxProps {
   organization: Organization;
-  statusDetails: ResolutionStatusDetails;
+  statusDetails: IgnoredStatusDetails;
   substatus: Group['substatus'];
 }
 
@@ -27,7 +29,7 @@ function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps)
       return t(
         "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
         <ExternalLink
-          href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/"
+          href="https://docs.sentry.io/product/issues/states-triage/#archive"
           onClick={trackDocsClick}
         >
           {t('read the docs')}

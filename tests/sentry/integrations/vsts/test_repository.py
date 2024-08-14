@@ -1,15 +1,17 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 from time import time
 
 import responses
-from django.utils import timezone
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
-from sentry.models import Identity, IdentityProvider, Integration, Repository
-from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -40,14 +42,14 @@ class VisualStudioRepositoryProviderTest(TestCase):
             body=COMMIT_DETAILS_EXAMPLE,
         )
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={
@@ -58,13 +60,14 @@ class VisualStudioRepositoryProviderTest(TestCase):
             },
         )
         integration.add_organization(self.organization, self.user, default_auth.id)
-        repo = Repository.objects.create(
-            provider="visualstudio",
-            name="example",
-            organization_id=self.organization.id,
-            config={"instance": self.base_url, "project": "project-name", "name": "example"},
-            integration_id=integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={"instance": self.base_url, "project": "project-name", "name": "example"},
+                integration_id=integration.id,
+            )
 
         res = self.provider.compare_commits(repo, "a", "b")
 
@@ -83,7 +86,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
     @responses.activate
     def test_build_repository_config(self):
         organization = self.create_organization()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -129,14 +132,14 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={
@@ -147,13 +150,14 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user, default_auth.id)
-        self.repo = Repository.objects.create(
-            provider="visualstudio",
-            name="example",
-            organization_id=self.organization.id,
-            config={"instance": self.base_url, "project": "project-name", "name": "example"},
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={"instance": self.base_url, "project": "project-name", "name": "example"},
+                integration_id=self.integration.id,
+            )
         self.integration.get_provider().setup()
 
         self.default_repository_config = {
@@ -181,6 +185,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             json=repository_config,
         )
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def assert_repository(self, repository_config, organization_id=None):
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,

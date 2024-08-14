@@ -1,16 +1,13 @@
 import logging
-from typing import Callable, Dict
+from collections.abc import Callable
+from datetime import timezone
 
-import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
-    PayloadV3,
-    SubscriptionResult,
-)
+from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
 
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
@@ -18,9 +15,9 @@ from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-TQuerySubscriptionCallable = Callable[[SubscriptionUpdate, QuerySubscription], None]
+TQuerySubscriptionCallable = Callable[[QuerySubscriptionUpdate, QuerySubscription], None]
 
-subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
+subscriber_registry: dict[str, TQuerySubscriptionCallable] = {}
 
 
 def register_subscriber(
@@ -35,7 +32,9 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> SubscriptionUpdate:
+def parse_message_value(
+    value: bytes, jsoncodec: Codec[SubscriptionResult]
+) -> QuerySubscriptionUpdate:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -49,7 +48,7 @@ def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> S
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
 
-    payload: PayloadV3 = wrapper["payload"]
+    payload = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
@@ -58,7 +57,7 @@ def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> S
         "entity": payload["entity"],
         "subscription_id": payload["subscription_id"],
         "values": payload["result"],
-        "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
+        "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=timezone.utc),
     }
 
 
@@ -77,7 +76,7 @@ def handle_message(
     :param message:
     :return:
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         try:
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
@@ -101,7 +100,7 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.fetch_subscription", tags={"dataset": dataset}
             ):
-                subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
+                subscription = QuerySubscription.objects.get_from_cache(
                     subscription_id=contents["subscription_id"]
                 )
                 if subscription.status != QuerySubscription.Status.ACTIVE.value:
@@ -127,15 +126,19 @@ def handle_message(
                         EntityKey(contents["entity"]),
                     )
                 else:
-                    logger.error(
+                    logger.exception(
                         "Topic not registered with QuerySubscriptionConsumer, can't remove "
                         "non-existent subscription from Snuba",
                         extra={"topic": topic, "subscription_id": contents["subscription_id"]},
                     )
             except InvalidMessageError as e:
-                logger.exception(e)
+                logger.exception(str(e))
             except Exception:
                 logger.exception("Failed to delete unused subscription from snuba.")
+            return
+
+        if subscription.snuba_query is None:
+            metrics.incr("snuba_query_subscriber.subscription_snuba_query_missing")
             return
 
         if subscription.type not in subscriber_registry:

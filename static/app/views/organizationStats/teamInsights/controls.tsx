@@ -1,18 +1,19 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
-import uniq from 'lodash/uniq';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import TeamSelector from 'sentry/components/teamSelector';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, TeamWithProjects} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {TeamWithProjects} from 'sentry/types/project';
+import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,6 +22,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {dataDatetime} from './utils';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
+
+const relativeOptions = {
+  '14d': t('Last 2 weeks'),
+  '4w': t('Last 4 weeks'),
+  [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
+  '12w': t('Last 12 weeks'),
+};
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -50,7 +58,7 @@ function TeamStatsControls({
   showEnvironment,
 }: Props) {
   const {projects} = useProjects({
-    slugs: currentTeam?.projects.map(project => project.slug) ?? [],
+    slugs: currentTeam?.projects?.map(project => project.slug) ?? [],
   });
   const organization = useOrganization();
   const isSuperuser = isActiveSuperuser();
@@ -119,18 +127,23 @@ function TeamStatsControls({
   }
 
   const {period, start, end, utc} = dataDatetime(query);
-  const environmentOptions = uniq(
-    projects.map(project => project.environments).flat()
-  ).map(env => ({label: env, value: env}));
+  const environmentOptions = uniq(projects.flatMap(project => project.environments)).map(
+    env => ({label: env, value: env})
+  );
+
+  // org:admin is a unique scope that only org owners have
+  const isOrgOwner = organization.access.includes('org:admin');
 
   return (
     <ControlsWrapper showEnvironment={showEnvironment}>
-      <StyledTeamSelector
+      <TeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
         value={currentTeam?.slug}
         onChange={choice => handleChangeTeam(choice.actor.id)}
-        teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
+        teamFilter={
+          isSuperuser || isOrgOwner ? undefined : filterTeam => filterTeam.isMember
+        }
         styles={{
           singleValue(provided: any) {
             const custom = {
@@ -208,20 +221,16 @@ function TeamStatsControls({
           inFieldLabel={t('Environment:')}
         />
       )}
-      <StyledPageTimeRangeSelector
-        organization={organization}
+      <StyledTimeRangeSelector
         relative={period ?? ''}
         start={start ?? null}
         end={end ?? null}
         utc={utc ?? null}
-        onUpdate={handleUpdateDatetime}
+        onChange={handleUpdateDatetime}
         showAbsolute={false}
-        relativeOptions={{
-          '14d': t('Last 2 weeks'),
-          '4w': t('Last 4 weeks'),
-          [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
-          '12w': t('Last 12 weeks'),
-        }}
+        relativeOptions={relativeOptions}
+        triggerLabel={period && relativeOptions[period]}
+        triggerProps={{prefix: t('Date Range')}}
       />
     </ControlsWrapper>
   );
@@ -240,13 +249,7 @@ const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   }
 `;
 
-const StyledTeamSelector = styled(TeamSelector)`
-  & > div {
-    box-shadow: ${p => p.theme.dropShadowMedium};
-  }
-`;
-
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   div {
     min-height: unset;
   }

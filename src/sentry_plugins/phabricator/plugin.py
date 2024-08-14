@@ -7,7 +7,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.net.socket import is_valid_url
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -31,6 +32,12 @@ def query_to_result(field, result):
         return "{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
 
     return result["fields"]["name"]
+
+
+def validate_host(value: str, **kwargs: object) -> str:
+    if not value.startswith(("http://", "https://")) or not is_valid_url(value):
+        raise PluginError("Not a valid URL.")
+    return value
 
 
 class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
@@ -65,7 +72,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             token=self.get_option("token", project),
         )
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = "You may generate a Conduit API Token from your account settings in Phabricator."
         secret_field = get_secret_field_config(token, helptext, include_prefix=True)
@@ -78,6 +85,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 "type": "text",
                 "placeholder": "e.g. http://secure.phabricator.org",
                 "required": True,
+                "validators": [validate_host],
             },
             secret_field,
             {
@@ -131,7 +139,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "phabricator_plugin"})
                     ),
@@ -151,7 +159,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def validate_config(self, project, config, actor):
+    def validate_config(self, project, config, actor=None):
         projectPHIDs = config.get("projectPHIDs")
         if projectPHIDs:
             try:
@@ -177,7 +185,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("host", project):
             return False
         if self.get_option("token", project):
@@ -189,10 +197,10 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
     def get_new_issue_title(self, **kwargs):
         return "Create Maniphest Task"
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "T%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         host = self.get_option("host", group.project)
         return urljoin(host, "T%s" % issue_id)
 
@@ -219,7 +227,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(

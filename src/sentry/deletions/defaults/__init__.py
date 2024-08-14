@@ -1,3 +1,5 @@
+from .alert_rule_trigger import *  # noqa: F401,F403
+from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .alertrule import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
@@ -8,11 +10,15 @@ from .monitor import *  # noqa: F401,F403
 from .monitor_environment import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organizationintegration import *  # noqa: F401,F403
+from .organizationmember import *  # noqa: F401,F403
 from .platform_external_issue import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
+from .pullrequest import *  # noqa: F401,F403
+from .querysubscription import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repositoryprojectpathconfig import *  # noqa: F401,F403
+from .rule import *  # noqa: F401,F403
 from .sentry_app import *  # noqa: F401,F403
 from .sentry_app_installation import *  # noqa: F401,F403
 from .sentry_app_installation_token import *  # noqa: F401,F403

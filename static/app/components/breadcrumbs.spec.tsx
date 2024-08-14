@@ -1,9 +1,11 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
-  const routerContext = TestStubs.routerContext();
+  const router = RouterFixture();
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -27,7 +29,7 @@ describe('Breadcrumbs', () => {
           },
         ]}
       />,
-      {context: routerContext}
+      {router}
     );
   }
 
@@ -38,22 +40,21 @@ describe('Breadcrumbs', () => {
   });
 
   it('renders crumbs with icon', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.container).toSnapshot();
+    createWrapper();
   });
 
   it('generates correct links', async () => {
     createWrapper();
     await userEvent.click(screen.getByText('Test 1'));
-    expect(routerContext.context.router.push).toHaveBeenCalledWith('/test1');
+    expect(router.push).toHaveBeenCalledWith('/test1');
     await userEvent.click(screen.getByText('Test 2'));
-    expect(routerContext.context.router.push).toHaveBeenCalledWith('/test2');
+    expect(router.push).toHaveBeenCalledWith('/test2');
   });
 
   it('does not make links where no `to` is provided', async () => {
     createWrapper();
     await userEvent.click(screen.getByText('Test 3'));
-    expect(routerContext.context.router.push).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it('renders a crumb dropdown', async () => {
@@ -80,7 +81,7 @@ describe('Breadcrumbs', () => {
           },
         ]}
       />,
-      {context: routerContext}
+      {router}
     );
     await userEvent.hover(screen.getByText('dropdown crumb'));
 

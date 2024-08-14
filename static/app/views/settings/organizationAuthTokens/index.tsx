@@ -6,10 +6,12 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, OrgAuthToken, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   setApiQueryData,
@@ -17,7 +19,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -163,7 +165,7 @@ export function OrganizationAuthTokensIndex({
 
           <TextBlock>
             {t(
-              "Authentication tokens allow you to perform actions against the Sentry API on behalf of your organization. They're the easiest way to get started using the API."
+              'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
             )}
           </TextBlock>
           <TextBlock>
@@ -187,7 +189,7 @@ export function OrganizationAuthTokensIndex({
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Last access'), '']}
+            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
           >
             {!isError && !isLoading && !!tokenList?.length && (
               <TokenList
@@ -204,8 +206,8 @@ export function OrganizationAuthTokensIndex({
   );
 }
 
-export function tokenPreview(tokenLastCharacters: string) {
-  return `sntrys_************${tokenLastCharacters}`;
+export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
+  return `${tokenPrefix}************${tokenLastCharacters}`;
 }
 
 export default withOrganization(OrganizationAuthTokensIndex);
@@ -214,7 +216,8 @@ const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(3n + 2) {
+    > *:nth-child(4n + 2),
+    *:nth-child(4n + 3) {
       display: none;
     }
   }

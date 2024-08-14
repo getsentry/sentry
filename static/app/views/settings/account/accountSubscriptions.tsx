@@ -2,23 +2,26 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+export type Subscription = {
   email: string;
   listDescription: string;
   listId: number;
@@ -28,12 +31,15 @@ type Subscription = {
   unsubscribedDate: string | null;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   subscriptions: Subscription[];
 };
 
-class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AccountSubscriptions extends DeprecatedAsyncView<
+  DeprecatedAsyncView['props'],
+  State
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['subscriptions', ENDPOINT]];
   }
 

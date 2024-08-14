@@ -1,13 +1,12 @@
 from datetime import timedelta
-from typing import List
 from unittest.mock import patch
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
@@ -91,7 +90,7 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project):
 )
 def test_generate_bias_rules_with_no_boosted_releases(get_boosted_releases, default_project):
     default_project.update(platform="python")
-    boosted_releases: List[ExtendedBoostedRelease] = []
+    boosted_releases: list[ExtendedBoostedRelease] = []
     get_boosted_releases.return_value = boosted_releases
 
     rules = BoostLatestReleasesBias().generate_rules(project=default_project, base_sample_rate=0.0)

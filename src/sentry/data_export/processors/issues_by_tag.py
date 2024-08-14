@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sentry import tagstore
-from sentry.models import EventUser, Group, Project, get_group_with_redirect
+from sentry.models.group import Group, get_group_with_redirect
+from sentry.models.project import Project
+from sentry.utils.eventuser import EventUser
 
 from ..base import ExportError
 
@@ -27,7 +29,7 @@ class IssuesByTagProcessor:
         self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
-            tagstore.get_tag_key(
+            tagstore.backend.get_tag_key(
                 self.project.id, environment_id, self.lookup_key, tenant_ids=tenant_ids
             )
         except tagstore.TagKeyNotFound:
@@ -70,7 +72,7 @@ class IssuesByTagProcessor:
 
     @staticmethod
     def get_lookup_key(key):
-        return str(f"sentry:{key}") if tagstore.is_reserved_key(key) else key
+        return str(f"sentry:{key}") if tagstore.backend.is_reserved_key(key) else key
 
     @staticmethod
     def get_eventuser_callback(project_id):
@@ -95,7 +97,7 @@ class IssuesByTagProcessor:
         }
         if key == "user":
             euser = item._eventuser
-            result["id"] = euser.ident if euser else ""
+            result["id"] = euser.user_ident if euser and isinstance(euser, EventUser) else ""
             result["email"] = euser.email if euser else ""
             result["username"] = euser.username if euser else ""
             result["ip_address"] = euser.ip_address if euser else ""
@@ -105,7 +107,7 @@ class IssuesByTagProcessor:
         """
         Returns list of GroupTagValues
         """
-        return tagstore.get_group_tag_value_iter(
+        return tagstore.backend.get_group_tag_value_iter(
             group=self.group,
             environment_ids=[self.environment_id],
             key=self.lookup_key,

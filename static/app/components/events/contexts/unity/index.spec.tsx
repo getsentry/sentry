@@ -1,7 +1,9 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {UnityEventContext} from 'sentry/components/events/contexts/unity';
-import {UnityContext} from 'sentry/types';
+import type {UnityContext} from 'sentry/types/event';
 
 export const unityMockData: UnityContext = {
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
@@ -18,14 +20,13 @@ export const unityMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       unity: unityMetaMockData,
     },
   },
-};
+});
 
 describe('unity event context', function () {
   it('display redacted data', function () {

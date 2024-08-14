@@ -1,7 +1,132 @@
-import {css, Global, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import {prismStyles} from 'sentry/styles/prism';
+import {space} from 'sentry/styles/space';
+
+const prismStyles = (theme: Theme) => css`
+  :root {
+    ${theme.prismVariables};
+  }
+
+  /* Use dark Prism theme for code snippets imported from Sentry Docs */
+  .gatsby-highlight,
+  .prism-dark {
+    ${theme.prismDarkVariables};
+  }
+
+  pre[class*='language-'] {
+    overflow-x: auto;
+    padding: ${space(1)} ${space(2)};
+    border-radius: ${theme.borderRadius};
+    box-shadow: none;
+
+    code {
+      background: unset;
+    }
+  }
+
+  pre[class*='language-'],
+  code[class*='language-'] {
+    color: var(--prism-base);
+    background: var(--prism-block-background);
+    font-size: ${theme.codeFontSize};
+    text-shadow: none;
+    font-family: ${theme.text.familyMono};
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+
+    .namespace {
+      opacity: 0.7;
+    }
+    .token.comment,
+    .token.prolog,
+    .token.doctype,
+    .token.cdata {
+      color: var(--prism-comment);
+    }
+    .token.punctuation {
+      color: var(--prism-punctuation);
+    }
+    .token.property,
+    .token.tag,
+    .token.boolean,
+    .token.number,
+    .token.constant,
+    .token.symbol,
+    .token.deleted {
+      color: var(--prism-property);
+    }
+    .token.selector,
+    .token.attr-name,
+    .token.string,
+    .token.char,
+    .token.builtin,
+    .token.inserted {
+      color: var(--prism-selector);
+    }
+    .token.operator,
+    .token.entity,
+    .token.url,
+    .language-css .token.string,
+    .style .token.string {
+      color: var(--prism-operator);
+      background: none;
+    }
+    .token.atrule,
+    .token.attr-value,
+    .token.keyword {
+      color: var(--prism-keyword);
+    }
+    .token.function {
+      color: var(--prism-function);
+    }
+    .token.regex,
+    .token.important,
+    .token.variable {
+      color: var(--prism-variable);
+    }
+    .token.important,
+    .token.bold {
+      font-weight: ${theme.fontWeightBold};
+    }
+    .token.italic {
+      font-style: italic;
+    }
+    .token.entity {
+      cursor: help;
+    }
+    .line-highlight {
+      position: absolute;
+      left: -${space(2)};
+      right: 0;
+      background: var(--prism-highlight-background);
+      box-shadow: inset 5px 0 0 var(--prism-highlight-accent);
+      z-index: 0;
+      pointer-events: none;
+      line-height: inherit;
+      white-space: pre;
+    }
+  }
+
+  pre[data-line] {
+    position: relative;
+  }
+
+  pre[class*='language-'] > code[class*='language-'] {
+    position: relative;
+    z-index: 1;
+  }
+`;
 
 const styles = (theme: Theme, isDark: boolean) => css`
   body {
@@ -19,6 +144,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
 
   a {
     color: ${theme.linkColor};
+    &:focus-visible,
     &:hover {
       color: ${theme.linkHoverColor};
     }
@@ -66,14 +192,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
   }
 
-  ${IS_ACCEPTANCE_TEST
-    ? css`
-        input,
-        select {
-          caret-color: transparent;
-        }
-      `
-    : ''}
+  .ReactVirtualized__Grid:focus-visible,
+  .ReactVirtualized__List:focus-visible {
+    outline: ${theme.focusBorder} auto 1px;
+  }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
@@ -108,6 +230,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
+        }
+
+        .pattern-bg {
+          opacity: 1;
+          filter: invert(1) brightness(0.6);
         }
 
         .nav-tabs {

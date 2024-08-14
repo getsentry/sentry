@@ -1,14 +1,17 @@
 import {Fragment} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
+import type {SearchBarProps} from 'sentry/components/performance/searchBar';
+import SearchBar from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {
   let eventsMock;
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
 
   const testProps: SearchBarProps = {
     onSearch: jest.fn(),
@@ -161,5 +164,38 @@ describe('SearchBar', () => {
 
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');
+  });
+
+  it('appends additional filters', async () => {
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
+      },
+    });
+
+    render(
+      <SearchBar
+        {...testProps}
+        additionalConditions={new MutableSearch(['transaction.op:ui.load'])}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('proje');
+    expect(screen.getByRole('textbox')).toHaveValue('proje');
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'transaction.op:ui.load transaction:*proje* event.type:transaction',
+        }),
+      })
+    );
+
+    expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
   });
 });

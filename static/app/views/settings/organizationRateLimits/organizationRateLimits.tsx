@@ -1,15 +1,18 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
@@ -32,7 +35,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-function OrganizationRateLimit({organization}: Props) {
+function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
   // TODO(billy): Update organization.quota in organizationStore with new values
 
   const {quota} = organization;

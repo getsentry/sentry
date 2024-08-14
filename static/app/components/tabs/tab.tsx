@@ -1,10 +1,16 @@
 import {forwardRef, useCallback} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
-import {TabListState} from '@react-stately/tabs';
-import {Node, Orientation} from '@react-types/shared';
+import type {TabListState} from '@react-stately/tabs';
+import type {
+  DOMAttributes,
+  FocusableElement,
+  Node,
+  Orientation,
+} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -12,7 +18,7 @@ import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
 
-interface TabProps {
+interface TabProps extends AriaTabProps {
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -22,6 +28,8 @@ interface TabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  borderStyle?: BaseTabProps['borderStyle'];
+  variant?: BaseTabProps['variant'];
 }
 
 /**
@@ -36,72 +44,213 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
+export interface BaseTabProps {
+  children: React.ReactNode;
+  hidden: boolean;
+  isSelected: boolean;
+  orientation: Orientation;
+  overflowing: boolean;
+  tabProps: DOMAttributes<FocusableElement>;
+  /**
+   * This controls the border style of the tab. Only active when
+   * `variant=filled` since other variants do not have a border
+   */
+  borderStyle?: 'solid' | 'dashed';
+  to?: string;
+  variant?: 'flat' | 'filled' | 'floating';
+}
+
+export const BaseTab = forwardRef(
+  (props: BaseTabProps, forwardedRef: React.ForwardedRef<HTMLLIElement>) => {
+    const {
+      to,
+      orientation,
+      overflowing,
+      tabProps,
+      hidden,
+      isSelected,
+      variant = 'flat',
+      borderStyle = 'solid',
+    } = props;
+
+    const ref = useObjectRef(forwardedRef);
+    const InnerWrap = useCallback(
+      ({children}) =>
+        to ? (
+          <TabLink
+            to={to}
+            onMouseDown={handleLinkClick}
+            onPointerDown={handleLinkClick}
+            orientation={orientation}
+            tabIndex={-1}
+          >
+            {children}
+          </TabLink>
+        ) : (
+          <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+        ),
+      [to, orientation]
+    );
+    if (variant === 'filled') {
+      return (
+        <FilledTabWrap
+          {...tabProps}
+          hidden={hidden}
+          overflowing={overflowing}
+          borderStyle={borderStyle}
+          ref={ref}
+        >
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          <VariantFocusLayer />
+          {props.children}
+        </FilledTabWrap>
+      );
+    }
+
+    if (variant === 'floating') {
+      return (
+        <FloatingTabWrap
+          {...tabProps}
+          hidden={hidden}
+          overflowing={overflowing}
+          ref={ref}
+        >
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          <VariantFocusLayer />
+          {props.children}
+        </FloatingTabWrap>
+      );
+    }
+
+    return (
+      <TabWrap
+        {...tabProps}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          {props.children}
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
+    );
+  }
+);
+
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab(
-  {item, state, orientation, overflowing}: TabProps,
-  forwardedRef: React.ForwardedRef<HTMLLIElement>
-) {
-  const ref = useObjectRef(forwardedRef);
+export const Tab = forwardRef(
+  (
+    {item, state, orientation, overflowing, variant, borderStyle = 'solid'}: TabProps,
+    forwardedRef: React.ForwardedRef<HTMLLIElement>
+  ) => {
+    const ref = useObjectRef(forwardedRef);
 
-  const {
-    key,
-    rendered,
-    props: {to, hidden},
-  } = item;
-  const {tabProps, isSelected, isDisabled} = useTab(
-    {key, isDisabled: hidden},
-    state,
-    ref
-  );
+    const {
+      key,
+      rendered,
+      props: {to, hidden},
+    } = item;
+    const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
 
-  const InnerWrap = useCallback(
-    ({children}) =>
-      to ? (
-        <TabLink
-          to={to}
-          onMouseDown={handleLinkClick}
-          onPointerDown={handleLinkClick}
-          orientation={orientation}
-          tabIndex={-1}
-        >
-          {children}
-        </TabLink>
-      ) : (
-        <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
-      ),
-    [to, orientation]
-  );
-
-  return (
-    <TabWrap
-      {...tabProps}
-      hidden={hidden}
-      disabled={isDisabled}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-    >
-      <InnerWrap>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
-        />
-        <FocusLayer orientation={orientation} />
+    return (
+      <BaseTab
+        tabProps={tabProps}
+        isSelected={isSelected}
+        to={to}
+        hidden={hidden}
+        orientation={orientation}
+        overflowing={overflowing}
+        ref={ref}
+        borderStyle={borderStyle}
+        variant={variant}
+      >
         {rendered}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-      </InnerWrap>
-    </TabWrap>
-  );
-}
+      </BaseTab>
+    );
+  }
+);
 
-export const Tab = forwardRef(BaseTab);
+const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        color: ${p.theme.purple400};
+        font-weight: ${p.theme.fontWeightBold};
+        background-color: ${p.theme.purple100};
+    `}
+  }
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+  color: ${p => p.theme.gray300};
+  border-radius: 6px;
+  padding: ${space(0.5)} ${space(1)};
+  transform: translateY(1px);
+  cursor: pointer;
+  &:focus {
+    outline: none;
+  }
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
+
+const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  borderStyle: 'dashed' | 'solid';
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        border-top: 1px ${p.borderStyle} ${p.theme.border};
+        border-left: 1px ${p.borderStyle} ${p.theme.border};
+        border-right: 1px ${p.borderStyle} ${p.theme.border};
+        background-color: ${p.theme.background};
+        font-weight: ${p.theme.fontWeightBold};
+    `}
+  }
+
+  border-radius: 6px 6px 1px 1px;
+
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+
+  padding: ${space(0.75)} ${space(1.5)};
+
+  transform: translateY(1px);
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  disabled: boolean;
   overflowing: boolean;
   selected: boolean;
 }>`
@@ -117,14 +266,12 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     outline: none;
   }
 
-  ${p =>
-    p.disabled &&
-    `
-      &, &:hover {
-        color: ${p.theme.subText};
-        pointer-events: none;
-      }
-    `}
+  &[aria-disabled],
+  &[aria-disabled]:hover {
+    color: ${p => p.theme.subText};
+    pointer-events: none;
+    cursor: default;
+  }
 
   ${p =>
     p.overflowing &&
@@ -189,6 +336,17 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 `;
 
+const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
+  position: absolute;
+  width: auto;
+  height: auto;
+  transform: none;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+`;
+
 const FocusLayer = styled('div')<{orientation: Orientation}>`
   position: absolute;
   left: 0;
@@ -201,8 +359,28 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   z-index: 0;
   transition: box-shadow 0.1s ease-out;
 
-  li.focus-visible & {
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px,
+  li:focus-visible & {
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
+      inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
+
+const VariantFocusLayer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: box-shadow 0.1s ease-out;
+
+  li:focus-visible & {
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
   }
 `;

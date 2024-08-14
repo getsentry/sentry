@@ -11,48 +11,53 @@ updates:
     reviewers:
       - '@getsentry/owners-js-deps'
     labels: []
+    # Group dependency updates together in one PR
+    # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
+    groups:
+      # The name of the group, it will be used in PR titles and branch
+      babel-dependencies:
+        patterns:
+          - '@babel/*'
+      sentry-dependencies:
+        patterns:
+          - '@sentry/*'
+      spectrum-dependencies:
+        patterns:
+          - '@react-stately/*'
+          - '@react-aria/*'
+          - '@react-types/*'
+      emotion-dependencies:
+        patterns:
+          - '@emotion/*'
+      jest-dependencies:
+        patterns:
+          - 'jest'
+          - 'jest-*'
+      react-testing-library-dependencies:
+        patterns:
+          - '@testing-library/*'
+      react-dependencies:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      webpack-dependencies:
+        patterns:
+          - 'webpack'
+          - 'webpack-*'
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'
         update-types: ['version-update:semver-patch']
 
-      # Babel updates all really should happen in unison, so let's keep these
-      # ignored for now and manually handle it
-      #
-      # XXX(epurkhiser): Explicitly don't ignore core so we can be reminded to
-      # upgrade all of them.
-      #
-      # - dependency-name: "@babel/core"
-      - dependency-name: '@babel/plugin-proposal-decorators'
-      - dependency-name: '@babel/plugin-transform-react-jsx'
-      - dependency-name: '@babel/plugin-transform-react-jsx-source'
-      - dependency-name: '@babel/plugin-transform-runtime'
-      - dependency-name: '@babel/preset-env'
-      - dependency-name: '@babel/preset-react'
-      - dependency-name: '@babel/preset-typescript'
-      - dependency-name: '@babel/runtime'
-
-      # Sentry updates should all happen in unison, same as above we ignore
-      # all but one as a reminder.
-      # - dependency-name: "@sentry/react"
-      - dependency-name: '@sentry/node'
-      - dependency-name: '@sentry/utils'
-      - dependency-name: '@sentry/tracing'
-      - dependency-name: '@sentry/integrations'
-      - dependency-name: '@sentry/rrweb'
-
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: '@types/marked'
       - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
-      - dependency-name: 'babel-jest'
       - dependency-name: 'gettext-parser'
-      - dependency-name: 'jest-junit'
-      - dependency-name: 'marked'
       - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-refresh'
       - dependency-name: 'react-router'
       - dependency-name: 'react-select'
       - dependency-name: 'reflux'

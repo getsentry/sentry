@@ -10,14 +10,12 @@ import {
 
 import {initializeUrlState, updateProjects} from 'sentry/actionCreators/pageFilters';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -47,14 +45,14 @@ describe('ProjectPageFilter', function () {
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async function () {
     render(<ProjectPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -77,7 +75,7 @@ describe('ProjectPageFilter', function () {
 
   it('handles multiple selection', async function () {
     render(<ProjectPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -108,7 +106,7 @@ describe('ProjectPageFilter', function () {
     });
 
     render(<ProjectPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -166,54 +164,51 @@ describe('ProjectPageFilter', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles clear', async function () {
-    render(<ProjectPageFilter />, {
-      context: routerContext,
+  it('handles reset', async function () {
+    const onReset = jest.fn();
+    render(<ProjectPageFilter onReset={onReset} />, {
+      router,
       organization,
     });
 
-    // Open the menu
+    // Open the menu, select project-1
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
-
-    // Click "Clear"
-    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
-
-    // Trigger button was updated
-    expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
-
-    // Router was updated with special value, ALL_ACCESS_PROJECTS
+    await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {environment: [], project: [String(ALL_ACCESS_PROJECTS)]},
+        query: {environment: [], project: ['1']},
       })
     );
+
+    // Open menu again & click "Reset"
+    await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+    // Trigger button was updated, onReset was called
+    expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
+    expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', function () {
+  it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<ProjectPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
     // Confirm initial selection
-    expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateProjects([2], router));
 
     // <ProjectPageFilter /> is updated
 
-    expect(screen.getByRole('button', {name: 'project-2'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
-      project: undefined,
       projects: [
         {id: '1', slug: 'project-1', isMember: true},
         {id: '2', slug: 'project-2', isMember: true},
@@ -231,15 +226,16 @@ describe('ProjectPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: [],
+      memberProjects: projects.filter(p => p.isMember),
+      nonMemberProjects: projects.filter(p => !p.isMember),
       organization: desyncOrganization,
-      queryParams: {project: '2'},
+      queryParams: {project: ['2']},
       router: desyncRouter,
       shouldEnforceSingleProject: false,
     });
 
     render(<ProjectPageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 

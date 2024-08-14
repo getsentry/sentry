@@ -1,12 +1,12 @@
 from functools import cached_property
 
+import orjson
 import responses
 from django.urls import reverse
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 
 INVALID_METHOD = (
@@ -59,6 +59,7 @@ class PagerDutyPluginTest(PluginTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -69,7 +70,7 @@ class PagerDutyPluginTest(PluginTestCase):
             self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {
             "client_url": "http://example.com",
             "event_type": "trigger",
@@ -108,7 +109,7 @@ class PagerDutyPluginTest(PluginTestCase):
             args=[self.org.slug, self.project.slug, "pagerduty"],
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         key_config = [item for item in config if item["name"] == "service_key"][0]
         assert key_config.get("type") == "secret"
         assert key_config.get("value") is None

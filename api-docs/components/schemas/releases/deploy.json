@@ -1,7 +1,14 @@
 {
   "Deploy": {
     "type": "object",
-    "required": ["environment", "name", "dateStarted", "dateFinished", "url", "id"],
+    "required": [
+      "environment",
+      "name",
+      "dateStarted",
+      "dateFinished",
+      "url",
+      "id"
+    ],
     "properties": {
       "environment": {
         "type": "string"

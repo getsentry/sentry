@@ -8,29 +8,34 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
-import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
-import {Panel} from 'sentry/components/panels';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {TourStep} from 'sentry/components/modals/featureTourModal';
+import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
+import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import useApiRequests from 'sentry/utils/useApiRequests';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
 const docsLink = (
-  <Button external href={releasesSetupUrl}>
+  <LinkButton external href={releasesSetupUrl}>
     {t('Setup')}
-  </Button>
+  </LinkButton>
 );
 
 export const RELEASES_TOUR_STEPS: TourStep[] = [
@@ -88,28 +93,24 @@ type Props = {
   project: Project;
 };
 
-const ReleasesPromo = ({organization, project}: Props) => {
-  const {data, renderComponent, isLoading} = useApiRequests<{
-    internalIntegrations: SentryApp[];
-  }>({
-    endpoints: [
-      [
-        'internalIntegrations',
-        `/organizations/${organization.slug}/sentry-apps/`,
-        {query: {status: 'internal'}},
-      ],
-    ],
-  });
+function ReleasesPromo({organization, project}: Props) {
+  const {data, isLoading} = useApiQuery<SentryApp[]>(
+    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    {
+      staleTime: 0,
+    }
+  );
+
   const api = useApi();
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<SentryApp[]>([]);
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && data.internalIntegrations) {
-      setIntegrations(data.internalIntegrations);
+    if (!isLoading && data) {
+      setIntegrations(data);
     }
-  }, [isLoading, data.internalIntegrations]);
+  }, [isLoading, data]);
   useEffect(() => {
     trackAnalytics('releases.quickstart_viewed', {
       organization,
@@ -143,17 +144,13 @@ const ReleasesPromo = ({organization, project}: Props) => {
     });
   }, [organization, project.id]);
 
-  const fetchToken = async sentryAppSlug => {
-    const tokens = await api.requestPromise(`/sentry-apps/${sentryAppSlug}/api-tokens/`);
-    if (!tokens.length) {
-      const newToken = await generateToken(sentryAppSlug);
-      return setToken(newToken);
-    }
-    return setToken(tokens[0].token);
+  const generateAndSetNewToken = async (sentryAppSlug: string) => {
+    const newToken = await generateToken(sentryAppSlug);
+    return setToken(newToken);
   };
 
   const generateToken = async (sentryAppSlug: string) => {
-    const newToken = await api.requestPromise(
+    const newToken: NewInternalAppApiToken = await api.requestPromise(
       `/sentry-apps/${sentryAppSlug}/api-tokens/`,
       {
         method: 'POST',
@@ -177,7 +174,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
   const codeChunks = useMemo(
     () => [
       `# Install the cli
-curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
+curl -sL https://sentry.io/get-cli/ | bash
 
 # Setup configuration values
 SENTRY_AUTH_TOKEN=`,
@@ -198,15 +195,19 @@ sentry-cli releases finalize "$VERSION"`,
     [token, selectedItem, organization.slug, project.slug]
   );
 
-  return renderComponent(
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  return (
     <Panel>
       <Container>
         <ContainerHeader>
           <h3>{t('Set up Releases')}</h3>
 
-          <Button priority="default" size="sm" href={releasesSetupUrl} external>
+          <LinkButton priority="default" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         </ContainerHeader>
 
         <p>
@@ -249,7 +250,7 @@ sentry-cli releases finalize "$VERSION"`,
                 alignMenu="left"
                 onSelect={({label, value}) => {
                   selectItem({label, value});
-                  fetchToken(value.slug);
+                  generateAndSetNewToken(value.slug);
                 }}
                 itemSize="small"
                 searchPlaceholder={t('Select Internal Integration')}
@@ -277,7 +278,7 @@ sentry-cli releases finalize "$VERSION"`,
                                   label,
                                   value,
                                 });
-                                fetchToken(value.slug);
+                                generateAndSetNewToken(value.slug);
                                 trackQuickstartCreatedIntegration(integration);
                               },
                               onCancel: () => {
@@ -288,7 +289,7 @@ sentry-cli releases finalize "$VERSION"`,
                         >
                           <MenuItemFooterWrapper>
                             <IconContainer>
-                              <IconAdd color="activeText" isCircled legacySize="14px" />
+                              <IconAdd color="activeText" isCircled size="sm" />
                             </IconContainer>
                             <Label>{t('Create New Integration')}</Label>
                           </MenuItemFooterWrapper>
@@ -309,7 +310,7 @@ sentry-cli releases finalize "$VERSION"`,
       </Container>
     </Panel>
   );
-};
+}
 
 const Container = styled('div')`
   padding: ${space(3)};
@@ -385,7 +386,7 @@ const CodeSnippetDropdown = styled(DropdownAutoComplete)`
 const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeSmall};

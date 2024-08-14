@@ -1,26 +1,26 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
+import {PanelTable} from 'sentry/components/panels/panelTable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -37,7 +37,7 @@ type CodeOwnersAssociationMappings = {
   };
 };
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps &
   Pick<
     IntegrationExternalMappingForm['props'],
@@ -56,12 +56,12 @@ type Props = AsyncComponent['props'] &
     pageLinks?: string;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   associationMappings: CodeOwnersAssociationMappings;
   newlyAssociatedMappings: ExternalActorMapping[];
 };
 
-class IntegrationExternalMappings extends AsyncComponent<Props, State> {
+class IntegrationExternalMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -70,7 +70,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, integration} = this.props;
     return [
       [
@@ -176,21 +176,10 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         />
       </Confirm>
     ) : (
-      <Tooltip
+      <QuestionTooltip
         title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
-      >
-        <Button
-          disabled
-          borderless
-          size="sm"
-          icon={<IconQuestion size="sm" />}
-          aria-label={t(
-            `This %s mapping suggestion was generated from a CODEOWNERS file`,
-            type
-          )}
-          data-test-id="suggestion-option"
-        />
-      </Tooltip>
+        size="sm"
+      />
     );
   }
 
@@ -211,7 +200,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
               data-test-id="add-mapping-button"
               onClick={() => onCreate()}
               size="xs"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
             >
               {tct('Add [type] Mapping', {type})}
             </AddButton>,

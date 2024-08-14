@@ -1,21 +1,19 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.urls import reverse
-from freezegun import freeze_time
 
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
 )
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.files.file import File
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
-@region_silo_test(stable=True)
 @freeze_time("2023-03-15 00:00:00")
 class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
@@ -24,8 +22,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_1 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -36,8 +34,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_2 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now() + timedelta(hours=1),
-            date_last_modified=datetime.now() + timedelta(hours=1),
+            date_uploaded=datetime.now(UTC) + timedelta(hours=1),
+            date_last_modified=datetime.now(UTC) + timedelta(hours=1),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -54,7 +52,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_3 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now() + timedelta(hours=2),
+            date_uploaded=datetime.now(UTC) + timedelta(hours=2),
             # We also test with the date set to None.
             date_last_modified=None,
         )
@@ -78,7 +76,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -206,8 +207,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -217,7 +218,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -241,8 +245,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -276,7 +280,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         # We test without search.
@@ -289,11 +296,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -301,8 +304,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",
@@ -322,11 +329,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -334,8 +337,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",
@@ -349,7 +356,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -364,7 +374,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle = self.create_artifact_bundle(
                 self.organization,
                 artifact_count=2,
-                date_uploaded=datetime.now() + timedelta(hours=index),
+                date_uploaded=datetime.now(UTC) + timedelta(hours=index),
             )
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
@@ -376,8 +386,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
             url = reverse(
                 "sentry-api-0-artifact-bundles",
                 kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
+                    "organization_id_or_slug": project.organization.slug,
+                    "project_id_or_slug": project.slug,
                 },
             )
 
@@ -393,8 +403,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle = self.create_artifact_bundle(
                 self.organization,
                 artifact_count=2,
-                date_uploaded=datetime.now() + timedelta(hours=index),
-                date_last_modified=datetime.now() + timedelta(hours=index),
+                date_uploaded=datetime.now(UTC) + timedelta(hours=index),
+                date_last_modified=datetime.now(UTC) + timedelta(hours=index),
             )
             bundle_ids.append(str(artifact_bundle.bundle_id))
             ProjectArtifactBundle.objects.create(
@@ -405,7 +415,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -459,7 +472,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -512,8 +528,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-artifact-bundles",
             kwargs={
-                "organization_slug": project_a.organization.slug,
-                "project_slug": project_a.slug,
+                "organization_id_or_slug": project_a.organization.slug,
+                "project_id_or_slug": project_a.slug,
             },
         )
 
@@ -568,8 +584,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-artifact-bundles",
             kwargs={
-                "organization_slug": project_a.organization.slug,
-                "project_slug": project_a.slug,
+                "organization_id_or_slug": project_a.organization.slug,
+                "project_id_or_slug": project_a.slug,
             },
         )
 

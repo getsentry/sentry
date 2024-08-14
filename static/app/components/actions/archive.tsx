@@ -3,18 +3,21 @@ import styled from '@emotion/styled';
 import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
+import type {GroupStatusResolution} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
+  disableArchiveUntilOccurrence?: boolean;
   disabled?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
@@ -22,14 +25,21 @@ interface ArchiveActionProps {
 }
 
 const ARCHIVE_UNTIL_ESCALATING: GroupStatusResolution = {
-  status: ResolutionStatus.IGNORED,
+  status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_UNTIL_ESCALATING,
 };
 const ARCHIVE_FOREVER: GroupStatusResolution = {
-  status: ResolutionStatus.IGNORED,
+  status: GroupStatus.IGNORED,
   statusDetails: {},
   substatus: GroupSubstatus.ARCHIVED_FOREVER,
+};
+
+type GetArchiveActionsProps = Pick<
+  ArchiveActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
+> & {
+  disableArchiveUntilOccurrence?: boolean;
 };
 
 export function getArchiveActions({
@@ -37,10 +47,8 @@ export function getArchiveActions({
   confirmLabel,
   confirmMessage,
   onUpdate,
-}: Pick<
-  ArchiveActionProps,
-  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
->): {
+  disableArchiveUntilOccurrence,
+}: GetArchiveActionsProps): {
   dropdownItems: MenuItemProps[];
   onArchive: (resolution: GroupStatusResolution) => void;
 } {
@@ -78,7 +86,12 @@ export function getArchiveActions({
         label: t('Forever'),
         onAction: () => onArchive(ARCHIVE_FOREVER),
       },
-      ...dropdownItems,
+      ...dropdownItems.filter(item => {
+        if (disableArchiveUntilOccurrence) {
+          return item.key !== 'until-reoccur' && item.key !== 'until-affect';
+        }
+        return true;
+      }),
     ],
   };
 }
@@ -86,6 +99,7 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
+  disableArchiveUntilOccurrence,
   className,
   shouldConfirm,
   confirmLabel,
@@ -99,7 +113,13 @@ function ArchiveActions({
         priority="primary"
         size="xs"
         title={t('Change status to unresolved')}
-        onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})}
+        onClick={() =>
+          onUpdate({
+            status: GroupStatus.UNRESOLVED,
+            statusDetails: {},
+            substatus: GroupSubstatus.ONGOING,
+          })
+        }
         aria-label={t('Unarchive')}
       />
     );
@@ -110,6 +130,7 @@ function ArchiveActions({
     onUpdate,
     shouldConfirm,
     confirmMessage,
+    disableArchiveUntilOccurrence,
   });
 
   return (
@@ -121,7 +142,7 @@ function ArchiveActions({
           'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
           {
             docs: (
-              <ExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/" />
+              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
             ),
           }
         )}
@@ -133,19 +154,19 @@ function ArchiveActions({
       <DropdownMenu
         minMenuWidth={270}
         size="sm"
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownTrigger
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
-            icon={<IconChevron direction="down" size="xs" />}
+            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
             disabled={disabled}
           />
         )}
         menuTitle={
           <MenuWrapper>
             {t('Archive')}
-            <StyledExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/escalating-issues/">
+            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
           </MenuWrapper>
@@ -177,5 +198,5 @@ const MenuWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

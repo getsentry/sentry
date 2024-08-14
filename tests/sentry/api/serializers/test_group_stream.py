@@ -1,7 +1,4 @@
-import datetime
 from unittest import mock
-
-from freezegun import freeze_time
 
 from sentry import tsdb
 from sentry.api.serializers import serialize
@@ -10,24 +7,21 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
 )
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
-from sentry.models import Environment
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.models.environment import Environment
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
 class StreamGroupSerializerTestCase(
-    TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
+    TestCase, BaseMetricsTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
     def test_environment(self):
         group = self.group
 
         environment = Environment.get_or_create(group.project, "production")
 
-        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
@@ -43,7 +37,7 @@ class StreamGroupSerializerTestCase(
 
         with mock.patch(
             "sentry.tsdb.make_series",
-            side_effect=tsdb.make_series,
+            side_effect=tsdb.backend.make_series,
         ) as make_series:
             serialize(
                 [group],
@@ -58,7 +52,9 @@ class StreamGroupSerializerTestCase(
         event = self.create_performance_issue()
         group = event.group
         serialized = serialize(
-            group, serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1)
+            group,
+            serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1),
+            request=self.make_request(),
         )
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
@@ -69,7 +65,7 @@ class StreamGroupSerializerTestCase(
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
     def test_profiling_issue(self):
         proj = self.create_project()
-        cur_time = before_now(minutes=5).replace(tzinfo=datetime.timezone.utc)
+        cur_time = before_now(minutes=5)
         event, occurrence, group_info = self.store_search_issue(
             proj.id, 1, [f"{ProfileFileIOGroupType.type_id}-group100"], None, cur_time
         )
@@ -77,6 +73,7 @@ class StreamGroupSerializerTestCase(
         serialized = serialize(
             group_info.group,
             serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1),
+            request=self.make_request(),
         )
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == str(GroupCategory.PERFORMANCE.name).lower()

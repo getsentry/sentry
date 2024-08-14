@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import TagStore from 'sentry/stores/tagStore';
 
@@ -24,7 +26,7 @@ describe('loadOrganizationTags', () => {
   it('should load tags into the store', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: TestStubs.Tags(),
+      body: TagsFixture(),
     });
     expect(TagStore.getState().device).toBeUndefined();
 

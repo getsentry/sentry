@@ -15,7 +15,15 @@ export type ProfilingFormatterUnit =
   | 'milliseconds'
   | 'second'
   | 'seconds'
-  | 'count';
+  | 'count'
+  | 'percent'
+  | 'percents'
+  | 'byte'
+  | 'bytes'
+  | 'nanojoule'
+  | 'nanojoules'
+  | 'watt'
+  | 'watts';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
   nanosecond: 1e-9,
@@ -27,7 +35,27 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   second: 1,
   seconds: 1,
   count: 1,
+  percent: 1,
+  percents: 1,
+  byte: 1,
+  bytes: 1,
+  nanojoule: 1e-9,
+  nanojoules: 1e-9,
+  watt: 1,
+  watts: 1,
 };
+
+export function assertValidProfilingUnit(
+  unit: string
+): asserts unit is ProfilingFormatterUnit {
+  if (unit in durationMappings) return;
+  throw new Error(`Invalid profiling unit: ${unit}`);
+}
+
+export function fromNanoJoulesToWatts(nanojoules: number, seconds: number) {
+  const joules = nanojoules * durationMappings.nanojoules;
+  return joules / seconds;
+}
 
 export function makeFormatTo(
   from: ProfilingFormatterUnit | string,
@@ -67,9 +95,9 @@ const format = (v: number, abbrev: string, precision: number) => {
 };
 
 export function makeFormatter(
-  from: ProfilingFormatterUnit | string
+  from: ProfilingFormatterUnit | string,
+  precision: number = 2
 ): (value: number) => string {
-  const DEFAULT_PRECISION = 2;
   const multiplier = durationMappings[from];
 
   if (multiplier === undefined) {
@@ -78,23 +106,75 @@ export function makeFormatter(
 
   if (from === 'count') {
     return (value: number) => {
-      return value.toFixed(0);
+      return value.toFixed(precision);
+    };
+  }
+  if (from === 'percent' || from === 'percents') {
+    return (value: number) => {
+      return value.toFixed(precision) + '%';
     };
   }
 
-  return (value: number) => {
+  if (from === 'byte' || from === 'bytes') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0B';
+      }
+      const byteUnits = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+      if (i < 0) {
+        return value.toFixed(precision) + byteUnits[0];
+      }
+      return (value / Math.pow(1000, i)).toFixed(precision) + byteUnits[i];
+    };
+  }
+
+  if (from === 'nanojoule' || from === 'nanojoules') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0J';
+      }
+
+      value *= durationMappings[from];
+      const jouleUnits = ['J', 'kJ', 'MJ', 'GJ'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+
+      if (i < 0) {
+        return value.toFixed(precision) + jouleUnits[0];
+      }
+      return (value / Math.pow(1000, i)).toFixed(precision) + (jouleUnits[i] ?? 'J');
+    };
+  }
+
+  if (from === 'watt' || from === 'watts') {
+    return (value: number) => {
+      if (value === 0) {
+        return '0W';
+      }
+
+      value *= durationMappings[from];
+      const jouleUnits = ['W', 'kW', 'MW', 'GW'];
+      const i = Math.floor(Math.log(value) / Math.log(1000));
+      if (i < 0) {
+        return value.toFixed(precision) + jouleUnits[0];
+      }
+      return (value / Math.pow(1000, i)).toFixed(precision) + jouleUnits[i];
+    };
+  }
+
+  return function formatToDuration(value: number): string {
     const duration = value * multiplier;
 
     if (duration >= 1) {
-      return format(duration, 's', DEFAULT_PRECISION);
+      return format(duration, 's', precision);
     }
     if (duration / 1e-3 >= 1) {
-      return format(duration / 1e-3, 'ms', DEFAULT_PRECISION);
+      return format(duration / 1e-3, 'ms', precision);
     }
     if (duration / 1e-6 >= 1) {
-      return format(duration / 1e-6, 'μs', DEFAULT_PRECISION);
+      return format(duration / 1e-6, 'μs', precision);
     }
-    return format(duration / 1e-9, 'ns', DEFAULT_PRECISION);
+    return format(duration / 1e-9, 'ns', precision);
   };
 }
 
@@ -116,4 +196,12 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
 
     return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
+}
+
+export function relativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
 }

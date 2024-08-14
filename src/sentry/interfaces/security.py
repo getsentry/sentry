@@ -1,11 +1,12 @@
-__all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
-
-from urllib.parse import urlsplit, urlunsplit
+import orjson
+from django.utils.functional import cached_property
 
 from sentry.interfaces.base import Interface
-from sentry.utils import json
-from sentry.utils.cache import memoize
+from sentry.security import csp
 from sentry.web.helpers import render_to_string
+
+__all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
+
 
 # Default block list sourced from personal experience as well as
 # reputable blogs from Twitter and Dropbox
@@ -18,6 +19,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "chromenull://*",
     "data:text/html,chromewebdata",
     "safari-extension://*",
+    "safari-web-extension://*",
     "mxaddon-pkg://*",
     "jar://*",
     "webviewprogressproxy://*",
@@ -64,7 +66,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "hoholikik.club",
     "smartlink.cool",
     "promfflinkdev.com",
-)  # yapf: disable
+)
 
 
 class SecurityReport(Interface):
@@ -72,7 +74,7 @@ class SecurityReport(Interface):
     A browser security violation report.
     """
 
-    title = None
+    title: str
 
 
 class Hpkp(SecurityReport):
@@ -158,7 +160,6 @@ class Csp(SecurityReport):
     >>> }
     """
 
-    LOCAL = "'self'"
     score = 1300
     display_score = 1300
 
@@ -172,19 +173,22 @@ class Csp(SecurityReport):
         data.setdefault("effective_directive", None)
         return super().to_python(data, **kwargs)
 
-    def to_string(self, is_public=False, **kwargs):
-        return json.dumps({"csp-report": self.get_api_context()})
+    def to_string(self, event) -> str:
+        return orjson.dumps(
+            {"csp-report": self.get_api_context()},
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
 
-    @memoize
+    @cached_property
     def normalized_blocked_uri(self):
-        return self._normalize_uri(self.blocked_uri)
+        return csp.normalize_value(self.blocked_uri)
 
-    @memoize
+    @cached_property
     def local_script_violation_type(self):
         """
         If this is a locally-sourced script-src error, gives the type.
@@ -192,29 +196,10 @@ class Csp(SecurityReport):
         if (
             self.violated_directive
             and self.effective_directive == "script-src"
-            and self.normalized_blocked_uri == self.LOCAL
+            and self.normalized_blocked_uri == csp.LOCAL
         ):
             if "'unsafe-inline'" in self.violated_directive:
                 return "unsafe-inline"
             elif "'unsafe-eval'" in self.violated_directive:
                 return "unsafe-eval"
         return None
-
-    def _normalize_uri(self, value):
-        if value in ("", self.LOCAL, self.LOCAL.strip("'")):
-            return self.LOCAL
-
-        # A lot of these values get reported as literally
-        # just the scheme. So a value like 'data' or 'blob', which
-        # are valid schemes, just not a uri. So we want to
-        # normalize it into a uri.
-        if ":" not in value:
-            scheme, hostname = value, ""
-        else:
-            scheme, hostname = urlsplit(value)[:2]
-            if scheme in ("http", "https"):
-                return hostname
-        return self._unsplit(scheme, hostname)
-
-    def _unsplit(self, scheme, hostname):
-        return urlunsplit((scheme, hostname, "", None, None))

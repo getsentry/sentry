@@ -1,158 +1,170 @@
-import {RouteComponentProps} from 'react-router';
-
 import Access from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Project, ProjectKey} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
-  organization: Organization;
-};
+function getInstructions(keyList: ProjectKey[]) {
+  return (
+    'def middleware(request, response):\n' +
+    "    response['Content-Security-Policy'] = \\\n" +
+    '        "default-src *; " \\\n' +
+    "        \"script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.example.com cdn.ravenjs.com; \" \\\n" +
+    "        \"style-src 'self' 'unsafe-inline' cdn.example.com; \" \\\n" +
+    '        "img-src * data:; " \\\n' +
+    '        "report-uri ' +
+    getSecurityDsn(keyList) +
+    '"\n' +
+    '    return response\n'
+  );
+}
 
-type State = {
-  keyList: null | ProjectKey[];
-  project: null | Project;
-} & AsyncView['state'];
+function getReportOnlyInstructions(keyList: ProjectKey[]) {
+  return (
+    'def middleware(request, response):\n' +
+    "    response['Content-Security-Policy-Report-Only'] = \\\n" +
+    '        "default-src \'self\'; " \\\n' +
+    '        "report-uri ' +
+    getSecurityDsn(keyList) +
+    '"\n' +
+    '    return response\n'
+  );
+}
 
-export default class ProjectCspReports extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [
-      ['keyList', `/projects/${organization.slug}/${projectId}/keys/`],
-      ['project', `/projects/${organization.slug}/${projectId}/`],
-    ];
+export default function ProjectCspReports() {
+  const organization = useOrganization();
+  const params = useParams();
+  const projectId = params.projectId;
+
+  const {
+    data: keyList,
+    isLoading: isLoadingKeyList,
+    isError: isKeyListError,
+    refetch: refetchKeyList,
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
+    staleTime: 0,
+  });
+  const {
+    data: project,
+    isLoading: isLoadingProject,
+    isError: isProjectError,
+    refetch: refetchProject,
+  } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {
+    staleTime: 0,
+  });
+
+  if (isLoadingKeyList || isLoadingProject) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Content Security Policy (CSP)'), projectId, false);
-  }
-
-  getInstructions(keyList: ProjectKey[]) {
+  if (isKeyListError || isProjectError) {
     return (
-      'def middleware(request, response):\n' +
-      "    response['Content-Security-Policy'] = \\\n" +
-      '        "default-src *; " \\\n' +
-      "        \"script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.example.com cdn.ravenjs.com; \" \\\n" +
-      "        \"style-src 'self' 'unsafe-inline' cdn.example.com; \" \\\n" +
-      '        "img-src * data:; " \\\n' +
-      '        "report-uri ' +
-      getSecurityDsn(keyList) +
-      '"\n' +
-      '    return response\n'
+      <LoadingError
+        onRetry={() => {
+          refetchKeyList();
+          refetchProject();
+        }}
+      />
     );
   }
 
-  getReportOnlyInstructions(keyList: ProjectKey[]) {
-    return (
-      'def middleware(request, response):\n' +
-      "    response['Content-Security-Policy-Report-Only'] = \\\n" +
-      '        "default-src \'self\'; " \\\n' +
-      '        "report-uri ' +
-      getSecurityDsn(keyList) +
-      '"\n' +
-      '    return response\n'
-    );
-  }
+  return (
+    <div>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Content Security Policy (CSP)'), projectId, false)}
+      />
+      <SettingsPageHeader title={t('Content Security Policy')} />
 
-  renderBody() {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    const {project, keyList} = this.state;
-    if (!keyList || !project) {
-      return null;
-    }
+      <PreviewFeature />
 
-    return (
-      <div>
-        <SettingsPageHeader title={t('Content Security Policy')} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
-        <PreviewFeature />
+      <Form
+        saveOnBlur
+        apiMethod="PUT"
+        initialData={project.options}
+        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+      >
+        <Access access={['project:write']}>
+          {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+        </Access>
+      </Form>
 
-        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <Panel>
+        <PanelHeader>{t('About')}</PanelHeader>
 
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          initialData={project.options}
-          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
-        >
-          <Access access={['project:write']}>
-            {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
-          </Access>
-        </Form>
-
-        <Panel>
-          <PanelHeader>{t('About')}</PanelHeader>
-
-          <PanelBody withPadding>
-            <p>
-              {tct(
-                `[link:Content Security Policy]
+        <PanelBody withPadding>
+          <p>
+            {tct(
+              `[link:Content Security Policy]
             (CSP) is a security standard which helps prevent cross-site scripting (XSS),
             clickjacking and other code injection attacks resulting from execution of
             malicious content in the trusted web page context. It's enforced by browser
             vendors, and Sentry supports capturing CSP violations using the standard
             reporting hooks.`,
-                {
-                  link: (
-                    <ExternalLink href="https://en.wikipedia.org/wiki/Content_Security_Policy" />
-                  ),
-                }
-              )}
-            </p>
+              {
+                link: (
+                  <ExternalLink href="https://en.wikipedia.org/wiki/Content_Security_Policy" />
+                ),
+              }
+            )}
+          </p>
 
-            <p>
-              {tct(
-                `To configure [csp:CSP] reports
+          <p>
+            {tct(
+              `To configure [csp:CSP] reports
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.`,
-                {
-                  csp: <abbr title="Content Security Policy" />,
-                }
-              )}
-            </p>
+              {
+                csp: <abbr title="Content Security Policy" />,
+              }
+            )}
+          </p>
 
-            <p>
-              {t(
-                'For example, in Python you might achieve this via a simple web middleware'
-              )}
-            </p>
-            <pre>{this.getInstructions(keyList)}</pre>
+          <p>
+            {t(
+              'For example, in Python you might achieve this via a simple web middleware'
+            )}
+          </p>
+          <pre>{getInstructions(keyList)}</pre>
 
-            <p>
-              {t(`Alternatively you can setup CSP reports to simply send reports rather than
+          <p>
+            {t(`Alternatively you can setup CSP reports to simply send reports rather than
               actually enforcing the policy`)}
-            </p>
-            <pre>{this.getReportOnlyInstructions(keyList)}</pre>
+          </p>
+          <pre>{getReportOnlyInstructions(keyList)}</pre>
 
-            <p>
-              {tct(
-                `We recommend setting this up to only run on a percentage of requests, as
+          <p>
+            {tct(
+              `We recommend setting this up to only run on a percentage of requests, as
               otherwise you may find that you've quickly exhausted your quota. For more
               information, take a look at [link:the article on html5rocks.com].`,
-                {
-                  link: (
-                    <ExternalLink href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
-                  ),
-                }
-              )}
-            </p>
-          </PanelBody>
-        </Panel>
-      </div>
-    );
-  }
+              {
+                link: (
+                  <ExternalLink href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
+                ),
+              }
+            )}
+          </p>
+        </PanelBody>
+      </Panel>
+    </div>
+  );
 }

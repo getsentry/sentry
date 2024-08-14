@@ -1,13 +1,16 @@
 import pytest
-from django.db import connection
+from django.db import connections, router
 
 from sentry import deletions
-from sentry.models import ApiApplication, SentryApp, SentryAppInstallation, User
-from sentry.testutils import TestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestSentryAppDeletionTask(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -42,7 +45,7 @@ class TestSentryAppDeletionTask(TestCase):
 
         # The QuerySet will automatically NOT include deleted installs, so we
         # use a raw sql query to ensure it still exists.
-        c = connection.cursor()
+        c = connections[router.db_for_write(SentryApp)].cursor()
         c.execute(
             "SELECT count(1) "
             "FROM sentry_sentryapp "

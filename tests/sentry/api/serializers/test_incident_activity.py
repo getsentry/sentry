@@ -2,18 +2,15 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.incidents.models.incident import IncidentActivityType
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_test(stable=True)
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         activity = create_incident_activity(

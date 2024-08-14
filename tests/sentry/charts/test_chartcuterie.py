@@ -6,13 +6,14 @@ from django.urls.base import reverse
 
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ChartcuterieTest(TestCase):
     def test_enabled(self):
         assert not charts.is_enabled()
@@ -50,13 +51,11 @@ class ChartcuterieTest(TestCase):
             "chart-rendering.chartcuterie": {"url": service_url},
         }
 
-        # Don't upload our image anywhere
+        # Test the image can be uploaded and we get a URL back
         with self.options(options):
-            data = charts.generate_chart(
-                ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data, upload=False
-            )
+            url = charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
 
-        assert data == image_data
+        assert url == absolute_uri(reverse("sentry-serve-media", args=["abc123.png"]))
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
@@ -66,14 +65,8 @@ class ChartcuterieTest(TestCase):
             "data": chart_data,
         }
 
-        # Test the image can be uploaded and we get a URL back
-        with self.options(options):
-            url = charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
-
-        assert url == absolute_uri(reverse("sentry-serve-media", args=["abc123.png"]))
-
         resp = self.client.get(url)
-        assert b"".join(resp.streaming_content) == image_data
+        assert close_streaming_response(resp) == image_data
 
     @responses.activate
     def test_failed(self):
@@ -126,14 +119,11 @@ class ChartcuterieTest(TestCase):
         }
 
         with self.options(options):
-            data = charts.generate_chart(
+            url = charts.generate_chart(
                 ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
                 chart_data,
-                upload=False,
                 size={"width": 1000, "height": 200},
             )
-
-        assert data == image_data
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
@@ -144,3 +134,6 @@ class ChartcuterieTest(TestCase):
             "width": 1000,
             "height": 200,
         }
+
+        resp = self.client.get(url)
+        assert close_streaming_response(resp) == image_data

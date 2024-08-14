@@ -1,8 +1,9 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {computeInterval, Rect} from 'sentry/utils/profiling/speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {computeInterval} from 'sentry/utils/profiling/speedscope';
 
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText} from '../gl/utils';
 
 export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): number {

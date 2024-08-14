@@ -1,54 +1,66 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
-import toArray from 'sentry/utils/toArray';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
+import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -168,12 +180,6 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-const RATE_UNIT_LABELS = {
-  '1/second': '/s',
-  '1/minute': '/min',
-  '1/hour': '/hr',
-};
-
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
@@ -235,10 +241,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
-
       return (
         <NumberContainer>
-          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
+          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
         </NumberContainer>
       );
     },
@@ -263,7 +268,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatPercentage(data[field], undefined, {minimumValue: 0.0001})
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -292,8 +299,8 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
         : defined(data[field])
-        ? data[field]
-        : emptyValue;
+          ? data[field]
+          : emptyValue;
       if (isUrl(value)) {
         return (
           <Container>
@@ -343,6 +350,7 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.status_code': SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -548,7 +556,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 project = projects.find(p => p.slug === data.project);
               }
               return (
-                <ProjectBadge
+                <StyledProjectBadge
                   project={project ? project : {slug: data.project}}
                   avatarSize={16}
                 />
@@ -693,6 +701,18 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
+  'span.status_code': {
+    sortField: 'span.status_code',
+    renderFunc: data => (
+      <Container>
+        {data['span.status_code'] ? (
+          <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
+        ) : (
+          t('Unknown')
+        )}
+      </Container>
+    ),
+  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -700,9 +720,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
-  sps_percent_change: SpecialFunctionFieldRenderer;
   time_spent_percentage: SpecialFunctionFieldRenderer;
-  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -770,19 +788,14 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       </BarContainer>
     );
   },
-  // N.B. Do not colorize any throughput percent change renderers, since a
-  // change in throughput is not inherently good or bad
-  tps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
-  sps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
   time_spent_percentage: fieldName => data => {
+    const parsedFunction = parseFunction(fieldName);
+    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
     return (
       <TimeSpentCell
-        timeSpentPercentage={data[fieldName]}
-        totalSpanTime={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+        percentage={data[fieldName]}
+        total={data[`sum(${column})`]}
+        op={data[`span.op`]}
       />
     );
   },
@@ -947,6 +960,12 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
 
 const StyledLink = styled(Link)`
   max-width: 100%;
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  ${BadgeDisplayName} {
+    max-width: 100%;
+  }
 `;
 
 /**

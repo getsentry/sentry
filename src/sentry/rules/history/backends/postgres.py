@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Sequence, TypedDict, cast
+from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, TypedDict, cast
 
-import pytz
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import CursorResult
 
 if TYPE_CHECKING:
-    from sentry.models import Rule
+    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor
 
 
@@ -36,14 +36,24 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 # temporary hack for removing unnecessary subqueries from group by list
 # TODO: remove when upgrade to django 3.0
 class NoGroupBySubquery(Subquery):
-    def get_group_by_cols(self) -> List[str]:
+    def get_group_by_cols(self, alias=None) -> list:
         return []
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
-    def record(self, rule: Rule, group: Group, event_id: str | None = None) -> None:
-        RuleFireHistory.objects.create(
-            project=rule.project, rule=rule, group=group, event_id=event_id
+    def record(
+        self,
+        rule: Rule,
+        group: Group,
+        event_id: str | None = None,
+        notification_uuid: str | None = None,
+    ) -> RuleFireHistory | None:
+        return RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=group,
+            event_id=event_id,
+            notification_uuid=notification_uuid,
         )
 
     def fetch_rule_groups_paginated(
@@ -82,8 +92,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
-        start = start.replace(tzinfo=pytz.utc)
-        end = end.replace(tzinfo=pytz.utc)
+        start = start.replace(tzinfo=timezone.utc)
+        end = end.replace(tzinfo=timezone.utc)
         qs = (
             RuleFireHistory.objects.filter(
                 rule=rule,

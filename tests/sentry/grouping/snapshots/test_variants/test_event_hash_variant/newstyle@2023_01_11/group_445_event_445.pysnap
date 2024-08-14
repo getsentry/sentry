@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:21:59.198550Z'
+created: '2023-12-12T15:27:54.534928Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -136,7 +136,7 @@ app:
           frame (non app frame)
             function*
               "abort"
-          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame (non app frame)
             function*
               "raise"
           frame (non app frame)
@@ -146,7 +146,7 @@ app:
               "crashpad::`anonymous namespace'::HandleAbortSignal"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
@@ -282,10 +282,10 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "abort"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame*
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             filename*
               "crashpad_client_win.cc"
             function*

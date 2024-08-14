@@ -1,7 +1,8 @@
+from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any, Collection, Dict, Mapping, Optional, Sequence, Set
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -9,7 +10,6 @@ from django.db.models import Q
 from psycopg2 import OperationalError
 from psycopg2.errorcodes import DEADLOCK_DETECTED
 
-from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -89,7 +89,7 @@ class PGStringIndexerV2(StringIndexer):
         """
         retry_count = 0
         sleep_ms = 5
-        last_seen_exception: Optional[BaseException] = None
+        last_seen_exception: BaseException | None = None
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
@@ -109,14 +109,14 @@ class PGStringIndexerV2(StringIndexer):
                         sleep(sleep_ms / 1000 * (2**retry_count))
                         last_seen_exception = e
                     else:
-                        raise e
+                        raise
             # If we haven't returned after successful bulk create, we should re-raise the last
             # seen exception
             assert isinstance(last_seen_exception, BaseException)
             raise last_seen_exception
 
-    def _uca_bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    def _bulk_record(
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         metric_path_key = self._get_metric_path_key(strings.keys())
 
@@ -184,7 +184,7 @@ class PGStringIndexerV2(StringIndexer):
 
             for dropped_string in writes_limiter_state.dropped_strings:
                 rate_limited_key_results.add_use_case_key_result(
-                    use_case_key_result=dropped_string.use_case_key_result,  # type: ignore
+                    use_case_key_result=dropped_string.use_case_key_result,
                     fetch_type=dropped_string.fetch_type,
                     fetch_type_ext=dropped_string.fetch_type_ext,
                 )
@@ -234,146 +234,17 @@ class PGStringIndexerV2(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def _bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
-    ) -> UseCaseKeyResults:
-        db_read_keys = UseCaseKeyCollection(strings)
-
-        db_read_key_results = UseCaseKeyResults()
-        db_read_key_results.add_use_case_key_results(
-            [
-                UseCaseKeyResult(
-                    use_case_id=(
-                        UseCaseID(db_obj.use_case_id)
-                        if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
-                        else UseCaseID.SESSIONS
-                    ),
-                    org_id=db_obj.organization_id,
-                    string=db_obj.string,
-                    id=db_obj.id,
-                )
-                for db_obj in self._get_db_records(db_read_keys)
-            ],
-            FetchType.DB_READ,
-        )
-        db_write_keys = db_read_key_results.get_unmapped_use_case_keys(db_read_keys)
-
-        metrics.incr(
-            _INDEXER_DB_METRIC,
-            tags={"db_hit": "true"},
-            amount=(db_read_keys.size - db_write_keys.size),
-        )
-        metrics.incr(
-            _INDEXER_DB_METRIC,
-            tags={"db_hit": "false"},
-            amount=db_write_keys.size,
-        )
-
-        if db_write_keys.size == 0:
-            return db_read_key_results
-
-        config = get_ingest_config(
-            self._get_metric_path_key(strings.keys()), IndexerStorage.POSTGRES
-        )
-        writes_limiter = writes_limiter_factory.get_ratelimiter(config)
-
-        """
-        Changes to writes_limiter will happen in a separate PR.
-        For now, we are going to operate on the assumption that no custom use case ID
-        will enter this part of the code path. Therethere strings can only be one of the
-        follow 2 types:
-        {
-            "sessions" : {
-                org_id_1: ... ,
-                org_id_n: ... ,
-            }
-        }
-        {
-            "transactions" : {
-                org_id_1: ... ,
-                org_id_n: ... ,
-            }
-        }
-        """
-        use_case_id = next(iter(strings.keys()))
-        use_case_path_key = self._get_metric_path_key(strings.keys())
-        with writes_limiter.check_write_limits(db_write_keys) as writes_limiter_state:
-            # After the DB has successfully committed writes, we exit this
-            # context manager and consume quotas. If the DB crashes we
-            # shouldn't consume quota.
-            use_case_collection = writes_limiter_state.accepted_keys
-            # TODO: later we will use the whole use case collection instead
-            # of pulling out the key collection
-            filtered_db_write_keys = use_case_collection.mapping[use_case_id]
-            del db_write_keys
-
-            rate_limited_key_results = UseCaseKeyResults()
-            for dropped_string in writes_limiter_state.dropped_strings:
-                key_result = dropped_string.key_result  # type: ignore
-                rate_limited_key_results.add_use_case_key_result(
-                    UseCaseKeyResult(
-                        use_case_id, key_result.org_id, key_result.string, key_result.id
-                    ),
-                    fetch_type=dropped_string.fetch_type,
-                    fetch_type_ext=dropped_string.fetch_type_ext,
-                )
-
-            if filtered_db_write_keys.size == 0:
-                return db_read_key_results.merge(rate_limited_key_results)
-
-            if use_case_path_key is UseCaseKey.PERFORMANCE:
-                new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
-                        organization_id=int(organization_id),
-                        string=string,
-                        use_case_id=use_case_id.value,
-                    )
-                    for organization_id, string in filtered_db_write_keys.as_tuples()
-                ]
-            else:
-                new_records = [
-                    self._get_table_from_use_case_ids(strings.keys())(
-                        organization_id=int(organization_id),
-                        string=string,
-                    )
-                    for organization_id, string in filtered_db_write_keys.as_tuples()
-                ]
-
-            self._bulk_create_with_retry(
-                self._get_table_from_use_case_ids(strings.keys()), new_records
-            )
-
-        db_write_key_results = UseCaseKeyResults()
-        db_write_key_results.add_use_case_key_results(
-            [
-                UseCaseKeyResult(
-                    use_case_id,
-                    org_id=db_obj.organization_id,
-                    string=db_obj.string,
-                    id=db_obj.id,
-                )
-                for db_obj in self._get_db_records(
-                    UseCaseKeyCollection({use_case_id: filtered_db_write_keys})
-                )
-            ],
-            fetch_type=FetchType.FIRST_SEEN,
-        )
-
-        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
-
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
-        if options.get("sentry-metrics.writes-limiter.apply-uca-limiting"):
-            return self._uca_bulk_record(strings)
         return self._bulk_record(strings)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
@@ -393,7 +264,7 @@ class PGStringIndexerV2(StringIndexer):
             return None
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
@@ -412,7 +283,7 @@ class PGStringIndexerV2(StringIndexer):
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
-        ret_val: Dict[int, str] = {}
+        ret_val: dict[int, str] = {}
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
@@ -440,12 +311,12 @@ class PGStringIndexerV2(StringIndexer):
     def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> IndexerTable:
         return TABLE_MAPPING[metric_path_key]
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class PostgresIndexer"
         )
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class PostgresIndexer"
         )

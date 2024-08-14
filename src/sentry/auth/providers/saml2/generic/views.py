@@ -1,6 +1,8 @@
-from django.http import HttpResponse
+from __future__ import annotations
+
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import reverse
-from rest_framework.request import Request
 
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,
@@ -9,39 +11,46 @@ from sentry.auth.providers.saml2.forms import (
     XMLMetadataForm,
     process_metadata,
 )
-from sentry.auth.view import AuthView, ConfigureView
+from sentry.auth.services.auth import RpcAuthProvider, auth_service
+from sentry.auth.view import AuthView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.http import absolute_uri
 
 
-class SAML2ConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, provider):
-        sp_metadata_url = absolute_uri(
-            reverse("sentry-auth-organization-saml-metadata", args=[organization.slug])
-        )
+def saml2_configure_view(
+    request: HttpRequest, organization: RpcOrganization, provider: RpcAuthProvider
+) -> DeferredResponse:
+    sp_metadata_url = absolute_uri(
+        reverse("sentry-auth-organization-saml-metadata", args=[organization.slug])
+    )
 
-        if request.method != "POST":
-            saml_form = SAMLForm(provider.config["idp"])
-            attr_mapping_form = AttributeMappingForm(provider.config["attribute_mapping"])
-        else:
-            saml_form = SAMLForm(request.POST)
-            attr_mapping_form = AttributeMappingForm(request.POST)
+    if request.method != "POST":
+        saml_form = SAMLForm(provider.config["idp"])
+        attr_mapping_form = AttributeMappingForm(provider.config["attribute_mapping"])
+    else:
+        saml_form = SAMLForm(request.POST)
+        attr_mapping_form = AttributeMappingForm(request.POST)
+        if saml_form.is_valid() and attr_mapping_form.is_valid():
+            provider.config["idp"] = saml_form.cleaned_data
+            provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
+            auth_service.update_provider_config(
+                organization_id=organization.id,
+                auth_provider_id=provider.id,
+                config=provider.config,
+            )
 
-            if saml_form.is_valid() and attr_mapping_form.is_valid():
-                provider.config["idp"] = saml_form.cleaned_data
-                provider.config["attribute_mapping"] = attr_mapping_form.cleaned_data
-                provider.save()
-
-        return self.render(
-            "sentry_auth_saml2/configure.html",
-            {
-                "sp_metadata_url": sp_metadata_url,
-                "forms": {"saml": saml_form, "attrs": attr_mapping_form},
-            },
-        )
+    return DeferredResponse(
+        "sentry_auth_saml2/configure.html",
+        {
+            "sp_metadata_url": sp_metadata_url,
+            "forms": {"saml": saml_form, "attrs": attr_mapping_form},
+        },
+    )
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -60,7 +69,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

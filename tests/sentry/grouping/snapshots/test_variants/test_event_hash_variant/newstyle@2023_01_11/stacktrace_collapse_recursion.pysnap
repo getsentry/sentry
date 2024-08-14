@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:29.165976Z'
+created: '2023-11-28T16:31:48.761745Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,104 +10,104 @@ app:
       stacktrace
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (non app frame)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 system:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
   component:
     system*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*

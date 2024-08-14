@@ -1,18 +1,24 @@
 import {Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconStack, IconTag} from 'sentry/icons';
+import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {parseCursor} from 'sentry/utils/cursor';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {downloadAsCsv} from '../utils';
 
@@ -27,6 +33,8 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  queryDataset?: SavedQueryDatasets;
+  supportsInvestigationRule?: boolean;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
@@ -40,7 +48,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   return (
     <Feature
-      features={['organizations:discover-query']}
+      features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
       {tableData?.data && tableData.data.length < 50
@@ -61,10 +69,14 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       disabled={disabled}
       onClick={onClick}
       data-test-id="grid-download-csv"
-      icon={<IconDownload size="xs" />}
-      title={t(
-        "There aren't that many results, start your export and it'll download immediately."
-      )}
+      icon={<IconDownload />}
+      title={
+        !disabled
+          ? t(
+              "There aren't that many results, start your export and it'll download immediately."
+            )
+          : undefined
+      }
     >
       {t('Export All')}
     </Button>
@@ -81,12 +93,13 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
         queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}
-      icon={<IconDownload size="xs" />}
+      icon={<IconDownload />}
     >
       {t('Export All')}
     </DataExport>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderEditButton(canEdit: boolean, props: Props) {
@@ -98,18 +111,19 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconStack size="xs" />}
+        icon={<IconSliders />}
       >
         {t('Columns')}
       </Button>
     </GuideAnchor>
   );
 }
+
 // Placate eslint proptype checking
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag />}>
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );
@@ -148,9 +162,29 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   );
 }
 
-function HeaderActions(props: Props) {
+function TableActions(props: Props) {
+  const {tableData, queryDataset, supportsInvestigationRule} = props;
+  const location = useLocation();
+  const organization = useOrganization();
+  const cursor = location?.query?.cursor;
+  const cursorOffset = parseCursor(cursor)?.offset ?? 0;
+  const numSamples = tableData?.data?.length ?? null;
+  const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
+
+  const isTransactions =
+    hasDatasetSelector(organization) && queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
   return (
     <Fragment>
+      {supportsInvestigationRule &&
+        (!hasDatasetSelector(organization) || isTransactions) && (
+          <InvestigationRuleCreation
+            {...props}
+            buttonProps={{size: 'sm'}}
+            numSamples={totalNumSamples}
+            key="investigationRuleCreation"
+          />
+        )}
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
@@ -162,4 +196,4 @@ function HeaderActions(props: Props) {
   );
 }
 
-export default HeaderActions;
+export default TableActions;

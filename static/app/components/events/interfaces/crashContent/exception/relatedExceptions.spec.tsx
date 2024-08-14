@@ -1,9 +1,11 @@
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {RelatedExceptions} from 'sentry/components/events/interfaces/crashContent/exception/relatedExceptions';
 
 describe('ExceptionGroupContext', function () {
-  const entry = TestStubs.EventEntryExceptionGroup();
+  const entry = EventEntryExceptionGroupFixture();
 
   const exceptionGroup1Mechanism = entry.data.values?.find(
     ({type}) => type === 'ExceptionGroup 1'

@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 from threading import local
+from typing import Any
 
 from django.http.request import HttpRequest
 
 
 class State(local):
     request: HttpRequest | None = None
-    data = {}
+    request_stack: list[HttpRequest] | None = None
+    data: dict[str, Any] = {}
+
+    def clear(self) -> None:
+        self.request = None
+        self.request_stack = None
 
 
 env = State()
-
-from sentry.utils.sdk import RavenShim
-
-raven = client = RavenShim()
-
 
 # These are backwards incompatible imports that should no longer be used.
 # They will be removed to reduce the size of the import graph

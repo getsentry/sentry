@@ -1,41 +1,59 @@
-import {Component, createRef, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Component, createRef, Fragment, useEffect} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+
+import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TimeSince from 'sentry/components/timeSince';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
+import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {getDuration} from 'sentry/utils/formatters';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import getDuration from 'sentry/utils/duration/getDuration';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceError,
+  TraceFullDetailed,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
-import {TraceInfo} from './types';
-import {getTraceInfo, isRootTransaction} from './utils';
+import type {TraceInfo} from './types';
+import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {
+  event: TraceFullDetailed | TraceError;
   indexed: string[];
-  transaction: TraceFullDetailed;
 };
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
@@ -46,18 +64,20 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
+  handleLimitChange?: (newLimit: number) => void;
+  orphanErrors?: TraceError[];
 };
 
 type State = {
-  filteredTransactionIds: Set<string> | undefined;
+  filteredEventIds: Set<string> | undefined;
   searchQuery: string | undefined;
 };
 
 class TraceDetailsContent extends Component<Props, State> {
   state: State = {
     searchQuery: undefined,
-    filteredTransactionIds: undefined,
+    filteredEventIds: undefined,
   };
 
   componentDidMount() {
@@ -65,7 +85,10 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.traces !== prevProps.traces) {
+    if (
+      this.props.traces !== prevProps.traces ||
+      this.props.orphanErrors !== prevProps.orphanErrors
+    ) {
       this.initFuse();
     }
   }
@@ -75,8 +98,14 @@ class TraceDetailsContent extends Component<Props, State> {
   virtualScrollbarContainerRef = createRef<HTMLDivElement>();
 
   async initFuse() {
-    if (defined(this.props.traces) && this.props.traces.length > 0) {
-      const transformed: IndexedFusedTransaction[] = this.props.traces.flatMap(trace =>
+    const {traces, orphanErrors} = this.props;
+
+    if (!hasTraceData(traces, orphanErrors)) {
+      return;
+    }
+
+    const transformedEvents: IndexedFusedTransaction[] =
+      traces?.flatMap(trace =>
         reduceTrace<IndexedFusedTransaction[]>(
           trace,
           (acc, transaction) => {
@@ -87,7 +116,7 @@ class TraceDetailsContent extends Component<Props, State> {
             ];
 
             acc.push({
-              transaction,
+              event: transaction,
               indexed,
             });
 
@@ -95,21 +124,35 @@ class TraceDetailsContent extends Component<Props, State> {
           },
           []
         )
-      );
+      ) ?? [];
 
-      this.fuse = await createFuzzySearch(transformed, {
-        keys: ['indexed'],
-        includeMatches: true,
-        threshold: 0.6,
-        location: 0,
-        distance: 100,
-        maxPatternLength: 32,
+    // Include orphan error titles and project slugs during fuzzy search
+    orphanErrors?.forEach(orphanError => {
+      const indexed: string[] = [orphanError.title, orphanError.project_slug, 'Unknown'];
+
+      transformedEvents.push({
+        indexed,
+        event: orphanError,
       });
-    }
+    });
+
+    this.fuse = await createFuzzySearch(transformedEvents, {
+      keys: ['indexed'],
+      includeMatches: true,
+      threshold: 0.6,
+      location: 0,
+      distance: 100,
+      maxPatternLength: 32,
+    });
   }
 
   renderTraceLoading() {
-    return <LoadingIndicator />;
+    return (
+      <LoadingContainer>
+        <StyledLoadingIndicator />
+        {t('Hang in there, as we build your trace view!')}
+      </LoadingContainer>
+    );
   }
 
   renderTraceRequiresDateRangeSelection() {
@@ -121,13 +164,13 @@ class TraceDetailsContent extends Component<Props, State> {
   };
 
   filterTransactions = () => {
-    const {traces} = this.props;
-    const {filteredTransactionIds, searchQuery} = this.state;
+    const {traces, orphanErrors} = this.props;
+    const {filteredEventIds, searchQuery} = this.state;
 
-    if (!searchQuery || traces === null || traces.length <= 0 || !defined(this.fuse)) {
-      if (filteredTransactionIds !== undefined) {
+    if (!searchQuery || !hasTraceData(traces, orphanErrors) || !defined(this.fuse)) {
+      if (filteredEventIds !== undefined) {
         this.setState({
-          filteredTransactionIds: undefined,
+          filteredEventIds: undefined,
         });
       }
       return;
@@ -140,24 +183,33 @@ class TraceDetailsContent extends Component<Props, State> {
        * indices. These matches are often noise, so exclude them.
        */
       .filter(({matches}) => matches?.length)
-      .map(({item}) => item.transaction.event_id);
+      .map(({item}) => item.event.event_id);
 
     /**
      * Fuzzy search on ids result in seemingly random results. So switch to
      * doing substring matches on ids to provide more meaningful results.
      */
-    const idMatches = traces
-      .flatMap(trace =>
+    const idMatches: string[] = [];
+    traces
+      ?.flatMap(trace =>
         filterTrace(
           trace,
           ({event_id, span_id}) =>
             event_id.includes(searchQuery) || span_id.includes(searchQuery)
         )
       )
-      .map(transaction => transaction.event_id);
+      .forEach(transaction => idMatches.push(transaction.event_id));
+
+    // Include orphan error event_ids and span_ids during substring search
+    orphanErrors?.forEach(orphanError => {
+      const {event_id, span} = orphanError;
+      if (event_id.includes(searchQuery) || span.includes(searchQuery)) {
+        idMatches.push(event_id);
+      }
+    });
 
     this.setState({
-      filteredTransactionIds: new Set([...fuseMatches, ...idMatches]),
+      filteredEventIds: new Set([...fuseMatches, ...idMatches]),
     });
   };
 
@@ -167,7 +219,7 @@ class TraceDetailsContent extends Component<Props, State> {
         <TraceSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
-          placeholder={t('Search for transactions')}
+          placeholder={t('Search for events')}
           onSearch={this.handleTransactionFilter}
         />
       </TraceSearchContainer>
@@ -220,7 +272,7 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   renderTraceWarnings() {
-    const {traces} = this.props;
+    const {traces, orphanErrors} = this.props;
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
@@ -239,7 +291,7 @@ class TraceDetailsContent extends Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -249,7 +301,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -259,11 +311,13 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots > 1) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>
       );
+    } else if (orphanErrors && orphanErrors.length > 0) {
+      warning = <OnlyOrphanErrorWarnings orphanErrors={orphanErrors} />;
     }
 
     return warning;
@@ -280,6 +334,7 @@ class TraceDetailsContent extends Component<Props, State> {
       traceSlug,
       traces,
       meta,
+      orphanErrors,
     } = this.props;
 
     if (!dateSelected) {
@@ -288,7 +343,9 @@ class TraceDetailsContent extends Component<Props, State> {
     if (isLoading) {
       return this.renderTraceLoading();
     }
-    if (error !== null || traces === null || traces.length <= 0) {
+
+    const hasData = hasTraceData(traces, orphanErrors);
+    if (error !== null || !hasData) {
       return (
         <TraceNotFound
           meta={meta}
@@ -299,27 +356,27 @@ class TraceDetailsContent extends Component<Props, State> {
         />
       );
     }
-    const traceInfo = getTraceInfo(traces);
+
+    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
 
     return (
       <Fragment>
         {this.renderTraceWarnings()}
-        {this.renderTraceHeader(traceInfo)}
+        {traceInfo && this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
         <Margin>
-          <VisuallyCompleteWithData
-            id="PerformanceDetails-TraceView"
-            hasData={!!traces.length}
-          >
+          <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <TraceView
-              filteredTransactionIds={this.state.filteredTransactionIds}
+              filteredEventIds={this.state.filteredEventIds}
               traceInfo={traceInfo}
               location={location}
               organization={organization}
               traceEventView={traceEventView}
               traceSlug={traceSlug}
-              traces={traces}
+              traces={traces || []}
               meta={meta}
+              orphanErrors={orphanErrors || []}
+              handleLimitChange={this.props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>
@@ -347,7 +404,11 @@ class TraceDetailsContent extends Component<Props, State> {
             <ButtonBar gap={1}>
               <DiscoverButton
                 size="sm"
-                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+                to={traceEventView.getResultsViewUrlTarget(
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+                )}
                 onClick={() => {
                   trackAnalytics('performance_views.trace_view.open_in_discover', {
                     organization,
@@ -366,6 +427,191 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+type OnlyOrphanErrorWarningsProps = {
+  orphanErrors: TraceError[];
+};
+function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
+  const {projects} = useProjects();
+  const projectSlug = orphanErrors[0] ? orphanErrors[0].project_slug : '';
+  const project = projects.find(p => p.slug === projectSlug);
+  const LOCAL_STORAGE_KEY = `${project?.id}:performance-orphan-error-onboarding-banner-hide`;
+  const currentPlatform = project?.platform;
+  const hasPerformanceOnboarding = currentPlatform
+    ? withPerformanceOnboarding.has(currentPlatform)
+    : false;
+
+  useEffect(() => {
+    if (hasPerformanceOnboarding && location.hash === '#performance-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+    }
+  }, [hasPerformanceOnboarding]);
+
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 7,
+  });
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 365,
+  });
+
+  if (!orphanErrors.length) {
+    return null;
+  }
+
+  if (!hasPerformanceOnboarding) {
+    return (
+      <Alert type="info" showIcon>
+        {t(
+          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
+        )}
+      </Alert>
+    );
+  }
+
+  if (isDismissed || isSnoozed) {
+    return null;
+  }
+
+  return (
+    <BannerWrapper>
+      <ActionsWrapper>
+        <BannerTitle>{t('Connect the Dots')}</BannerTitle>
+        <BannerDescription>
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
+          )}
+        </BannerDescription>
+        <ButtonsWrapper>
+          <ActionButton>
+            <Button
+              priority="primary"
+              onClick={event => {
+                event.preventDefault();
+                window.location.hash = 'performance-sidequest';
+                SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+              }}
+            >
+              {t('Configure')}
+            </Button>
+          </ActionButton>
+          <ActionButton>
+            <LinkButton href="https://docs.sentry.io/product/performance/" external>
+              {t('Learn More')}
+            </LinkButton>
+          </ActionButton>
+        </ButtonsWrapper>
+      </ActionsWrapper>
+      {<Background image={connectDotsImg} />}
+      <CloseDropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          showChevron: false,
+          borderless: true,
+          icon: <IconClose color="subText" />,
+        }}
+        size="xs"
+        items={[
+          {
+            key: 'dismiss',
+            label: t('Dismiss'),
+            onAction: () => {
+              dismiss();
+            },
+          },
+          {
+            key: 'snooze',
+            label: t('Snooze'),
+            onAction: () => {
+              snooze();
+            },
+          },
+        ]}
+      />
+    </BannerWrapper>
+  );
+}
+
+const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)} ${space(3)};
+  margin-bottom: ${space(2)};
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+  min-width: 850px;
+`;
+
+const ActionsWrapper = styled('div')`
+  max-width: 50%;
+`;
+
+const ButtonsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const BannerDescription = styled('div')`
+  margin-bottom: ${space(1.5)};
+`;
+
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
+`;
+
+const Background = styled('div')<{image: any}>`
+  display: flex;
+  justify-self: flex-end;
+  position: absolute;
+  top: 14px;
+  right: 15px;
+  height: 81%;
+  width: 100%;
+  max-width: 413px;
+  background-image: url(${p => p.image});
+  background-repeat: no-repeat;
+  background-size: contain;
+`;
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin-bottom: 0;
+`;
+
+const LoadingContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.subText};
+  text-align: center;
+`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};

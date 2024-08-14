@@ -2,10 +2,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
-import GenericDiscoverQuery, {
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 type HasMeasurementsProps = {

@@ -7,7 +7,8 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import organizationSecurityAndPrivacyGroups from 'sentry/data/forms/organizationSecurityAndPrivacyGroups';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
+import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -17,12 +18,12 @@ import {DataScrubbing} from '../components/dataScrubbing';
 export default function OrganizationSecurityAndPrivacyContent() {
   const api = useApi();
   const organization = useOrganization();
-  const [authProvider, setAuthProvider] = useState<string | null>(null);
+  const [authProvider, setAuthProvider] = useState<AuthProvider | null>(null);
 
   useEffect(() => {
     async function fetchAuthProvider() {
       try {
-        const response = await api.requestPromise(
+        const response: AuthProvider = await api.requestPromise(
           `/organizations/${organization.slug}/auth-provider/`
         );
         setAuthProvider(response);

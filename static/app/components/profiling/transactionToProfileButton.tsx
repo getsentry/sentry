@@ -1,14 +1,15 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {useTransactionProfileId} from './transactionProfileIdProvider';
-
 interface Props {
+  event: EventTransaction;
   projectSlug: string;
   children?: React.ReactNode;
   query?: Location['query'];
@@ -16,12 +17,13 @@ interface Props {
 }
 
 function TransactionToProfileButton({
+  event,
   projectSlug,
   query,
   children = t('View Profile'),
   size = 'sm',
 }: Props) {
-  const profileId = useTransactionProfileId();
+  const profileId = event.contexts?.profile?.profile_id ?? null;
   const organization = useOrganization();
 
   if (!profileId) {

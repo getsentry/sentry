@@ -2,13 +2,15 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(self, request: Request, alert_rule_id, *args, **kwargs):
@@ -25,9 +27,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(
-                snuba_query__subscriptions__project=project, id=alert_rule_id
-            )
+            kwargs["alert_rule"] = AlertRule.objects.get(projects=project, id=alert_rule_id)
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 

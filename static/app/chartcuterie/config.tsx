@@ -9,11 +9,15 @@
  */
 
 // eslint-disable-next-line import/no-named-default
-import {default as worldMap} from 'sentry/data/world.json';
-
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
-import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
+import {performanceCharts} from './performance';
+import type {
+  ChartcuterieConfig,
+  ChartType,
+  RenderConfig,
+  RenderDescriptor,
+} from './types';
 
 /**
  * All registered style descriptors
@@ -25,9 +29,6 @@ const renderConfig: RenderConfig<ChartType> = new Map();
  */
 const config: ChartcuterieConfig = {
   version: process.env.COMMIT_SHA!,
-  init: echarts => {
-    echarts.registerMap('sentryWorld', worldMap);
-  },
   renderConfig,
 };
 
@@ -39,5 +40,6 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
 
 discoverCharts.forEach(register);
 metricAlertCharts.forEach(register);
+performanceCharts.forEach(register);
 
 export default config;

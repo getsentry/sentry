@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import itertools
+import operator
 from functools import reduce
-from typing import Any, Tuple, Type
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Model, Q
-from django.db.models.expressions import CombinedExpression
+from django.db.models import F, Model, Q
+from django.db.models.expressions import BaseExpression, CombinedExpression, Value
+from django.db.models.fields import Field
 from django.db.models.signals import post_save
 
-from .utils import resolve_combined_expression
+if TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel
 
 __all__ = (
     "create_or_update",
@@ -17,23 +20,70 @@ __all__ = (
     "update_or_create",
 )
 
+COMBINED_EXPRESSION_CALLBACKS = {
+    CombinedExpression.ADD: operator.add,
+    CombinedExpression.SUB: operator.sub,
+    CombinedExpression.MUL: operator.mul,
+    CombinedExpression.DIV: operator.floordiv,
+    CombinedExpression.MOD: operator.mod,
+    CombinedExpression.BITAND: operator.and_,
+    CombinedExpression.BITOR: operator.or_,
+}
 
-def _handle_value(instance: Model, value: Any) -> Any:
+
+class CannotResolveExpression(Exception):
+    pass
+
+
+def resolve_combined_expression(instance: Model, node: CombinedExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
+        if isinstance(node, Value):
+            return node.value
+        if isinstance(node, F):
+            return getattr(instance, node.name)
+        if isinstance(node, CombinedExpression):
+            return resolve_combined_expression(instance, node)
+        return node
+
+    if isinstance(node, Value):
+        return node.value
+    if not isinstance(node, CombinedExpression):
+        raise CannotResolveExpression
+    op = COMBINED_EXPRESSION_CALLBACKS.get(node.connector, None)
+    if not op:
+        raise CannotResolveExpression
+    if hasattr(node, "children"):
+        children = node.children
+    else:
+        children = [node.lhs, node.rhs]
+    runner = _resolve(instance, children[0])
+    for n in children[1:]:
+        runner = op(runner, _resolve(instance, n))
+    return runner
+
+
+def _get_field(model: type[Model], key: str) -> Field[object, object]:
+    field = model._meta.get_field(key)
+    if not isinstance(field, Field):
+        raise TypeError(f"expected Field for {key}, got ({field})")
+    return field
+
+
+def _handle_value(instance: BaseModel, value: Any) -> Any:
     if isinstance(value, CombinedExpression):
         return resolve_combined_expression(instance, value)
     return value
 
 
-def _handle_key(model: Type[Model], key: str, value: Any) -> str:
+def _handle_key(model: type[BaseModel], key: str, value: Any) -> str:
     # XXX(dcramer): we want to support column shortcut on create so we can do
     #  create_or_update(..., {'project': 1})
     if not isinstance(value, Model):
-        key_: str = model._meta.get_field(key).attname
-        return key_
+        return _get_field(model, key).attname
     return key
 
 
-def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
+def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
     """
@@ -45,11 +95,22 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(instance, False)
 
-    affected = instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
+    affected = (
+        instance.__class__.objects.using(using)
+        .filter(pk=instance.pk)
+        # Disable the post update query signal since we're going to send a more specific `post_save` signal here.
+        .with_post_update_signal(False)
+        .update(**kwargs)
+    )
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(sender=instance.__class__, instance=instance, created=False)
+        post_save.send(
+            sender=instance.__class__,
+            instance=instance,
+            created=False,
+            update_fields=list(kwargs.keys()),
+        )
         return affected
     elif affected == 0:
         return affected
@@ -61,14 +122,14 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         raise ValueError("Somehow we have updated multiple rows. This is very, very bad.")
 
 
-update.alters_data = True  # type: ignore
+update.alters_data = True  # type: ignore[attr-defined]
 
 
 def update_or_create(
-    model: Type[Model],
+    model: type[BaseModel],
     using: str | None = None,
     **kwargs: Any,
-) -> tuple[Model, bool]:
+) -> tuple[int, Literal[False]] | tuple[BaseModel, Literal[True]]:
     """
     Similar to `get_or_create()`, either updates a row or creates it.
 
@@ -110,8 +171,8 @@ def update_or_create(
 
 
 def create_or_update(
-    model: Type[Model], using: str | None = None, **kwargs: Any
-) -> Tuple[int, bool]:
+    model: type[Model], using: str | None = None, **kwargs: Any
+) -> tuple[int, Literal[False]] | tuple[Model, Literal[True]]:
     """
     Similar to get_or_create, either updates a row or creates it.
 
@@ -147,7 +208,7 @@ def create_or_update(
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
         if not isinstance(v, Model):
-            k = model._meta.get_field(k).attname
+            k = _get_field(model, k).attname
         if isinstance(v, CombinedExpression):
             create_kwargs[k] = resolve_combined_expression(inst, v)
         else:

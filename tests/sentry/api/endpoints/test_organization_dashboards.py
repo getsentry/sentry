@@ -1,27 +1,27 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
 )
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(
             "sentry-api-0-organization-dashboards",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by_id=self.user.id, organization=self.organization
@@ -62,7 +62,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert "default-overview" == response.data[0]["id"]
 
-        default_overview_data = Dashboard.get_prebuilt("default-overview")
+        default_overview_data = Dashboard.get_prebuilt(
+            self.organization, self.user, "default-overview"
+        )
         default_overview = response.data[0]
         assert default_overview["widgetPreview"] == [
             {"displayType": w["displayType"], "layout": None}
@@ -242,7 +244,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 404
 
     def test_post_with_widgets(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -331,7 +333,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_post_widgets_with_null_layout_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -394,7 +396,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400, response.data
 
     def test_extra_keys_in_widget_layout_are_ignored(self):
-        expected_widget = {
+        expected_widget: dict[str, Any] = {
             "displayType": "line",
             "interval": "5m",
             "title": "Transaction count()",
@@ -409,7 +411,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             ],
             "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
         }
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -649,7 +651,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert b"Ensure this value is greater than or equal to 1" in response.content
 
     def test_add_widget_with_field_aliases_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with fieldAliases in the query",
             "widgets": [
                 {
@@ -686,7 +688,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_post_widgets_with_columns_and_aggregates_succeeds(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard with null agg and cols",
             "widgets": [
                 {
@@ -836,3 +838,101 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             DashboardWidgetDisplayTypes.LINE_CHART
         )
         assert widget_data["layout"] is None
+
+    def test_post_dashboard_with_widget_filter_requiring_environment(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Widget",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "release.stage:adopted",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("post", f"{self.url}?environment=mock_env", data=data)
+        assert response.status_code == 201, response.data
+
+    def test_post_dashboard_with_widget_split_datasets(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "widgetType": "error-events",
+                },
+                {
+                    "title": "Transaction Op Count",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Transaction Op Count",
+                            "fields": ["count()", "transaction.op"],
+                            "columns": ["transaction.op"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "transaction-like",
+                },
+                {
+                    "title": "Irrelevant widget type",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Issues",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "issue",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+        dashboard = Dashboard.objects.get(id=response.data["id"])
+        widgets = dashboard.dashboardwidget_set.all()
+        assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
+        assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "error-events"
+        )
+
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+
+        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[2].discover_widget_split is None

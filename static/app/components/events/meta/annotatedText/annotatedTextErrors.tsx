@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {MetaError} from 'sentry/types';
+import type {MetaError} from 'sentry/types/group';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 function formatErrorKind(kind: string) {
   return capitalize(kind.replace(/_/g, ' '));
@@ -60,7 +60,7 @@ export function AnnotatedTextErrors({errors = []}: {errors: Array<MetaError>}) {
         )
       }
     >
-      <StyledIconWarning color="errorText" />
+      <StyledIconWarning color="errorText" data-test-id="annotated-text-error-icon" />
     </StyledTooltip>
   );
 }

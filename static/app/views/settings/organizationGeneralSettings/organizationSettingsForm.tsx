@@ -1,80 +1,75 @@
-import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import Tag from 'sentry/components/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import type {FieldObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Scope} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
 
-type Props = {
-  access: Set<Scope>;
+interface Props {
   initialData: Organization;
-  location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
-  organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncComponent['state'] & {
-  authProvider: object;
-  githubIntegrations: Integration[];
-};
+function OrganizationSettingsForm({initialData, onSave}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const endpoint = `/organizations/${organization.slug}/`;
 
-class OrganizationSettingsForm extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    return [
-      ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
-      [
-        'githubIntegrations',
-        `/organizations/${organization.slug}/integrations/?provider_key=github`,
-      ],
-    ];
-  }
+  const access = useMemo(() => new Set(organization.access), [organization]);
 
-  render() {
-    const {initialData, organization, onSave, access} = this.props;
-    const {authProvider, githubIntegrations} = this.state;
-    const endpoint = `/organizations/${organization.slug}/`;
-    const hasGithubIntegration = githubIntegrations
-      ? githubIntegrations.length > 0
-      : false;
-
-    const jsonFormSettings = {
-      additionalFieldProps: {hasSsoEnabled: !!authProvider},
+  const jsonFormSettings = useMemo(
+    () => ({
       features: new Set(organization.features),
       access,
-      location: this.props.location,
+      location,
       disabled: !access.has('org:write'),
+    }),
+    [access, location, organization]
+  );
+
+  const forms = useMemo(() => {
+    const formsConfig = cloneDeep(organizationSettingsFields);
+    const organizationIdField: FieldObject = {
+      name: 'organizationId',
+      type: 'string',
+      disabled: true,
+      label: t('Organization ID'),
+      setValue(_, _name) {
+        return organization.id;
+      },
+      help: `The unique identifier for this organization. It cannot be modified.`,
     };
 
-    const forms = cloneDeep(organizationSettingsFields);
-    forms[0].fields = [
-      ...forms[0].fields,
+    formsConfig[0].fields = [
+      ...formsConfig[0].fields.slice(0, 2),
+      organizationIdField,
+      ...formsConfig[0].fields.slice(2),
       {
         name: 'codecovAccess',
         type: 'boolean',
-        disabled: !organization.features.includes('codecov-integration'),
+        disabled:
+          !organization.features.includes('codecov-integration') ||
+          !access.has('org:write'),
         label: (
           <PoweredByCodecov>
             {t('Enable Code Coverage Insights')}{' '}
@@ -90,12 +85,12 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
                     />
                   }
                 >
-                  <Tag role="status" icon={<IconLock isSolid />}>
+                  <Tag role="status" icon={<IconLock locked />}>
                     {t('disabled')}
                   </Tag>
                 </Hovercard>
               )}
-              features={['organizations:codecov-integration']}
+              features="organizations:codecov-integration"
             >
               {() => null}
             </Feature>
@@ -112,61 +107,41 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
           </PoweredByCodecov>
         ),
       },
-      {
-        name: 'githubPRBot',
-        type: 'boolean',
-        label: t('Enable Pull Request Bot'),
-        visible: ({features}) => features.has('pr-comment-bot'),
-        help: (
-          <Fragment>
-            {t(
-              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
-            )}{' '}
-            <Link to={`/settings/${organization.slug}/integrations/github`}>
-              {t('Configure GitHub integration')}
-            </Link>
-          </Fragment>
-        ),
-        disabled: !hasGithubIntegration,
-        disabledReason: (
-          <Fragment>
-            {t('You must have a GitHub integration to enable this feature.')}
-          </Fragment>
-        ),
-      },
     ];
+    return formsConfig;
+  }, [access, organization]);
 
-    return (
-      <Form
-        data-test-id="organization-settings"
-        apiMethod="PUT"
-        apiEndpoint={endpoint}
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        onSubmitSuccess={(updated, _model) => {
-          // Special case for slug, need to forward to new slug
-          if (typeof onSave === 'function') {
-            onSave(initialData, updated);
-          }
-        }}
-        onSubmitError={() => addErrorMessage('Unable to save change')}
-      >
-        <JsonForm {...jsonFormSettings} forms={forms} />
-        <AvatarChooser
-          type="organization"
-          allowGravatar={false}
-          endpoint={`${endpoint}avatar/`}
-          model={initialData}
-          onSave={updateOrganization}
-          disabled={!access.has('org:write')}
-        />
-      </Form>
-    );
-  }
+  return (
+    <Form
+      data-test-id="organization-settings"
+      apiMethod="PUT"
+      apiEndpoint={endpoint}
+      saveOnBlur
+      allowUndo
+      initialData={initialData}
+      onSubmitSuccess={(updated, _model) => {
+        // Special case for slug, need to forward to new slug
+        if (typeof onSave === 'function') {
+          onSave(initialData, updated);
+        }
+      }}
+      onSubmitError={() => addErrorMessage('Unable to save change')}
+    >
+      <JsonForm {...jsonFormSettings} forms={forms} />
+      <AvatarChooser
+        type="organization"
+        allowGravatar={false}
+        endpoint={`${endpoint}avatar/`}
+        model={initialData}
+        uploadDomain={initialData.links.regionUrl}
+        onSave={updateOrganization}
+        disabled={!access.has('org:write')}
+      />
+    </Form>
+  );
 }
 
-export default withOrganization(OrganizationSettingsForm);
+export default OrganizationSettingsForm;
 
 const PoweredByCodecov = styled('div')`
   display: flex;

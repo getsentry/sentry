@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
-from sentry.digests import Digest
-from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,
@@ -11,12 +10,13 @@ from sentry.digests.utils import (
     sort_records,
 )
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectOwnership
-from sentry.notifications.types import ActionTargetType
+from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import ActorType
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.actor import ActorType
 
 
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
@@ -77,7 +77,11 @@ def assert_get_personalized_digests(
 ):
     result_user_ids = []
     participants_by_provider_by_event = get_participants_by_event(
-        digest, project, target_type, target_identifier
+        digest,
+        project,
+        target_type,
+        target_identifier,
+        fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
     for actor, user_digest in personalized_digests.items():
@@ -264,4 +268,4 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_empty_records(self):
-        assert build_digest(self.project, []) == (None, [])
+        assert build_digest(self.project, []) == DigestInfo({}, {}, {})

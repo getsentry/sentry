@@ -1,9 +1,6 @@
-import {
-  canUseMetricsData,
-  MetricsEnhancedSettingContext,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -13,7 +10,7 @@ import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartR
 import {filterAllowedChartsMetrics} from '../widgets/utils';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 function getAllowedChartsSmall(
   props: BasePerformanceViewProps,
@@ -33,25 +30,24 @@ function getAllowedChartsSmall(
 
 export function FrontendOtherView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
+  const {setPageError} = usePageAlert();
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
 
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
+  if (props.organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
 
   return (
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
     >
-      <div>
+      <div data-test-id="frontend-other-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
           {...props}
@@ -60,7 +56,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
         <Table
           {...props}
           columnTitles={FRONTEND_OTHER_COLUMN_TITLES}
-          setError={usePageError().setPageError}
+          setError={setPageError}
         />
       </div>
     </PerformanceDisplayProvider>

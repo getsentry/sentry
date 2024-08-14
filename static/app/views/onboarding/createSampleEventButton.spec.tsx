@@ -1,17 +1,20 @@
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
+// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
   const groupID = '123';
   const createSampleText = 'Create a sample event';
 
@@ -112,7 +115,7 @@ describe('CreateSampleEventButton', function () {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'sample_event.created',
       expect.objectContaining({
-        organization: org,
+        organization: expect.objectContaining(org),
         project_id: project.id,
         interval: 1000,
         retries: 1,

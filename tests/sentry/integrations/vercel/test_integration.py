@@ -1,26 +1,26 @@
 from urllib.parse import parse_qs
 
+import orjson
 import pytest
 import responses
 from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.identity.vercel import VercelIdentityProvider
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    Project,
-    ProjectKey,
-    ProjectKeyStatus,
-    ScheduledDeletion,
-    SentryAppInstallation,
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
 )
-from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
-from sentry.utils import json
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -143,7 +143,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             enabled_dsn = ProjectKey.get_default(
                 project=Project.objects.get(id=project_id)
             ).get_dsn(public=True)
@@ -216,30 +216,30 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
         # assert the env vars were created correctly
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = orjson.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = orjson.loads(responses.calls[7].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = orjson.loads(responses.calls[9].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]
@@ -254,7 +254,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             enabled_dsn = ProjectKey.get_default(
                 project=Project.objects.get(id=project_id)
             ).get_dsn(public=True)
@@ -341,30 +341,30 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = orjson.loads(responses.calls[11].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = orjson.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[17].request.body)
+        req_params = orjson.loads(responses.calls[17].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]
@@ -381,11 +381,12 @@ class VercelIntegrationTest(IntegrationTestCase):
         org = self.organization
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             installation = integration.get_installation(org.id)
 
-        dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
-        dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
+        with assume_test_silo_mode(SiloMode.REGION):
+            dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
         with pytest.raises(ValidationError):
             installation.update_organization_config(data)
 
@@ -396,10 +397,10 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
         dynamic_display_info = installation.get_dynamic_display_information()
+        assert dynamic_display_info is not None
         instructions = dynamic_display_info["configure_integration"]["instructions"]
-        assert len(instructions) == 2
-        assert "Don't have a project yet?" in instructions[0]
-        assert "configure your repositories." in instructions[1]
+        assert len(instructions) == 1
+        assert "configure your repositories." in instructions[0]
 
     @responses.activate
     def test_uninstall(self):

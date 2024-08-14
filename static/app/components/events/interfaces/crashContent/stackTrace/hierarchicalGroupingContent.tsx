@@ -5,23 +5,22 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {Event, Frame} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
-import {StacktraceFilenameQuery} from '../exception/useSourceMapDebug';
 
 import StacktracePlatformIcon from './platformIcon';
 
 type Props = {
   data: StacktraceType;
   event: Event;
-  platform: PlatformType;
+  platform: PlatformKey;
   className?: string;
-  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideIcon?: boolean;
@@ -34,7 +33,6 @@ type Props = {
 
 export function HierarchicalGroupingContent({
   data,
-  debugFrames,
   platform,
   event,
   newestFirst,
@@ -177,7 +175,7 @@ export function HierarchicalGroupingContent({
         const isVisible =
           includeSystemFrames ||
           frame.inApp ||
-          (nextFrame && nextFrame.inApp) ||
+          nextFrame?.inApp ||
           // the last non-app frame
           (!frame.inApp && !nextFrame) ||
           isUsedForGrouping;
@@ -204,7 +202,6 @@ export function HierarchicalGroupingContent({
             isUsedForGrouping,
             frameMeta: meta?.frames?.[frameIndex],
             registersMeta: meta?.registers,
-            debugFrames,
           };
 
           nRepeats = 0;

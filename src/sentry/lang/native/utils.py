@@ -1,9 +1,10 @@
 import logging
 import re
-from typing import Optional
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.attachments import attachment_cache
-from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -53,11 +54,14 @@ def native_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
 
 
-def is_native_event(data):
+def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether `data` is a native event, based on its platform and
+    the supplied stacktraces."""
+
     if is_native_platform(data.get("platform")):
         return True
 
-    for stacktrace in find_stacktraces_in_data(data):
+    for stacktrace in stacktraces:
         if any(is_native_platform(x) for x in stacktrace.platforms):
             return True
 
@@ -71,7 +75,7 @@ def image_name(pkg):
     return pkg.rsplit(split, 1)[-1]
 
 
-def get_os_from_event(event) -> Optional[str]:
+def get_os_from_event(event) -> str | None:
     """
     Gets the OS name from either the OS context, or the SDK Info, which represents
     the runtime SDK and *NOT* the Sentry SDK.
@@ -104,7 +108,7 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value, allow_none=False) -> Optional[int]:
+def convert_crashreport_count(value, allow_none=False) -> int | None:
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.

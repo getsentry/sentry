@@ -4,13 +4,13 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/actions/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
@@ -123,9 +123,9 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
     // validate the account number
     let accountNumberError = '';
     if (!value) {
-      accountNumberError = t('Account number required');
+      accountNumberError = t('Account ID required');
     } else if (!testAccountNumber(value)) {
-      accountNumberError = t('Invalid account number');
+      accountNumberError = t('Invalid Account ID');
     }
     this.setState({accountNumberError});
   };
@@ -200,6 +200,7 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
           <ListItem>
             <h3>{t("Add Sentry's CloudFormation")}</h3>
             <StyledButton
+              size="xs"
               priority="primary"
               onClick={this.trackOpenCloudFormation}
               external
@@ -231,10 +232,10 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
                 error={accountNumberError}
                 inline={false}
                 stacked
-                label={t('AWS Account Number')}
+                label={t('AWS Account ID')}
                 showHelpInTooltip
                 help={t(
-                  'Your account number can be found on the right side of the header in AWS'
+                  'Your Account ID can be found on the right side of the header in AWS'
                 )}
               />
               <SelectField
@@ -283,6 +284,6 @@ const StyledList = styled(List)`
   padding: 100px 50px 50px 50px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-bottom: 20px;
 `;

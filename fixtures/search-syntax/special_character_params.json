@@ -46,7 +46,12 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": ">",
-        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+        "value": {
+          "type": "valueNumber",
+          "unit": null,
+          "value": "100",
+          "parsed": {"value": 100}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -98,7 +103,12 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": ">",
-        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+        "value": {
+          "type": "valueNumber",
+          "unit": null,
+          "value": "100",
+          "parsed": {"value": 100}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -150,7 +160,12 @@
           "argsSpaceAfter": {"type": "spaces", "value": ""}
         },
         "operator": ">",
-        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+        "value": {
+          "type": "valueNumber",
+          "unit": null,
+          "value": "100",
+          "parsed": {"value": 100}
+        }
       },
       {"type": "spaces", "value": ""}
     ]

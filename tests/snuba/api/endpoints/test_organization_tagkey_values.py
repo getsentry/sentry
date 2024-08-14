@@ -1,18 +1,17 @@
 import datetime
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import ReplaysSnubaTestCase
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
@@ -44,7 +43,6 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         return self.create_group(project=self.project)
 
 
-@region_silo_test
 class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):
         self.store_event(
@@ -66,7 +64,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
         url = reverse(
             "sentry-api-0-organization-tagkey-values",
-            kwargs={"organization_slug": self.org.slug, "key": "fruit"},
+            kwargs={"organization_id_or_slug": self.org.slug, "key": "fruit"},
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -557,6 +555,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("trace", expected=[])
         self.run_test("event_id", expected=[])
         self.run_test("profile_id", expected=[])
+        self.run_test("replay_id", expected=[])
 
     def test_boolean_fields(self):
         self.run_test("error.handled", expected=[("true", None), ("false", None)])
@@ -565,14 +564,13 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("stack.in_app", expected=[("true", None), ("false", None)])
 
 
-@region_silo_test
 class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestCase):
     def setUp(self):
         super().setUp()
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id = uuid.uuid4().hex
-        date_now = datetime.datetime.now(tz=pytz.utc).replace(
+        date_now = datetime.datetime.now(tz=timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         self.r1_seq1_timestamp = date_now - datetime.timedelta(seconds=22)
@@ -743,6 +741,63 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             ],
         )
 
+    def test_replays_tags_values_query(self):
+        # requests may pass in a "query" param to filter the return values with a substring
+
+        # custom tag
+        self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "ora"})
+        self.run_test("fruit", expected=[("apple", 1), ("orange", 2)], qs_params={"query": "e"})
+        self.run_test("fruit", expected=[], qs_params={"query": "zz"})
+
+        # column aliases
+        self.run_test("replay_type", expected=[("error", 1)], qs_params={"query": "err"})
+        self.run_test(
+            "environment",
+            expected=[("development", 1), ("production", 3)],
+            qs_params={"query": "d"},
+        )
+        self.run_test("dist", expected=[], qs_params={"query": "z"})
+
+        self.run_test("platform", expected=[("python", 1)], qs_params={"query": "o"})
+        self.run_test(
+            "release", expected=[("1.0.0", 1), ("version@1.3", 3)], qs_params={"query": "1."}
+        )
+        self.run_test("user.id", expected=[("123", 3)], qs_params={"query": "1"})
+        self.run_test("user.username", expected=[("username", 3)], qs_params={"query": "a"})
+        self.run_test(
+            "user.email",
+            expected=[("test@bacon.com", 1), ("username@example.com", 3)],
+            qs_params={"query": "@"},
+        )
+        self.run_test("user.ip", expected=[], qs_params={"query": "!^"})
+        self.run_test("sdk.name", expected=[], qs_params={"query": "sentry-javascript"})
+        self.run_test(
+            "sdk.version", expected=[("5.15.5", 1), ("6.18.1", 3)], qs_params={"query": ".1"}
+        )
+        self.run_test("os.name", expected=[("SuseLinux", 1)], qs_params={"query": "Linux"})
+        self.run_test("os.version", expected=[("1.0.0", 1)], qs_params={"query": "0.0"})
+        self.run_test("browser.name", expected=[("Chrome", 3)], qs_params={"query": "Chrome"})
+        self.run_test("browser.version", expected=[("99.0.0", 1)], qs_params={"query": "99"})
+        self.run_test(
+            "device.name",
+            expected=[("Microwave", 1), ("iPhone 13 Pro", 3)],
+            qs_params={"query": "i"},
+        )
+        self.run_test("device.brand", expected=[("Samsung", 1)], qs_params={"query": "S"})
+        self.run_test("device.family", expected=[], qs_params={"query": "$$$"})
+
+    def test_replays_tags_values_query_case_insensitive(self):
+        # custom tag
+        self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "OrA"})
+
+        # some column aliases
+        self.run_test("browser.name", expected=[("Chrome", 3)], qs_params={"query": "chrom"})
+        self.run_test(
+            "environment",
+            expected=[("development", 1), ("production", 3)],
+            qs_params={"query": "D"},
+        )
+
     def test_schema(self):
 
         res = self.get_replays_response("fruit", {})
@@ -755,3 +810,134 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             "name",
             "value",
         ]
+
+
+class DatasetParamOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, OccurrenceTestMixin):
+    def setUp(self):
+        super().setUp()
+
+    def run_dataset_test(self, key, expected, dataset: Dataset, **kwargs):
+        # all tests here require that we search in transactions so make that the default here
+        qs_params = kwargs.get("qs_params", {})
+        qs_params["dataset"] = dataset.value
+        kwargs["qs_params"] = qs_params
+        super().run_test(key, expected, **kwargs)
+
+    def test_dataset_events(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"berry": "raspberry"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "tags": {"berry": "blueberry"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "tags": {"berry": "banana"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "tags": {"berry": "banana"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        # Should appear in Events and Discover datasets, but not IssuePlatform
+        self.run_dataset_test(
+            "berry",
+            expected=[("raspberry", 1), ("blueberry", 1), ("banana", 2)],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "berry",
+            expected=[("raspberry", 1), ("blueberry", 1), ("banana", 2)],
+            dataset=Dataset.Discover,
+        )
+        self.run_dataset_test(
+            "berry",
+            expected=[],
+            dataset=Dataset.IssuePlatform,
+        )
+
+    def test_dataset_issue_platform(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"stone_fruit": "peach"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.process_occurrence(
+            event_id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"stone_fruit": "cherry"},
+                "timestamp": iso_format(self.min_ago),
+                "received": iso_format(self.min_ago),
+            },
+        )
+
+        # (stone_fruit: cherry) should appear in IssuePlatform dataset,
+        # but (sonte_fruit: peach) should not
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("cherry", 1)],
+            dataset=Dataset.IssuePlatform,
+        )
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("peach", 1)],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("peach", 1)],
+            dataset=Dataset.Discover,
+        )
+
+    def test_dataset_discover(self):
+        event = load_data("transaction")
+        event["tags"].extend([["fake_fruit", "tomato"]])
+        event.update(
+            {
+                "transaction": "example_transaction",
+                "event_id": uuid.uuid4().hex,
+                "start_timestamp": iso_format(self.min_ago),
+                "timestamp": iso_format(self.min_ago),
+            }
+        )
+        event["measurements"]["lcp"]["value"] = 5000
+        self.store_event(data=event, project_id=self.project.id)
+
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[],
+            dataset=Dataset.IssuePlatform,
+        )
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[("tomato", 1)],
+            dataset=Dataset.Discover,
+        )

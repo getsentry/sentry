@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {PlatformType} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType, StackView} from 'sentry/types/stacktrace';
+import type {Event} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
@@ -18,7 +19,7 @@ type Props = Pick<
   event: Event;
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   stacktrace: StacktraceType;
   inlined?: boolean;
   lockAddress?: string;
@@ -64,6 +65,7 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
+          hideIcon={inlined}
           maxDepth={maxDepth}
         />
       </ErrorBoundary>

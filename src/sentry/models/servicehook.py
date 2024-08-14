@@ -1,24 +1,30 @@
 import hmac
+import secrets
 from functools import cached_property
 from hashlib import sha256
+from typing import Any, ClassVar, Self
 from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.db.models.manager.base import BaseManager
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -28,9 +34,9 @@ SERVICE_HOOK_EVENTS = [
 ]
 
 
-@region_silo_only_model
+@region_silo_model
 class ServiceHookProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
     project_id = BoundedBigIntegerField(db_index=True)
@@ -42,12 +48,14 @@ class ServiceHookProject(Model):
 
 
 def generate_secret():
-    return uuid4().hex + uuid4().hex
+    # the `secret` field on `ServiceHook` does not have a max_length so we can use the default length
+    # of 64 characters. This is sufficiently secure and will update over time to sane defaults.
+    return secrets.token_hex()
 
 
-@region_silo_only_model
+@region_silo_model
 class ServiceHook(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user
@@ -67,7 +75,7 @@ class ServiceHook(Model):
     version = BoundedPositiveIntegerField(default=0, choices=((0, "0"),))
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("guid",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "sentry"
@@ -80,8 +88,11 @@ class ServiceHook(Model):
         return self.application_id and bool(self.sentry_app)
 
     @cached_property
-    def sentry_app(self):
-        return app_service.find_service_hook_sentry_app(api_application_id=self.application_id)
+    def sentry_app(self) -> RpcSentryApp | None:
+        if self.application_id is None:
+            return None
+        else:
+            return app_service.get_by_application_id(application_id=self.application_id)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,7 +114,7 @@ class ServiceHook(Model):
         """
         Add a project to the service hook.
         """
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         ServiceHookProject.objects.create(
             project_id=project_or_project_id.id
@@ -111,3 +122,13 @@ class ServiceHook(Model):
             else project_or_project_id,
             service_hook_id=self.id,
         )
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_uuid(json, SanitizableField(model_name, "guid"))
+        json["fields"]["events"] = "[]"

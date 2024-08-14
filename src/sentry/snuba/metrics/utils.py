@@ -1,7 +1,17 @@
+from __future__ import annotations
+
+import re
+from abc import ABC
+from collections.abc import Collection, Generator, Mapping, Sequence
+from datetime import datetime, timedelta, timezone
+from typing import Literal, TypedDict, overload
+
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.dataset import EntityKey
+
 __all__ = (
     "MAX_POINTS",
     "GRANULARITY",
-    "TS_COL_QUERY",
     "TS_COL_GROUP",
     "TAG_REGEX",
     "MetricOperationType",
@@ -40,29 +50,10 @@ __all__ = (
     "NON_RESOLVABLE_TAG_VALUES",
 )
 
-import re
-from abc import ABC
-from datetime import datetime, timedelta, timezone
-from typing import (
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
-
-from sentry.snuba.dataset import EntityKey
 
 #: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
-TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
@@ -81,6 +72,8 @@ MetricOperationType = Literal[
     "p90",
     "p95",
     "p99",
+    "p100",
+    "percentage",
     "histogram",
     "rate",
     "count_web_vitals",
@@ -90,6 +83,16 @@ MetricOperationType = Literal[
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    "last",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+    "on_demand_count_unique",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -114,9 +117,19 @@ MetricUnit = Literal[
     "terabyte",
     "petabyte",
     "exabyte",
+    "none",
 ]
 #: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution", "numeric"]
+MetricType = Literal[
+    "counter",
+    "set",
+    "distribution",
+    "numeric",
+    "generic_counter",
+    "generic_set",
+    "generic_distribution",
+    "generic_gauge",
+]
 
 MetricEntity = Literal[
     "metrics_counters",
@@ -125,6 +138,7 @@ MetricEntity = Literal[
     "generic_metrics_counters",
     "generic_metrics_sets",
     "generic_metrics_distributions",
+    "generic_metrics_gauges",
 ]
 
 OP_TO_SNUBA_FUNCTION = {
@@ -159,6 +173,49 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+    # Gauges are not supported by non-generic metrics.
+    "generic_metrics_gauges": {
+        "min": "minIf",
+        "max": "maxIf",
+        "sum": "sumIf",
+        "count": "countIf",
+        "last": "lastIf",
+        "avg": "avg",
+    },
+}
+
+USE_CASE_ID_TO_ENTITY_KEYS = {
+    UseCaseID.SESSIONS: {
+        EntityKey.MetricsCounters,
+        EntityKey.MetricsSets,
+        EntityKey.MetricsDistributions,
+    },
+    UseCaseID.SPANS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.TRANSACTIONS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
+    UseCaseID.PROFILES: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
+    UseCaseID.CUSTOM: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsGauges,
+    },
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved
@@ -167,6 +224,24 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
 # in case new operations are added, which is not ideal but given the fact that we already
 # define operations in this file, it is not a deal-breaker.
 REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def get_entity_keys_of_use_case_id(use_case_id: UseCaseID) -> set[EntityKey] | None:
+    """
+    Returns a set of entity keys that are available for the use_case_id.
+
+    In case the use case id doesn't have known entities, the function will return `None`.
+    """
+    return USE_CASE_ID_TO_ENTITY_KEYS.get(use_case_id)
+
+
+def get_timestamp_column_name() -> str:
+    """
+    Returns the column name of the timestamp column in Snuba.
+
+    The name of the timestamp column can change based on the entity.
+    """
+    return "timestamp"
 
 
 def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
@@ -180,9 +255,12 @@ def generate_operation_regex():
     """
     Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
     """
-    operations = []
+    operations = set()
     for item in OP_TO_SNUBA_FUNCTION.values():
-        operations += list(item.keys())
+        operations.update(set(item.keys()))
+    for item in GENERIC_OP_TO_SNUBA_FUNCTION.values():
+        operations.update(set(item.keys()))
+
     return rf"({'|'.join(map(str, operations))})"
 
 
@@ -201,7 +279,6 @@ GENERIC_OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
 }
 
-# ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
@@ -209,6 +286,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
+    "generic_gauge": EntityKey.GenericMetricsGauges,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
@@ -229,6 +307,21 @@ FILTERABLE_TAGS = {
 }
 
 
+def entity_key_to_metric_type(entity_key: EntityKey) -> MetricType | None:
+    """
+    Returns the `MetricType` corresponding to the supplied `EntityKey`.
+
+    This function traverses in reverse the `METRIC_TYPE_TO_ENTITY` to avoid duplicating it
+    with the inverted values. Access still remains O(1) given that the size of the dictionary
+    is assumed to be fixed during the lifecycle of the program.
+    """
+    for metric_type, inner_entity_key in METRIC_TYPE_TO_ENTITY.items():
+        if entity_key == inner_entity_key:
+            return metric_type
+
+    return None
+
+
 class Tag(TypedDict):
     key: str  # Called key here to be consistent with JS type
 
@@ -238,13 +331,20 @@ class TagValue(TypedDict):
     value: str
 
 
+class BlockedMetric(TypedDict):
+    isBlocked: bool
+    blockedTags: Sequence[str]
+    projectId: int
+
+
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
-    unit: Optional[MetricUnit]
-    metric_id: Optional[int]
-    mri_string: str
+    unit: MetricUnit | None
+    mri: str
+    projectIds: Sequence[int]
+    blockingStatus: Sequence[BlockedMetric] | None
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -257,6 +357,7 @@ OPERATIONS_PERCENTILES = (
     "p90",
     "p95",
     "p99",
+    "p100",
 )
 DERIVED_OPERATIONS = (
     "histogram",
@@ -269,21 +370,23 @@ DERIVED_OPERATIONS = (
     "uniq_if_column",
     "min_timestamp",
     "max_timestamp",
+    # Custom operations used for on demand derived metrics.
+    "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
+    "on_demand_count_unique",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
 )
 OPERATIONS = (
-    (
-        "avg",
-        "count_unique",
-        "count",
-        "max",
-        "min",
-        "sum",
-    )
+    ("avg", "count_unique", "count", "max", "min", "sum", "last")
     + OPERATIONS_PERCENTILES
     + DERIVED_OPERATIONS
 )
 
-DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
+DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
@@ -296,6 +399,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
+    "last": None,
 }
 UNIT_TO_TYPE = {
     "sessions": "count",
@@ -350,9 +454,31 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
+@overload
+def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
 def to_intervals(
-    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
-) -> Tuple[Optional[datetime], Optional[datetime], int]:
+    start: datetime, end: datetime, interval_seconds: int
+) -> tuple[datetime, datetime, int]:
+    ...
+
+
+def to_intervals(
+    start: datetime | None, end: datetime | None, interval_seconds: int
+) -> tuple[datetime, datetime, int] | tuple[None, None, int]:
     """
     Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
     the number of total intervals in [start:end]
@@ -389,10 +515,10 @@ def to_intervals(
 
 
 def get_num_intervals(
-    start: Optional[datetime],
-    end: datetime,
+    start: datetime | None,
+    end: datetime | None,
     granularity: int,
-    interval: Optional[int] = None,
+    interval: int | None = None,
 ) -> int:
     """
     Calculates the number of intervals from start to end.
@@ -414,8 +540,8 @@ def get_num_intervals(
 
 
 def get_intervals(
-    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
-) -> Generator[datetime, None, None]:
+    start: datetime, end: datetime, granularity: int, interval: int | None = None
+) -> Generator[datetime]:
     if interval is None:
         interval = granularity
 

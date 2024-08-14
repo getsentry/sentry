@@ -1,83 +1,96 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {Button} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import Panel from 'sentry/components/panels/panel';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, UserReport} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import type {UserReport} from 'sentry/types/group';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-interface State extends AsyncViewState {
-  reportList: UserReport[];
-}
+interface Props extends RouteComponentProps<{}, {}> {}
 
-interface Props extends RouteComponentProps<{}, {}> {
-  organization: Organization;
-}
+function OrganizationUserFeedback({location: {search, pathname, query}, router}: Props) {
+  const organization = useOrganization();
+  const {status} = getQuery(search);
 
-class OrganizationUserFeedback extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {
-      organization,
-      location: {search},
-    } = this.props;
+  const unresolvedQuery = omit(query, 'status');
+  const allIssuesQuery = {...query, status: ''};
+  const hasNewFeedback = organization.features.includes('user-feedback-ui');
 
-    return [
-      [
-        'reportList',
-        `/organizations/${organization.slug}/user-feedback/`,
-        {
-          query: getQuery(search),
-        },
-      ],
-    ];
-  }
+  const {
+    data: reportList,
+    isLoading,
+    isError,
+    getResponseHeader,
+  } = useApiQuery<UserReport[]>(
+    [
+      `/organizations/${organization.slug}/user-feedback/`,
+      {
+        query: getQuery(search),
+      },
+    ],
+    {staleTime: 0}
+  );
 
-  getTitle() {
-    return `${t('User Feedback')} - ${this.props.organization.slug}`;
-  }
+  const reportListsPageLinks = getResponseHeader?.('Link');
 
-  get projectIds() {
-    const {project} = this.props.location.query;
+  function getProjectIds() {
+    const {project} = query;
 
     return Array.isArray(project)
       ? project
       : typeof project === 'string'
-      ? [project]
-      : [];
+        ? [project]
+        : [];
   }
 
-  renderResults() {
-    const {organization} = this.props;
-
+  function StreamBody() {
+    if (isError) {
+      return <LoadingError />;
+    }
+    if (isLoading) {
+      return (
+        <Panel>
+          <LoadingIndicator />
+        </Panel>
+      );
+    }
+    if (!reportList?.length) {
+      return <UserFeedbackEmpty projectIds={getProjectIds()} issueTab={false} />;
+    }
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
-        {this.state.reportList.map(item => {
+        {reportList.map(item => {
           const issue = item.issue;
           return (
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
               <StyledEventUserFeedback
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={issue.id}
               />
             </CompactIssue>
@@ -87,43 +100,8 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     );
   }
 
-  renderEmpty() {
-    return <UserFeedbackEmpty projectIds={this.projectIds} />;
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderStreamBody() {
-    const {loading, reportList} = this.state;
-
-    if (loading) {
-      return (
-        <Panel>
-          <LoadingIndicator />
-        </Panel>
-      );
-    }
-
-    if (!reportList.length) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
-  }
-
-  renderBody() {
-    const {organization, router} = this.props;
-    const {location} = this.props;
-    const {pathname, search, query} = location;
-    const {status} = getQuery(search);
-    const {reportListPageLinks} = this.state;
-
-    const unresolvedQuery = omit(query, 'status');
-    const allIssuesQuery = {...query, status: ''};
-
-    return (
+  return (
+    <SentryDocumentTitle title={`${t('User Feedback')} - ${organization.slug}`}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
           <Layout.Header>
@@ -138,6 +116,32 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
+            {hasNewFeedback && (
+              <Layout.HeaderActions>
+                <Tooltip
+                  title={t('Go back to the new feedback layout.')}
+                  position="left"
+                  isHoverable
+                >
+                  <Button
+                    size="sm"
+                    priority="default"
+                    to={{
+                      pathname: normalizeUrl(
+                        `/organizations/${organization.slug}/feedback/`
+                      ),
+                      query: {
+                        ...query,
+                        query: undefined,
+                        cursor: undefined,
+                      },
+                    }}
+                  >
+                    {t('Go to New User Feedback')}
+                  </Button>
+                </Tooltip>
+              </Layout.HeaderActions>
+            )}
           </Layout.Header>
           <Layout.Body data-test-id="user-feedback">
             <Layout.Main fullWidth>
@@ -145,7 +149,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                 <PageFilterBar>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="right" />
+                  <DatePageFilter position="bottom-end" />
                 </PageFilterBar>
                 <SegmentedControl
                   aria-label={t('Issue Status')}
@@ -163,17 +167,17 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
                   <SegmentedControl.Item key="">{t('All Issues')}</SegmentedControl.Item>
                 </SegmentedControl>
               </Filters>
-              {this.renderStreamBody()}
-              <Pagination pageLinks={reportListPageLinks} />
+              <StreamBody />
+              <Pagination pageLinks={reportListsPageLinks} />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
       </PageFiltersContainer>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
-export default withOrganization(withProfiler(OrganizationUserFeedback));
+export default withProfiler(OrganizationUserFeedback);
 
 const Filters = styled('div')`
   display: grid;

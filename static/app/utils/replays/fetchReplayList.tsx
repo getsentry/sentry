@@ -3,11 +3,11 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-started_at';
 
@@ -24,7 +24,8 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  queryReferrer?: 'issueReplays';
+  perPage?: number;
+  queryReferrer?: ReplayListQueryReferrer;
 };
 
 async function fetchReplayList({
@@ -33,6 +34,7 @@ async function fetchReplayList({
   location,
   eventView,
   queryReferrer,
+  perPage,
 }: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
@@ -42,6 +44,9 @@ async function fetchReplayList({
     // HACK!!! Because the sort field needs to be in the eventView, but I cannot
     // ask the server for compound fields like `os.name`.
     payload.field = payload.field.map(field => field.split('.')[0]);
+    if (perPage) {
+      payload.per_page = perPage;
+    }
 
     // unique list
     payload.field = Array.from(new Set(payload.field));
@@ -54,7 +59,10 @@ async function fetchReplayList({
         // when queryReferrer === 'issueReplays' we override the global view check on the backend
         // we also require a project param otherwise we won't yield results
         queryReferrer,
-        project: queryReferrer === 'issueReplays' ? ALL_ACCESS_PROJECTS : payload.project,
+        project:
+          queryReferrer === 'issueReplays' || queryReferrer === 'transactionReplays'
+            ? ALL_ACCESS_PROJECTS
+            : payload.project,
       },
     });
 

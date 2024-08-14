@@ -1,18 +1,14 @@
-import re
-
+import orjson
 import responses
 from django.test import override_settings
 from requests import Request
 
+from fixtures.bitbucket_server import REPO
 from sentry.integrations.bitbucket_server.client import (
     BitbucketServerAPIPath,
     BitbucketServerClient,
 )
-from sentry.models import Integration
-from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
@@ -24,10 +20,10 @@ secret = "hush-hush-im-invisible"
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="bitbucket_server",
             name="Bitbucket Server",
             metadata={"base_url": "https://bitbucket.example.com", "verify_ssl": True},
@@ -68,66 +64,20 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             "oauth_signature",
         ]
         for hc in header_components:
-            assert hc in str(request.headers["Authorization"])
+            assert hc in request.headers["Authorization"]
 
     @responses.activate
-    def test_integration_proxy_is_active(self):
-        class BitbucketServerProxyTestClient(BitbucketServerClient):
-            _use_proxy_url_for_tests = True
-
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
-                assert (PROXY_OI_HEADER in request.headers) == is_proxy
-                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                assert ("Authorization" in request.headers) != is_proxy
-                if is_proxy:
-                    assert request.headers[PROXY_OI_HEADER] is not None
-
+    def test_get_repo_authentication(self):
         responses.add(
-            method=responses.GET,
-            # Use regex to create responses both from proxy and integration
-            url=re.compile(rf"\S+{BitbucketServerAPIPath.repositories}"),
-            json={"ok": True},
-            status=200,
+            responses.GET,
+            f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.repository.format(project='laurynsentry', repo='helloworld')}",
+            body=orjson.dumps(REPO),
         )
 
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = BitbucketServerProxyTestClient(
-                integration=self.integration,
-                identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
-            )
-            client.get_repos()
-            request = responses.calls[0].request
+        res = self.bb_server_client.get_repo("laurynsentry", "helloworld")
 
-            assert BitbucketServerAPIPath.repositories in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+        assert isinstance(res, dict)
+        assert res["slug"] == "helloworld"
 
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = BitbucketServerProxyTestClient(
-                integration=self.integration,
-                identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
-            )
-            client.get_repos()
-            request = responses.calls[0].request
-
-            assert BitbucketServerAPIPath.repositories in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
-
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
-            client = BitbucketServerProxyTestClient(
-                integration=self.integration,
-                identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
-            )
-            client.get_repos()
-            request = responses.calls[0].request
-
-            assert BitbucketServerAPIPath.repositories in request.url
-            assert client.base_url not in request.url
-            client.assert_proxy_request(request, is_proxy=True)
+        assert len(responses.calls) == 1
+        assert "oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]

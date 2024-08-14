@@ -1,9 +1,13 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {IssueAlertRule, RuleActionsCategories} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 export function getProjectOptions({
   organization,
@@ -67,7 +71,7 @@ function renderIdBadge(project: Project) {
 
 export function getRuleActionCategory(rule: IssueAlertRule) {
   const numDefaultActions = rule.actions.filter(
-    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
+    action => action.id === IssueAlertActionType.NOTIFY_EMAIL
   ).length;
 
   switch (numDefaultActions) {
@@ -83,7 +87,7 @@ export function getRuleActionCategory(rule: IssueAlertRule) {
 }
 
 export function getAlertRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const actions = rule.triggers.flatMap(trigger => trigger.actions);
   const numDefaultActions = actions.filter(action => action.type === 'email').length;
 
   switch (numDefaultActions) {
@@ -96,4 +100,16 @@ export function getAlertRuleActionCategory(rule: MetricRule) {
     default:
       return RuleActionsCategories.SOME_DEFAULT;
   }
+}
+
+export function shouldUseErrorsDiscoverDataset(
+  query: string,
+  dataset: Dataset,
+  organization: Organization
+) {
+  if (!hasDatasetSelector(organization)) {
+    return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
+  }
+
+  return dataset === Dataset.ERRORS;
 }

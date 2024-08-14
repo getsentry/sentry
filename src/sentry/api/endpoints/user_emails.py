@@ -4,12 +4,15 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework import serializers
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
-from sentry.models import User, UserEmail, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
+from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry.accounts")
 
@@ -58,6 +61,13 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user) -> Response:
         """
         Get list of emails

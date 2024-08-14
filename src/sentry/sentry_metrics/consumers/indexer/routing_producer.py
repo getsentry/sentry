@@ -2,9 +2,10 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from collections import deque
+from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from functools import partial
-from typing import Any, Deque, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Deque, NamedTuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
@@ -90,7 +91,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__message_router = message_router
         self.__closed = False
         self.__offsets_to_be_committed: MutableMapping[Partition, int] = {}
-        self.__queue: Deque[Tuple[Mapping[Partition, int], Future[Message[KafkaPayload]]]] = deque()
+        self.__queue: Deque[tuple[Mapping[Partition, int], Future[str]]] = deque()
         self.__all_producers = message_router.get_all_producers()
 
     def poll(self) -> None:
@@ -117,7 +118,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
 
     def __delivery_callback(
         self,
-        future: "Future[str]",
+        future: Future[str],
         error: KafkaError,
         message: ConfluentMessage,
     ) -> None:
@@ -140,7 +141,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         producer, topic = self.__message_router.get_route_for_message(message)
         output_message = Message(message.value.replace(message.payload.routing_message))
 
-        future: Future[Message[KafkaPayload]] = Future()
+        future: Future[str] = Future()
         future.set_running_or_notify_cancel()
         producer.produce(
             topic=topic.name,
@@ -157,7 +158,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         """
         In addition to flushing the queue, this method also calls the
         shutdown of the router.
@@ -173,7 +174,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         while self.__queue:
             remaining = timeout - (time.time() - start) if timeout is not None else None
             if remaining is not None and remaining <= 0:
-                logger.warning(f"Timed out with {len(self.__queue)} futures in queue")
+                logger.warning("Timed out with %s futures in queue", len(self.__queue))
                 break
 
             committable, future = self.__queue.popleft()

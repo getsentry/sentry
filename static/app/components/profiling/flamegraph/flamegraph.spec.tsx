@@ -1,7 +1,9 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findAllByTestId,
-  reactHooks,
   render,
   screen,
   userEvent,
@@ -114,8 +116,8 @@ Object.defineProperty(window, 'matchMedia', {
 
 describe('Flamegraph', function () {
   beforeEach(() => {
-    const project = TestStubs.Project({slug: 'foo-project'});
-    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+    const project = ProjectFixture({slug: 'foo-project'});
+    act(() => void ProjectsStore.loadInitialData([project]));
   });
   it('renders a missing profile', async function () {
     MockApiClient.addMockResponse({
@@ -123,7 +125,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -150,7 +152,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -180,7 +182,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -217,7 +219,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
@@ -8,21 +8,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Integration
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
@@ -60,6 +60,13 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -75,15 +82,13 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):
-    repo_search = True
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
+    @property
+    def integration_name(self) -> str:
+        return "bitbucket"
 
     def get_client(self):
-        org_integration_id = self.org_integration.id if self.org_integration else None
-        return BitbucketApiClient(
-            integration=self.model,
-            org_integration_id=org_integration_id,
-        )
+        return BitbucketApiClient(integration=self.model)
 
     @property
     def username(self):
@@ -116,7 +121,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         return [{"identifier": full_name, "name": full_name} for full_name in result]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             client.get_hooks(repo.config["name"])
@@ -124,7 +129,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             return False
         return True
 
-    def get_unmigratable_repositories(self) -> List[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         repos = repository_service.get_repositories(
             organization_id=self.organization_id, providers=["bitbucket"]
         )
@@ -133,8 +138,23 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         return [repo for repo in repos if repo.name not in accessible_repos]
 
-    def reinstall(self):
-        self.reinstall_repositories()
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
+            "https://bitbucket.org",
+        )
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
@@ -143,7 +163,13 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}

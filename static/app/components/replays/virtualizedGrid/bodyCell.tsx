@@ -1,32 +1,29 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {space} from 'sentry/styles/space';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    return `background-color: ${p.theme.textColor};`;
+    return `background-color: ${p.theme.purple300};`;
   }
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    return `background-color: inherit;`;
+  if (p.isStatusError) {
+    return `background-color: ${p.theme.red100};`;
   }
-  const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
-  return `background-color: ${color};`;
+  if (p.isStatusWarning) {
+    return `background-color: var(--background-warning-default, rgba(245, 176, 0, 0.09));`;
+  }
+  return `background-color: inherit;`;
 };
 
 const cellColor = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    const colors = p.isStatusError
-      ? [p.theme.alert.error.background]
-      : [p.theme.background];
-    return `color: ${colors[0]};`;
+    const color = p.theme.white;
+    return `color: ${color};`;
   }
-  const colors = p.isStatusError
-    ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
-    : ['inherit', p.theme.gray300];
 
-  return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
+  return `color: inherit`;
 };
 
 type CellProps = {
@@ -35,6 +32,7 @@ type CellProps = {
   hasOccurred?: boolean;
   isSelected?: boolean;
   isStatusError?: boolean;
+  isStatusWarning?: boolean;
   numeric?: boolean;
   onClick?: undefined | (() => void);
 };
@@ -65,10 +63,21 @@ export const Text = styled('div')`
   gap: ${space(0.5)};
 `;
 
+export const CodeHighlightCell = styled(CodeSnippet)`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: ${space(0.75)} 0;
+  display: flex;
+  gap: ${space(0.5)};
+  --prism-block-background: transparent;
+`;
+
 export const AvatarWrapper = styled('div')`
   align-self: center;
 `;
 
-export const StyledTimestampButton = styled(TimestampButton)`
+export const ButtonWrapper = styled('div')`
+  align-items: center;
   padding-inline: ${space(1.5)};
 `;

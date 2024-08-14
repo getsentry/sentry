@@ -4,13 +4,13 @@ from urllib.parse import parse_qs, urlparse
 import responses
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 from . import EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE, get_integration
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraServerSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):

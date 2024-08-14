@@ -2,15 +2,13 @@ import functools
 import os.path
 import random
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import randint
 from urllib.parse import quote, urlencode
 
 from django import template
 from django.template.defaultfilters import stringfilter
-from django.utils import timezone
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
+from django.utils import timezone as django_timezone
 from django.utils.translation import gettext as _
 from packaging.version import parse as parse_version
 
@@ -18,7 +16,7 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
-from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
+from sentry.utils.strings import soft_hyphenate, truncatechars
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
@@ -140,21 +138,6 @@ def security_contact():
 
 
 @register.filter
-def pprint(value, break_after=10):
-    """
-    break_after is used to define how often a <span> is
-    inserted (for soft wrapping).
-    """
-
-    value = to_unicode(value)
-    return mark_safe(
-        "<span></span>".join(
-            escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)
-        )
-    )
-
-
-@register.filter
 def is_url(value):
     if not isinstance(value, str):
         return False
@@ -217,10 +200,10 @@ def get_sentry_version(context):
 
 @register.filter
 def timesince(value, now=None):
-    from django.template.defaultfilters import timesince
+    from django.utils.timesince import timesince
 
     if now is None:
-        now = timezone.now()
+        now = django_timezone.now()
     if not value:
         return _("never")
     if value < (now - timedelta(days=5)):
@@ -263,7 +246,7 @@ def duration(value):
 def date(dt, arg=None):
     from django.template.defaultfilters import date
 
-    if isinstance(dt, datetime) and not timezone.is_aware(dt):
+    if isinstance(dt, datetime) and not django_timezone.is_aware(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return date(dt, arg)
 
@@ -318,3 +301,17 @@ def random_int(a, b=None):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, "")
+
+
+@register.filter
+@stringfilter
+def sanitize_periods(value):
+    """
+    Primarily used in email templates when a field may contain a domain name to prevent
+    email clients from creating a clickable link to the domain.
+    """
+    word_joiner = "\u2060"
+
+    # Adding the Unicode character before every period
+    output_string = value.replace(".", word_joiner + ".")
+    return output_string

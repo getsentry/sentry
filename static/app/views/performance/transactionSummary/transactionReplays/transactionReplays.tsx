@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
@@ -16,15 +16,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import PageLayout, {
-  ChildProps,
-} from 'sentry/views/performance/transactionSummary/pageLayout';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import useReplaysFromTransaction, {EventSpanData} from './useReplaysFromTransaction';
+import type {EventSpanData} from './useReplaysFromTransaction';
+import useReplaysFromTransaction from './useReplaysFromTransaction';
 import useReplaysWithTxData from './useReplaysWithTxData';
 
 function TransactionReplays() {
@@ -38,7 +39,7 @@ function TransactionReplays() {
         ...location,
         query: {
           ...location.query,
-          statsPeriod: '14d',
+          statsPeriod: '90d',
         },
       }}
       organization={organization}
@@ -136,7 +137,7 @@ function ReplaysContent({
   organization: Organization;
   pageLinks: string | null;
 }) {
-  const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
+  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
@@ -144,12 +145,15 @@ function ReplaysContent({
     eventView,
     location,
     organization,
+    queryReferrer: 'transactionReplays',
   });
 
   const replaysWithTx = useReplaysWithTxData({
     replays,
     events,
   });
+
+  const {allMobileProj} = useAllMobileProj();
 
   return (
     <Layout.Main fullWidth>
@@ -162,11 +166,12 @@ function ReplaysContent({
           ReplayColumn.REPLAY,
           ...(hasRoomForColumns ? [ReplayColumn.SLOWEST_TRANSACTION] : []),
           ReplayColumn.OS,
-          ReplayColumn.BROWSER,
+          ...(allMobileProj ? [] : [ReplayColumn.BROWSER]),
           ReplayColumn.DURATION,
           ReplayColumn.COUNT_ERRORS,
           ReplayColumn.ACTIVITY,
         ]}
+        showDropdownFilters={false}
       />
     </Layout.Main>
   );

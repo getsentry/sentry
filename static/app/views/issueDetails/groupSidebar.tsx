@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isObject from 'lodash/isObject';
 
-import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
+import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
+import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -19,19 +22,31 @@ import TagFacets, {
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, CurrentRelease, Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease} from 'sentry/types/release';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
+import {ParticipantList} from 'sentry/views/issueDetails/participantList';
+import {
+  getGroupDetailsQueryData,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -41,9 +56,12 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(group: Group) {
+function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
   return useApiQuery<Group>(
-    [`/issues/${group.id}/`, {query: getGroupDetailsQueryData()}],
+    [
+      `/organizations/${organization.slug}/issues/${group.id}/`,
+      {query: getGroupDetailsQueryData()},
+    ],
     {
       staleTime: 30000,
       cacheTime: 30000,
@@ -51,11 +69,14 @@ function useFetchAllEnvsGroupData(group: Group) {
   );
 }
 
-function useFetchCurrentRelease(group: Group) {
-  return useApiQuery<CurrentRelease>([`/issues/${group.id}/current-release/`], {
-    staleTime: 30000,
-    cacheTime: 30000,
-  });
+function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
+  return useApiQuery<CurrentRelease>(
+    [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
 }
 
 export default function GroupSidebar({
@@ -65,15 +86,16 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
-  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(group);
-  const {data: currentRelease} = useFetchCurrentRelease(group);
+  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
+  const {data: currentRelease} = useFetchCurrentRelease(organization, group);
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   const location = useLocation();
 
-  const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
+  const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: 'assign',
       assigned_type: type,
       assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
@@ -82,7 +104,9 @@ export default function GroupSidebar({
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
+    IssueListCacheStore.reset();
   };
 
   const renderPluginIssue = () => {
@@ -94,7 +118,9 @@ export default function GroupSidebar({
         issues.push(
           <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
-            <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
+            <a href={issue.url}>
+              {typeof issue.label === 'object' ? issue.label.id : issue.label}
+            </a>
           </Fragment>
         );
       }
@@ -120,20 +146,68 @@ export default function GroupSidebar({
       return null;
     }
 
+    const userParticipants = participants.filter(
+      (p): p is UserParticipant => p.type === 'user'
+    );
+    const teamParticipants = participants.filter(
+      (p): p is TeamParticipant => p.type === 'team'
+    );
+
+    const getParticipantTitle = (): React.ReactNode => {
+      const individualText = tn(
+        '%s Individual',
+        '%s Individuals',
+        userParticipants.length
+      );
+      const teamText = tn('%s Team', '%s Teams', teamParticipants.length);
+
+      if (teamParticipants.length === 0) {
+        return individualText;
+      }
+
+      if (userParticipants.length === 0) {
+        return teamText;
+      }
+
+      return (
+        <Fragment>
+          {teamText}, {individualText}
+        </Fragment>
+      );
+    };
+
+    const avatars = (
+      <StyledAvatarList
+        users={userParticipants}
+        teams={teamParticipants}
+        avatarSize={28}
+        maxVisibleAvatars={12}
+        typeAvatars="participants"
+      />
+    );
+
     return (
-      <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
-          {t('Participants (%s)', participants.length)}
+      <SmallerSidebarWrap>
+        <SidebarSection.Title>
+          {t('Participants')} <TitleNumber>({getParticipantTitle()})</TitleNumber>
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
-            title={t('People who have resolved, ignored, or added a comment')}
+            title={t(
+              'People who have been assigned, resolved, unresolved, archived, bookmarked, subscribed, or added a comment'
+            )}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
+          <ParticipantList
+            users={userParticipants}
+            teams={teamParticipants}
+            description={t('participants')}
+          >
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
-      </SidebarSection.Wrap>
+      </SmallerSidebarWrap>
     );
   };
 
@@ -146,71 +220,99 @@ export default function GroupSidebar({
       return null;
     }
 
+    const avatars = (
+      <StyledAvatarList
+        users={displayUsers}
+        avatarSize={28}
+        maxVisibleAvatars={12}
+        renderTooltip={user => (
+          <Fragment>
+            {userDisplayName(user)}
+            <br />
+            <DateTime date={(user as AvatarUser).lastSeen} />
+          </Fragment>
+        )}
+      />
+    );
+
     return (
-      <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
-          {t('Viewers (%s)', displayUsers.length)}{' '}
+      <SmallerSidebarWrap>
+        <SidebarSection.Title>
+          {t('Viewers')}
+          <TitleNumber>({displayUsers.length})</TitleNumber>
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
             title={t('People who have viewed this issue')}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList
-            users={displayUsers}
-            avatarSize={28}
-            maxVisibleAvatars={13}
-            renderTooltip={user => (
-              <Fragment>
-                {userDisplayName(user)}
-                <br />
-                <DateTime date={(user as AvatarUser).lastSeen} />
-              </Fragment>
-            )}
-          />
+          <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
-      </SidebarSection.Wrap>
+      </SmallerSidebarWrap>
     );
   };
 
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
   return (
     <Container>
-      <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
-      <GroupReleaseStats
-        organization={organization}
-        project={project}
-        environments={environments}
-        allEnvironments={allEnvironmentsGroupData}
-        group={group}
-        currentRelease={currentRelease}
-      />
-      {event && (
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummary groupId={group.id} />
+      </Feature>
+      {hasStreamlinedUI && event && (
+        <ErrorBoundary mini>
+          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        </ErrorBoundary>
+      )}
+      {!hasStreamlinedUI && (
+        <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
+      )}
+      {issueTypeConfig.stats.enabled && (
+        <GroupReleaseStats
+          organization={organization}
+          project={project}
+          environments={environments}
+          allEnvironments={allEnvironmentsGroupData}
+          group={group}
+          currentRelease={currentRelease}
+        />
+      )}
+      {!hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {renderPluginIssue()}
-      <TagFacets
-        environments={environments}
-        groupId={group.id}
-        tagKeys={
-          isMobilePlatform(project?.platform)
-            ? !organization.features.includes('device-classification')
-              ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
-              : MOBILE_TAGS
-            : frontend.some(val => val === project?.platform)
-            ? FRONTEND_TAGS
-            : backend.some(val => val === project?.platform)
-            ? BACKEND_TAGS
-            : DEFAULT_TAGS
-        }
-        event={event}
-        tagFormatter={TAGS_FORMATTER}
-        project={project}
-      />
-      {renderParticipantData()}
-      {renderSeenByList()}
+      {!hasStreamlinedUI && renderPluginIssue()}
+      {issueTypeConfig.tags.enabled && (
+        <TagFacets
+          environments={environments}
+          groupId={group.id}
+          tagKeys={
+            isMobilePlatform(project?.platform)
+              ? MOBILE_TAGS
+              : frontend.some(val => val === project?.platform)
+                ? FRONTEND_TAGS
+                : backend.some(val => val === project?.platform)
+                  ? BACKEND_TAGS
+                  : DEFAULT_TAGS
+          }
+          event={event}
+          tagFormatter={TAGS_FORMATTER}
+          project={project}
+          isStatisticalDetector={
+            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
+          }
+        />
+      )}
+      {issueTypeConfig.regression.enabled && event && (
+        <EventThroughput event={event} group={group} />
+      )}
+      {!hasStreamlinedUI && renderParticipantData()}
+      {!hasStreamlinedUI && renderSeenByList()}
     </Container>
   );
 }
@@ -230,6 +332,11 @@ const StyledAvatarList = styled(AvatarList)`
   padding-left: ${space(0.75)};
 `;
 
-const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
-  gap: ${space(1)};
+const TitleNumber = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+// Using 22px + space(1) = space(4)
+const SmallerSidebarWrap = styled(SidebarSection.Wrap)`
+  margin-bottom: 22px;
 `;

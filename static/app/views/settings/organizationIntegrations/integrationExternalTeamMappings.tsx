@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
-  Organization,
-  Team,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization, Team} from 'sentry/types/organization';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -21,13 +20,13 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 import IntegrationExternalMappings from './integrationExternalMappings';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
     integration: Integration;
     organization: Organization;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   initialResults: Team[];
   queryResults: {
     // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
@@ -37,7 +36,7 @@ type State = AsyncComponent['state'] & {
   teams: Team[];
 };
 
-class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
+class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -47,7 +46,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     return [
       // We paginate on this query, since we're filtering by hasExternalTeams:true
@@ -136,7 +135,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
 
   /**
    * This method combines the results from searches made on a form dropping repeated entries
-   * that have identical 'id's. This is because we need the result of the the search query when
+   * that have identical 'id's. This is because we need the result of the search query when
    * the user submits to get the team slug, but it won't always be the last query they've made.
    *
    * If they search (but not select) after making a selection, and we didn't keep a running collection of results,

@@ -1,9 +1,10 @@
-import {RouteComponentProps} from 'react-router';
+import {useState} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import {Button} from 'sentry/components/button';
+import Alert from 'sentry/components/alert';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -23,24 +24,26 @@ import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
 import {getMessage} from 'sentry/utils/events';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import TraceMetaQuery, {
-  TraceMetaQueryChildrenProps,
-} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceTimeRangeFromEvent,
   isTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
@@ -58,51 +61,37 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
   isHomepage?: boolean;
 };
 
-type State = {
-  event: Event | undefined;
-  isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+function EventHeader({event}: {event: Event}) {
+  const message = getMessage(event);
+  return (
+    <EventHeaderContainer data-test-id="event-header">
+      <TitleWrapper>
+        <StyledEventOrGroupTitle data={event} />
+      </TitleWrapper>
+      {message && (
+        <MessageWrapper>
+          <EventMessage message={message} type={event.type} />
+        </MessageWrapper>
+      )}
+    </EventHeaderContainer>
+  );
+}
 
-class EventDetailsContent extends AsyncComponent<Props, State> {
-  state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-    event: undefined,
+function EventDetailsContent(props: Props) {
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const projectId = props.eventSlug.split(':')[0];
 
-    // local state
-    isSidebarVisible: true,
-  };
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = useApiQuery<Event>(
+    [`/organizations/${props.organization.slug}/events/${props.eventSlug}/`],
+    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseonds
+  );
 
-  toggleSidebar = () => {
-    this.setState({isSidebarVisible: !this.state.isSidebarVisible});
-  };
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, params, location, eventView} = this.props;
-    const {eventSlug} = params;
-
-    const query = eventView.getEventsAPIPayload(location);
-
-    // Fields aren't used, reduce complexity by omitting from query entirely
-    query.field = [];
-
-    const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
-
-    // Get a specific event. This could be coming from
-    // a paginated group or standalone event.
-    return [['event', url, {query}]];
-  }
-
-  get projectId() {
-    return this.props.eventSlug.split(':')[0];
-  }
-
-  generateTagUrl = (tag: EventTag) => {
-    const {eventView, organization, isHomepage} = this.props;
-    const {event} = this.state;
+  const generateTagUrl = (tag: EventTag) => {
+    const {eventView, organization, isHomepage} = props;
     if (!event) {
       return '';
     }
@@ -115,25 +104,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
   };
 
-  renderBody() {
-    const {event} = this.state;
-
+  function renderContent() {
     if (!event) {
       return <NotFound />;
     }
 
-    return this.renderContent(event);
-  }
-
-  renderContent(event: Event) {
-    const {organization, location, eventView, isHomepage} = this.props;
-    const {isSidebarVisible} = this.state;
-
-    // metrics
-    trackAnalytics('discover_v2.event_details', {
-      event_type: event.type,
-      organization,
-    });
+    const {organization, location, eventView, isHomepage} = props;
 
     const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
     const transactionSummaryTarget =
@@ -146,171 +122,168 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           })
         : null;
 
-    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
 
     const hasProfilingFeature = organization.features.includes('profiling');
 
     const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
-    const renderContent = (
+    const render = (
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
-    ) => (
-      <TransactionProfileIdProvider
-        projectId={event.projectID}
-        transactionId={event.type === 'transaction' ? event.id : undefined}
-        timestamp={event.dateReceived}
-      >
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <DiscoverBreadcrumb
-              eventView={eventView}
-              event={event}
-              organization={organization}
-              location={location}
-              isHomepage={isHomepage}
-            />
-            <EventHeader event={event} />
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <Button size="sm" onClick={this.toggleSidebar}>
-                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-              </Button>
-              <Button
-                size="sm"
-                icon={<IconOpen />}
-                href={eventJsonUrl}
-                external
-                onClick={() =>
-                  trackAnalytics('performance_views.event_details.json_button_click', {
-                    organization,
-                  })
-                }
-              >
-                {t('JSON')} (<FileSize bytes={event.size} />)
-              </Button>
-              {hasProfilingFeature && event.type === 'transaction' && (
-                <TransactionToProfileButton projectSlug={this.projectId} />
-              )}
-              {transactionSummaryTarget && (
-                <Feature organization={organization} features={['performance-view']}>
-                  {({hasFeature}) => (
-                    <Button
-                      size="sm"
-                      disabled={!hasFeature}
-                      priority="primary"
-                      to={transactionSummaryTarget}
-                    >
-                      {t('Go to Summary')}
-                    </Button>
-                  )}
-                </Feature>
-              )}
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <EventMetas
-              quickTrace={results ?? null}
-              meta={metaResults?.meta ?? null}
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-              location={location}
-              errorDest="discover"
-              transactionDest="discover"
-            />
-          </Layout.Main>
-          <Layout.Main fullWidth={!isSidebarVisible}>
-            <Projects orgId={organization.slug} slugs={[this.projectId]}>
-              {({projects, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <SpanEntryContext.Provider
-                    value={{
-                      getViewChildTransactionTarget: childTransactionProps => {
-                        const childTransactionLink = eventDetailsRoute({
-                          eventSlug: childTransactionProps.eventSlug,
-                          orgSlug: organization.slug,
-                        });
+    ) => {
+      return (
+        <TransactionProfileIdProvider
+          projectId={event.projectID}
+          transactionId={event.type === 'transaction' ? event.id : undefined}
+          timestamp={event.dateReceived}
+        >
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                event={event}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
+              <EventHeader event={event} />
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
+                  {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+                </Button>
+                <LinkButton
+                  size="sm"
+                  icon={<IconOpen />}
+                  href={eventJsonUrl}
+                  external
+                  onClick={() =>
+                    trackAnalytics('performance_views.event_details.json_button_click', {
+                      organization,
+                    })
+                  }
+                >
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </LinkButton>
+                {hasProfilingFeature && event.type === 'transaction' && (
+                  <TransactionToProfileButton event={event} projectSlug={projectId} />
+                )}
+                {transactionSummaryTarget && (
+                  <Feature organization={organization} features="performance-view">
+                    {({hasFeature}) => (
+                      <Button
+                        size="sm"
+                        disabled={!hasFeature}
+                        priority="primary"
+                        to={transactionSummaryTarget}
+                      >
+                        {t('Go to Summary')}
+                      </Button>
+                    )}
+                  </Feature>
+                )}
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <EventMetas
+                quickTrace={results ?? null}
+                meta={metaResults?.meta ?? null}
+                event={event}
+                organization={organization}
+                projectId={projectId}
+                location={location}
+                errorDest="discover"
+                transactionDest="discover"
+              />
+            </Layout.Main>
+            <Layout.Main fullWidth={!isSidebarVisible}>
+              <Projects orgId={organization.slug} slugs={[projectId]}>
+                {({projects, initiallyLoaded}) =>
+                  initiallyLoaded ? (
+                    <SpanEntryContext.Provider
+                      value={{
+                        getViewChildTransactionTarget: childTransactionProps => {
+                          const childTransactionLink = eventDetailsRoute({
+                            eventSlug: childTransactionProps.eventSlug,
+                            orgSlug: organization.slug,
+                          });
 
-                        return {
-                          pathname: childTransactionLink,
-                          query: eventView.generateQueryStringObject(),
-                        };
-                      },
-                    }}
-                  >
-                    <QuickTraceContext.Provider value={results}>
-                      {hasProfilingFeature ? (
-                        <ProfilesProvider
-                          orgSlug={organization.slug}
-                          projectSlug={this.projectId}
-                          profileId={profileId || ''}
-                        >
-                          <ProfileContext.Consumer>
-                            {profiles => (
-                              <ProfileGroupProvider
-                                type="flamechart"
-                                input={
-                                  profiles?.type === 'resolved' ? profiles.data : null
-                                }
-                                traceID={profileId || ''}
-                              >
-                                <BorderlessEventEntries
-                                  organization={organization}
-                                  event={event}
-                                  project={projects[0] as Project}
-                                  location={location}
-                                  showTagSummary={false}
-                                />
-                              </ProfileGroupProvider>
-                            )}
-                          </ProfileContext.Consumer>
-                        </ProfilesProvider>
-                      ) : (
-                        <BorderlessEventEntries
-                          organization={organization}
-                          event={event}
-                          project={projects[0] as Project}
-                          location={location}
-                          showTagSummary={false}
-                        />
-                      )}
-                    </QuickTraceContext.Provider>
-                  </SpanEntryContext.Provider>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Projects>
-          </Layout.Main>
-          {isSidebarVisible && (
-            <Layout.Side>
-              <EventVitals event={event} />
-              {(organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) && (
+                          return {
+                            pathname: childTransactionLink,
+                            query: eventView.generateQueryStringObject(),
+                          };
+                        },
+                      }}
+                    >
+                      <QuickTraceContext.Provider value={results}>
+                        {hasProfilingFeature ? (
+                          <ProfilesProvider
+                            orgSlug={organization.slug}
+                            projectSlug={projectId}
+                            profileId={profileId || ''}
+                          >
+                            <ProfileContext.Consumer>
+                              {profiles => (
+                                <ProfileGroupProvider
+                                  type="flamechart"
+                                  input={
+                                    profiles?.type === 'resolved' ? profiles.data : null
+                                  }
+                                  traceID={profileId || ''}
+                                >
+                                  <BorderlessEventEntries
+                                    organization={organization}
+                                    event={event}
+                                    project={projects[0] as Project}
+                                    showTagSummary={false}
+                                  />
+                                </ProfileGroupProvider>
+                              )}
+                            </ProfileContext.Consumer>
+                          </ProfilesProvider>
+                        ) : (
+                          <BorderlessEventEntries
+                            organization={organization}
+                            event={event}
+                            project={projects[0] as Project}
+                            showTagSummary={false}
+                          />
+                        )}
+                      </QuickTraceContext.Provider>
+                    </SpanEntryContext.Provider>
+                  ) : (
+                    <LoadingIndicator />
+                  )
+                }
+              </Projects>
+            </Layout.Main>
+            {isSidebarVisible && (
+              <Layout.Side>
+                <EventVitals event={event} />
                 <EventCustomPerformanceMetrics
                   event={event}
                   location={location}
                   organization={organization}
                   isHomepage={isHomepage}
                 />
-              )}
-              {event.groupID && (
-                <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-              )}
-              <TagsTable
-                generateUrl={this.generateTagUrl}
-                event={event}
-                query={eventView.query}
-              />
-            </Layout.Side>
-          )}
-        </Layout.Body>
-      </TransactionProfileIdProvider>
-    );
+                {event.groupID && (
+                  <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+                )}
+                <TagsTable
+                  generateUrl={generateTagUrl}
+                  event={event}
+                  query={eventView.query}
+                />
+              </Layout.Side>
+            )}
+          </Layout.Body>
+        </TransactionProfileIdProvider>
+      );
+    };
 
     const hasQuickTraceView = organization.features.includes('performance-view');
 
@@ -319,36 +292,39 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       const {start, end} = getTraceTimeRangeFromEvent(event);
 
       return (
-        <TraceMetaQuery
-          location={location}
-          orgSlug={organization.slug}
-          traceId={traceId}
-          start={start}
-          end={end}
-        >
-          {metaResults => (
-            <QuickTraceQuery
-              event={event}
-              location={location}
-              orgSlug={organization.slug}
-            >
-              {results => renderContent(results, metaResults)}
-            </QuickTraceQuery>
-          )}
-        </TraceMetaQuery>
+        <TraceDetailsRouting event={event}>
+          <TraceMetaQuery
+            location={location}
+            orgSlug={organization.slug}
+            traceId={traceId}
+            start={start}
+            end={end}
+          >
+            {metaResults => (
+              <QuickTraceQuery
+                event={event}
+                location={location}
+                orgSlug={organization.slug}
+                skipLight={false}
+              >
+                {results => render(results, metaResults)}
+              </QuickTraceQuery>
+            )}
+          </TraceMetaQuery>
+        </TraceDetailsRouting>
       );
     }
 
-    return renderContent();
+    return render();
   }
 
-  renderError(error: Error) {
-    const notFound = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
-    );
-    const permissionDenied = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 403
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (error) {
+    const notFound = error.status === 404;
+    const permissionDenied = error.status === 403;
 
     if (notFound) {
       return <NotFound />;
@@ -359,11 +335,15 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true);
+    return (
+      <Alert type="error" showIcon>
+        {error.message}
+      </Alert>
+    );
   }
 
-  getEventSlug = (): string => {
-    const {eventSlug} = this.props.params;
+  const getEventSlug = (): string => {
+    const {eventSlug} = props.params;
 
     if (typeof eventSlug === 'string') {
       return eventSlug.trim();
@@ -372,39 +352,20 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return '';
   };
 
-  renderComponent() {
-    const {eventView, organization} = this.props;
-    const {event} = this.state;
-    const eventSlug = this.getEventSlug();
-    const projectSlug = eventSlug.split(':')[0];
+  const {eventView, organization} = props;
+  const eventSlug = getEventSlug();
+  const projectSlug = eventSlug.split(':')[0];
 
-    const title = generateTitle({eventView, event, organization});
+  const title = generateTitle({eventView, event, organization});
 
-    return (
-      <SentryDocumentTitle
-        title={title}
-        orgSlug={organization.slug}
-        projectSlug={projectSlug}
-      >
-        {super.renderComponent() as React.ReactChild}
-      </SentryDocumentTitle>
-    );
-  }
-}
-
-function EventHeader({event}: {event: Event}) {
-  const message = getMessage(event);
   return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <StyledEventOrGroupTitle data={event} />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
+    <SentryDocumentTitle
+      title={title}
+      orgSlug={organization.slug}
+      projectSlug={projectSlug}
+    >
+      {renderContent() as React.ReactChild}
+    </SentryDocumentTitle>
   );
 }
 

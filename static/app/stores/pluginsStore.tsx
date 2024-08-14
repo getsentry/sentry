@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
 
 interface InternalDefinition {
   plugins: Map<string, Plugin> | null;
@@ -14,13 +15,15 @@ interface InternalDefinition {
 }
 
 interface PluginStoreDefinition extends StoreDefinition, InternalDefinition {
+  getState: () => InternalDefinition['state'];
   onFetchAll: (options?: {resetLoading?: boolean}) => void;
   onFetchAllError: (err) => void;
-  onFetchAllSuccess: (data: Plugin[], links: {pageLinks?: string}) => void;
 
+  onFetchAllSuccess: (data: Plugin[], links: {pageLinks?: string}) => void;
   onUpdate: (id: string, updateObj: Partial<Plugin>) => void;
-  onUpdateError: (id: string, _updateObj: Partial<Plugin>, err) => void;
-  onUpdateSuccess: (id: string, _updateObj: Partial<Plugin>) => void;
+  onUpdateError: (id: string, err: Error) => void;
+  onUpdateSuccess: (id: string) => void;
+  reset: () => void;
 }
 
 const defaultState = {
@@ -110,11 +113,11 @@ const storeConfig: PluginStoreDefinition = {
     this.triggerState();
   },
 
-  onUpdateSuccess(id: string, _updateObj: Partial<Plugin>) {
+  onUpdateSuccess(id: string) {
     this.updating.delete(id);
   },
 
-  onUpdateError(id: string, _updateObj: Partial<Plugin>, err) {
+  onUpdateError(id: string, err) {
     const origPlugin = this.updating.get(id);
     if (!origPlugin || !this.plugins) {
       return;

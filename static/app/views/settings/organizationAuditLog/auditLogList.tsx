@@ -3,21 +3,26 @@ import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import DateTime from 'sentry/components/dateTime';
+import Tag from 'sentry/components/badge/tag';
+import {DateTime} from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AuditLog, Organization, User} from 'sentry/types';
+import type {AuditLog, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
+import {
+  projectDetectorSettingsId,
+  retentionPrioritiesLabels,
+} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -153,6 +158,26 @@ function AuditNote({
     );
   }
 
+  if (entry.event === 'project.change-performance-issue-detection') {
+    return (
+      <Note>
+        {tct('Edited project [projectSettingsLink] [note]', {
+          projectSettingsLink: (
+            <Link
+              to={`/settings/${orgSlug}/projects/${project.slug}/performance/#${projectDetectorSettingsId}`}
+            >
+              {entry.data.slug} performance issue detector settings
+            </Link>
+          ),
+          note: entry.note.replace(
+            'edited project performance issue detector settings ',
+            ''
+          ),
+        })}
+      </Note>
+    );
+  }
+
   if (entry.event === 'sampling_priority.enabled') {
     return (
       <Note>
@@ -185,6 +210,20 @@ function AuditNote({
             biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
+      </Note>
+    );
+  }
+
+  if (entry.event === 'project.ownership-rule.edit') {
+    return (
+      <Note>
+        {tct('Modified ownership rules in project [projectSettingsLink]', {
+          projectSettingsLink: (
+            <Link to={`/settings/${orgSlug}/projects/${project.slug}/`}>
+              {entry.data.slug}
+            </Link>
+          ),
+        })}
       </Note>
     );
   }

@@ -1,21 +1,24 @@
 from unittest.mock import patch
 
 import pytest
+import requests.exceptions
 import responses
+from django.db import router
 
 from sentry import options
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.codecov import (
     CodecovIntegrationError,
     get_codecov_data,
     has_codecov_integration,
 )
-from sentry.models.integrations.integration import Integration
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@control_silo_test(stable=True)
+@all_silo_test
 class TestCodecovIntegration(APITestCase):
     def setUp(self):
         self.create_integration(
@@ -26,7 +29,10 @@ class TestCodecovIntegration(APITestCase):
         options.set("codecov.client-secret", "supersecrettoken")
 
     def test_no_github_integration(self):
-        with in_test_psql_role_override("postgres"):
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
+        ):
             Integration.objects.all().delete()
 
         has_integration, error = has_codecov_integration(self.organization)
@@ -35,7 +41,7 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_no_codecov_integration(self, mock_get_repositories):
@@ -51,7 +57,7 @@ class TestCodecovIntegration(APITestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_has_codecov_integration(self, mock_get_repositories):
@@ -95,11 +101,11 @@ class TestCodecovIntegration(APITestCase):
             status=404,
         )
 
-        with pytest.raises(Exception) as e:
+        with pytest.raises(requests.exceptions.HTTPError) as e:
             _, _ = get_codecov_data(
                 repo="testgit/abc",
                 service="github",
                 path="path/to/file.py",
             )
 
-            assert e.status == 404
+        assert e.value.response.status_code == 404

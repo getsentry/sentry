@@ -1,15 +1,20 @@
 from django.core import mail
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
+from sentry.mail.actions import NotifyEmailAction
+from sentry.mail.forms.notify_email import NotifyEmailForm
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
 class NotifyEmailFormTest(TestCase):
@@ -123,7 +128,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"targetType": "IssueOwners"})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
     def test_full_integration(self):
@@ -157,6 +162,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -164,7 +170,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_full_integration_fallthrough(self):
         one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -195,6 +200,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -202,7 +208,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_full_integration_fallthrough_not_provided(self):
         one_min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -232,6 +237,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -262,14 +268,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_regression=False,
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
-                group_states=[
-                    {
-                        "id": event.group_id,
-                        "is_new": True,
-                        "is_regression": False,
-                        "is_new_group_environment": False,
-                    }
-                ],
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
@@ -323,6 +321,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 3
@@ -331,7 +330,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_render_label_fallback_none(self):
         # Check that the label defaults to ActiveMembers
         rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})

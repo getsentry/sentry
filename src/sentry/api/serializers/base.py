@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Type, TypeVar, Union
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any, TypeVar
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
-
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +14,10 @@ K = TypeVar("K")
 registry: MutableMapping[Any, Any] = {}
 
 
-def register(type: Any) -> Callable[[Type[K]], Type[K]]:
+def register(type: Any) -> Callable[[type[K]], type[K]]:
     """A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`."""
 
-    def wrapped(cls: Type[K]) -> Type[K]:
+    def wrapped(cls: type[K]) -> type[K]:
         registry[type] = cls()
         return cls
 
@@ -24,9 +25,9 @@ def register(type: Any) -> Callable[[Type[K]], Type[K]]:
 
 
 def serialize(
-    objects: Union[Any, Sequence[Any]],
-    user: Optional[Any] = None,
-    serializer: Optional[Any] = None,
+    objects: Any | Sequence[Any],
+    user: Any | None = None,
+    serializer: Any | None = None,
     **kwargs: Any,
 ) -> Any:
     """
@@ -81,7 +82,7 @@ class Serializer:
 
     def __call__(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         """See documentation for `serialize`."""
         if obj is None:
             return None
@@ -102,7 +103,7 @@ class Serializer:
 
     def _serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Optional[Mapping[str, JSONData]]:
+    ) -> Mapping[str, Any] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
         except Exception:
@@ -111,7 +112,7 @@ class Serializer:
 
     def serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Mapping[str, JSONData]:
+    ) -> Mapping[str, Any]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 

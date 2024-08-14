@@ -2,14 +2,16 @@ from unittest import mock
 
 import pytest
 
-from sentry.models import GroupMeta, User
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user import User
 from sentry.utils import json
-from social_auth.models import UserSocialAuth
+
+pytestmark = [requires_snuba]
 
 
 class PluginWithFields(IssueTrackingPlugin2):
@@ -24,13 +26,7 @@ class PluginWithoutFields(IssueTrackingPlugin2):
     issue_fields = None
 
 
-@region_silo_test
 class IssueTrackingPlugin2Test(TestCase):
-    def test_issue_label_as_dict(self):
-        plugin = PluginWithFields()
-        result = plugin.get_issue_label(mock.Mock(), {"id": "1"})
-        assert result == "#1"
-
     def test_issue_label_legacy(self):
         plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")
@@ -51,7 +47,6 @@ class IssueTrackingPlugin2Test(TestCase):
         assert result == {"id": "test-plugin-without-fields:tid"}
 
 
-@control_silo_test(stable=True)
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
@@ -70,14 +65,13 @@ class GetAuthForUserTest(TestCase):
         self.assertEqual(p.get_auth_for_user(user), None)
 
     def test_returns_identity(self):
-        user = User.objects.create(username="test", email="test@example.com")
-        auth = UserSocialAuth.objects.create(provider="test", user=user)
+        user = self.create_user(username="test", email="test@example.com")
+        auth = self.create_usersocialauth(user=user, provider="test")
         p = IssueTrackingPlugin2()
         p.auth_provider = "test"
-        self.assertEqual(p.get_auth_for_user(user), auth)
+        self.assertEqual(p.get_auth_for_user(user).id, auth.id)
 
 
-@region_silo_test
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -155,6 +149,6 @@ class IssuePlugin2GroupActionTest(TestCase):
         url = "/api/0/issues/%s/plugins/issuetrackingplugin2/create/" % group.id
         response = self.client.get(url, format="json")
         assert response.status_code == 400
-        assert response.data == {
+        assert response.json() == {
             "message": "Unable to create issues: there are " "no events associated with this group"
         }

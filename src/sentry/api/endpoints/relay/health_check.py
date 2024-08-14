@@ -1,11 +1,16 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 
 
 @region_silo_endpoint
 class RelayHealthCheck(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     """
     Endpoint checked by downstream Relay when a suspected network error is encountered.
     This endpoint doesn't do anything besides returning an Ok, and the downstream Relay
@@ -17,6 +22,7 @@ class RelayHealthCheck(Endpoint):
 
     authentication_classes = ()
     permission_classes = ()
+    owner = ApiOwner.OWNERS_INGEST
 
     def get(self, request: Request) -> Response:
         return Response({"is_healthy": True}, status=200)

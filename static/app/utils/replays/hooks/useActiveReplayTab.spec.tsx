@@ -1,127 +1,66 @@
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import * as qs from 'query-string';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 jest.mock('react-router');
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockUseOrganization = useOrganization as jest.MockedFunction<
-  typeof useOrganization
->;
-const mockPush = browserHistory.push as jest.MockedFunction<typeof browserHistory.push>;
+const mockPush = jest.mocked(browserHistory.push);
 
 function mockLocation(query: string = '') {
-  mockUseLocation.mockReturnValue({
-    action: 'PUSH',
-    hash: '',
-    key: '',
-    pathname: '',
-    query: {query},
-    search: '',
-    state: undefined,
-  } as Location);
-}
-
-function mockOrganization(props?: {features: string[]}) {
-  const features = props?.features ?? [];
-  mockUseOrganization.mockReturnValue(
-    TestStubs.Organization({
-      features,
-    })
-  );
+  window.location.search = qs.stringify({query});
 }
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockOrganization();
     mockPush.mockReset();
   });
 
-  it('should use Console as a default', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+  it('should use Breadcrumbs as a default', () => {
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
-  it('should use DOM as a default, when there is a click search in the url', () => {
+  it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
-    expect(result.current.getActiveTab()).toBe(TabKey.DOM);
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
   it('should allow case-insensitive tab names', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('nEtWoRk');
     expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.NETWORK},
+      pathname: '/',
+      state: undefined,
+      query: {query: '', t_main: TabKey.NETWORK},
     });
   });
 
   it('should set the default tab if the name is invalid', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
+    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
     expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.CONSOLE},
-    });
-  });
-
-  it('should allow ISSUES if session-replay-errors-tab is disabled', () => {
-    mockOrganization({
-      features: [],
-    });
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
-
-    // ISSUES is allowed:
-    result.current.setActiveTab(TabKey.ISSUES);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.ISSUES},
-    });
-
-    // ERRORS is not enabled, reset to default:
-    result.current.setActiveTab(TabKey.ERRORS);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.CONSOLE},
-    });
-  });
-
-  it('should allow ERRORS if session-replay-errors-tab is enabled', () => {
-    mockOrganization({
-      features: ['session-replay-errors-tab'],
-    });
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
-
-    // ERRORS is enabled:
-    result.current.setActiveTab(TabKey.ERRORS);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.ERRORS},
-    });
-
-    // ISSUES is not allowed, it's been replaced by ERRORS, reset to default:
-    result.current.setActiveTab(TabKey.ISSUES);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.CONSOLE},
+      pathname: '/',
+      query: {query: '', t_main: TabKey.BREADCRUMBS},
     });
   });
 });

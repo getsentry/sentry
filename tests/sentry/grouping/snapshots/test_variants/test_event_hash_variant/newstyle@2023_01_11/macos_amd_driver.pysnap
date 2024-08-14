@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:01.017659Z'
+created: '2023-12-12T15:27:56.927636Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -126,7 +126,7 @@ app:
           frame (non app frame)
             function*
               "code"
-          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame (non app frame)
             function*
               "glTexSubImage2D"
           frame (non app frame)
@@ -139,14 +139,14 @@ app:
           frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
           frame (non app frame)
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -154,7 +154,7 @@ app:
               "__pthread_kill"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
@@ -280,7 +280,7 @@ system:
           frame (ignored due to recursion)
             function*
               "code"
-          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
+          frame*
             function*
               "glTexSubImage2D"
           frame (ignored by stack trace rule (category:internals -group))
@@ -293,17 +293,17 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
           frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

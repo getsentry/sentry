@@ -20,8 +20,8 @@ module.exports = {
     const name = frontendOnly
       ? 'only frontend changes'
       : backendOnly
-      ? 'only backend changes'
-      : 'fullstack changes';
+        ? 'only backend changes'
+        : 'fullstack changes';
 
     if (!name) {
       return null;

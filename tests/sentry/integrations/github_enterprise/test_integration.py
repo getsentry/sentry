@@ -1,21 +1,28 @@
+from dataclasses import asdict
+from datetime import datetime, timezone
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
 )
-from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
     config = {
@@ -102,6 +109,23 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={"installations": [{"id": installation_id}]},
         )
 
+        responses.add(
+            method=responses.GET,
+            url=self.base_url + "/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {
+                        "limit": 5000,
+                        "used": 1,
+                        "remaining": 4999,
+                        "reset": 1613064000,
+                    }
+                }
+            },
+            status=200,
+            content_type="application/json",
+        )
+
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -181,9 +205,224 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example", "default_branch": "main"},
             {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
+        ]
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        path = "README.md"
+        version = "1234567"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+        )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.example.org/Test-Organization/foo/blob/1234567/README.md"
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_no_org_integration(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "12345678"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
+        )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.example.org/Test-Organization/foo/blob/master/README.md"
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_commit_context_all_frames(self, _, __):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
+
+        file = SourceLineInfo(
+            path="src/github.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+
+        responses.add(
+            responses.POST,
+            url="https://github.example.org/api/graphql",
+            json={
+                "data": {
+                    "repository0": {
+                        "ref0": {
+                            "target": {
+                                "blame0": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "123",
+                                                "author": {
+                                                    "name": "Foo",
+                                                    "email": "foo@example.com",
+                                                },
+                                                "message": "hello",
+                                                "committedDate": "2023-01-01T00:00:00Z",
+                                            },
+                                            "startingLine": 10,
+                                            "endingLine": 15,
+                                            "age": 0,
+                                        },
+                                    ]
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            content_type="application/json",
+            status=200,
+        )
+
+        response = installation.get_commit_context_all_frames([file], extra={})
+
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="123",
+                    commitMessage="hello",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="foo@example.com",
+                    commitAuthorName="Foo",
+                ),
+            )
         ]

@@ -1,26 +1,30 @@
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
+import ProjectLatestAlerts from './projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
-  const {organization, project, router, routerContext} = initializeOrg();
+  const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2}), // closed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2}), // closed
       ],
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [TestStubs.MetricRule()],
+      body: [MetricRuleFixture()],
     });
   });
 
@@ -28,7 +32,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     render(
       <ProjectLatestAlerts
         organization={organization}
@@ -36,7 +40,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -49,7 +53,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
 
     expect(screen.getByText('Latest Alerts')).toBeInTheDocument();
-    expect(screen.getAllByText('Too many Chrome errors')).toHaveLength(3);
+    expect(await screen.findAllByText('Too many Chrome errors')).toHaveLength(3);
 
     expect(
       screen.getAllByRole('link', {name: 'Too many Chrome errors'})[0]
@@ -87,14 +91,13 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       />
     );
 
+    expect(await screen.findByText('No alerts found')).toBeInTheDocument();
     expect(rulesEndpointMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {per_page: 1},
+        query: {per_page: 1, asc: 1},
       })
     );
-
-    expect(await screen.findByText('No alerts found')).toBeInTheDocument();
   });
 
   it('shows configure alerts buttons', async function () {
@@ -114,7 +117,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(
@@ -133,7 +136,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         isProjectStabilized
@@ -148,13 +151,13 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
   });
 
-  it('handles null dateClosed with resolved alerts', function () {
+  it('handles null dateClosed with resolved alerts', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2, dateClosed: null}), // closed with null dateClosed
       ],
     });
 
@@ -167,7 +170,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       />
     );
 
-    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    expect(await screen.findByText('Resolved')).toBeInTheDocument();
   });
 
   it('does not call API if project is not stabilized yet', function () {
@@ -181,5 +184,24 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('renders error state', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/incidents/`,
+      body: [],
+      statusCode: 500,
+    });
+
+    render(
+      <ProjectLatestAlerts
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        isProjectStabilized
+      />
+    );
+
+    expect(await screen.findByText('Unable to load latest alerts')).toBeInTheDocument();
   });
 });

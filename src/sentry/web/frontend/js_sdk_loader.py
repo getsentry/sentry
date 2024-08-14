@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import time
-from typing import Optional, Tuple, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from packaging.version import Version
 from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 CACHE_CONTROL = (
@@ -21,10 +24,10 @@ CACHE_CONTROL = (
 
 class SdkConfig(TypedDict):
     dsn: str
-    tracesSampleRate: Optional[float]
-    replaysSessionSampleRate: Optional[float]
-    replaysOnErrorSampleRate: Optional[float]
-    debug: Optional[bool]
+    tracesSampleRate: NotRequired[float]
+    replaysSessionSampleRate: NotRequired[float]
+    replaysOnErrorSampleRate: NotRequired[float]
+    debug: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -36,23 +39,24 @@ class LoaderInternalConfig(TypedDict):
 
 
 class LoaderContext(TypedDict):
-    config: SdkConfig
-    jsSdkUrl: Optional[str]
-    publicKey: Optional[str]
     isLazy: bool
+    config: NotRequired[SdkConfig]
+    jsSdkUrl: NotRequired[str]
+    publicKey: NotRequired[str | None]
 
 
+@region_silo_view
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
 
     # Do not let an organization load trigger session, breaking Vary header.
     # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
     # large amount of organization related support utilities, but that ends up being a large refactor.
-    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
+    def determine_active_organization(self, request: HttpRequest, organization_slug=None) -> None:
         pass
 
     def _get_loader_config(
-        self, key: Optional[ProjectKey], sdk_version: Optional[str]
+        self, key: ProjectKey | None, sdk_version: Version | None
     ) -> LoaderInternalConfig:
         """Returns a string that is used to modify the bundle name"""
 
@@ -65,7 +69,8 @@ class JavaScriptSdkLoader(BaseView):
                 "hasDebug": False,
             }
 
-        is_v7_sdk = sdk_version >= Version("7.0.0")
+        is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
+        is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
@@ -78,16 +83,16 @@ class JavaScriptSdkLoader(BaseView):
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
         # We depend on fixes in the tracing bundle that are only available in v7
-        if is_v7_sdk and has_performance:
+        if is_greater_or_equal_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
             is_lazy = False
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
-        if is_v7_sdk and has_replay:
+        if is_greater_or_equal_v7_sdk and has_replay:
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
-        # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
+        # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
         # If we are loading replay, do not add the es5 modifier, as those bundles are
@@ -108,10 +113,10 @@ class JavaScriptSdkLoader(BaseView):
 
     def _get_context(
         self,
-        key: Optional[ProjectKey],
-        sdk_version: Optional[str],
+        key: ProjectKey | None,
+        sdk_version: Version | None,
         loader_config: LoaderInternalConfig,
-    ) -> Tuple[LoaderContext, Optional[str]]:
+    ) -> tuple[LoaderContext, str | None]:
         """Sets context information needed to render the loader"""
         if not key:
             return (
@@ -161,7 +166,7 @@ class JavaScriptSdkLoader(BaseView):
         )
 
     def get(
-        self, request: Request, public_key: Optional[str], minified: Optional[str]
+        self, request: Request, public_key: str | None, minified: str | None = None
     ) -> HttpResponse:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()
@@ -190,17 +195,21 @@ class JavaScriptSdkLoader(BaseView):
 
         metrics.incr("js-sdk-loader.rendered", instance=instance, skip_internal=False)
 
-        analytics.record(
-            "js_sdk_loader.rendered",
-            organization_id=key.project.organization_id,
-            project_id=key.project_id,
-            is_lazy=loader_config["isLazy"],
-            has_performance=loader_config["hasPerformance"],
-            has_replay=loader_config["hasReplay"],
-            has_debug=loader_config["hasDebug"],
-            sdk_version=sdk_version,
-            tmpl=tmpl,
-        ) if key else None
+        (
+            analytics.record(
+                "js_sdk_loader.rendered",
+                organization_id=key.project.organization_id,
+                project_id=key.project_id,
+                is_lazy=loader_config["isLazy"],
+                has_performance=loader_config["hasPerformance"],
+                has_replay=loader_config["hasReplay"],
+                has_debug=loader_config["hasDebug"],
+                sdk_version=sdk_version,
+                tmpl=tmpl,
+            )
+            if key
+            else None
+        )
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
@@ -210,6 +219,6 @@ class JavaScriptSdkLoader(BaseView):
             response["Surrogate-Key"] = f"project/{key.project_id} sdk/{sdk_version} sdk-loader"
 
         ms = int((time.time() - start_time) * 1000)
-        metrics.timing("js-sdk-loader.duration", ms, instance=instance)
+        metrics.distribution("js-sdk-loader.duration", ms, instance=instance, unit="millisecond")
 
         return response

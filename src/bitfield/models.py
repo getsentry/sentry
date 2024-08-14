@@ -1,5 +1,7 @@
-from typing import Any, Mapping, Optional, Sequence, Type, TypeVar, cast
+from collections.abc import Mapping, Sequence
+from typing import Any, TypeVar, cast
 
+from django.db.models import Model
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -7,7 +9,7 @@ from bitfield.types import Bit, BitHandler
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
 # Twice faster than bin(i)[2:] or math.floor(math.log(i))
-MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)  # type: ignore[attr-defined]  #  typeddjango/django-stubs#1598
+MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 
 
 class BitFieldFlags:
@@ -41,13 +43,13 @@ class BitFieldFlags:
             yield Bit(self._flags.index(flag))
 
     def items(self):
-        return list(self.iteritems())  # NOQA
+        return list(self.iteritems())
 
     def keys(self):
-        return list(self.iterkeys())  # NOQA
+        return list(self.iterkeys())
 
     def values(self):
-        return list(self.itervalues())  # NOQA
+        return list(self.itervalues())
 
 
 class BitFieldCreator:
@@ -76,8 +78,8 @@ class BitFieldCreator:
 
 
 class BitField(BigIntegerField):
-    def contribute_to_class(self, cls, name, **kwargs):
-        super().contribute_to_class(cls, name, **kwargs)
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
 
     def __init__(self, flags, default=None, *args, **kwargs):
@@ -147,7 +149,7 @@ class BitField(BigIntegerField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        args.insert(0, self._arg_flags)
+        args = [self._arg_flags, *args]
         return name, path, args, kwargs
 
 
@@ -192,7 +194,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     attributes in a type-safe way.
     """
 
-    bitfield_default: Optional[Any]
+    bitfield_default: Any | None
     bitfield_null: bool
 
     _value: int
@@ -201,7 +203,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
 T = TypeVar("T")
 
 
-def typed_dict_bitfield(definition: Type[T], default=None, null=False) -> T:
+def typed_dict_bitfield(definition: type[T], default=None, null=False) -> T:
     """
     A wrapper around BitField that allows you to access its fields as
     dictionary keys attributes in a type-safe way.

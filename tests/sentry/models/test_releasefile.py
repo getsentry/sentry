@@ -9,48 +9,56 @@ from zipfile import ZipFile
 import pytest
 
 from sentry import options
-from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
     read_artifact_index,
     update_artifact_index,
 )
-from sentry.testutils import TestCase, TransactionTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
-class ReleaseFileTestCase(TestCase):
-    def test_normalize(self):
-        n = ReleaseFile.normalize
-
-        assert n("http://example.com") == ["http://example.com", "~"]
-        assert n("http://example.com/foo.js") == ["http://example.com/foo.js", "~/foo.js"]
-        assert n("http://example.com/foo.js?bar") == [
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    (
+        ("http://example.com", ["http://example.com", "~"]),
+        ("http://example.com/foo.js", ["http://example.com/foo.js", "~/foo.js"]),
+        (
             "http://example.com/foo.js?bar",
-            "http://example.com/foo.js",
-            "~/foo.js?bar",
-            "~/foo.js",
-        ]
-        assert n("/foo.js") == ["/foo.js", "~/foo.js"]
-
-        assert n("http://example.com/foo.js?bar#baz") == [
-            "http://example.com/foo.js?bar",
-            "http://example.com/foo.js",
-            "~/foo.js?bar",
-            "~/foo.js",
-        ]
-
+            [
+                "http://example.com/foo.js?bar",
+                "http://example.com/foo.js",
+                "~/foo.js?bar",
+                "~/foo.js",
+            ],
+        ),
+        ("/foo.js", ["/foo.js", "~/foo.js"]),
+        (
+            "http://example.com/foo.js?bar#baz",
+            [
+                "http://example.com/foo.js?bar",
+                "http://example.com/foo.js",
+                "~/foo.js?bar",
+                "~/foo.js",
+            ],
+        ),
         # This is the current behavior, but seems weird to me.
         # unclear if we actually experience this case in the real
         # world, but worth documenting the behavior
-        assert n("foo.js") == ["foo.js", "~foo.js"]
+        ("foo.js", ["foo.js", "~foo.js"]),
+        pytest.param("app://[native_code]", ["app://[native_code]", "~"], id="invalid hostname"),
+    ),
+)
+def test_normalize(s, expected):
+    assert ReleaseFile.normalize(s) == expected
 
+
+class ReleaseFileTestCase(TestCase):
     def test_count_artifacts(self):
         assert self.release.count_artifacts() == 0
         for count in (3, 1, None, 0):
@@ -239,6 +247,7 @@ class ReleaseArchiveTestCase(TestCase):
         self.create_release_file(file=file_)
 
         index = read_artifact_index(self.release, None)
+        assert index is not None
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
 
 
@@ -269,7 +278,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only key "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"foo", "123"}
 
         # Only one `File` was created:
         assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
@@ -287,7 +298,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"123", "abc"}
 
     def test_lock_existing(self):
         release = self.release
@@ -306,7 +319,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only keys "0", "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "foo", "123"}
 
         def delete():
             sleep(2 * self.tick)
@@ -321,4 +336,6 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "123", "abc"}

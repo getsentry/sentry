@@ -1,11 +1,11 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.dates import to_timestamp
 
 
-class SentryAppStatsTest(APITestCase):
+@control_silo_test
+class GetSentryAppStatsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
@@ -33,9 +33,6 @@ class SentryAppStatsTest(APITestCase):
             slug=self.unowned_published_app.slug, organization=self.create_organization()
         )
 
-
-@control_silo_test(stable=True)
-class GetSentryAppStatsTest(SentryAppStatsTest):
     def test_superuser_sees_unowned_published_stats(self):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -45,11 +42,9 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         assert response.data["totalInstalls"] == 1
         assert response.data["totalUninstalls"] == 0
         install_epoch = int(
-            to_timestamp(
-                self.unowned_published_app_install.date_added.replace(
-                    microsecond=0, second=0, minute=0
-                )
-            )
+            self.unowned_published_app_install.date_added.replace(
+                microsecond=0, second=0, minute=0
+            ).timestamp()
         )
         assert (install_epoch, 1) in response.data["installStats"]
 
@@ -71,9 +66,9 @@ class GetSentryAppStatsTest(SentryAppStatsTest):
         assert response.data["totalInstalls"] == 1
         assert response.data["totalUninstalls"] == 0
         install_epoch = int(
-            to_timestamp(
-                self.published_app_install.date_added.replace(microsecond=0, second=0, minute=0)
-            )
+            self.published_app_install.date_added.replace(
+                microsecond=0, second=0, minute=0
+            ).timestamp()
         )
         assert (install_epoch, 1) in response.data["installStats"]
 

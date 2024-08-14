@@ -1,14 +1,15 @@
 from unittest.mock import call, patch
 
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestPreparerIssueLink(TestCase):
     def setUp(self):
         super().setUp()
@@ -20,10 +21,10 @@ class TestPreparerIssueLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
-            ).project_set.first()
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -95,7 +96,7 @@ class TestPreparerIssueLink(TestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestPreparerStacktraceLink(TestCase):
     def setUp(self):
         super().setUp()
@@ -107,7 +108,10 @@ class TestPreparerStacktraceLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -124,7 +128,7 @@ class TestPreparerStacktraceLink(TestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestPreparerAlertRuleAction(TestCase):
     def setUp(self):
         super().setUp()
@@ -175,7 +179,10 @@ class TestPreparerAlertRuleAction(TestCase):
         )
 
         self.component = self.sentry_app.components.first()
-        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.first()
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):

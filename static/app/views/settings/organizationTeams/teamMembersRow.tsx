@@ -2,17 +2,17 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface Props {
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
@@ -27,7 +27,6 @@ function TeamMembersRow({
   member,
   user,
   hasWriteAccess,
-  isOrgOwner,
   removeMember,
   updateMemberRole,
 }: Props) {
@@ -36,7 +35,7 @@ function TeamMembersRow({
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
-        <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+        <IdBadge avatarSize={36} member={member} />
       </div>
       <RoleSelectWrapper>
         <TeamRoleSelect
@@ -50,8 +49,6 @@ function TeamMembersRow({
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
-          hasOrgRoleFromTeam={team.orgRole !== null}
-          isOrgOwner={isOrgOwner}
           isSelf={isSelf}
           onClick={() => removeMember(member)}
           member={member}
@@ -62,14 +59,12 @@ function TeamMembersRow({
 }
 
 function RemoveButton(props: {
-  hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
 }) {
-  const {member, hasWriteAccess, isOrgOwner, isSelf, hasOrgRoleFromTeam, onClick} = props;
+  const {member, hasWriteAccess, isSelf, onClick} = props;
 
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
@@ -77,7 +72,7 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract size="xs" isCircled />}
+        icon={<IconSubtract isCircled />}
         aria-label={t('Remove')}
         title={t('You do not have permission to remove a member from this team.')}
       >
@@ -87,31 +82,18 @@ function RemoveButton(props: {
   }
 
   const isIdpProvisioned = member.flags['idp:provisioned'];
-  const isPermissionGroup = hasOrgRoleFromTeam && !isOrgOwner;
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
-  if (isIdpProvisioned || isPermissionGroup) {
-    return (
-      <Button
-        size="xs"
-        disabled
-        icon={<IconSubtract size="xs" isCircled />}
-        aria-label={t('Remove')}
-        title={buttonHelpText}
-      >
-        {t('Remove')}
-      </Button>
-    );
-  }
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
       data-test-id={`button-remove-${member.id}`}
       size="xs"
-      disabled={!canRemoveMember}
-      icon={<IconSubtract size="xs" isCircled />}
+      disabled={!canRemoveMember || isIdpProvisioned}
+      icon={<IconSubtract isCircled />}
       onClick={onClick}
       aria-label={buttonRemoveText}
+      title={buttonHelpText}
     >
       {buttonRemoveText}
     </Button>
@@ -128,10 +110,14 @@ const RoleSelectWrapper = styled('div')`
   }
 `;
 
-const TeamRolesPanelItem = styled(PanelItem)`
+export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(120px, 4fr) minmax(120px, 2fr) minmax(100px, 1fr);
-  gap: ${space(2)};
+  grid-template-columns: minmax(100px, 1fr) 200px 150px;
+  gap: ${space(1)};
+`;
+
+const TeamRolesPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE};
   align-items: center;
 
   > div:last-child {

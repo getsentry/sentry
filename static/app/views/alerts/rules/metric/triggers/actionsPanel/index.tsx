@@ -5,30 +5,36 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withOrganization from 'sentry/utils/withOrganization';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import {
+import type {
   Action,
-  ActionLabel,
   ActionType,
   MetricActionTemplate,
-  TargetLabel,
   Trigger,
+} from 'sentry/views/alerts/rules/metric/types';
+import {
+  ActionLabel,
+  DefaultPriorities,
+  PriorityOptions,
+  TargetLabel,
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
@@ -46,7 +52,7 @@ type Props = {
 };
 
 /**
- * When a new action is added, all of it's settings should be set to their default values.
+ * When a new action is added, all of its settings should be set to their default values.
  * @param actionConfig
  * @param dateCreated kept to maintain order of unsaved actions
  */
@@ -56,9 +62,7 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
     type: actionConfig.type,
     targetType:
-      actionConfig &&
-      actionConfig.allowedTargetTypes &&
-      actionConfig.allowedTargetTypes.length > 0
+      actionConfig?.allowedTargetTypes && actionConfig.allowedTargetTypes.length > 0
         ? actionConfig.allowedTargetTypes[0]
         : null,
     targetIdentifier: actionConfig.sentryAppId || '',
@@ -142,26 +146,45 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {...actions[index]};
-    if (newAction.type !== 'slack') {
-      return null;
+    if (newAction.type === 'slack') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <LinkButton
+              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </LinkButton>
+          }
+        >
+          {t('Having rate limiting problems? Enter a channel or user ID.')}
+        </MarginlessAlert>
+      );
     }
-    return (
-      <MarginlessAlert
-        type="info"
-        showIcon
-        trailingItems={
-          <Button
-            href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-            external
-            size="xs"
-          >
-            {t('Learn More')}
-          </Button>
-        }
-      >
-        {t('Having rate limiting problems? Enter a channel or user ID.')}
-      </MarginlessAlert>
-    );
+    if (newAction.type === 'discord') {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <LinkButton
+              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </LinkButton>
+          }
+        >
+          {t('Note that you must enter a Discord channel ID, not a channel name.')}
+        </MarginlessAlert>
+      );
+    }
+    return null;
   }
 
   handleAddAction = () => {
@@ -240,6 +263,21 @@ class ActionsPanel extends PureComponent<Props> {
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
+  handleChangePriority = (
+    triggerIndex: number,
+    index: number,
+    value: SelectValue<keyof typeof PriorityOptions>
+  ) => {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[index],
+      priority: value.value,
+    };
+
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  };
+
   /**
    * Update the Trigger's Action fields from the SentryAppRuleModal together
    * only after the user clicks "Save Changes".
@@ -280,6 +318,9 @@ class ActionsPanel extends PureComponent<Props> {
       value: getActionUniqueKey(availableAction),
       label: getFullActionTitle(availableAction),
     }));
+    const hasPriorityFlag = organization.features.includes(
+      'integrations-custom-alert-priorities'
+    );
 
     const levels = [
       {value: 0, label: 'Critical Status'},
@@ -420,6 +461,27 @@ class ActionsPanel extends PureComponent<Props> {
                         'inputChannelId'
                       )}
                     />
+                    {hasPriorityFlag &&
+                    availableAction &&
+                    (availableAction.type === 'opsgenie' ||
+                      availableAction.type === 'pagerduty') ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.priority}
+                        placeholder={
+                          DefaultPriorities[availableAction.type][triggerIndex]
+                        }
+                        options={PriorityOptions[availableAction.type].map(priority => ({
+                          value: priority,
+                          label: priority,
+                        }))}
+                        onChange={this.handleChangePriority.bind(
+                          this,
+                          triggerIndex,
+                          actionIdx
+                        )}
+                      />
+                    ) : null}
                   </PanelItemSelects>
                   <DeleteActionButton
                     triggerIndex={triggerIndex}

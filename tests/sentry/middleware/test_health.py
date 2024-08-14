@@ -5,7 +5,7 @@ from django.test import RequestFactory
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 

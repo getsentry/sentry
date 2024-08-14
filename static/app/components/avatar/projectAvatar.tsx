@@ -1,11 +1,12 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import PlatformList from 'sentry/components/platformList';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarProject} from 'sentry/types';
+import type {AvatarProject} from 'sentry/types/project';
 
-type Props = {
+interface Props extends BaseAvatarProps {
   project: AvatarProject;
-} & BaseAvatar['props'];
+  direction?: 'left' | 'right';
+}
 
 function ProjectAvatar({project, hasTooltip, tooltip, ...props}: Props) {
   return (

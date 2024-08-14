@@ -1,19 +1,27 @@
-from rest_framework.request import Request
+from __future__ import annotations
 
-from sentry.models import Authenticator
+from typing import Any
+
+from django.http.request import HttpRequest
+
+from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import json
+from sentry.web.frontend.base import control_silo_view
 from sudo.views import SudoView as BaseSudoView
 
 
+@control_silo_view
 class SudoView(BaseSudoView):
     template_name = "sentry/account/sudo.html"
 
-    def handle_sudo(self, request: Request, redirect_to, context):
-        if BaseSudoView.handle_sudo(self, request, redirect_to, context):
+    def handle_sudo(self, request: HttpRequest, context: dict[str, Any]) -> bool:
+        if super().handle_sudo(request, context):
             return True
 
         try:
             interface = Authenticator.objects.get_interface(request.user, "u2f")
+            assert isinstance(interface, U2fInterface), "Must be U2F interface to check if enrolled"
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:

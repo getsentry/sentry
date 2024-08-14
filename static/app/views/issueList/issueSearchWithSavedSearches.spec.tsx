@@ -1,3 +1,5 @@
+import {SearchFixture} from 'sentry-fixture/search';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
@@ -8,12 +10,11 @@ describe('IssueSearchWithSavedSearches', () => {
     onSearch: jest.fn(),
   };
 
-  const savedSearch = TestStubs.Search({
+  const savedSearch = SearchFixture({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
     name: 'Unresolved TypeErrors',
-    projectId: 'project-slug',
   });
 
   beforeEach(() => {
@@ -21,6 +22,10 @@ describe('IssueSearchWithSavedSearches', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [savedSearch],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
     });
   });
 

@@ -5,7 +5,7 @@ import pytest
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ReleaseStages
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.search.events.constants import RELEASE_ALIAS, RELEASE_STAGE_ALIAS, SEMVER_ALIAS
 
 
@@ -37,14 +37,14 @@ class ParseSearchQueryTest(TestCase):
 
     def test_release_stage(self):
 
-        assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}") == [
+        assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}") == [
             SearchFilter(
                 key=SearchKey(name=RELEASE_STAGE_ALIAS),
                 operator="=",
                 value=SearchValue(ReleaseStages.ADOPTED),
             )
         ]
-        assert parse_search_query(f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}") == [
+        assert parse_search_query(f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED.value}") == [
             SearchFilter(
                 key=SearchKey(name=RELEASE_STAGE_ALIAS),
                 operator="!=",
@@ -52,7 +52,7 @@ class ParseSearchQueryTest(TestCase):
             )
         ]
         assert parse_search_query(
-            f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]"
+            f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.LOW_ADOPTION.value}]"
         ) == [
             SearchFilter(
                 key=SearchKey(name=RELEASE_STAGE_ALIAS),
@@ -61,7 +61,7 @@ class ParseSearchQueryTest(TestCase):
             ),
         ]
         assert parse_search_query(
-            f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.ADOPTED}]"
+            f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED.value}, {ReleaseStages.ADOPTED.value}]"
         ) == [
             SearchFilter(
                 key=SearchKey(name=RELEASE_STAGE_ALIAS),

@@ -7,8 +7,8 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {SelectValue} from 'sentry/types/core';
+import type EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';
@@ -42,7 +42,7 @@ export default function ChartFooter({
 }: Props) {
   const elements: React.ReactNode[] = [];
 
-  elements.push(<SectionHeading key="total-label">{t('Event Count')}</SectionHeading>);
+  elements.push(<SectionHeading key="total-label">{t('Sample Count')}</SectionHeading>);
   elements.push(
     total === null ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">

@@ -1,21 +1,25 @@
-import {WithRouterProps} from 'react-router';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueAttachment, Project} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
@@ -24,10 +28,9 @@ import GroupEventAttachmentsFilter, {
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
 
-type Props = {
+type GroupEventAttachmentsProps = {
   project: Project;
-} & WithRouterProps<{groupId: string; orgId: string}> &
-  AsyncComponent['props'];
+};
 
 enum EventAttachmentFilter {
   ALL = 'all',
@@ -35,129 +38,84 @@ enum EventAttachmentFilter {
   SCREENSHOTS = 'screenshot',
 }
 
-type State = {
-  deletedAttachments: string[];
-  eventAttachments?: IssueAttachment[];
-} & AsyncComponent['state'];
-
 export const MAX_SCREENSHOTS_PER_PAGE = 12;
 
-class GroupEventAttachments extends AsyncComponent<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      deletedAttachments: [],
-    };
-  }
+function useActiveAttachmentsTab() {
+  const location = useLocation();
 
-  getActiveAttachmentsTab() {
-    const {location} = this.props;
-
-    const types = decodeList(location.query.types);
-    if (types.length === 0) {
-      return EventAttachmentFilter.ALL;
-    }
-    if (types[0] === SCREENSHOT_TYPE) {
-      return EventAttachmentFilter.SCREENSHOTS;
-    }
-    if (xor(crashReportTypes, types).length === 0) {
-      return EventAttachmentFilter.CRASH_REPORTS;
-    }
+  const types = decodeList(location.query.types);
+  if (types.length === 0) {
     return EventAttachmentFilter.ALL;
   }
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location} = this.props;
-
-    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
-      return [
-        [
-          'eventAttachments',
-          `/issues/${params.groupId}/attachments/`,
-          {
-            query: {
-              ...location.query,
-              types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
-              screenshot: 1,
-              per_page: MAX_SCREENSHOTS_PER_PAGE,
-            },
-          },
-        ],
-      ];
-    }
-
-    return [
-      [
-        'eventAttachments',
-        `/issues/${params.groupId}/attachments/`,
-        {
-          query: {
-            ...pick(location.query, ['cursor', 'environment', 'types']),
-            per_page: 50,
-          },
-        },
-      ],
-    ];
+  if (types[0] === SCREENSHOT_TYPE) {
+    return EventAttachmentFilter.SCREENSHOTS;
   }
+  if (xor(crashReportTypes, types).length === 0) {
+    return EventAttachmentFilter.CRASH_REPORTS;
+  }
+  return EventAttachmentFilter.ALL;
+}
 
-  handleDelete = async (deletedAttachmentId: string) => {
-    const {params, project} = this.props;
-    const attachment = this.state?.eventAttachments?.find(
-      item => item.id === deletedAttachmentId
-    );
+function GroupEventAttachments({project}: GroupEventAttachmentsProps) {
+  const location = useLocation();
+  const {groupId, orgId} = useParams<{groupId: string; orgId: string}>();
+  const activeAttachmentsTab = useActiveAttachmentsTab();
+  const [deletedAttachments, setDeletedAttachments] = useState<string[]>([]);
+  const api = useApi();
+
+  const {
+    data: eventAttachments,
+    isLoading,
+    isError,
+    getResponseHeader,
+    refetch,
+  } = useApiQuery<IssueAttachment[]>(
+    [
+      `/organizations/${orgId}/issues/${groupId}/attachments/`,
+      {
+        query:
+          activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
+            ? {
+                ...location.query,
+                types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
+                screenshot: 1,
+                per_page: MAX_SCREENSHOTS_PER_PAGE,
+              }
+            : {
+                ...pick(location.query, ['cursor', 'environment', 'types']),
+                per_page: 50,
+              },
+      },
+    ],
+    {staleTime: 0}
+  );
+
+  const {mutate: deleteAttachment} = useMutation({
+    mutationFn: ({attachmentId, eventId}: {attachmentId: string; eventId: string}) =>
+      api.requestPromise(
+        `/projects/${orgId}/${project.slug}/events/${eventId}/attachments/${attachmentId}/`,
+        {
+          method: 'DELETE',
+        }
+      ),
+    onError: () => {
+      addErrorMessage('An error occurred while deleteting the attachment');
+    },
+  });
+
+  const handleDelete = (deletedAttachmentId: string) => {
+    const attachment = eventAttachments?.find(item => item.id === deletedAttachmentId);
     if (!attachment) {
       return;
     }
 
-    this.setState(prevState => ({
-      deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
-    }));
+    setDeletedAttachments(prevState => [...prevState, deletedAttachmentId]);
 
-    try {
-      await this.api.requestPromise(
-        `/projects/${params.orgId}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-    } catch (error) {
-      addErrorMessage('An error occurred while deleteting the attachment');
-    }
+    deleteAttachment({attachmentId: attachment.id, eventId: attachment.event_id});
   };
 
-  renderNoQueryResults() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('No crash reports found')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
-  renderNoScreenshotsResults() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('No screenshots found')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('No attachments found')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderInnerBody() {
-    const {project, params} = this.props;
-    const {loading, eventAttachments, deletedAttachments} = this.state;
-
-    if (loading) {
+  const renderInnerBody = () => {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
 
@@ -165,26 +123,48 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       return (
         <GroupEventAttachmentsTable
           attachments={eventAttachments}
-          orgId={params.orgId}
+          orgId={orgId}
           projectSlug={project.slug}
-          groupId={params.groupId}
-          onDelete={this.handleDelete}
+          groupId={groupId}
+          onDelete={handleDelete}
           deletedAttachments={deletedAttachments}
         />
       );
     }
 
-    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.CRASH_REPORTS) {
-      return this.renderNoQueryResults();
+    if (activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('No crash reports found')}</p>
+        </EmptyStateWarning>
+      );
     }
 
-    return this.renderEmpty();
-  }
-  renderScreenshotGallery() {
-    const {eventAttachments, loading} = this.state;
-    const {project, params} = this.props;
+    return (
+      <EmptyStateWarning>
+        <p>{t('No attachments found')}</p>
+      </EmptyStateWarning>
+    );
+  };
 
-    if (loading) {
+  const renderAttachmentsTable = () => {
+    if (isError) {
+      return <LoadingError onRetry={refetch} message={t('Error loading attachments')} />;
+    }
+
+    return (
+      <Panel className="event-list">
+        <PanelBody>{renderInnerBody()}</PanelBody>
+      </Panel>
+    );
+  };
+
+  const renderScreenshotGallery = () => {
+    if (isError) {
+      return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
+    }
+
+    if (isLoading) {
       return <LoadingIndicator />;
     }
 
@@ -198,9 +178,9 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
                 eventAttachment={screenshot}
                 eventId={screenshot.event_id}
                 projectSlug={project.slug}
-                groupId={params.groupId}
-                onDelete={this.handleDelete}
-                pageLinks={this.state.eventAttachmentsPageLinks}
+                groupId={groupId}
+                onDelete={handleDelete}
+                pageLinks={getResponseHeader?.('Link')}
                 attachments={eventAttachments}
                 attachmentIndex={index}
               />
@@ -210,34 +190,27 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       );
     }
 
-    return this.renderNoScreenshotsResults();
-  }
-
-  renderAttachmentsTable() {
     return (
-      <Panel className="event-list">
-        <PanelBody>{this.renderInnerBody()}</PanelBody>
-      </Panel>
+      <EmptyStateWarning>
+        <p>{t('No screenshots found')}</p>
+      </EmptyStateWarning>
     );
-  }
+  };
 
-  renderBody() {
-    const {project} = this.props;
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GroupEventAttachmentsFilter project={project} />
-          {this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS
-            ? this.renderScreenshotGallery()
-            : this.renderAttachmentsTable()}
-          <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <GroupEventAttachmentsFilter project={project} />
+        {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOTS
+          ? renderScreenshotGallery()
+          : renderAttachmentsTable()}
+        <Pagination pageLinks={getResponseHeader?.('Link')} />
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
-export default withSentryRouter(GroupEventAttachments);
+export default GroupEventAttachments;
 
 const ScreenshotGrid = styled('div')`
   display: grid;

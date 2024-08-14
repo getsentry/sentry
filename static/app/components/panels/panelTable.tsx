@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -8,7 +9,7 @@ import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
-export type PanelTableProps = {
+type PanelTableProps = {
   /**
    * Headers of the table.
    */
@@ -19,6 +20,10 @@ export type PanelTableProps = {
    */
   children?: React.ReactNode | (() => React.ReactNode);
   className?: string;
+  /**
+   * If true, disables the border-bottom on the header
+   */
+  disableHeaderBorderBottom?: boolean;
   /**
    * Renders without predefined padding on the header and body cells
    */
@@ -63,29 +68,36 @@ export type PanelTableProps = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-function PanelTable({
-  headers,
-  children,
-  isLoading,
-  isEmpty,
-  disablePadding,
-  className,
-  emptyMessage = t('There are no items to display'),
-  emptyAction,
-  loader,
-  stickyHeaders = false,
-  ...props
-}: PanelTableProps) {
+
+const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTable(
+  {
+    headers,
+    children,
+    isLoading,
+    isEmpty,
+    disablePadding,
+    className,
+    emptyMessage = t('There are no items to display'),
+    emptyAction,
+    loader,
+    stickyHeaders = false,
+    disableHeaderBorderBottom = false,
+    ...props
+  }: PanelTableProps,
+  ref: React.Ref<HTMLDivElement>
+) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
 
   return (
     <Wrapper
+      ref={ref}
       columns={headers.length}
       disablePadding={disablePadding}
       className={className}
       hasRows={shouldShowContent}
+      disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...props}
     >
       {headers.map((header, i) => (
@@ -108,7 +120,7 @@ function PanelTable({
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-}
+});
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {
@@ -123,6 +135,7 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
+  disableHeaderBorderBottom: boolean;
   disablePadding: PanelTableProps['disablePadding'];
   hasRows: boolean;
 };
@@ -140,9 +153,12 @@ const Wrapper = styled(Panel, {
   > * {
     ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
 
-    &:nth-last-child(n + ${p => (p.hasRows ? p.columns + 1 : 0)}) {
-      border-bottom: 1px solid ${p => p.theme.border};
-    }
+    ${p =>
+      p.disableHeaderBorderBottom
+        ? ''
+        : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+      border-bottom: 1px solid ${p.theme.border};
+    }`}
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
@@ -154,10 +170,10 @@ const Wrapper = styled(Panel, {
   overflow: auto;
 `;
 
-export const PanelTableHeader = styled('div')<{sticky: boolean}>`
+const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};
@@ -176,4 +192,4 @@ export const PanelTableHeader = styled('div')<{sticky: boolean}>`
   `}
 `;
 
-export default PanelTable;
+export {PanelTable, type PanelTableProps, PanelTableHeader};

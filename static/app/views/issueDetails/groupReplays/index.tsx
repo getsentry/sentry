@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -23,7 +23,7 @@ function GroupReplaysContainer(props: Props) {
 
   return (
     <Feature
-      features={['session-replay']}
+      features="session-replay"
       organization={organization}
       renderDisabled={renderNoAccess}
     >

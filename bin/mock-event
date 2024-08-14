@@ -9,7 +9,7 @@ import sys
 
 from django.utils import timezone
 
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils.samples import create_sample_event
 
 

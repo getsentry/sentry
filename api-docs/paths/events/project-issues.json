@@ -5,18 +5,18 @@
     "operationId": "List a Project's Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`). If not provided, the API will return the max time period for the project (90 days for paid accounts, 30 days for free).",
         "schema": {
           "type": "string"
         }
@@ -139,22 +139,22 @@
   },
   "put": {
     "tags": ["Events"],
-    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -172,7 +172,7 @@
       {
         "name": "status",
         "in": "query",
-        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"unresolved\"`, and `\"ignored\"`.",
+        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"reprocessing\"`, `\"unresolved\"`, and `\"ignored\"`.",
         "required": false,
         "schema": {
           "type": "string"
@@ -233,7 +233,7 @@
               },
               "assignedTo": {
                 "type": "string",
-                "description": "The actor id (or username) of the user or team that should be assigned to this issue."
+                "description": "The actor ID (or username) of the user or team that should be assigned to this issue."
               },
               "hasSeen": {
                 "type": "boolean",
@@ -294,28 +294,28 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["event:write"]
       }
     ]
   },
   "delete": {
     "tags": ["Events"],
-    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The id or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The id or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -324,7 +324,7 @@
       {
         "name": "id",
         "in": "query",
-        "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue.",
+        "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue, e.g. `?id=1&id=2&id=3`. If this parameter is not provided, it will attempt to remove the first 1000 issues.",
         "schema": {
           "type": "integer"
         }
@@ -343,7 +343,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:admin"]
+        "auth_token": ["event:admin"]
       }
     ]
   }

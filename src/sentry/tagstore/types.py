@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import functools
+from typing import ClassVar
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
@@ -7,7 +10,7 @@ from sentry.tagstore.base import TagKeyStatus
 
 @functools.total_ordering
 class TagType:
-    _sort_key = None
+    _sort_key: ClassVar[str]
 
     def __repr__(self):
         return "<{}: {}>".format(
@@ -19,7 +22,7 @@ class TagType:
         return hash(tuple(getattr(self, name) for name in self.__slots__))
 
     def __eq__(self, other):
-        return type(self) == type(other) and all(
+        return type(self) is type(other) and all(
             getattr(self, name) == getattr(other, name) for name in self.__slots__
         )
 
@@ -91,7 +94,7 @@ class GroupTagValue(TagType):
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import tagstore
 
         output = {
@@ -110,7 +113,7 @@ class TagKeySerializer(Serializer):
 @register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import tagstore
 
         key = tagstore.get_standardized_key(obj.key)

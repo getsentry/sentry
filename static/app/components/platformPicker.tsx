@@ -5,33 +5,42 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import categoryList, {
+  createablePlatforms,
+  filterAliases,
+} from 'sentry/data/platformPickerCategories';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-export const PLATFORM_CATEGORIES: {
-  id: string;
-  name: string;
-  platforms?: PlatformKey[];
-}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
+
+  &.centered {
+    justify-content: center;
+  }
 `;
 
-export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+const selectablePlatforms = platforms.filter(platform =>
+  createablePlatforms.has(platform.id)
+);
+
+function startsWithPunctuation(name: string) {
+  return /^[\p{P}]/u.test(name);
+}
+
+export type Category = (typeof categoryList)[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -42,9 +51,12 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  modal?: boolean;
+  navClassName?: string;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
+  showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
 }
@@ -60,7 +72,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   };
 
   state: State = {
-    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
+    category: this.props.defaultCategory ?? categoryList[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 
@@ -77,28 +89,40 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
 
     const categoryMatch = (platform: PlatformIntegration) => {
-      if (category === 'all') {
-        return true;
-      }
-
-      // Symfony was no appering under the server category
-      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
-      // does not contain the suffix 2.
-      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
-      if (
-        (platform.id as any) === 'php-symfony' &&
-        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
-      ) {
-        return true;
-      }
-      return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+      return currentCategory?.platforms?.has(platform.id);
     };
 
-    const filtered = platforms
-      .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+    // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
+    const tempSelectablePlatforms = selectablePlatforms;
 
-    return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
+    if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
+      const nintendo = platforms.find(p => p.id === 'nintendo-switch');
+      if (nintendo) {
+        if (!tempSelectablePlatforms.includes(nintendo)) {
+          tempSelectablePlatforms.push(nintendo);
+        }
+      }
+    }
+
+    const filtered = tempSelectablePlatforms
+      .filter(this.state.filter ? subsetMatch : categoryMatch)
+      .sort((a, b) => {
+        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+          return 1;
+        }
+        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+          return -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+
+    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
+      return [otherPlatform];
+    }
+
+    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
+    return filtered;
   }
 
   logSearch = debounce(() => {
@@ -114,14 +138,20 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName} = this.props;
+    const {
+      setPlatform,
+      listProps,
+      listClassName,
+      navClassName,
+      showFilterBar = true,
+    } = this.props;
     const {filter, category} = this.state;
 
     return (
       <Fragment>
-        <NavContainer>
+        <NavContainer className={navClassName}>
           <CategoryNav>
-            {PLATFORM_CATEGORIES.map(({id, name}) => (
+            {categoryList.map(({id, name}) => (
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
@@ -140,12 +170,14 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               </ListLink>
             ))}
           </CategoryNav>
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => this.setState({filter: val}, this.logSearch)}
-          />
+          {showFilterBar && (
+            <StyledSearchBar
+              size="sm"
+              query={filter}
+              placeholder={t('Filter Platforms')}
+              onChange={val => this.setState({filter: val}, this.logSearch)}
+            />
+          )}
         </NavContainer>
         <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => {
@@ -177,14 +209,17 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
               {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
                 ),
               }
             )}
@@ -202,6 +237,11 @@ const NavContainer = styled('div')`
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  &.centered {
+    grid-template-columns: none;
+    justify-content: center;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -227,6 +267,8 @@ const CategoryNav = styled(NavTabs)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const ClearButton = styled(Button)`
@@ -245,7 +287,7 @@ const ClearButton = styled(Button)`
 `;
 
 ClearButton.defaultProps = {
-  icon: <IconClose isCircled size="xs" />,
+  icon: <IconClose isCircled />,
   borderless: true,
   size: 'xs',
 };

@@ -1,19 +1,22 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type {Client} from 'sentry/api';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
 
@@ -27,12 +30,12 @@ type Props = {
   setSavedQuery: (savedQuery: SavedQuery) => void;
 };
 
-type HomepageQueryState = AsyncComponent['state'] & {
+type HomepageQueryState = DeprecatedAsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
   starfishResult?: null;
 };
 
-class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
   componentDidUpdate(_, prevState) {
@@ -76,15 +79,18 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 
       browserHistory.replace({
         ...this.props.location,
-        query,
+        query: {
+          ...query,
+          queryDataset: this.state.savedQuery?.queryDataset,
+        },
       });
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
     if (organization.features.includes('discover-query')) {
       endpoints.push([
         'savedQuery',
@@ -95,18 +101,35 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   }
 
   onRequestSuccess({stateKey, data}) {
+    const {organization} = this.props;
     // No homepage query results in a 204, returning an empty string
     if (stateKey === 'savedQuery' && data === '') {
       this.setState({savedQuery: null});
+      return;
+    }
+    if (stateKey === 'savedQuery') {
+      this.setState({
+        savedQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? getSavedQueryWithDataset(data)
+          : data,
+      });
     }
   }
 
   setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
+    const {organization} = this.props;
+    this.setState({
+      savedQuery: organization.features.includes('performance-discover-dataset-selector')
+        ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
+        : newSavedQuery,
+    });
   };
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+
     return (
       <Results
         {...this.props}

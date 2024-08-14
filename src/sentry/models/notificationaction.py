@@ -2,28 +2,19 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
+from collections.abc import Mapping, MutableMapping
 from enum import IntEnum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.base import region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.types.integrations import ExternalProviders
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +26,7 @@ if TYPE_CHECKING:
 
 class FlexibleIntEnum(IntEnum):
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         raise NotImplementedError
 
     @classmethod
@@ -59,9 +50,17 @@ class ActionService(FlexibleIntEnum):
     MSTEAMS = 3
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
+    DISCORD = 7
 
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
+        assert ExternalProviders.EMAIL.name is not None
+        assert ExternalProviders.PAGERDUTY.name is not None
+        assert ExternalProviders.SLACK.name is not None
+        assert ExternalProviders.MSTEAMS.name is not None
+        assert ExternalProviders.OPSGENIE.name is not None
+        assert ExternalProviders.DISCORD.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
@@ -69,6 +68,8 @@ class ActionService(FlexibleIntEnum):
             (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
+            (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
+            (cls.DISCORD.value, ExternalProviders.DISCORD.name),
         )
 
 
@@ -87,13 +88,65 @@ class ActionTarget(FlexibleIntEnum):
     SENTRY_APP = 3
 
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.SPECIFIC.value, "specific"),
             (cls.USER.value, "user"),
             (cls.TEAM.value, "team"),
             (cls.SENTRY_APP.value, "sentry_app"),
         )
+
+
+class ActionTrigger(FlexibleIntEnum):
+    """
+    The possible sources of action notifications.
+    Items prefixed with 'GS_' have registrations in getsentry.
+    """
+
+    AUDIT_LOG = 0
+    GS_SPIKE_PROTECTION = 100
+
+    @classmethod
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
+        return (
+            (cls.AUDIT_LOG.value, "audit-log"),
+            (cls.GS_SPIKE_PROTECTION.value, "spike-protection"),
+        )
+
+
+class ActionRegistration(metaclass=ABCMeta):
+    def __init__(self, action: NotificationAction):
+        self.action = action
+
+    @abstractmethod
+    def fire(self, data: Any) -> None:
+        """
+        Handles delivering the message via the service from the action and specified data.
+        """
+
+    @classmethod
+    def validate_action(cls, data: NotificationActionInputData) -> None:
+        """
+        Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
+
+        :param data: The input data sent to the API before updating/creating NotificationActions
+        :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but is not valid.
+        """
+
+    @classmethod
+    def serialize_available(
+        cls, organization: Organization, integrations: list[RpcIntegration] | None = None
+    ) -> list[Any]:
+        """
+        Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
+
+        :param organization: The relevant organization which will receive the serialized available action in their response.
+        :param integrations: A list of integrations which are set up for the organization.
+        """
+        return []
+
+
+ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
 class AbstractNotificationAction(Model):
@@ -129,32 +182,9 @@ class AbstractNotificationAction(Model):
         abstract = True
 
 
-class ActionTrigger(FlexibleIntEnum):
-    """
-    The possible sources of action notifications.
-    Use values less than 100 here to avoid conflicts with getsentry's trigger values.
-    """
-
-    AUDIT_LOG = 0
-
-    @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
-        return ((cls.AUDIT_LOG.value, "audit-log"),)
-
-
-class TriggerGenerator:
-    """
-    Allows NotificationAction.trigger_type to enforce extra triggers via
-    NotificationAction.register_trigger_type
-    """
-
-    def __iter__(self):
-        yield from NotificationAction._trigger_types
-
-
-@region_silo_only_model
+@region_silo_model
 class NotificationActionProject(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
 
     project = FlexibleForeignKey("sentry.Project")
     action = FlexibleForeignKey("sentry.NotificationAction")
@@ -163,82 +193,35 @@ class NotificationActionProject(Model):
         app_label = "sentry"
         db_table = "sentry_notificationactionproject"
 
-
-class ActionRegistration(metaclass=ABCMeta):
-    def __init__(self, action: NotificationAction):
-        self.action = action
-
-    @abstractmethod
-    def fire(self, data: Any) -> None:
-        """
-        Handles delivering the message via the service from the action and specified data.
-        """
-        pass
-
-    @classmethod
-    def validate_action(cls, data: NotificationActionInputData) -> None:
-        """
-        Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
-
-        :param data: The input data sent to the API before updating/creating NotificationActions
-        :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but is not valid.
-        """
-        pass
-
-    @classmethod
-    def serialize_available(
-        cls, organization: Organization, integrations: Optional[List[RpcIntegration]] = None
-    ) -> List[JSONData]:
-        """
-        Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
-
-        :param organization: The relevant organization which will receive the serialized available action in their response.
-        :param integrations: A list of integrations which are set up for the organization.
-        """
-        return []
+    def get_relocation_scope(self) -> RelocationScope:
+        action = NotificationAction.objects.get(id=self.action_id)
+        return action.get_relocation_scope()
 
 
-@region_silo_only_model
+@region_silo_model
 class NotificationAction(AbstractNotificationAction):
     """
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
-    _trigger_types: List[Tuple[int, str]] = ActionTrigger.as_choices()
-    _registry: MutableMapping[str, ActionRegistration] = {}
+    _trigger_types: tuple[tuple[int, str], ...] = ActionTrigger.as_choices()
+    _registry: MutableMapping[str, type[ActionRegistration]] = {}
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
 
-    # The type of trigger which controls when the actions will go off (e.g. spike-protection)
-    trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
+    # The type of trigger which controls when the actions will go off (e.g. 'spike-protection')
+    trigger_type = models.SmallIntegerField(choices=_trigger_types)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_notificationaction"
 
     @classmethod
-    def register_trigger_type(
-        cls,
-        value: int,
-        display_text: str,
-    ):
-        """
-        This method is used for adding trigger types to this model from getsentry.
-        If the trigger is relevant to sentry as well, directly modify ActionTrigger.
-        """
-        cls._trigger_types: List[Tuple[int, str]] = cls._trigger_types + ((value, display_text),)
-
-    @classmethod
-    def register_action(
-        cls,
-        trigger_type: int,
-        service_type: int,
-        target_type: int,
-    ):
+    def register_action(cls, trigger_type: int, service_type: int, target_type: int):
         """
         Register a new trigger/service/target combination for NotificationActions.
         For example, allowing audit-logs (trigger) to fire actions to slack (service) channels (target)
@@ -249,10 +232,10 @@ class NotificationAction(AbstractNotificationAction):
         :param registration: A subclass of `ActionRegistration`.
         """
 
-        def inner(registration: ActionRegistration):
-            if trigger_type not in dict(cls._trigger_types):
+        def inner(registration: type[ActionRegistrationT]) -> type[ActionRegistrationT]:
+            if trigger_type not in dict(ActionTrigger.as_choices()):
                 raise AttributeError(
-                    f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger or call register_trigger_type()."
+                    f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger."
                 )
 
             if service_type not in dict(ActionService.as_choices()):
@@ -288,17 +271,17 @@ class NotificationAction(AbstractNotificationAction):
         return f"{trigger_type}:{service_type}:{target_type}"
 
     @classmethod
-    def get_registry(cls) -> Mapping[str, ActionRegistration]:
+    def get_registry(cls) -> Mapping[str, type[ActionRegistration]]:
         return cls._registry
 
     @classmethod
     def get_registration(
         cls, trigger_type: int, service_type: int, target_type: int
-    ) -> ActionRegistration | None:
+    ) -> type[ActionRegistration] | None:
         key = cls.get_registry_key(trigger_type, service_type, target_type)
         return cls._registry.get(key)
 
-    def get_audit_log_data(self) -> Dict[str, str]:
+    def get_audit_log_data(self) -> dict[str, str]:
         """
         Returns audit log data for NOTIFICATION_ACTION_ADD, NOTIFICATION_ACTION_EDIT
         and NOTIFICATION_ACTION_REMOVE events
@@ -330,3 +313,10 @@ class NotificationAction(AbstractNotificationAction):
                     "target_type": self.target_type,
                 },
             )
+
+    def get_relocation_scope(self) -> RelocationScope:
+        if self.integration_id is not None or self.sentry_app_id is not None:
+            # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+            return RelocationScope.Global
+
+        return RelocationScope.Organization

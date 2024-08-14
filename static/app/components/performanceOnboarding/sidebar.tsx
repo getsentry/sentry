@@ -1,16 +1,19 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {LinkButton} from 'sentry/components/button';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -18,55 +21,73 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
 import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
+function decodeProjectIds(projectIds: unknown): string[] | null {
+  if (Array.isArray(projectIds)) {
+    return projectIds;
+  }
+
+  if (typeof projectIds === 'string') {
+    return [projectIds];
+  }
+
+  return null;
+}
+
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
-
+  const location = useLocation<{project: string[] | null}>();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
 
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection} = useLegacyStore(PageFiltersStore);
 
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
+
+  const priorityProjectIds: Set<string> | null = useMemo(() => {
+    const decodedProjectIds = decodeProjectIds(location.query.project);
+    return decodedProjectIds === null ? null : new Set(decodedProjectIds);
+  }, [location.query.project]);
 
   useEffect(() => {
     if (
       currentProject ||
       projects.length === 0 ||
-      !isReady ||
       !isActive ||
       projectsWithoutFirstTransactionEvent.length <= 0
     ) {
       return;
     }
+
     // Establish current project
+    if (priorityProjectIds) {
+      const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
+        acc[project.id] = project;
+        return acc;
+      }, {});
 
-    const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    }, {});
-
-    if (selection.projects.length) {
-      const projectSelection = selection.projects.map(
-        projectId => projectMap[String(projectId)]
-      );
+      const priorityProjects: Project[] = [];
+      priorityProjectIds.forEach(projectId => {
+        priorityProjects.push(projectMap[String(projectId)]);
+      });
 
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent
       // a first transaction event.
-      const maybeProject = projectSelection.find(project =>
+      const maybeProject = priorityProjects.find(project =>
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
@@ -75,7 +96,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       }
 
       // Among the project selection, find a project that has not sent a first transaction event
-      const maybeProjectFallback = projectSelection.find(project =>
+      const maybeProjectFallback = priorityProjects.find(project =>
         projectsWithoutFirstTransactionEvent.includes(project)
       );
       if (maybeProjectFallback) {
@@ -97,16 +118,17 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     selection.projects,
     projects,
     isActive,
-    isReady,
     projectsForOnboarding,
     projectsWithoutFirstTransactionEvent,
     currentProject,
+    priorityProjectIds,
   ]);
 
   if (
     !isActive ||
     !hasProjectAccess ||
     currentProject === undefined ||
+    !shouldShowPerformanceTasks(projects) ||
     !projectsLoaded ||
     !projects ||
     projects.length <= 0 ||
@@ -127,7 +149,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
         },
       };
 
-      if (currentProject.id === project.id) {
+      if (priorityProjectIds?.has(String(project.id))) {
         acc.unshift(itemProps);
       } else {
         acc.push(itemProps);
@@ -182,7 +204,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  const docKeys = useMemo(() => {
+    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform]);
+
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
@@ -207,9 +232,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+          <LinkButton size="sm" href="https://docs.sentry.io/platforms/" external>
             {t('Go to Sentry Documentation')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -225,13 +250,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/product/performance/getting-started/"
             external
           >
             {t('Go to documentation')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -304,7 +329,7 @@ const Heading = styled('div')`
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

@@ -1,3 +1,5 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -5,45 +7,32 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
-  const getContext = (query?: {environment: string; project: string[]}) =>
-    TestStubs.routerContext([
-      {
-        router: TestStubs.router({
-          location: {query},
-        }),
-      },
-    ]);
+  const getRouter = (query?: {environment: string; project: string[]}) =>
+    RouterFixture({location: {query}});
 
   it('has global selection values in query', async function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
-    const context = getContext(query);
+    const router = getRouter(query);
 
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context}
-    );
-    expect(container).toSnapshot();
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {router});
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
       'http://some.url/?environment=staging&project=foo&project=bar'
     );
 
     await userEvent.click(screen.getByText('Go somewhere!'));
-    expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
+    expect(router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 
   it('does not have global selection values in query', function () {
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context: getContext()}
-    );
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
+      router: getRouter(),
+    });
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
-
-    expect(container).toSnapshot();
   });
 
   it('combines query parameters with custom query', async function () {
@@ -51,17 +40,17 @@ describe('GlobalSelectionLink', function () {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
-    const context = getContext(query);
+    const router = getRouter(query);
     const customQuery = {query: 'something'};
     render(
       <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
         Go somewhere!
       </GlobalSelectionLink>,
-      {context}
+      {router}
     );
 
     await userEvent.click(screen.getByText('Go somewhere!'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: path,
       query: {project: ['foo', 'bar'], environment: 'staging', query: 'something'},
     });
@@ -72,14 +61,14 @@ describe('GlobalSelectionLink', function () {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
-    const context = getContext(query);
+    const router = getRouter(query);
     render(
       <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
-      {context}
+      {router}
     );
 
     await userEvent.click(screen.getByText('Go somewhere!'));
 
-    expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
+    expect(router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 });

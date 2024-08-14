@@ -2,12 +2,14 @@ from base64 import urlsafe_b64encode
 
 from django.urls import reverse
 
-from sentry.models import Distribution, File, Release, ReleaseFile
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.distribution import Distribution
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.response import close_streaming_response
 
 
-@region_silo_test(stable=True)
 class ReleaseFileDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -27,7 +29,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -62,7 +64,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -73,7 +75,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
         assert response.get("Content-Length") == str(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)
@@ -84,7 +86,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "version": self.release.version,
                 "file_id": file_id,
             },
@@ -117,7 +119,6 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.data["id"] == id
 
 
-@region_silo_test(stable=True)
 class ReleaseFileUpdateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -137,7 +138,7 @@ class ReleaseFileUpdateTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },
@@ -153,7 +154,6 @@ class ReleaseFileUpdateTest(APITestCase):
         assert releasefile.ident == ReleaseFile.get_ident("foobar")
 
 
-@region_silo_test(stable=True)
 class ReleaseFileDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -179,7 +179,7 @@ class ReleaseFileDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },

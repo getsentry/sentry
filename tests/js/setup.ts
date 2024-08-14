@@ -1,22 +1,24 @@
-/* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import path from 'path';
-import {TextDecoder, TextEncoder} from 'util';
+import '@testing-library/jest-dom';
 
-import {ReactElement} from 'react';
-import type {InjectedRouter} from 'react-router';
+/* eslint-env node */
+import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import type {Location} from 'history';
-import MockDate from 'mockdate';
-import {object as propTypesObject} from 'prop-types';
-import {stringify} from 'query-string';
+import {webcrypto} from 'node:crypto';
+import {TextDecoder, TextEncoder} from 'node:util';
+import {ConfigFixture} from 'sentry-fixture/config';
+
+import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
-import {makeLazyFixtures} from './sentry-test/loadFixtures';
+/**
+ * Set locale to English
+ */
+setLocale(DEFAULT_LOCALE_DATA);
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -38,8 +40,7 @@ configureRtl({testIdAttribute: 'data-test-id'});
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000);
-MockDate.set(constantDate);
+resetMockDate();
 
 /**
  * Global testing configuration
@@ -56,7 +57,6 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/withOrganization');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
@@ -75,6 +75,7 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
+jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -101,8 +102,8 @@ jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
 jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
+    ...SentryReact,
     init: jest.fn(),
-    configureScope: jest.fn(),
     setTag: jest.fn(),
     setTags: jest.fn(),
     setExtra: jest.fn(),
@@ -112,133 +113,56 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
-    startSpan: jest.fn(),
+    getDefaultIntegrations: jest.spyOn(SentryReact, 'getDefaultIntegrations'),
+    startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
-    getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
+    getClient: jest.spyOn(SentryReact, 'getClient'),
+    getCurrentScope: jest.spyOn(SentryReact, 'getCurrentScope'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
-    Hub: SentryReact.Hub,
-    Scope: SentryReact.Scope,
-    Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
-    BrowserTracing: jest.fn().mockReturnValue({}),
-    BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
-    addGlobalEventProcessor: jest.fn(),
+    metrics: {
+      increment: jest.fn(),
+      gauge: jest.fn(),
+      set: jest.fn(),
+      distribution: jest.fn(),
+    },
+    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
     }),
-    startTransaction: () => ({
-      finish: jest.fn(),
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startInactiveSpan: () => ({
+      end: jest.fn(),
       setStatus: jest.fn(),
       startChild: jest.fn().mockReturnValue({
-        finish: jest.fn(),
+        end: jest.fn(),
       }),
     }),
   };
 });
 
-const routerFixtures = {
-  router: (params = {}): InjectedRouter => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    go: jest.fn(),
-    goBack: jest.fn(),
-    goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
-    isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
-      if (typeof to === 'string') {
-        return to;
-      }
-
-      if (typeof to === 'object') {
-        if (!to.query) {
-          return to.pathname;
-        }
-
-        return `${to.pathname}?${stringify(to.query)}`;
-      }
-
-      return '';
-    }),
-    location: TestStubs.location(),
-    createPath: jest.fn(),
-    routes: [],
-    params: {},
-    ...params,
-  }),
-
-  location: (params: Partial<Location> = {}): Location => ({
-    key: '',
-    search: '',
-    hash: '',
-    action: 'PUSH',
-    state: null,
-    query: {},
-    pathname: '/mock-pathname/',
-    ...params,
-  }),
-
-  routerProps: (params = {}) => ({
-    location: TestStubs.location(),
-    params: {},
-    routes: [],
-    stepBack: () => {},
-    ...params,
-  }),
-
-  routerContext: ([context, childContextTypes] = []) => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-      project: TestStubs.Project(),
-      ...context,
-    },
-    childContextTypes: {
-      router: propTypesObject,
-      location: propTypesObject,
-      organization: propTypesObject,
-      project: propTypesObject,
-      ...childContextTypes,
-    },
-  }),
-};
-
-const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
-const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
-
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(ConfigFixture());
 
 /**
  * Test Globals
  */
 declare global {
   /**
-   * Test stubs are automatically loaded from the fixtures/js-stubs
-   * directory. Use these for setting up test data.
-   */
-  // eslint-disable-next-line no-var
-  var TestStubs: typeof fixtures;
-  /**
    * Generates a promise that resolves on the next macro-task
    */
-  // eslint-disable-next-line no-var
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
 
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
-
-window.TestStubs = fixtures;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
@@ -282,4 +206,22 @@ Object.defineProperty(window, 'getComputedStyle', {
   },
   configurable: true,
   writable: true,
+});
+
+window.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  takeRecords = jest.fn();
+
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Mock the crypto.subtle API for Gravatar
+Object.defineProperty(global.self, 'crypto', {
+  value: {
+    subtle: webcrypto.subtle,
+  },
 });

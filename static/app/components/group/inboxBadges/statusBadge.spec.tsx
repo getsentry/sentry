@@ -1,13 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
-import {GroupSubstatus, ResolutionStatus} from 'sentry/types';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 
 describe('GroupStatusBadge', () => {
   it('should display archived until escalating as a tooltip', async () => {
     render(
       <GroupStatusBadge
-        status={ResolutionStatus.IGNORED}
+        status={GroupStatus.IGNORED}
         substatus={GroupSubstatus.ARCHIVED_UNTIL_ESCALATING}
       />
     );
@@ -16,17 +16,14 @@ describe('GroupStatusBadge', () => {
   });
   it('should display new', () => {
     render(
-      <GroupStatusBadge
-        status={ResolutionStatus.UNRESOLVED}
-        substatus={GroupSubstatus.NEW}
-      />
+      <GroupStatusBadge status={GroupStatus.UNRESOLVED} substatus={GroupSubstatus.NEW} />
     );
     expect(screen.getByText('New')).toBeInTheDocument();
   });
   it('should display escalating', () => {
     render(
       <GroupStatusBadge
-        status={ResolutionStatus.UNRESOLVED}
+        status={GroupStatus.UNRESOLVED}
         substatus={GroupSubstatus.ESCALATING}
       />
     );
@@ -35,14 +32,14 @@ describe('GroupStatusBadge', () => {
   it('should display regression', () => {
     render(
       <GroupStatusBadge
-        status={ResolutionStatus.UNRESOLVED}
+        status={GroupStatus.UNRESOLVED}
         substatus={GroupSubstatus.REGRESSED}
       />
     );
     expect(screen.getByText('Regressed')).toBeInTheDocument();
   });
   it('should display resolved', () => {
-    render(<GroupStatusBadge status={ResolutionStatus.RESOLVED} />);
+    render(<GroupStatusBadge status={GroupStatus.RESOLVED} />);
     expect(screen.getByText('Resolved')).toBeInTheDocument();
   });
 });

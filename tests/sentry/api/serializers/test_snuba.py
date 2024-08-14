@@ -4,17 +4,16 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.serializers.snuba import zerofill
-from sentry.utils.dates import to_timestamp
 
 
 class ZeroFillTest(unittest.TestCase):
     def run_test(self, filled_buckets, irregular_buckets, start, end, rollup, zerofilled_buckets):
         filled_buckets = [(start + (rollup * bucket), val) for bucket, val in filled_buckets]
-        buckets = [(to_timestamp(date), val) for date, val in filled_buckets + irregular_buckets]
+        buckets = [(date.timestamp(), val) for date, val in filled_buckets + irregular_buckets]
         sort_key = lambda row: row[0]
         buckets.sort(key=sort_key)
         zerofilled_buckets = [
-            (to_timestamp(start + (rollup * bucket)), []) for bucket in zerofilled_buckets
+            ((start + (rollup * bucket)).timestamp(), []) for bucket in zerofilled_buckets
         ]
         expected = buckets + zerofilled_buckets
         expected.sort(key=sort_key)
@@ -55,8 +54,8 @@ class ZeroFillTest(unittest.TestCase):
         start = timezone.now().replace(minute=5, second=0, microsecond=0)
         rollup = timedelta(minutes=10)
         buckets = [
-            (to_timestamp(start + timedelta(minutes=1)), [9]),
-            (to_timestamp(start + timedelta(minutes=16)), [3]),
+            ((start + timedelta(minutes=1)).timestamp(), [9]),
+            ((start + timedelta(minutes=16)).timestamp(), [3]),
         ]
         zerofilled_buckets = zerofill(
             buckets,
@@ -66,8 +65,8 @@ class ZeroFillTest(unittest.TestCase):
             allow_partial_buckets=True,
         )
         assert zerofilled_buckets == [
-            (to_timestamp(start - timedelta(minutes=5)), []),
-            (to_timestamp(start + timedelta(minutes=1)), [9]),
-            (to_timestamp(start + timedelta(minutes=5)), []),
-            (to_timestamp(start + timedelta(minutes=16)), [3]),
+            ((start - timedelta(minutes=5)).timestamp(), []),
+            ((start + timedelta(minutes=1)).timestamp(), [9]),
+            ((start + timedelta(minutes=5)).timestamp(), []),
+            ((start + timedelta(minutes=16)).timestamp(), [3]),
         ]

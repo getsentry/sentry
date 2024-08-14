@@ -1,4 +1,5 @@
-import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
+import type {MouseEventHandler} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,19 +8,25 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
+import type {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
@@ -30,7 +37,8 @@ interface FlamegraphDrawerProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
@@ -42,7 +50,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
   const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
-  const profileTransaction = useProfileTransaction();
 
   const [tab, setTab] = useLocalStorageState<'bottom up' | 'top down'>(
     'profiling-drawer-view',
@@ -56,8 +63,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       treeType === 'application'
         ? f => !f.frame.is_application
         : treeType === 'system'
-        ? f => f.frame.is_application
-        : () => false;
+          ? f => f.frame.is_application
+          : () => false;
 
     const maybeFilteredRoots =
       treeType !== 'all'
@@ -82,7 +89,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
     setTab('bottom up');
   }, [setTab]);
 
-  const onCallOrderClick = useCallback(() => {
+  const onTopDownClick = useCallback(() => {
     setTab('top down');
   }, [setTab]);
 
@@ -131,7 +138,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             data-title={t('Top Down')}
             priority="link"
             size="zero"
-            onClick={onCallOrderClick}
+            onClick={onTopDownClick}
           >
             {t('Top Down')}
           </Button>
@@ -241,6 +248,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       <FlamegraphTreeTable
         {...props}
         expanded={tab === 'top down'}
+        onTopDownClick={onTopDownClick}
+        onBottomUpClick={onBottomUpClick}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
@@ -248,14 +257,17 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         canvasScheduler={props.canvasScheduler}
         canvasPoolManager={props.canvasPoolManager}
       />
-
-      <ProfileDetails
-        transaction={
-          profileTransaction.type === 'resolved' ? profileTransaction.data : null
-        }
-        projectId={params.projectId}
-        profileGroup={props.profileGroup}
-      />
+      {props.profileGroup.type === 'transaction' ? (
+        <ProfileDetails
+          transaction={
+            props.profileTransaction && props.profileTransaction.type === 'resolved'
+              ? props.profileTransaction.data
+              : null
+          }
+          projectId={params.projectId}
+          profileGroup={props.profileGroup}
+        />
+      ) : null}
 
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (
@@ -295,7 +307,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   gap: ${space(0.5)};
 `;
 
@@ -316,12 +328,12 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
     'drawer drawer'
     `
       : layout === 'table left'
-      ? `
+        ? `
       'tabs tabs drawer'
       'table table drawer'
       'details details drawer';
       `
-      : `
+        : `
       'drawer tabs tabs'
       'drawer table table'
       'drawer details details';
@@ -359,14 +371,14 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-bottom: 2px solid transparent;
     border-radius: 0;
     margin: 0;
-    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
+    padding: ${space(0.5)} 0;
     color: ${p => p.theme.textColor};
-    max-height: ${p => (p.size === 'sm' ? '24px' : 'auto')};
+    max-height: auto;
 
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: bold;
+      font-weight: ${p => p.theme.fontWeightBold};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -380,7 +392,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 
   &.active button {
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
     border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;
@@ -391,6 +403,7 @@ const StyledButton = styled(Button)<{active: boolean}>`
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  line-height: 26px;
 
   &:not(:last-child) {
     margin-right: ${space(1)};
@@ -407,38 +420,6 @@ const StyledButton = styled(Button)<{active: boolean}>`
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-export const FrameCallersTableCell = styled('div')<{
-  isSelected?: boolean;
-  noPadding?: boolean;
-  textAlign?: React.CSSProperties['textAlign'];
-}>`
-  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
-  position: relative;
-  white-space: nowrap;
-  flex-shrink: 0;
-  padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
-  text-align: ${p => p.textAlign ?? 'initial'};
-
-  &:first-child,
-  &:nth-child(2) {
-    position: sticky;
-    z-index: 1;
-    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.background)};
-  }
-
-  &:first-child {
-    left: 0;
-  }
-  &:nth-child(2) {
-    left: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
-  }
-
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
-  }
 `;
 
 export {FlamegraphDrawer};

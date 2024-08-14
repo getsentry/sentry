@@ -4,25 +4,38 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.auth.authenticators.u2f import decode_credential_id
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
+from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Authenticator
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.utils.auth import MFA_SESSION_KEY
 
 
 @control_silo_endpoint
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationUserPermission,)
 
     def _get_device_for_rename(self, authenticator, interface_device_id):
         devices = authenticator.config
         for device in devices["devices"]:
             # this is for devices registered with webauthn, since the stored data is not a string, we need to decode it
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == interface_device_id:
                     return device
             elif device["binding"]["keyHandle"] == interface_device_id:
@@ -84,10 +97,19 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         response = serialize(interface)
 
         if interface.interface_id == "recovery":
+            assert isinstance(
+                interface, RecoveryCodeInterface
+            ), "Interace must be RecoveryCodeInterface to get unused codes"
             response["codes"] = interface.get_unused_codes()
         if interface.interface_id == "sms":
+            assert isinstance(
+                interface, SmsInterface
+            ), "Interace must be SmsInterface to get phone number"
             response["phone"] = interface.phone_number
         if interface.interface_id == "u2f":
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interace must be U2fInterface to get registered devices"
             response["devices"] = interface.get_registered_devices()
 
         return Response(response)
@@ -117,7 +139,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return self._regenerate_recovery_code(authenticator, request, user)
 
     @sudo_required
-    def delete(self, request: Request, user, auth_id, interface_device_id=None) -> Response:
+    def delete(self, request: Request, user: User, auth_id, interface_device_id=None) -> Response:
         """
         Remove authenticator
         ````````````````````
@@ -136,10 +158,15 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         interface = authenticator.interface
         # Remove a single device and not entire authentication method
         if interface.interface_id == "u2f" and interface_device_id is not None:
+            assert isinstance(
+                interface, U2fInterface
+            ), "Interace must be U2fInterface to get registered devices"
             device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            assert interface.authenticator, "Interface must have an authenticator to save"
             interface.authenticator.save()
 
             capture_security_activity(
@@ -152,20 +179,30 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if not is_active_superuser(request):
+        # We should only be able to delete the last auth method through the
+        # _admin portal, which is indicated by staff. After the option is
+        # removed, this will only check for is_active_staff.
+        if has_staff_option(request.user):
+            check_remaining_auth = not is_active_staff(request)
+        else:
+            check_remaining_auth = not is_active_superuser(request)
+
+        if check_remaining_auth:
             # if the user's organization requires 2fa,
             # don't delete the last auth method
             enrolled_methods = Authenticator.objects.all_interfaces_for_user(
                 user, ignore_backup=True
             )
             last_2fa_method = len(enrolled_methods) == 1
-            require_2fa = user.get_orgs_require_2fa().exists()
+            require_2fa = user.has_org_requiring_2fa()
 
             if require_2fa and last_2fa_method:
                 return Response(
                     {"detail": "Cannot delete authenticator because organization requires 2FA"},
                     status=status.HTTP_403_FORBIDDEN,
                 )
+
+        interfaces = Authenticator.objects.all_interfaces_for_user(user)
 
         with transaction.atomic(using=router.db_for_write(Authenticator)):
             authenticator.delete()
@@ -174,10 +211,10 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             # remains are backup interfaces, then we kill them in the
             # process.
             if not interface.is_backup_interface:
-                interfaces = Authenticator.objects.all_interfaces_for_user(user)
                 backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 if len(backup_interfaces) == len(interfaces):
                     for iface in backup_interfaces:
+                        assert iface.authenticator, "Interface must have an authenticator to delete"
                         iface.authenticator.delete()
 
                     # wait to generate entries until all pending writes
@@ -200,5 +237,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 context={"authenticator": authenticator},
                 send_email=not interface.is_backup_interface,
             )
+
+        request.session.pop(MFA_SESSION_KEY, None)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

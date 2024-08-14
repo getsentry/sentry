@@ -1,12 +1,13 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import Badge from 'sentry/components/badge/badge';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trimSlug} from 'sentry/utils/trimSlug';
+import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
@@ -41,6 +42,7 @@ function BaseEnvironmentPageFilterTrigger(
     <DropdownButton
       {...props}
       ref={forwardedRef}
+      data-test-id="page-filter-environment-selector"
       icon={
         <TriggerIconWrap>
           <IconWindow />

@@ -1,16 +1,20 @@
-import {CSSProperties, memo, MouseEvent, useCallback, useMemo} from 'react';
+import type {CSSProperties, MouseEvent} from 'react';
+import {useCallback} from 'react';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
-  breadcrumb: Crumb;
+  extraction: Extraction | undefined;
+  frame: ReplayFrame;
   index: number;
-  onDimensionChange: (
+  onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
+  onInspectorExpanded: (
     index: number,
     path: string,
     expandedState: Record<string, boolean>,
@@ -22,59 +26,47 @@ interface Props {
   expandPaths?: string[];
 }
 
-function BreadcrumbRow({
-  breadcrumb,
+export default function BreadcrumbRow({
   expandPaths,
+  extraction,
+  frame,
   index,
-  onDimensionChange,
+  onClick,
+  onInspectorExpanded,
   startTimestampMs,
   style,
 }: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
-  );
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
+  const handleObjectInspectorExpanded = useCallback(
+    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
+    [index, onInspectorExpanded]
   );
 
-  const crumbTime = useMemo(
-    () => relativeTimeInMs(new Date(breadcrumb.timestamp || ''), startTimestampMs),
-    [breadcrumb.timestamp, startTimestampMs]
-  );
-
-  const hasOccurred = currentTime >= crumbTime;
-  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
     <BreadcrumbItem
-      index={index}
-      crumb={breadcrumb}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
         beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
         afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
       })}
-      onClick={onClickTimestamp}
+      style={style}
+      frame={frame}
+      extraction={extraction}
+      onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
-      style={style}
       expandPaths={expandPaths}
-      onDimensionChange={onDimensionChange}
+      onInspectorExpanded={handleObjectInspectorExpanded}
     />
   );
 }
-
-export default memo(BreadcrumbRow);

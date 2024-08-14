@@ -71,7 +71,7 @@ class BitHandlerTest(unittest.TestCase):
         self.assertEqual(bool(bithandler.FLAG_2), False)
         self.assertEqual(bool(bithandler.FLAG_3), False)
 
-    def test_nonzero_default(self):
+    def test_bool_default(self):
         bithandler = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEqual(bool(bithandler.FLAG_0), True)
         self.assertEqual(bool(bithandler.FLAG_1), False)
@@ -317,7 +317,7 @@ class BitFieldTest(TestCase):
         from django.db.models.fields import BigIntegerField
 
         # Local maximum value, slow canonical algorithm
-        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))  # type: ignore[attr-defined]
+        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
         flags = ["f" + str(i) for i in range(100)]

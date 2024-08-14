@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
-from django.db.backends.base.base import BaseDatabaseWrapper
 from django.utils.translation import gettext_lazy as _
 
 __all__ = (
@@ -60,19 +59,13 @@ if settings.SENTRY_USE_BIG_INTS:
                 assert value <= self.MAX_VALUE
             return super().get_prep_value(value)
 
-    class BoundedBigAutoField(models.AutoField):
+    class BoundedBigAutoField(models.BigAutoField):
         description = _("Big Integer")
 
         MAX_VALUE = 9223372036854775807
 
-        def db_type(self, connection: BaseDatabaseWrapper) -> str:
-            return "bigserial"
-
-        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str | None:
-            return BoundedBigIntegerField().db_type(connection)
-
         def get_internal_type(self) -> str:
-            return "BigIntegerField"
+            return "BigAutoField"
 
         def get_prep_value(self, value: int) -> int:
             if value:
@@ -82,8 +75,8 @@ if settings.SENTRY_USE_BIG_INTS:
 
 else:
     # we want full on classes for these
-    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore
+    class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore[no-redef]
         pass
 
-    class BoundedBigAutoField(BoundedAutoField):  # type: ignore
+    class BoundedBigAutoField(BoundedAutoField):  # type: ignore[no-redef]
         pass

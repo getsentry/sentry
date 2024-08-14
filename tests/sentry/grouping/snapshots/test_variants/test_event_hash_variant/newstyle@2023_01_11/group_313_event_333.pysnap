@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:06.989168Z'
+created: '2023-12-12T15:28:01.041311Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -155,7 +155,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -182,7 +182,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__report_load"
-          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -193,7 +193,7 @@ app:
               "__pthread_kill"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
@@ -348,7 +348,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "dlopen"
           frame (ignored by stack trace rule (category:internals -group))
@@ -375,13 +375,13 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__report_load"
-          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

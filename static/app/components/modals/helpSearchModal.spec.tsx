@@ -1,29 +1,39 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
+    const organization = OrganizationFixture();
+
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [organization],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [TeamFixture({slug: 'foo-team'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: MembersFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -37,42 +47,19 @@ describe('Docs Search Modal', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
-
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
   });
 
   it('can open help search modal', async function () {
-    const {routerContext, router, route} = initializeOrg();
-
-    render(
-      <App
-        location={router.location}
-        routes={router.routes}
-        route={route}
-        router={router}
-        params={{}}
-        routeParams={router.params}
-      >
-        <div>placeholder content</div>
-      </App>,
-      {
-        context: routerContext,
-      }
-    );
+    renderGlobalModal();
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Open Modal
-    openHelpSearchModal();
+    await act(() => openHelpSearchModal());
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

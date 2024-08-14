@@ -1,13 +1,31 @@
+{% load sentry_assets %}
+{% load sentry_trace %}
+
+<meta name="sentry-trace" content="{% get_sentry_trace %}">
+<meta name="baggage" content="{% get_sentry_baggage %}">
+
+{% script %}
 <script type="text/javascript">
-  try {
-    var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
-    var organization = window.location.pathname;
-    var slug = organization.match(reg)[1];
+  function __preloadData() {
+    if (!window.__initialData.shouldPreloadData) {
+      return;
+    }
+    var slug = window.__initialData.lastOrganization;
+    if (!slug && window.__initialData.customerDomain) {
+      slug = window.__initialData.customerDomain.subdomain;
+    }
+    var host = '';
+    if (window.__initialData.links && window.__initialData.links.regionUrl !== window.__initialData.links.sentryUrl) {
+      var host = window.__initialData.links.regionUrl;
+    }
 
     function promiseRequest(url) {
       return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url);
+        xhr.setRequestHeader("sentry-trace", window.__initialData.initialTrace.sentry_trace);
+        xhr.setRequestHeader("baggage", window.__initialData.initialTrace.baggage);
+        xhr.withCredentials = true;
         xhr.onload = function () {
           try {
             this.status >= 200 && this.status < 300
@@ -25,20 +43,25 @@
     }
 
     function makeUrl(suffix) {
-      return '/api/0/organizations/' + slug + suffix;
+      return host + '/api/0/organizations/' + slug + suffix;
     }
 
-    // There are probably more, but this is at least one case where
-    // this should not be treated as a slug
-    if (slug !== 'new') {
-      var preloadPromises = {orgSlug: slug};
-      window.__sentry_preload = preloadPromises;
+    var preloadPromises = {orgSlug: slug};
+    window.__sentry_preload = preloadPromises;
 
-      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
-      preloadPromises.projects = promiseRequest(
-        makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
-      );
-      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    if (!slug) {
+      return;
     }
+
+    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0&include_feature_flags=1'));
+    preloadPromises.projects = promiseRequest(
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
+    );
+    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+  }
+
+  try {
+    __preloadData();
   } catch (_) {}
 </script>
+{% endscript %}

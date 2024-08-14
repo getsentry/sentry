@@ -1,22 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-import pytz
-
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.tasks.clear_expired_rulesnoozes import clear_expired_rulesnoozes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ClearExpiredRuleSnoozesTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule", project=self.project, owner_team=self.team
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
         )
-        self.until = datetime.now(pytz.UTC) - timedelta(minutes=1)
+        self.until = datetime.now(timezone.utc) - timedelta(minutes=1)
         self.login_as(user=self.user)
 
     def test_task_persistent_name(self):
@@ -29,26 +27,26 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
             until=self.until,
-            date_added=datetime.now(pytz.UTC),
+            date_added=datetime.now(timezone.utc),
         )
         issue_alert_rule_snooze2 = self.snooze_rule(
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
-            until=datetime.now(pytz.UTC) + timedelta(minutes=1),
-            date_added=datetime.now(pytz.UTC),
+            until=datetime.now(timezone.utc) + timedelta(minutes=1),
+            date_added=datetime.now(timezone.utc),
         )
         metric_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,
             until=self.until,
-            date_added=datetime.now(pytz.UTC),
+            date_added=datetime.now(timezone.utc),
         )
         metric_alert_rule_snooze2 = self.snooze_rule(
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,
-            until=datetime.now(pytz.UTC) + timedelta(minutes=1),
-            date_added=datetime.now(pytz.UTC),
+            until=datetime.now(timezone.utc) + timedelta(minutes=1),
+            date_added=datetime.now(timezone.utc),
         )
 
         clear_expired_rulesnoozes()
@@ -64,13 +62,13 @@ class ClearExpiredRuleSnoozesTest(APITestCase):
             user_id=self.user.id,
             rule=self.issue_alert_rule,
             owner_id=self.user.id,
-            date_added=datetime.now(pytz.UTC),
+            date_added=datetime.now(timezone.utc),
         )
         metric_alert_rule_snooze = self.snooze_rule(
             user_id=self.user.id,
             alert_rule=self.metric_alert_rule,
             owner_id=self.user.id,
-            date_added=datetime.now(pytz.UTC),
+            date_added=datetime.now(timezone.utc),
         )
 
         clear_expired_rulesnoozes()

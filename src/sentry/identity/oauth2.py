@@ -1,11 +1,13 @@
-__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
+from __future__ import annotations
 
 import logging
+import secrets
 from time import time
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
+import orjson
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
@@ -13,10 +15,11 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
+
+__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
@@ -35,7 +38,7 @@ class OAuth2Provider(Provider):
     oauth_authorize_url = ""
     refresh_token_url = ""
 
-    oauth_scopes = ()
+    oauth_scopes: tuple[str, ...] = ()
 
     def _get_oauth_parameter(self, parameter_name):
         """
@@ -191,8 +194,8 @@ class OAuth2Provider(Provider):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
-        except Exception:
+            payload = orjson.loads(body)
+        except orjson.JSONDecodeError:
             payload = {}
 
         self.handle_refresh_error(req, payload)
@@ -233,13 +236,13 @@ class OAuth2LoginView(PipelineView):
             "redirect_uri": redirect_uri,
         }
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         for param in ("code", "error", "state"):
             if param in request.GET:
                 return pipeline.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
@@ -285,7 +288,7 @@ class OAuth2CallbackView(PipelineView):
             body = safe_urlread(req)
             if req.headers.get("Content-Type", "").startswith("application/x-www-form-urlencoded"):
                 return dict(parse_qsl(body))
-            return json.loads(body)
+            return orjson.loads(body)
         except SSLError:
             logger.info(
                 "identity.oauth2.ssl-error",
@@ -303,7 +306,7 @@ class OAuth2CallbackView(PipelineView):
                 "error": "Could not connect to host or service",
                 "error_description": f"Ensure that {url} is open to connections",
             }
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
             return {
                 "error": "Could not decode a JSON Response",
@@ -317,7 +320,7 @@ class OAuth2CallbackView(PipelineView):
 
         if error:
             pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
-            return pipeline.error(error)
+            return pipeline.error(ERR_INVALID_STATE)
 
         if state != pipeline.fetch_state("state"):
             pipeline.logger.info(

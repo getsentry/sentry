@@ -6,9 +6,11 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {t} from 'sentry/locale';
-import {Event, ExceptionType, Thread} from 'sentry/types';
+import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import filterThreadInfo from './filterThreadInfo';
 import Header from './header';
@@ -34,6 +36,7 @@ function ThreadSelector({
   onChange,
   fullWidth = false,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))
   );
@@ -73,14 +76,40 @@ function ThreadSelector({
     }
   };
 
+  const items = getItems();
+
   return (
     <ClassNames>
       {({css}) => (
         <StyledDropdownAutoComplete
           detached
           data-test-id="thread-selector"
-          items={getItems()}
+          items={items}
+          onOpen={() => {
+            trackAnalytics('stack_trace.threads.thread_selector_opened', {
+              organization,
+              platform: event.platform,
+              num_threads: items.length,
+            });
+          }}
           onSelect={item => {
+            const selectedThread: Thread = item.thread;
+
+            trackAnalytics('stack_trace.threads.thread_selected', {
+              organization,
+              platform: event.platform,
+              thread_index: items.findIndex(
+                ({thread}) => thread.id === selectedThread.id
+              ),
+              num_threads: items.length,
+              is_crashed_thread: selectedThread.crashed,
+              is_current_thread: selectedThread.current,
+              thread_state: selectedThread.state ?? '',
+              has_stacktrace: defined(selectedThread.stacktrace),
+              num_in_app_frames:
+                selectedThread.stacktrace?.frames?.filter((frame: Frame) => frame.inApp)
+                  .length ?? 0,
+            });
             handleChange(item.thread);
           }}
           maxHeight={DROPDOWN_MAX_HEIGHT}

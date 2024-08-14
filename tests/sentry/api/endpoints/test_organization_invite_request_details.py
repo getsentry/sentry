@@ -2,17 +2,16 @@ from functools import cached_property
 from unittest.mock import patch
 
 from sentry import audit_log
-from sentry.models import (
-    AuditLogEntry,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationOption,
-)
-from sentry.testutils import APITestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class InviteRequestBase(APITestCase):
@@ -53,7 +52,6 @@ class InviteRequestBase(APITestCase):
         )
 
 
-@region_silo_test
 class OrganizationInviteRequestGetTest(InviteRequestBase):
     def test_get_invalid(self):
         self.login_as(user=self.user)
@@ -77,22 +75,23 @@ class OrganizationInviteRequestGetTest(InviteRequestBase):
         assert resp.data["teams"] == []
 
 
-@region_silo_test
 class OrganizationInviteRequestDeleteTest(InviteRequestBase):
     method = "delete"
 
     def test_owner_can_delete_invite_request(self):
         self.login_as(user=self.user)
-        resp = self.get_response(self.org.slug, self.invite_request.id)
+        with outbox_runner():
+            resp = self.get_response(self.org.slug, self.invite_request.id)
 
         assert resp.status_code == 204
         assert not OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
-        audit_log_entry = AuditLogEntry.objects.get(
-            organization_id=self.org.id,
-            actor=self.user,
-            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log_entry = AuditLogEntry.objects.get(
+                organization_id=self.org.id,
+                actor=self.user,
+                event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+            )
         assert audit_log_entry.data == self.invite_request.get_audit_log_data()
 
     def test_member_cannot_delete_invite_request(self):
@@ -103,7 +102,6 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
 
-@region_silo_test
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
@@ -170,24 +168,25 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         assert resp.status_code == 403
 
 
-@region_silo_test
 class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_owner_can_approve_invite_request(self, mock_invite_email):
         self.login_as(user=self.user)
-        resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
+        with outbox_runner():
+            resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
         assert resp.status_code == 200
         assert resp.data["inviteStatus"] == "approved"
         assert mock_invite_email.call_count == 1
 
-        audit_log_entry = AuditLogEntry.objects.get(
-            organization_id=self.org.id,
-            actor=self.user,
-            event=audit_log.get_event_id("MEMBER_INVITE"),
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log_entry = AuditLogEntry.objects.get(
+                organization_id=self.org.id,
+                actor=self.user,
+                event=audit_log.get_event_id("MEMBER_INVITE"),
+            )
         member = OrganizationMember.objects.get(
             id=self.invite_request.id, invite_status=InviteStatus.APPROVED.value
         )

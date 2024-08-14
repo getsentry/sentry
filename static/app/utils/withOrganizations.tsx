@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedOrganizationsProps = {
@@ -38,7 +38,8 @@ function withOrganizations<P extends InjectedOrganizationsProps>(
       return (
         <WrappedComponent
           {...({
-            organizationsLoading: organizationsLoading ?? !OrganizationsStore.loaded,
+            organizationsLoading:
+              organizationsLoading ?? !OrganizationsStore.getState().loaded,
             organizations: organizations ?? this.state.organizations,
             ...props,
           } as P)}

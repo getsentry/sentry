@@ -3,7 +3,7 @@ import logging
 import boto3
 from botocore.client import ClientError, Config
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry.utils import json, metrics
 from sentry_plugins.base import CorePluginMixin
@@ -61,13 +61,13 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         )
     ]
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "queue_url",
                 "label": "Queue URL",
                 "type": "url",
-                "placeholder": "https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+                "placeholder": "https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
             },
             {
                 "name": "region",
@@ -183,6 +183,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 return False
 
             sqs_send_message(message)
+            log_and_increment("sentry_plugins.amazon_sqs.message_sent")
         except ClientError as e:
             if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
                 "An error occurred (AccessDenied)"

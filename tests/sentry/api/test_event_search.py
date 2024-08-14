@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pytest
 from django.test import SimpleTestCase
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -20,6 +19,7 @@ from sentry.api.event_search import (
 from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 fixture_path = "fixtures/search-syntax"
@@ -111,7 +111,12 @@ def result_transformer(result):
             return SearchValue(raw_value=[item["value"]["value"] for item in token["items"]])
 
         if token["type"] == "valueNumberList":
-            return SearchValue(raw_value=[item["value"]["rawValue"] for item in token["items"]])
+            return SearchValue(
+                raw_value=[
+                    parse_numeric_value(item["value"]["value"], item["value"]["unit"])
+                    for item in token["items"]
+                ]
+            )
 
         if token["type"] == "valueIso8601Date":
             return SearchValue(raw_value=parse_datetime_string(token["value"]))
@@ -123,7 +128,7 @@ def result_transformer(result):
             return SearchValue(raw_value=parse_duration(token["value"], token["unit"]))
 
         if token["type"] == "valueBoolean":
-            return SearchValue(raw_value=int(token["value"]))
+            return SearchValue(raw_value=int(token["value"].lower() in ("1", "true")))
 
         if token["type"] == "freeText":
             if token["quoted"]:
@@ -224,7 +229,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
@@ -242,7 +247,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
@@ -262,7 +267,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
@@ -282,7 +287,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
@@ -302,7 +307,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "second"
@@ -320,7 +325,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "minute"
@@ -340,7 +345,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_numeric_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "number"
@@ -358,7 +363,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_numeric_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "number"
@@ -425,12 +430,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator=">=",
-                value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc)),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=datetime.UTC)),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
-                value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc)),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=datetime.UTC)),
             ),
         ]
 
@@ -439,14 +444,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -456,14 +461,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -482,14 +487,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="timestamp.to_hour"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="timestamp.to_hour"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -587,49 +592,49 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_escaping_asterisk(self):
         # the asterisk is escaped with a preceding backslash, so it's a literal and not a wildcard
-        search_filter = parse_search_query(r"title:a\*b")
-        assert search_filter == [
+        search_filters = parse_search_query(r"title:a\*b")
+        assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\*b"))
         ]
-        search_filter = search_filter[0]
+        search_filter = search_filters[0]
         # the slash should be removed in the final value
         assert search_filter.value.value == "a*b"
 
         # the first and last asterisks arent escaped with a preceding backslash, so they're
         # wildcards and not literals
-        search_filter = parse_search_query(r"title:*\**")
-        assert search_filter == [
+        search_filters = parse_search_query(r"title:*\**")
+        assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"*\**"))
         ]
-        search_filter = search_filter[0]
+        search_filter = search_filters[0]
         assert search_filter.value.value == r"^.*\*.*$"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
     def test_escaping_backslashes(self):
-        search_filter = parse_search_query(r"title:a\\b")
-        assert search_filter == [
+        search_filters = parse_search_query(r"title:a\\b")
+        assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\b"))
         ]
-        search_filter = search_filter[0]
+        search_filter = search_filters[0]
         # the extra slash should be removed in the final value
         assert search_filter.value.value == r"a\b"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
     def test_trailing_escaping_backslashes(self):
-        search_filter = parse_search_query(r"title:a\\")
-        assert search_filter == [
+        search_filters = parse_search_query(r"title:a\\")
+        assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"a\\"))
         ]
-        search_filter = search_filter[0]
+        search_filter = search_filters[0]
         # the extra slash should be removed in the final value
         assert search_filter.value.value == "a\\"
 
     def test_escaping_quotes(self):
-        search_filter = parse_search_query(r"title:a\"b")
-        assert search_filter == [
+        search_filters = parse_search_query(r"title:a\"b")
+        assert search_filters == [
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r'a"b'))
         ]
-        search_filter = search_filter[0]
+        search_filter = search_filters[0]
         # the slash should be removed in the final value
         assert search_filter.value.value == 'a"b'
 
@@ -659,3 +664,78 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 def test_search_value(raw, result):
     search_value = SearchValue(raw)
     assert search_value.value == result
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "event.type:=transaction",
+        "!event.type:[transaction]",
+        "event.type:[transaction, event]",
+        "event.type:[1, 2]",
+        "transaction.duration:>=1.0",
+        "transaction.duration:>1.0",
+        "transaction.duration:=1.0",
+        "transaction.duration:<=1.0",
+        "transaction.duration:<1.0",
+    ],
+)
+def test_search_filter_to_query_string(query):
+    """
+    Does a round trip (from query string to tokens and back to query string)
+    """
+
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    actual = filters[0].to_query_string()
+    assert actual == query
+
+
+@pytest.mark.parametrize(
+    "value,expected_query_string",
+    [
+        (1, "1"),
+        ("abc", "abc"),
+        ([1, 2, 3], "[1, 2, 3]"),
+        (["a", "b", "c"], "[a, b, c]"),
+        (datetime.datetime(2023, 10, 15, 11, 12, 13), "2023-10-15T11:12:13"),
+    ],
+)
+def test_search_value_to_query_string(value, expected_query_string):
+    """
+    Test turning a QueryValue back to a string usable in a query string
+    """
+
+    search_value = SearchValue(value)
+    actual = search_value.to_query_string()
+
+    assert actual == expected_query_string
+
+
+@pytest.mark.parametrize(
+    ["value", "expected_kind", "expected_value"],
+    [
+        (1, "other", 1),
+        ("1", "other", "1"),
+        ("*", "suffix", ""),  # consider special casing this
+        ("*foo", "suffix", "foo"),
+        ("foo*", "prefix", "foo"),
+        ("*foo*", "infix", "foo"),
+        (r"\*foo", "other", r"*foo"),
+        (r"\\*foo", "other", r"^\\.*foo$"),
+        (r"foo\*", "other", r"foo*"),
+        (r"foo\\*", "prefix", r"foo\\"),
+        ("*f*o*o*", "other", "^.*f.*o.*o.*$"),
+        (r"*foo\*", "suffix", r"foo*"),
+        (r"*foo\\*", "infix", r"foo\\"),
+    ],
+)
+def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
+    """
+    Test classifying the wildcard type into one of prefix/suffix/infix/other
+    and formatting the value according to the classification results.
+    """
+    search_value = SearchValue(value)
+    kind = search_value.classify_wildcard()
+    assert kind == expected_kind
+    assert search_value.format_wildcard(kind) == expected_value

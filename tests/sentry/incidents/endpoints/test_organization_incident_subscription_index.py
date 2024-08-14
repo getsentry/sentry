@@ -1,12 +1,14 @@
 from functools import cached_property
 
 from sentry.incidents.logic import subscribe_to_incident
-from sentry.incidents.models import IncidentSubscription
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.incidents.models.incident import IncidentSubscription
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import APITestCase
 
 
-class BaseOrganizationSubscriptionEndpointTest:
+class BaseOrganizationSubscriptionEndpointTest(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
     @cached_property
@@ -35,10 +37,7 @@ class BaseOrganizationSubscriptionEndpointTest:
             assert resp.status_code == 403
 
 
-@region_silo_test
-class OrganizationIncidentSubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest, APITestCase
-):
+class OrganizationIncidentSubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "post"
 
     def test_simple(self):
@@ -54,10 +53,7 @@ class OrganizationIncidentSubscribeEndpointTest(
         assert sub.user_id == self.user.id
 
 
-@region_silo_test
-class OrganizationIncidentUnsubscribeEndpointTest(
-    BaseOrganizationSubscriptionEndpointTest, APITestCase
-):
+class OrganizationIncidentUnsubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "delete"
 
     def test_simple(self):

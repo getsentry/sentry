@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
+import orjson
 from django.urls import reverse
 from rb.clients import LocalClient
 
 from sentry import options
-from sentry.models import AuthProvider, User
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.utils import json, metrics, redis
+from sentry.models.authprovider import AuthProvider
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.users.models.user import User
+from sentry.utils import metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
@@ -48,6 +50,13 @@ def send_one_time_account_confirm_link(
 
 def get_redis_cluster() -> LocalClient:
     return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+
+
+# Helper function for serializing named tuples with orjson.
+def _serialize_named_tuple(data: Any) -> Any:
+    if isinstance(data, tuple) and hasattr(data, "_asdict") and hasattr(data, "_fields"):
+        return list(data)
+    raise TypeError
 
 
 @dataclass
@@ -102,11 +111,13 @@ class AccountConfirmLink:
             "provider": self.provider.provider,
         }
         cluster.setex(
-            self.verification_key, int(_TTL.total_seconds()), json.dumps(verification_value)
+            self.verification_key,
+            int(_TTL.total_seconds()),
+            orjson.dumps(verification_value, default=_serialize_named_tuple).decode(),
         )
 
 
-def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
+def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
     cluster = get_redis_cluster()
     verification_key = f"auth:one-time-key:{key}"
     verification_str = cluster.get(verification_key)
@@ -114,7 +125,7 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
         metrics.incr("idpmigration.confirmation_failure", sample_rate=1.0)
         return None
 
-    verification_value: Dict[str, Any] = json.loads(verification_str)
+    verification_value: dict[str, Any] = orjson.loads(verification_str)
     metrics.incr(
         "idpmigration.confirmation_success",
         tags={"provider": verification_value.get("provider")},

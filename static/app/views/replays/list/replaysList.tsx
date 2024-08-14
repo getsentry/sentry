@@ -1,114 +1,98 @@
 import {Fragment, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-import {ReplaySearchAlert} from 'sentry/views/replays/list/replaySearchAlert';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
-
-function ReplaysList() {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-
-  const eventView = useMemo(() => {
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: REPLAY_LIST_FIELDS,
-        projects: [],
-        query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
-      },
-      location
-    );
-  }, [location]);
-
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
-  return hasSessionReplay && !fetching && hasSentOneReplay ? (
-    <ReplaysListTable
-      eventView={eventView}
-      location={location}
-      organization={organization}
-    />
-  ) : (
-    <ReplayOnboardingPanel />
-  );
-}
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
-function ReplaysListTable({
-  eventView,
-  location,
-  organization,
-}: {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-}) {
-  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
-    eventView,
-    location,
-    organization,
+function ReplaysList() {
+  const organization = useOrganization();
+
+  const query = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+      end: decodeScalar,
+      environment: decodeList,
+      project: decodeList,
+      query: decodeScalar,
+      sort: value => decodeScalar(value, '-started_at'),
+      start: decodeScalar,
+      statsPeriod: decodeScalar,
+      utc: decodeScalar,
+    },
   });
+
+  const {
+    data: replays,
+    getResponseHeader,
+    isLoading,
+    error,
+  } = useFetchReplayList({
+    options: {query},
+    organization,
+    queryReferrer: 'replayList',
+  });
+  const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const {
     selection: {projects},
   } = usePageFilters();
 
+  const {allMobileProj} = useAllMobileProj();
+
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projects.map(p => String(p)),
+    projectId: projects.map(String),
   });
 
-  const conditions = useMemo(() => {
-    return new MutableSearch(decodeScalar(location.query.query, ''));
-  }, [location.query.query]);
-
+  const conditions = useMemo(() => new MutableSearch(query.query), [query.query]);
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
+
+  // browser isn't applicable for mobile projects
+  // rage and dead clicks not available yet
+  const visibleCols = allMobileProj
+    ? [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ]
+    : [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_DEAD_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ];
 
   return (
     <Fragment>
-      <ReplaySearchAlert needSdkUpdates={Boolean(allSelectedProjectsNeedUpdates)} />
       <ReplayTable
-        fetchError={fetchError}
-        isFetching={isFetching}
+        referrerLocation={'replay'}
+        fetchError={error}
+        isFetching={isLoading}
         replays={replays}
-        sort={eventView.sorts[0]}
-        visibleColumns={[
-          ReplayColumn.REPLAY,
-          ReplayColumn.OS,
-          ReplayColumn.BROWSER,
-          ReplayColumn.DURATION,
-          ReplayColumn.COUNT_ERRORS,
-          ReplayColumn.ACTIVITY,
-        ]}
+        sort={decodeSorts(query.sort).at(0)}
+        visibleColumns={visibleCols}
+        showDropdownFilters
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>
@@ -123,7 +107,7 @@ function ReplaysListTable({
           ) : undefined
         }
       />
-      <Pagination
+      <ReplayPagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
           trackAnalytics('replay.list-paginated', {
@@ -143,6 +127,10 @@ function ReplaysListTable({
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ReplayPagination = styled(Pagination)`
+  margin-top: 0;
 `;
 
 export default ReplaysList;

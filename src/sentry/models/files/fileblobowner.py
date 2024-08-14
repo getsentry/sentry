@@ -1,11 +1,12 @@
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey
-from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.base import region_silo_model
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 
 
-@region_silo_only_model
+@region_silo_model
 class FileBlobOwner(AbstractFileBlobOwner):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     blob = FlexibleForeignKey("sentry.FileBlob")
 

@@ -1,28 +1,31 @@
 import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import Panel from 'sentry/components/panels/panel';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
+import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -30,23 +33,24 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  PageFilters,
-  Project,
-  Release,
-  ReleaseStatus,
-  Tag,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
+import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
+import Header from '../components/header';
+import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -63,6 +67,7 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  api: Client;
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
@@ -70,17 +75,28 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ReleasesList extends AsyncView<Props, State> {
+class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
+
+  filterKeys = [
+    ...Object.values(SEMVER_TAGS),
+    {
+      key: 'release',
+      name: 'release',
+    },
+  ].reduce((acc, tag) => {
+    acc[tag.key] = tag;
+    return acc;
+  }, {});
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
@@ -98,15 +114,14 @@ class ReleasesList extends AsyncView<Props, State> {
           : ReleaseStatus.ACTIVE,
     };
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
-        'releases',
-        `/organizations/${organization.slug}/releases/`,
-        {query},
-        {disableEntireQuery: true},
+        'releases', // stateKey
+        `/organizations/${organization.slug}/releases/`, // endpoint
+        {query}, // params
+        {disableEntireQuery: true}, // options - prevent cursor from being passed into query
       ],
     ];
-
     return endpoints;
   }
 
@@ -178,6 +193,18 @@ class ReleasesList extends AsyncView<Props, State> {
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
+  }
+
+  getSelectedProjectSlugs(): string[] {
+    const {selection, projects} = this.props;
+    const projIdSet = new Set(selection.projects);
+
+    return projects.reduce((result: string[], proj) => {
+      if (projIdSet.has(Number(proj.id))) {
+        result.push(proj.slug);
+      }
+      return result;
+    }, []);
   }
 
   get projectHasSessions() {
@@ -264,7 +291,7 @@ class ReleasesList extends AsyncView<Props, State> {
       tagKey: key,
       search,
       projectIds: projectId ? [projectId] : undefined,
-      endpointParams: location.query,
+      endpointParams: normalizeDateTimeParams(location.query),
     });
   };
 
@@ -308,7 +335,7 @@ class ReleasesList extends AsyncView<Props, State> {
         ? t('time range')
         : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
-    if (searchQuery && searchQuery.length) {
+    if (searchQuery?.length) {
       return (
         <Panel>
           <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
@@ -397,9 +424,10 @@ class ReleasesList extends AsyncView<Props, State> {
     return (
       <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
         {({projects, initiallyLoaded, fetchError}) => {
-          const project = projects && projects.length === 1 && projects[0];
+          const project: AvatarProject | undefined =
+            projects?.length === 1 ? projects.at(0) : undefined;
           const projectCanHaveReleases =
-            project && project.platform && releaseHealth.includes(project.platform);
+            project?.platform && releaseHealth.includes(project.platform);
 
           if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
             return null;
@@ -463,6 +491,8 @@ class ReleasesList extends AsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
+
+          // TODO: project specific chart should live on the project details page.
           const isMobileProject =
             selectedProject?.platform && isMobileRelease(selectedProject.platform);
 
@@ -480,7 +510,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
-                  key={`${release.version}-${release.projects[0].slug}`}
+                  key={`${release.projects[0].slug}-${release.version}`}
                   activeDisplay={activeDisplay}
                   release={release}
                   organization={organization}
@@ -515,27 +545,17 @@ class ReleasesList extends AsyncView<Props, State> {
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
-    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Releases')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/releases/"
-                  title={t(
-                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-                  )}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-
+          <Header />
           <Layout.Body>
             <Layout.Main fullWidth>
+              {organization.features.includes('releases-v2-banner') && (
+                <ReleaseFeedbackBanner />
+              )}
+
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
@@ -544,9 +564,8 @@ class ReleasesList extends AsyncView<Props, State> {
                 </GuideAnchor>
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  alignDropdown="left"
                   disallowArbitraryRelativeRanges
-                  hint={t(
+                  menuFooterMessage={t(
                     'Changing this date range will recalculate the release metrics.'
                   )}
                 />
@@ -554,16 +573,25 @@ class ReleasesList extends AsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  <GuideAnchor
-                    target="releases_search"
-                    position="bottom"
-                    disabled={!hasReleasesSetup}
-                  >
+                  {organization.features.includes('search-query-builder-releases') ? (
+                    <StyledSearchQueryBuilder
+                      onSearch={this.handleSearch}
+                      initialQuery={this.getQuery() || ''}
+                      filterKeys={this.filterKeys}
+                      getTagValues={this.getTagValues}
+                      placeholder={t('Search by version, build, package, or stage')}
+                      searchSource="releases"
+                    />
+                  ) : (
                     <StyledSmartSearchBar
                       searchSource="releases"
                       query={this.getQuery()}
                       placeholder={t('Search by version, build, package, or stage')}
                       hasRecentSearches={false}
+                      maxMenuHeight={500}
+                      supportedTagType={ItemType.PROPERTY}
+                      onSearch={this.handleSearch}
+                      onGetTagValues={this.getTagValues}
                       supportedTags={{
                         ...SEMVER_TAGS,
                         release: {
@@ -571,12 +599,8 @@ class ReleasesList extends AsyncView<Props, State> {
                           name: 'release',
                         },
                       }}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
                     />
-                  </GuideAnchor>
+                  )}
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}
@@ -601,6 +625,7 @@ class ReleasesList extends AsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+              <FloatingFeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
@@ -651,4 +676,10 @@ const StyledSmartSearchBar = styled(SmartSearchBar)`
   }
 `;
 
-export default withProjects(withOrganization(withPageFilters(ReleasesList)));
+const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-column: 1 / -1;
+  }
+`;
+
+export default withApi(withProjects(withOrganization(withPageFilters(ReleasesList))));

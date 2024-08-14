@@ -1,11 +1,10 @@
 from django.urls import reverse
 
-from sentry.models import GroupHash, GroupTombstone
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class GroupTombstoneTest(APITestCase):
     def test_simple(self):
         self.user = self.create_user("foo@example.com")
@@ -28,7 +27,10 @@ class GroupTombstoneTest(APITestCase):
 
         path = reverse(
             "sentry-api-0-group-tombstones",
-            kwargs={"organization_slug": self.org.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
         response = self.client.get(path)

@@ -1,17 +1,18 @@
-from datetime import datetime, timedelta
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
+from typing import Any
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
-@region_silo_test(stable=True)
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
@@ -59,6 +60,22 @@ class RecentSearchesListTest(APITestCase):
             last_seen=timezone.now(),
             date_added=timezone.now(),
         )
+        metric_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.METRIC.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
+        span_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.SPAN.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
@@ -88,11 +105,13 @@ class RecentSearchesListTest(APITestCase):
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
+        self.check_results([metric_recent_search], search_type=SearchType.METRIC)
+        self.check_results([span_recent_search], search_type=SearchType.SPAN)
 
     def test_param_validation(self):
         self.login_as(user=self.user)
-        error_cases = [
-            ({"type": 5}, "Invalid input for `type`"),
+        error_cases: list[tuple[dict[str, Any], str]] = [
+            ({"type": 1000}, "Invalid input for `type`"),
             ({"type": "hi"}, "Invalid input for `type`"),
             ({"limit": "hi"}, "Invalid input for `limit`"),
         ]
@@ -149,7 +168,7 @@ class RecentSearchesCreateTest(APITestCase):
         self.login_as(self.user)
         search_type = 1
         query = "something"
-        the_date = datetime(2019, 1, 1, 1, 1, 1)
+        the_date = datetime(2019, 1, 1, 1, 1, 1, tzinfo=UTC)
         with freeze_time(the_date):
             response = self.get_response(self.organization.slug, type=search_type, query=query)
             assert response.status_code == 201
@@ -160,7 +179,7 @@ class RecentSearchesCreateTest(APITestCase):
                 query=query,
                 last_seen=the_date,
             ).exists()
-        the_date = datetime(2019, 1, 1, 2, 2, 2)
+        the_date = datetime(2019, 1, 1, 2, 2, 2, tzinfo=UTC)
         with freeze_time(the_date):
             response = self.get_response(self.organization.slug, type=search_type, query=query)
             assert response.status_code == 204, response.content

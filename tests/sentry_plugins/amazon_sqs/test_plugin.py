@@ -1,11 +1,11 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 from botocore.client import ClientError
 
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 
@@ -25,7 +25,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.plugin.set_option("secret_key", "secret-key", self.project)
         self.plugin.set_option("region", "us-east-1", self.project)
         self.plugin.set_option(
-            "queue_url", "https://sqs-us-east-1.amazonaws.com/12345678/myqueue", self.project
+            "queue_url", "https://sqs.us-east-1.amazonaws.com/12345678/myqueue", self.project
         )
 
         event = self.store_event(
@@ -52,8 +52,10 @@ class AmazonSQSPluginTest(PluginTestCase):
             aws_secret_access_key="secret-key",
         )
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=json.dumps(self.plugin.get_event_payload(event)),
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
+            MessageBody=orjson.dumps(
+                self.plugin.get_event_payload(event), option=orjson.OPT_UTC_Z
+            ).decode(),
         )
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")
@@ -105,8 +107,10 @@ class AmazonSQSPluginTest(PluginTestCase):
         event = self.run_test()
 
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=json.dumps(self.plugin.get_event_payload(event)),
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
+            MessageBody=orjson.dumps(
+                self.plugin.get_event_payload(event), option=orjson.OPT_UTC_Z
+            ).decode(),
             MessageGroupId="my_group",
             MessageDeduplicationId="abc123",
         )
@@ -119,17 +123,22 @@ class AmazonSQSPluginTest(PluginTestCase):
         key = f"{event.project.slug}/{date}/{event.event_id}"
 
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
-            MessageBody=json.dumps(
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
+            MessageBody=orjson.dumps(
                 {
                     "s3Url": f"https://my_bucket.s3-us-east-1.amazonaws.com/{key}",
                     "eventID": event.event_id,
-                }
-            ),
+                },
+                option=orjson.OPT_UTC_Z,
+            ).decode(),
         )
 
         mock_client.return_value.put_object.assert_called_once_with(
-            Bucket="my_bucket", Body=json.dumps(self.plugin.get_event_payload(event)), Key=key
+            Bucket="my_bucket",
+            Body=orjson.dumps(
+                self.plugin.get_event_payload(event), option=orjson.OPT_UTC_Z
+            ).decode(),
+            Key=key,
         )
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")

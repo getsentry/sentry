@@ -1,19 +1,19 @@
 from django.test import override_settings
 from django.urls import re_path
-from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class RateLimitTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=1, window=100)}}
 
     def get(self, request):
         return Response({"ok": True})

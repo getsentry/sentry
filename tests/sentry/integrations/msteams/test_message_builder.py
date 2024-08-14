@@ -1,14 +1,23 @@
-import re
+from __future__ import annotations
 
-import pytest
+import re
+from typing import TypeGuard
+
+import orjson
 
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
+    ActionSet,
     ActionType,
+    ColumnSetBlock,
+    ContainerBlock,
+    ImageBlock,
     ImageSize,
+    OpenUrlAction,
+    ShowCardAction,
+    TextBlock,
     TextSize,
     TextWeight,
-    create_action_block,
     create_column_block,
     create_column_set_block,
     create_text_block,
@@ -35,15 +44,46 @@ from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageB
 from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
-from sentry.models import Integration, Organization, OrganizationIntegration, Rule
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.testutils import TestCase
+from sentry.models.organization import Organization
+from sentry.models.rule import Rule
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
-from sentry.utils import json
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
+
+
+def _is_text_block(o: object) -> TypeGuard[TextBlock]:
+    return isinstance(o, dict) and o.get("type") == "TextBlock"
+
+
+def _is_image_block(o: object) -> TypeGuard[ImageBlock]:
+    return isinstance(o, dict) and o.get("type") == "Image"
+
+
+def _is_action_set(o: object) -> TypeGuard[ActionSet]:
+    return isinstance(o, dict) and o.get("type") == "ActionSet"
+
+
+def _is_column_set_block(o: object) -> TypeGuard[ColumnSetBlock]:
+    return isinstance(o, dict) and o.get("type") == "ColumnSet"
+
+
+def _is_container_block(o: object) -> TypeGuard[ContainerBlock]:
+    return isinstance(o, dict) and o.get("type") == "Container"
+
+
+def _is_open_url_action(o: object) -> TypeGuard[OpenUrlAction]:
+    return isinstance(o, dict) and o.get("type") == ActionType.OPEN_URL
+
+
+def _is_show_card_action(o: object) -> TypeGuard[ShowCardAction]:
+    return isinstance(o, dict) and o.get("type") == ActionType.SHOW_CARD
 
 
 class MSTeamsMessageBuilderTest(TestCase):
@@ -57,13 +97,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Fellowship of the Ring",
             external_id="f3ll0wsh1p",
             metadata={},
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.org.id, integration=self.integration
         )
 
@@ -72,6 +112,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             data={"message": "oh no"},
             project_id=self.project1.id,
         )
+        assert self.event1.group is not None
         self.group1 = self.event1.group
 
         self.rules = [
@@ -84,15 +125,17 @@ class MSTeamsMessageBuilderTest(TestCase):
             title=create_text_block("title"),
             text="text",
             fields=[create_text_block("fields")],
-            actions=[create_action_block(ActionType.OPEN_URL, "button", url="url")],
+            actions=[OpenUrlAction(type=ActionType.OPEN_URL, title="button", url="url")],
         )
 
         assert "body" in card
         assert 3 == len(card["body"])
+        assert _is_text_block(card["body"][0])
         assert "title" == card["body"][0]["text"]
 
         assert "actions" in card
         assert 1 == len(card["actions"])
+        assert _is_open_url_action(card["actions"][0])
         assert card["actions"][0]["type"] == ActionType.OPEN_URL
         assert card["actions"][0]["title"] == "button"
 
@@ -101,18 +144,13 @@ class MSTeamsMessageBuilderTest(TestCase):
             text="in __init__.py ... return 1 < 2",
         )
 
+        assert _is_text_block(card["body"][0])
         assert "in \\_\\_init\\_\\_.py ... return 1 &lt; 2" == card["body"][0]["text"]
-
-    def test_missing_action_params(self):
-        with pytest.raises(KeyError):
-            _ = MSTeamsMessageBuilder().build(
-                actions=[create_action_block(ActionType.OPEN_URL, "button")]
-            )
 
     def test_columns(self):
         card = MSTeamsMessageBuilder().build(
             text=create_column_set_block(
-                "column1",
+                create_column_block("column1"),
                 create_column_block(create_text_block("column2")),
             )
         )
@@ -121,11 +159,11 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(body)
 
         column_set = body[0]
-        assert "ColumnSet" == column_set["type"]
-        assert 2 == len(column_set)
+        assert _is_column_set_block(column_set)
+        assert 2 == len(column_set["columns"])
 
         column = column_set["columns"][0]
-        assert "Column" == column["type"]
+        assert _is_text_block(column["items"][0])
         assert "column1" == column["items"][0]["text"]
 
     def test_help_messages(self):
@@ -133,10 +171,11 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 2 == len(help_card["body"])
 
-        expected_avaialable_commands = ["link", "unlink", "help"]
-        actual_avaialble_commands = help_card["body"][1]["text"]
+        expected_available_commands = ["link", "unlink", "help"]
+        assert _is_text_block(help_card["body"][1])
+        actual_available_commands = help_card["body"][1]["text"]
         assert all(
-            [command in actual_avaialble_commands for command in expected_avaialable_commands]
+            [command in actual_available_commands for command in expected_available_commands]
         )
 
     def test_unrecognized_command(self):
@@ -145,6 +184,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 2 == len(unrecognized_command_card["body"])
 
+        assert _is_text_block(unrecognized_command_card["body"][0])
         assert invalid_command in unrecognized_command_card["body"][0]["text"]
 
     def test_mentioned_message(self):
@@ -161,8 +201,11 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 2 == len(confirmation_card["body"])
         assert 1 == len(confirmation_card["actions"])
+        assert _is_column_set_block(confirmation_card["body"][0])
+        assert _is_text_block(confirmation_card["body"][0]["columns"][1]["items"][0])
         assert "test-org" in confirmation_card["body"][0]["columns"][1]["items"][0]["text"]
 
+        assert _is_open_url_action(confirmation_card["actions"][0])
         url = confirmation_card["actions"][0]["url"]
         assert "test-org" in url
         assert url.startswith("http")
@@ -176,8 +219,11 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 3 == len(body)
         assert 1 == len(personal_installation_card["actions"])
 
+        assert _is_column_set_block(body[0])
+        assert _is_text_block(body[0]["columns"][1]["items"][0])
         assert "Personal Installation of Sentry" in body[0]["columns"][1]["items"][0]["text"]
 
+        assert _is_open_url_action(personal_installation_card["actions"][0])
         url = personal_installation_card["actions"][0]["url"]
         assert "signed_params" in url
         assert url.startswith("http")
@@ -187,6 +233,8 @@ class MSTeamsMessageBuilderTest(TestCase):
         team_installation_card = build_team_installation_message(signed_params)
 
         assert 3 == len(team_installation_card["body"])
+        assert _is_column_set_block(team_installation_card["body"][0])
+        assert _is_text_block(team_installation_card["body"][0]["columns"][1]["items"][0])
         assert (
             "Welcome to Sentry"
             in team_installation_card["body"][0]["columns"][1]["items"][0]["text"]
@@ -194,6 +242,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(team_installation_card["actions"])
         assert "Complete Setup" in team_installation_card["actions"][0]["title"]
 
+        assert _is_open_url_action(team_installation_card["actions"][0])
         url = team_installation_card["actions"][0]["url"]
         assert "signed_params" in url
         assert url.startswith("http")
@@ -202,18 +251,21 @@ class MSTeamsMessageBuilderTest(TestCase):
         already_linked_card = build_already_linked_identity_command_card()
 
         assert 1 == len(already_linked_card["body"])
+        assert _is_text_block(already_linked_card["body"][0])
         assert "already linked" in already_linked_card["body"][0]["text"]
 
     def test_link_command_message(self):
         link_command_card = build_link_identity_command_card()
 
         assert 1 == len(link_command_card["body"])
+        assert _is_text_block(link_command_card["body"][0])
         assert "interact with alerts" in link_command_card["body"][0]["text"]
 
     def test_linked_message(self):
         linked_card = build_linked_card()
 
         assert 1 == len(linked_card["body"])
+        assert _is_column_set_block(linked_card["body"][0])
         columns = linked_card["body"][0]["columns"]
         assert "Image" == columns[0]["items"][0]["type"]
         assert ImageSize.LARGE == columns[0]["items"][0]["size"]
@@ -225,12 +277,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(link_identity_card["body"])
         assert 1 == len(link_identity_card["actions"])
 
+        assert _is_open_url_action(link_identity_card["actions"][0])
         assert "test-url" == link_identity_card["actions"][0]["url"]
 
     def test_unlinked_message(self):
         unlinked_card = build_unlinked_card()
 
         assert 1 == len(unlinked_card["body"])
+        assert _is_text_block(unlinked_card["body"][0])
         assert "unlinked" in unlinked_card["body"][0]["text"]
 
     def test_unlink_indentity_message(self):
@@ -239,6 +293,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 1 == len(unlink_identity_card["body"])
         assert 1 == len(unlink_identity_card["actions"])
+        assert _is_open_url_action(unlink_identity_card["actions"][0])
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
 
     def test_issue_message_builder(self):
@@ -254,27 +309,32 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
+        assert _is_text_block(title)
         assert "oh no" in title["text"]
         assert TextSize.LARGE == title["size"]
         assert TextWeight.BOLDER == title["weight"]
 
         description = body[1]
+        assert _is_text_block(description)
         assert "some error" == description["text"]
         assert TextWeight.BOLDER == description["weight"]
 
         footer = body[2]
-        assert "ColumnSet" == footer["type"]
+        assert _is_column_set_block(footer)
         assert 3 == len(footer["columns"])
 
         logo = footer["columns"][0]["items"][0]
+        assert _is_image_block(logo)
         assert "20px" == logo["height"]
 
         issue_id_and_rule = footer["columns"][1]["items"][0]
+        assert _is_text_block(issue_id_and_rule)
         assert self.group1.qualified_short_id in issue_id_and_rule["text"]
         assert "rule1" in issue_id_and_rule["text"]
         assert "+1 other" in issue_id_and_rule["text"]
 
         date = footer["columns"][2]["items"][0]
+        assert _is_text_block(date)
         assert (
             re.match(
                 r"""\{\{                # {{
@@ -312,18 +372,22 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Ignore" == ignore_action["title"]
         assert "Assign" == assign_action["title"]
 
+        assert _is_show_card_action(ignore_action)
         body = ignore_action["card"]["body"]
         assert 2 == len(body)
+        assert _is_text_block(body[0])
         assert "Ignore until this happens again..." == body[0]["text"]
         assert "Ignore" == ignore_action["card"]["actions"][0]["title"]
 
+        assert _is_show_card_action(assign_action)
         body = assign_action["card"]["body"]
         assert 2 == len(body)
+        assert _is_text_block(body[0])
         assert "Assign to..." == body[0]["text"]
         assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
         # Check if card is serializable to json
-        card_json = json.dumps(issue_card)
+        card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):
@@ -339,8 +403,10 @@ class MSTeamsMessageBuilderTest(TestCase):
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
         ).build_group_card()
 
+        assert _is_column_set_block(issue_card["body"][1])
         issue_id_and_rule = issue_card["body"][1]["columns"][1]["items"][0]
 
+        assert _is_text_block(issue_id_and_rule)
         assert "rule1" in issue_id_and_rule["text"]
         assert "+1 other" not in issue_id_and_rule["text"]
 
@@ -353,8 +419,10 @@ class MSTeamsMessageBuilderTest(TestCase):
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
         ).build_group_card()
 
+        assert _is_container_block(issue_card["body"][2])
         action_set = issue_card["body"][2]["items"][0]
 
+        assert _is_action_set(action_set)
         resolve_action = action_set["actions"][0]
         assert ActionType.SUBMIT == resolve_action["type"]
         assert "Unresolve" == resolve_action["title"]
@@ -367,8 +435,10 @@ class MSTeamsMessageBuilderTest(TestCase):
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
         ).build_group_card()
 
+        assert _is_container_block(issue_card["body"][2])
         action_set = issue_card["body"][2]["items"][0]
 
+        assert _is_action_set(action_set)
         ignore_action = action_set["actions"][1]
         assert ActionType.SUBMIT == ignore_action["type"]
         assert "Stop Ignoring" == ignore_action["title"]
@@ -384,10 +454,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         assignee_note = body[2]
+        assert _is_text_block(assignee_note)
         user_name = self.user.get_display_name()
         assert f"**Assigned to {user_name}**" == assignee_note["text"]
 
+        assert _is_container_block(body[3])
         action_set = body[3]["items"][0]
+        assert _is_action_set(action_set)
 
         assign_action = action_set["actions"][2]
         assert ActionType.SUBMIT == assign_action["type"]

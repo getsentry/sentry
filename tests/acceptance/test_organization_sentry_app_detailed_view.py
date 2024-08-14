@@ -1,12 +1,12 @@
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
-from sentry.models import SentryAppInstallation
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -26,7 +26,6 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
 
     def test_add_sentry_app(self):
         self.load_page(self.sentry_app.slug)
-        self.browser.snapshot("integrations - sentry app detail uninstalled")
 
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
@@ -45,7 +44,6 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         )
 
         self.load_page(self.sentry_app.slug)
-        self.browser.snapshot("integrations - sentry app detail installed")
 
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
 

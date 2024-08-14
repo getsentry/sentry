@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.models import PagerDutyService
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -43,25 +44,23 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].choices = services
         self.fields["service"].widget.choices = self.fields["service"].choices
 
-    def _validate_service(self, service_id: int, integration_id: int | None) -> None:
+    def _validate_service(self, service_id: int, integration_id: int) -> None:
         params = {
             "account": dict(self.fields["account"].choices).get(integration_id),
             "service": dict(self.fields["service"].choices).get(service_id),
         }
 
-        try:
-            service = PagerDutyService.objects.get(id=service_id)
-        except PagerDutyService.DoesNotExist:
-            raise forms.ValidationError(
-                _('The service "%(service)s" does not exist in the %(account)s Pagerduty account.'),
-                code="invalid",
-                params=params,
-            )
-
-        integration = integration_service.get_integration(
-            organization_integration_id=service.organization_integration_id
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id,
+            providers=[ExternalProviders.PAGERDUTY.name],
         )
-        if not integration or integration.id != integration_id:
+
+        if not any(
+            pds
+            for oi in org_integrations
+            for pds in oi.config.get("pagerduty_services", [])
+            if pds["id"] == service_id
+        ):
             # We need to make sure that the service actually belongs to that integration,
             # meaning that it belongs under the appropriate account in PagerDuty.
             raise forms.ValidationError(

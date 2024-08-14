@@ -1,18 +1,21 @@
+import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
 describe('hydrateBreadcrumbs', () => {
-  const replayRecord = TestStubs.ReplayRecord({started_at: new Date('2023/12/23')});
+  const replayRecord = ReplayRecordFixture({started_at: new Date('2023/12/23')});
 
   it('should set the timestampMs and offsetMs for each breadcrumb in the list', () => {
     const breadcrumbs = [
-      TestStubs.Replay.ConsoleFrame({timestamp: new Date('2023/12/23')}),
-      TestStubs.Replay.ConsoleFrame({timestamp: new Date('2023/12/24')}),
-      TestStubs.Replay.ConsoleFrame({timestamp: new Date('2023/12/25')}),
+      ReplayConsoleFrameFixture({timestamp: new Date('2023/12/23')}),
+      ReplayConsoleFrameFixture({timestamp: new Date('2023/12/24')}),
+      ReplayConsoleFrameFixture({timestamp: new Date('2023/12/25')}),
     ];
 
     expect(hydrateBreadcrumbs(replayRecord, breadcrumbs)).toStrictEqual([
@@ -59,7 +62,7 @@ describe('hydrateBreadcrumbs', () => {
 
 describe('replayInitBreadcrumb', () => {
   it('should return a RecordingFrame', () => {
-    const replayRecord = TestStubs.ReplayRecord({});
+    const replayRecord = ReplayRecordFixture();
 
     const frame: BreadcrumbFrame = replayInitBreadcrumb(replayRecord);
     expect(frame).toStrictEqual({

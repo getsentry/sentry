@@ -2,18 +2,24 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryAppAvatar
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email
 
 
 @control_silo_endpoint
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
     def has_ui_component(self, sentry_app):
         """Determine if the sentry app supports issue linking or stack trace linking."""
         elements = (sentry_app.schema or {}).get("elements", [])
@@ -53,10 +59,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
         ).run(user=request.user)
 
-        org_context = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=None
-        )
-        org_slug = "<unknown>" if org_context is None else org_context.organization.slug
+        org_mapping = OrganizationMapping.objects.filter(
+            organization_id=sentry_app.owner_id
+        ).first()
+        org_slug = "<unknown>" if org_mapping is None else org_mapping.slug
         message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
         for question_pair in request.data.get("questionnaire"):

@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.constants import MAX_CULPRIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.event_manager import EventManager
@@ -16,7 +17,7 @@ def test_timestamp():
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
-    now = datetime.utcnow()
+    now = timezone.now()
     data = validate_and_normalize({"timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
     assert "errors" not in data
 
@@ -123,7 +124,7 @@ def test_tags_with_spaces():
 
 def test_tags_out_of_bounds():
     data = validate_and_normalize(
-        {"message": "foo", "tags": {"f" * 33: "value", "foo": "v" * 201, "bar": "value"}}
+        {"message": "foo", "tags": {"f" * 201: "value", "foo": "v" * 201, "bar": "value"}}
     )
     assert data["tags"] == [["bar", "value"], [None, "value"], ["foo", None]]
     assert len(data["errors"]) == 2
@@ -173,14 +174,14 @@ def test_server_name_too_long():
     key = "server_name"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH
+    assert len(dict(data["tags"])[key]) == MAX_CULPRIT_LENGTH
 
 
 def test_site_too_long():
     key = "site"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
-    assert len(dict(data["tags"]).get(key)) == MAX_CULPRIT_LENGTH
+    assert len(dict(data["tags"])[key]) == MAX_CULPRIT_LENGTH
 
 
 def test_release_too_long():
@@ -194,7 +195,7 @@ def test_release_too_long():
 
 def test_release_as_non_string():
     data = validate_and_normalize({"release": 42})
-    assert data.get("release") == "42"
+    assert data["release"] == "42"
 
 
 def test_distribution_too_long():
@@ -204,9 +205,9 @@ def test_distribution_too_long():
     # return an error instead of truncating
     assert not data.get("dist")
     assert len(data["errors"]) == 1
-    assert data.get("errors")[0]["type"] == "value_too_long"
-    assert data.get("errors")[0]["name"] == "dist"
-    assert data.get("errors")[0]["value"] == "b" * dist_len
+    assert data["errors"][0]["type"] == "value_too_long"
+    assert data["errors"][0]["name"] == "dist"
+    assert data["errors"][0]["value"] == "b" * dist_len
 
 
 def test_distribution_bad_char():
@@ -220,12 +221,12 @@ def test_distribution_bad_char():
 
 def test_distribution_strip():
     data = validate_and_normalize({"release": "a" * 62, "dist": " foo "})
-    assert data.get("dist") == "foo"
+    assert data["dist"] == "foo"
 
 
 def test_distribution_as_non_string():
     data = validate_and_normalize({"release": "42", "dist": 23})
-    assert data.get("release") == "42"
+    assert data["release"] == "42"
     assert data.get("dist") is None
 
 
@@ -236,17 +237,17 @@ def test_distribution_no_release():
 
 def test_valid_platform():
     data = validate_and_normalize({"platform": "python"})
-    assert data.get("platform") == "python"
+    assert data["platform"] == "python"
 
 
 def test_no_platform():
     data = validate_and_normalize({})
-    assert data.get("platform") == "other"
+    assert data["platform"] == "other"
 
 
 def test_invalid_platform():
     data = validate_and_normalize({"platform": "foobar"})
-    assert data.get("platform") == "other"
+    assert data["platform"] == "other"
 
 
 def test_environment_too_long():
@@ -300,19 +301,19 @@ def test_fingerprints():
     assert data["errors"][0]["name"] == "fingerprint"
 
     data = validate_and_normalize({"fingerprint": ["foo", ["bar"]]})
-    assert data.get("fingerprint") == ["foo"]
+    assert data["fingerprint"] == ["foo"]
     # With rust, there will be errors emitted
 
     data = validate_and_normalize({"fingerprint": ["foo", None, "bar"]})
-    assert data.get("fingerprint") == ["foo", "bar"]
+    assert data["fingerprint"] == ["foo", "bar"]
     # With rust, there will be errors emitted
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1, "bar", 4.5, -2.7, True]})
-    assert data.get("fingerprint") == ["{{default}}", "1", "bar", "4", "-2", "True"]
+    assert data["fingerprint"] == ["{{default}}", "1", "bar", "4", "-2", "True"]
     assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1e100, -1e100, 1e10]})
-    assert data.get("fingerprint") == ["{{default}}", "10000000000"]
+    assert data["fingerprint"] == ["{{default}}", "10000000000"]
     assert data["errors"] == [
         {"type": "invalid_data", "name": "fingerprint", "value": [1e100, -1e100]}
     ]

@@ -1,19 +1,21 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
-import {Organization, Project} from 'sentry/types';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
-  Action,
+  type Action,
   AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  MetricActionTemplate,
-  Trigger,
-  UnsavedMetricRule,
+  type AlertRuleThresholdType,
+  type MetricActionTemplate,
+  type Trigger,
+  type UnsavedMetricRule,
 } from '../types';
 
 type Props = {
@@ -35,12 +37,13 @@ type Props = {
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
   projects: Project[];
-
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
 
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
+
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
+  isMigration?: boolean;
 };
 
 /**
@@ -103,6 +106,7 @@ class Triggers extends Component<Props> {
       thresholdPeriod,
       comparisonType,
       resolveThreshold,
+      isMigration,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
@@ -113,37 +117,43 @@ class Triggers extends Component<Props> {
       <Fragment>
         <Panel>
           <PanelBody>
-            <TriggerForm
-              disabled={disabled}
-              errors={errors}
-              organization={organization}
-              projects={projects}
-              triggers={triggers}
-              aggregate={aggregate}
-              resolveThreshold={resolveThreshold}
-              thresholdType={thresholdType}
-              thresholdPeriod={thresholdPeriod}
-              comparisonType={comparisonType}
-              onChange={this.handleChangeTrigger}
-              onThresholdTypeChange={onThresholdTypeChange}
-              onResolveThresholdChange={onResolveThresholdChange}
-              onThresholdPeriodChange={onThresholdPeriodChange}
-            />
+            {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
+              <div>{'This is where the anomaly detection alert field choices go'}</div>
+            ) : (
+              <TriggerForm
+                disabled={disabled}
+                errors={errors}
+                organization={organization}
+                projects={projects}
+                triggers={triggers}
+                aggregate={aggregate}
+                resolveThreshold={resolveThreshold}
+                thresholdType={thresholdType}
+                thresholdPeriod={thresholdPeriod}
+                comparisonType={comparisonType}
+                onChange={this.handleChangeTrigger}
+                onThresholdTypeChange={onThresholdTypeChange}
+                onResolveThresholdChange={onResolveThresholdChange}
+                onThresholdPeriodChange={onThresholdPeriodChange}
+              />
+            )}
           </PanelBody>
         </Panel>
 
-        <ActionsPanel
-          disabled={disabled}
-          loading={availableActions === null}
-          error={false}
-          availableActions={availableActions}
-          currentProject={currentProject}
-          organization={organization}
-          projects={projects}
-          triggers={triggers}
-          onChange={this.handleChangeActions}
-          onAdd={this.handleAddAction}
-        />
+        {isMigration ? null : (
+          <ActionsPanel
+            disabled={disabled}
+            loading={availableActions === null}
+            error={false}
+            availableActions={availableActions}
+            currentProject={currentProject}
+            organization={organization}
+            projects={projects}
+            triggers={triggers}
+            onChange={this.handleChangeActions}
+            onAdd={this.handleAddAction}
+          />
+        )}
       </Fragment>
     );
   }

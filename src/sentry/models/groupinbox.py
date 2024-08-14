@@ -2,12 +2,18 @@ import logging
 from enum import Enum
 
 import jsonschema
+import sentry_sdk
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
-from sentry.models import Activity
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model
+from sentry.models.activity import Activity
+from sentry.models.grouphistory import (
+    GroupHistoryStatus,
+    bulk_record_group_history,
+    record_group_history,
+)
 from sentry.types.activity import ActivityType
 
 INBOX_REASON_DETAILS = {
@@ -42,13 +48,13 @@ class GroupInboxRemoveAction(Enum):
     MARK_REVIEWED = "mark_reviewed"
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupInbox(Model):
     """
     A Group that is in the inbox.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)
@@ -60,7 +66,7 @@ class GroupInbox(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupinbox"
-        index_together = (("project", "date_added"),)
+        indexes = (models.Index(fields=("project", "date_added")),)
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
@@ -71,7 +77,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
     except jsonschema.ValidationError:
-        logging.error(f"GroupInbox invalid jsonschema: {reason_details}")
+        logging.exception("GroupInbox invalid jsonschema: %s", reason_details)
         reason_details = None
 
     group_inbox, created = GroupInbox.objects.get_or_create(
@@ -102,6 +108,30 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
     except GroupInbox.DoesNotExist:
         pass
+
+
+def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None):
+    with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
+        try:
+            group_inbox = GroupInbox.objects.filter(group__in=groups)
+            group_inbox.delete()
+
+            if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+                Activity.objects.bulk_create(
+                    [
+                        Activity(
+                            project_id=group_inbox_item.group.project_id,
+                            group_id=group_inbox_item.group.id,
+                            type=ActivityType.MARK_REVIEWED.value,
+                            user_id=user.id,
+                        )
+                        for group_inbox_item in group_inbox
+                    ]
+                )
+
+                bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
+        except GroupInbox.DoesNotExist:
+            pass
 
 
 def get_inbox_details(group_list):

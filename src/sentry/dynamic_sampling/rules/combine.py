@@ -8,17 +8,19 @@ from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias imp
     BoostLowVolumeTransactionsBias,
 )
 from sentry.dynamic_sampling.rules.biases.boost_replay_id_bias import BoostReplayIdBias
+from sentry.dynamic_sampling.rules.biases.custom_rule_bias import CustomRuleBias
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
 from sentry.dynamic_sampling.rules.combinators.ordered_combinator import OrderedBiasesCombinator
 from sentry.dynamic_sampling.rules.utils import RuleType
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 
 def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
 
+    default_combinator.add(RuleType.CUSTOM_RULE, CustomRuleBias())
     default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
 
     default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())

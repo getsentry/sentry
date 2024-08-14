@@ -3,18 +3,17 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-
-import {isIssueAlert} from '../../../utils';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
@@ -39,9 +38,7 @@ function DetailsHeader({
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
-    `/organizations/${organization.slug}/alerts/${
-      isIssueAlert(rule) ? 'rules' : 'metric-rules'
-    }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
+    `/organizations/${organization.slug}/alerts/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
@@ -53,7 +50,6 @@ function DetailsHeader({
     },
   };
 
-  const hasSnoozeFeature = organization.features.includes('mute-metric-alerts');
   const isSnoozed = rule?.snooze ?? false;
 
   return (
@@ -79,7 +75,7 @@ function DetailsHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          {hasSnoozeFeature && rule && project && (
+          {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert

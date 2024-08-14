@@ -1,21 +1,27 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import ModalStore from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
-  let data;
+  let data!: Parameters<typeof GuideStore.fetchSucceeded>[0];
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
-      user: TestStubs.User({
-        id: '5',
-        isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          id: '5',
+          isSuperuser: false,
+          dateJoined: '2020-01-01T00:00:00',
+        }),
+      })
+    );
     GuideStore.init();
     data = [
       {
@@ -24,8 +30,8 @@ describe('GuideStore', function () {
       },
       {guide: 'issue_stream', seen: true},
     ];
-    GuideStore.registerAnchor('issue_number');
-    GuideStore.registerAnchor('exception');
+    GuideStore.registerAnchor('issue_header_stats');
+    GuideStore.registerAnchor('issue_sidebar_owners');
     GuideStore.registerAnchor('breadcrumbs');
     GuideStore.registerAnchor('issue_stream');
   });
@@ -48,20 +54,6 @@ describe('GuideStore', function () {
     expect(GuideStore.getState().currentStep).toEqual(2);
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide).toEqual(null);
-  });
-
-  it('should expect anchors to appear in expectedTargets', function () {
-    data = [{guide: 'new_page_filters', seen: false}];
-
-    GuideStore.registerAnchor('new_page_filter_button');
-    GuideStore.fetchSucceeded(data);
-    expect(GuideStore.getState().currentStep).toEqual(0);
-    expect(GuideStore.getState().currentGuide?.guide).toEqual('new_page_filters');
-
-    GuideStore.registerAnchor('new_page_filter_button');
-
-    // Will not prune steps that don't have anchors
-    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(2);
   });
 
   it('should force show a guide with #assistant', function () {
@@ -125,5 +117,23 @@ describe('GuideStore', function () {
     GuideStore.fetchSucceeded(data);
     expect(GuideStore.state.guides.length).toBe(1);
     expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
+  });
+
+  it('hides when a modal is open', function () {
+    expect(GuideStore.getState().forceHide).toBe(false);
+
+    ModalStore.openModal(() => <div />, {});
+
+    expect(GuideStore.getState().forceHide).toBe(true);
+
+    ModalStore.closeModal();
+
+    expect(GuideStore.getState().forceHide).toBe(false);
+  });
+
+  it('should return a stable reference from getState', function () {
+    ModalStore.openModal(() => <div />, {});
+    const state = GuideStore.getState();
+    expect(Object.is(state, GuideStore.getState())).toBe(true);
   });
 });

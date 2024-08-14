@@ -1,5 +1,5 @@
 from .base import EventState, RuleBase
-from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType
+from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType, match_values
 from .registry import RuleRegistry
 
 __all__ = (
@@ -10,6 +10,7 @@ __all__ = (
     "MatchType",
     "RuleBase",
     "rules",
+    "match_values",
 )
 
 
@@ -24,7 +25,7 @@ def init_registry() -> RuleRegistry:
         cls = import_string(rule)
         registry.add(cls)
     for plugin in plugins.all(version=2):
-        for cls in safe_execute(plugin.get_rules, _with_transaction=False) or ():
+        for cls in safe_execute(plugin.get_rules) or ():
             registry.add(cls)
 
     return registry

@@ -2,29 +2,33 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
+import type {
   ModalRenderProps,
   TeamAccessRequestModalOptions,
 } from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
-type Props = ModalRenderProps &
-  TeamAccessRequestModalOptions & {
-    api: Client;
-    memberId: string;
-    orgId: string;
-    teamId: string;
-  };
+export interface CreateTeamAccessRequestModalProps
+  extends ModalRenderProps,
+    TeamAccessRequestModalOptions {
+  api: Client;
+  memberId: string;
+  orgId: string;
+  teamId: string;
+}
 
 type State = {
   createBusy: boolean;
 };
 
-class CreateTeamAccessRequest extends Component<Props, State> {
+class CreateTeamAccessRequestModal extends Component<
+  CreateTeamAccessRequestModalProps,
+  State
+> {
   state: State = {
     createBusy: false,
   };
@@ -84,4 +88,4 @@ const ButtonGroup = styled('div')`
   gap: ${space(1)};
 `;
 
-export default withApi(CreateTeamAccessRequest);
+export default withApi(CreateTeamAccessRequestModal);

@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProjectDebugFile
+from sentry.models.debugfile import ProjectDebugFile
 
 
 @register(ProjectDebugFile)
 class DebugFileSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         d = {
             "id": str(obj.id),
             "uuid": obj.debug_id[:36],

@@ -1,11 +1,12 @@
-import {createFilter} from 'react-select';
+import type {createFilter} from 'react-select';
 
-import {Alert} from 'sentry/components/alert';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
-import FormModel from 'sentry/components/forms/model';
-import {AvatarProject, Project, SelectValue} from 'sentry/types';
+import type {AlertProps} from 'sentry/components/alert';
+import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
+import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
+import type FormModel from 'sentry/components/forms/model';
+import type {SliderProps} from 'sentry/components/slider';
+import type {SelectValue} from 'sentry/types/core';
+import type {AvatarProject, Project} from 'sentry/types/project';
 
 export const FieldType = [
   'array',
@@ -36,8 +37,9 @@ export type FieldValue = any;
 // TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
-type BaseField = {
+interface BaseField {
   name: string;
+  'aria-label'?: string;
   autosize?: boolean;
   choices?:
     | ((props: {[key: string]: any}) => void)
@@ -45,7 +47,7 @@ type BaseField = {
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: React.ReactNode;
+  disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
   extraHelp?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -79,7 +81,7 @@ type BaseField = {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -98,7 +100,7 @@ type BaseField = {
   updatesForm?: boolean;
   validate?: (data: {form: Record<string, any>; id: string}) => string[][];
   visible?: boolean | ((props: any) => boolean);
-};
+}
 
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
@@ -135,11 +137,7 @@ type NumberType = {type: 'number'} & {
   step?: number;
 };
 
-type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
-
-type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
-    value?: Pick<RangeSliderProps, 'value'>;
-  };
+type RangeType = {type: 'range'} & SliderProps;
 
 type FileType = {type: 'file'} & {
   accept?: string[];
@@ -193,6 +191,10 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+export type SentryOrganizationRoleSelectorType = {
+  type: 'sentry_organization_role_selector';
+};
+
 export type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
@@ -207,6 +209,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
   | {type: (typeof FieldType)[number]}
@@ -219,6 +222,7 @@ export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
   fields: FieldObject[];
+  initiallyCollapsed?: boolean;
   title?: React.ReactNode;
 };
 

@@ -2,26 +2,25 @@ import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form, {FormProps} from 'sentry/components/forms/form';
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
+import type {FieldValue} from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import {
-  Choices,
-  IntegrationIssueConfig,
-  IssueConfigField,
-  SelectValue,
-} from 'sentry/types';
-import {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
+import type {Choices, SelectValue} from 'sentry/types/core';
+import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
 export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
-type Props = ModalRenderProps & AsyncComponent['props'];
+type Props = ModalRenderProps & DeprecatedAsyncComponent['props'];
 
 type State = {
   action: ExternalIssueAction;
@@ -38,7 +37,11 @@ type State = {
    * Fetched via endpoint, null until set.
    */
   integrationDetails: IntegrationIssueConfig | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
+
+// This exists because /extensions/type/search API is not prefixed with
+// /api/0/, but the default API client on the abstract issue form is...
+const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
 const DEBOUNCE_MS = 200;
 /**
@@ -46,8 +49,8 @@ const DEBOUNCE_MS = 200;
  */
 export default class AbstractExternalIssueForm<
   P extends Props = Props,
-  S extends State = State
-> extends AsyncComponent<P, S> {
+  S extends State = State,
+> extends DeprecatedAsyncComponent<P, S> {
   shouldRenderBadRequests = true;
   model = new FormModel();
 
@@ -103,7 +106,7 @@ export default class AbstractExternalIssueForm<
   ): {[key: string]: FieldValue | null} => {
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
-    const config = (integrationDetails || {})[this.getConfigName()];
+    const config = integrationDetails?.[this.getConfigName()];
     return Object.fromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
@@ -161,7 +164,7 @@ export default class AbstractExternalIssueForm<
    * searching in an async select field without selecting one of the returned choices will
    * result in a value saved to the form, and no associated label; appearing empty.
    * @param field The field being examined
-   * @param result The result from it's asynchronous query
+   * @param result The result from its asynchronous query
    * @returns The result with a tooltip attached to the current option
    */
   ensureCurrentOption = (
@@ -171,6 +174,7 @@ export default class AbstractExternalIssueForm<
     const currentOption = this.getDefaultOptions(field).find(
       option => option.value === this.model.getValue(field.name)
     );
+
     if (!currentOption) {
       return result;
     }
@@ -179,7 +183,7 @@ export default class AbstractExternalIssueForm<
         <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
-              label: field.label,
+              label: field.label as React.ReactNode,
             })}
             size="xs"
           />{' '}
@@ -239,9 +243,10 @@ export default class AbstractExternalIssueForm<
       const separator = url.includes('?') ? '&' : '?';
       // We can't use the API client here since the URL is not scoped under the
       // API endpoints (which the client prefixes)
+
       try {
-        const response = await fetch(url + separator + query);
-        cb(null, response.ok ? await response.json() : []);
+        const response = await API_CLIENT.requestPromise(url + separator + query);
+        cb(null, response);
       } catch (err) {
         cb(err);
       }
@@ -288,20 +293,31 @@ export default class AbstractExternalIssueForm<
     throw new Error("Method 'getFormProps()' must be implemented.");
   };
 
+  hasErrorInFields = (): boolean => {
+    // check if we have any form fields with name error and type blank
+    const fields = this.loadAsyncThenFetchAllFields();
+    return fields.some(field => field.name === 'error' && field.type === 'blank');
+  };
+
   getDefaultFormProps = (): FormProps => {
     return {
       footerClass: 'modal-footer',
       onFieldChange: this.onFieldChange,
-      submitDisabled: this.state.reloading,
+      submitDisabled: this.state.reloading || this.hasErrorInFields(),
       model: this.model,
       // Other form props implemented by child classes.
     };
   };
 
-  getCleanedFields = (): IssueConfigField[] => {
+  /**
+   * Populate all async fields with their choices, then return the full list of fields.
+   * We pull from the fetchedFieldOptionsCache which contains the most recent choices
+   * for each async field.
+   */
+  loadAsyncThenFetchAllFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
-    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    const configsFromAPI = integrationDetails?.[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
       // Overwrite choices from cache.
@@ -323,9 +339,7 @@ export default class AbstractExternalIssueForm<
   ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
-        accumulator[field.name] =
-          // Passing an empty array breaks MultiSelect.
-          field.multiple && field.default.length === 0 ? '' : field.default;
+        accumulator[field.name] = field.default;
         return accumulator;
       },
       {}

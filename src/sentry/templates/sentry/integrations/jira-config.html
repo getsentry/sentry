@@ -3,13 +3,8 @@
 <html lang="en">
 <head>
   {% script src=ac_js_src %}{% endscript %}
-  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
-  {% script src=jquery_url %}{% endscript %}
-
-  {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
-  {% script src=aui_js_url %}{% endscript %}
-  <link rel="stylesheet" href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}" media="all">
   <style>
+    {% include 'sentry/integrations/jira/aui-prototyping.9.1.5.css' %}
     :root {
       --gray500: #C6BECF;
       --gray800: #302839;
@@ -47,6 +42,9 @@
       float: right;
       font-size: 14px;
     }
+    .button:hover {
+      color: white;
+    }
     h1,
     h3,
     p{
@@ -70,7 +68,6 @@
       font-size: 18px;
       margin-bottom: 24px;
     }
-
   </style>
 </head>
 <body>

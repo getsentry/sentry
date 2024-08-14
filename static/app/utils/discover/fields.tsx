@@ -1,14 +1,18 @@
 import isEqual from 'lodash/isEqual';
 
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {MetricType} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {
   AGGREGATION_FIELDS,
@@ -18,6 +22,7 @@ import {
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
+  MobileVital,
   SpanOpBreakdown,
   WebVital,
 } from '../fields';
@@ -53,7 +58,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -107,7 +112,7 @@ export type QueryFieldValue =
         AggregationKeyWithAlias,
         string,
         AggregationRefinement,
-        AggregationRefinement
+        AggregationRefinement,
       ];
       kind: 'function';
       alias?: string;
@@ -117,6 +122,71 @@ export type QueryFieldValue =
 export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
+
+export type CountUnit = 'count';
+
+export type PercentageUnit = 'percentage';
+
+export type PercentChangeUnit = 'percent_change';
+
+export enum CurrencyUnit {
+  USD = 'usd',
+}
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
+export enum RateUnit {
+  PER_SECOND = '1/second',
+  PER_MINUTE = '1/minute',
+  PER_HOUR = '1/hour',
+}
+
+// Rates normalized to /second unit
+export const RATE_UNIT_MULTIPLIERS = {
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
+};
+
+export const RATE_UNIT_LABELS = {
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
+};
+
+export const RATE_UNIT_TITLE = {
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
+};
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
   {
@@ -382,6 +452,19 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   [AggregationKey.P95]: {
     ...getDocsAndOutputType(AggregationKey.P95),
     parameters: [
@@ -630,6 +713,57 @@ export const TRACING_FIELDS = [
   ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+];
+
+export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.PROFILE_ID,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
+];
+
+export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
+  f => !TRANSACTION_ONLY_FIELDS.includes(f)
+);
+
+export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.LOCATION,
+  FieldKey.EVENT_TYPE,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_RECEIVED,
+  FieldKey.ERROR_MAIN_THREAD,
+  FieldKey.LEVEL,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_IN_APP,
+  FieldKey.STACK_COLNO,
+  FieldKey.STACK_LINENO,
+  FieldKey.STACK_STACK_LEVEL,
+  FieldKey.EVENT_TYPE,
+];
+
+export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
+  f => !ERROR_ONLY_FIELDS.includes(f)
+);
+
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
@@ -1032,7 +1166,7 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg].outputType;
   }
 
-  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1172,7 +1306,15 @@ function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunc
   };
 }
 
-const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+const alignedTypes: ColumnValueType[] = [
+  'number',
+  'duration',
+  'integer',
+  'percentage',
+  'percent_change',
+  'rate',
+  'size',
+];
 
 export function fieldAlignment(
   columnName: string,
@@ -1180,6 +1322,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1197,7 +1342,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
@@ -1240,3 +1385,151 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
   }
   return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }
+
+// Search categorizations for the new `SearchQueryBuilder` component.
+// Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
+
+export const TRANSACTION_FILTER_FIELDS: FilterKeySection = {
+  value: 'transaction_fields',
+  label: 'Transaction',
+  children: [
+    FieldKey.TRANSACTION_DURATION,
+    FieldKey.TRANSACTION_OP,
+    FieldKey.TRANSACTION_STATUS,
+    SpanOpBreakdown.SPANS_BROWSER,
+    SpanOpBreakdown.SPANS_DB,
+    SpanOpBreakdown.SPANS_HTTP,
+    SpanOpBreakdown.SPANS_RESOURCE,
+    SpanOpBreakdown.SPANS_UI,
+  ],
+};
+
+export const USER_FILTER_FIELDS: FilterKeySection = {
+  value: 'user_fields',
+  label: 'User',
+  children: [
+    FieldKey.USER,
+    FieldKey.USER_DISPLAY,
+    FieldKey.USER_EMAIL,
+    FieldKey.USER_ID,
+    FieldKey.USER_IP,
+    FieldKey.USER_USERNAME,
+  ],
+};
+
+export const GEO_FILTER_FIELDS: FilterKeySection = {
+  value: 'geo_fields',
+  label: 'Geo',
+  children: [
+    FieldKey.GEO_CITY,
+    FieldKey.GEO_COUNTRY_CODE,
+    FieldKey.GEO_REGION,
+    FieldKey.GEO_SUBDIVISION,
+  ],
+};
+
+export const HTTP_FILTER_FIELDS: FilterKeySection = {
+  value: 'http_fields',
+  label: 'HTTP',
+  children: [
+    FieldKey.HTTP_METHOD,
+    FieldKey.HTTP_REFERER,
+    FieldKey.HTTP_STATUS_CODE,
+    FieldKey.HTTP_URL,
+  ],
+};
+
+export const WEB_VITAL_FIELDS: FilterKeySection = {
+  value: 'web_vital_fields',
+  label: 'Web Vitals',
+  children: [
+    WebVital.CLS,
+    WebVital.FCP,
+    WebVital.FID,
+    WebVital.FP,
+    WebVital.INP,
+    WebVital.LCP,
+    WebVital.REQUEST_TIME,
+  ],
+};
+
+export const MOBILE_VITAL_FIELDS: FilterKeySection = {
+  value: 'mobile_vital_fields',
+  label: 'Mobile Vitals',
+  children: [
+    MobileVital.APP_START_COLD,
+    MobileVital.APP_START_WARM,
+    MobileVital.FRAMES_FROZEN,
+    MobileVital.FRAMES_FROZEN_RATE,
+    MobileVital.FRAMES_SLOW,
+    MobileVital.FRAMES_SLOW_RATE,
+    MobileVital.FRAMES_TOTAL,
+    MobileVital.STALL_COUNT,
+    MobileVital.STALL_LONGEST_TIME,
+    MobileVital.STALL_PERCENTAGE,
+    MobileVital.STALL_TOTAL_TIME,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
+  ],
+};
+
+export const DEVICE_FIELDS: FilterKeySection = {
+  value: 'device_fields',
+  label: 'Device',
+  children: [
+    FieldKey.DEVICE_ARCH,
+    FieldKey.DEVICE_BATTERY_LEVEL,
+    FieldKey.DEVICE_BRAND,
+    FieldKey.DEVICE_CHARGING,
+    FieldKey.DEVICE_CLASS,
+    FieldKey.DEVICE_FAMILY,
+    FieldKey.DEVICE_LOCALE,
+    // FieldKey.DEVICE_MODEL_ID,
+    FieldKey.DEVICE_NAME,
+    FieldKey.DEVICE_ONLINE,
+    FieldKey.DEVICE_ORIENTATION,
+    FieldKey.DEVICE_SCREEN_DENSITY,
+    FieldKey.DEVICE_SCREEN_DPI,
+    FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
+    FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
+    FieldKey.DEVICE_SIMULATOR,
+    FieldKey.DEVICE_UUID,
+  ],
+};
+
+export const RELEASE_FIELDS: FilterKeySection = {
+  value: 'release_fields',
+  label: 'Release',
+  children: [
+    FieldKey.RELEASE,
+    FieldKey.RELEASE_BUILD,
+    FieldKey.RELEASE_PACKAGE,
+    FieldKey.RELEASE_STAGE,
+    FieldKey.RELEASE_VERSION,
+  ],
+};
+
+export const MISC_FIELDS: FilterKeySection = {
+  value: 'misc_fields',
+  label: 'Misc',
+  children: [FieldKey.HAS, FieldKey.DIST],
+};
+
+export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  TRANSACTION_FILTER_FIELDS,
+  HTTP_FILTER_FIELDS,
+  WEB_VITAL_FIELDS,
+  RELEASE_FIELDS,
+  USER_FILTER_FIELDS,
+  GEO_FILTER_FIELDS,
+  // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
+  // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
+  MOBILE_VITAL_FIELDS,
+  DEVICE_FIELDS,
+  MISC_FIELDS,
+];
+
+// TODO: In followup PR, add this
+// export const PLATFORM_KEY_TO_FILTER_SECTIONS
+// will take in a project platform key, and output only the relevant filter key sections.
+// This way, users will not be suggested mobile fields for a backend transaction, for example.

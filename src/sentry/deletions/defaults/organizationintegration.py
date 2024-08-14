@@ -1,4 +1,7 @@
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.repository import repository_service
+from sentry.types.region import RegionMappingNotFound
 
 from ..base import ModelDeletionTask, ModelRelation
 
@@ -8,7 +11,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
 
     def get_child_relations(self, instance):
-        from sentry.models import Identity
+        from sentry.models.identity import Identity
 
         relations = []
 
@@ -18,22 +21,14 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
 
         return relations
 
-    def delete_instance(self, instance):
-        from sentry.models import ProjectCodeOwners, Repository, RepositoryProjectPathConfig
-
-        # Dissociate repos from the integration being deleted. integration
-        Repository.objects.filter(
-            organization_id=instance.organization_id, integration_id=instance.integration_id
-        ).update(integration_id=None)
-
-        # Delete Code Owners with a Code Mapping using the OrganizationIntegration
-        ProjectCodeOwners.objects.filter(
-            repository_project_path_config__in=RepositoryProjectPathConfig.objects.filter(
-                organization_integration_id=instance.id
-            ).values_list("id", flat=True)
-        ).delete()
-
-        # Delete the Code Mappings
-        RepositoryProjectPathConfig.objects.filter(organization_integration_id=instance.id).delete()
-
+    def delete_instance(self, instance: OrganizationIntegration):
+        try:
+            repository_service.disassociate_organization_integration(
+                organization_id=instance.organization_id,
+                organization_integration_id=instance.id,
+                integration_id=instance.integration_id,
+            )
+        except RegionMappingNotFound:
+            # This can happen when an organization has been deleted already.
+            pass
         return super().delete_instance(instance)

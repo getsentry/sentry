@@ -1,40 +1,35 @@
-from typing import Optional
-
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.models import (
-    Activity,
-    Commit,
-    Group,
-    GroupAssignee,
-    GroupInboxRemoveAction,
-    GroupLink,
-    GroupStatus,
-    GroupSubscription,
-    Project,
-    PullRequest,
-    Release,
-    ReleaseProject,
-    Repository,
-    remove_group_from_inbox,
-)
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     record_group_history,
     record_group_history_from_activity_type,
 )
+from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -48,14 +43,17 @@ def resolve_group_resolutions(instance, created, **kwargs):
     if not created:
         return
 
-    transaction.on_commit(lambda: clear_expired_resolutions.delay(release_id=instance.id))
+    transaction.on_commit(
+        lambda: clear_expired_resolutions.delay(release_id=instance.id),
+        router.db_for_write(Release),
+    )
 
 
 def remove_resolved_link(link):
     # TODO(dcramer): ideally this would simply "undo" the link change,
     # but we don't know for a fact that the resolution was most recently from
     # the GroupLink
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
         affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
             status=GroupStatus.UNRESOLVED,
@@ -95,28 +93,30 @@ def resolved_in_commit(instance, created, **kwargs):
         repo = None
 
     if instance.author:
-        user_list = list(instance.author.find_users())
+        with in_test_hide_transaction_boundary():
+            user_list = list(instance.author.find_users())
     else:
         user_list = ()
 
-    acting_user: Optional[RpcUser] = None
+    acting_user: RpcUser | None = None
 
     self_assign_issue: str = "0"
     if user_list:
         acting_user = user_list[0]
-        self_assign_issue = get_option_from_list(
-            user_option_service.get_many(
-                filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-            ),
-            key="self_assign_issue",
-            default="0",
-        )
+        with in_test_hide_transaction_boundary():
+            self_assign_issue = get_option_from_list(
+                user_option_service.get_many(
+                    filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+                ),
+                key="self_assign_issue",
+                default="0",
+            )
 
     for group in groups:
         try:
             # XXX(dcramer): This code is somewhat duplicated from the
             # project_group_index mutation api
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -135,7 +135,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     # subscribe every user
                     for user in user_list:
                         GroupSubscription.objects.subscribe(
-                            user=user,
+                            subscriber=user,
                             group=group,
                             reason=GroupSubscriptionReason.status_change,
                         )
@@ -215,7 +215,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
 
     for group in groups:
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -223,7 +223,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-                acting_user: Optional[RpcUser] = None
+                acting_user: RpcUser | None = None
                 if user_list:
                     acting_user = user_list[0]
                     GroupAssignee.objects.assign(

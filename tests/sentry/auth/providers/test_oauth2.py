@@ -1,17 +1,25 @@
+from collections.abc import Mapping
 from functools import cached_property
-from typing import Any, Mapping
+from typing import Any
 
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import TestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
+
+    def get_client_id(self):
+        raise NotImplementedError
+
+    def get_client_secret(self):
+        raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
@@ -23,7 +31,7 @@ class DummyOAuth2Provider(OAuth2Provider):
         pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuth2ProviderTest(TestCase):
     @cached_property
     def auth_provider(self):

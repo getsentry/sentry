@@ -1,8 +1,10 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, OrganizationMember, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.users.models.user import User
 
 from .mail import render_preview_email_for_notification
 
@@ -14,7 +16,7 @@ class DebugOrganizationInviteRequestEmailView(View):
         pending_member = OrganizationMember(
             email="test@gmail.com", organization=org, inviter_id=requester.id
         )
-        recipient = User(name="James Bond", actor_id=1)
+        recipient = User(name="James Bond")
         recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = InviteRequestNotification(pending_member, requester)

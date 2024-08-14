@@ -1,30 +1,25 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
-import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
-import {valueIsEqual} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  getAggregateArg,
-  isEquation,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -32,6 +27,7 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
@@ -104,13 +100,11 @@ class ResultsChart extends Component<ResultsChartProps> {
         : null
       : null;
     const chartComponent =
-      display === DisplayModes.WORLDMAP
-        ? WorldMapChart
-        : display === DisplayModes.BAR
+      display === DisplayModes.BAR
         ? BarChart
         : customPerformanceMetricFieldType === 'size' && isTopEvents
-        ? AreaChart
-        : undefined;
+          ? AreaChart
+          : undefined;
     const interval =
       display === DisplayModes.BAR
         ? getInterval(
@@ -193,12 +187,12 @@ type ContainerState = {
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   state: ContainerState = {
-    yAxisOptions: this.getYAxisOptions(this.props.eventView),
+    yAxisOptions: this.props.eventView.getYAxisOptions(),
   };
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    const yAxisOptions = this.getYAxisOptions(this.props.eventView);
-    const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
+    const yAxisOptions = this.props.eventView.getYAxisOptions();
+    const nextYAxisOptions = nextProps.eventView.getYAxisOptions();
 
     if (!valueIsEqual(yAxisOptions, nextYAxisOptions, true)) {
       this.setState({yAxisOptions: nextYAxisOptions});
@@ -217,18 +211,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     }
 
     return !isEqual(restProps, restNextProps);
-  }
-
-  getYAxisOptions(eventView) {
-    const yAxisOptions = eventView.getYAxisOptions();
-
-    // Equations on World Map isn't supported on the events-geo endpoint
-    // Disabling equations as an option to prevent erroring out
-    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
-      return yAxisOptions.filter(({value}) => !isEquation(value));
-    }
-
-    return yAxisOptions;
   }
 
   render() {

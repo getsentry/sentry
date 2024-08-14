@@ -1,19 +1,21 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {User} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import type {User} from 'sentry/types/user';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -118,19 +120,19 @@ class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   }
 }
 
-type Props = AsyncView['props'] & RouteComponentProps<{id: string}, {}>;
+type Props = DeprecatedAsyncView['props'] & RouteComponentProps<{id: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   user: User | null;
 };
 
-class AdminUserEdit extends AsyncView<Props, State> {
+class AdminUserEdit extends DeprecatedAsyncView<Props, State> {
   get userEndpoint() {
     const {params} = this.props;
     return `/users/${params.id}/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['user', this.userEndpoint]];
   }
 

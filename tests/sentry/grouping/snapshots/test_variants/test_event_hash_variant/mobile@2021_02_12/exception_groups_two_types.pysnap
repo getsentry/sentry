@@ -11,12 +11,12 @@ app:
         exception*
           type*
             "MyApp.SuchWowException"
-          value* (stripped common values)
+          value* (stripped event-specific values)
             "Test <int>"
         exception*
           type*
             "MyApp.AmazingException"
-          value* (stripped common values)
+          value* (stripped event-specific values)
             "Test <int>"
         exception*
           type*

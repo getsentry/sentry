@@ -5,24 +5,21 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
-import onboardingFrameworkSelectionJava from 'sentry-images/spot/onboarding-framework-selection-java.svg';
-import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
-import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
-import onboardingFrameworkSelectionPython from 'sentry-images/spot/onboarding-framework-selection-python.svg';
-
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Radio from 'sentry/components/radio';
-import categoryList from 'sentry/data/platformCategories';
+import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -32,19 +29,33 @@ export enum SupportedLanguages {
   NODE = 'node',
   DOTNET = 'dotnet',
   JAVA = 'java',
+  GO = 'go',
 }
 
-export const topJavascriptFrameworks = [
-  'javascript-react',
-  'javascript-nextjs',
-  'javascript-vue',
-  'javascript-angular',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-remix',
+const topGoFrameworks: PlatformKey[] = [
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
 ];
 
-const topPythonFrameworks = [
+export const topJavascriptFrameworks: PlatformKey[] = [
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-vue',
+  'javascript-angular',
+  'javascript-solid',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-astro',
+];
+
+const topPythonFrameworks: PlatformKey[] = [
   'python-django',
   'python-flask',
   'python-fastapi',
@@ -52,15 +63,15 @@ const topPythonFrameworks = [
   'python-aiohttp',
 ];
 
-const topNodeFrameworks = [
+const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 
-const topDotNetFrameworks = [
+const topDotNetFrameworks: PlatformKey[] = [
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'dotnet-maui',
@@ -72,44 +83,32 @@ const topDotNetFrameworks = [
   'dotnet-awslambda',
 ];
 
-const topJavaFrameworks = [
+const topJavaFrameworks: PlatformKey[] = [
   'java-spring-boot',
   'java-spring',
   'java-logback',
   'java-log4j2',
 ];
 
-export const languageDetails = {
-  [SupportedLanguages.JAVASCRIPT]: {
-    description: t(
-      'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionJavascript,
-  },
-  [SupportedLanguages.NODE]: {
-    description: t(
-      'Our Node framework SDKs include all the features of our Node SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionNode,
-  },
-  [SupportedLanguages.PYTHON]: {
-    description: t(
-      'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionPython,
-  },
-  [SupportedLanguages.DOTNET]: {
-    description: t(
-      'Our Dotnet framework SDKs include all the features of our Dotnet SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionDotnet,
-  },
-  [SupportedLanguages.JAVA]: {
-    description: t(
-      'Our Java framework SDKs include all the features of our Java SDK with instructions specific to that framework'
-    ),
-    topFrameworksImage: onboardingFrameworkSelectionJava,
-  },
+export const languageDescriptions = {
+  [SupportedLanguages.JAVASCRIPT]: t(
+    'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
+  ),
+  [SupportedLanguages.NODE]: t(
+    'Our Node framework SDKs include all the features of our Node SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.PYTHON]: t(
+    'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.DOTNET]: t(
+    'Our .NET integrations include all the features of our core .NET SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.JAVA]: t(
+    'Our Java framework SDKs include all the features of our Java SDK with instructions specific to that framework'
+  ),
+  [SupportedLanguages.GO]: t(
+    'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
+  ),
 };
 
 type Props = ModalRenderProps & {
@@ -137,7 +136,9 @@ export function FrameworkSuggestionModal({
 
   const frameworks = platforms.filter(
     platform =>
-      platform.type === 'framework' && platform.language === selectedPlatform.key
+      createablePlatforms.has(platform.id) &&
+      platform.type === 'framework' &&
+      platform.language === selectedPlatform.key
   );
 
   const [topFrameworks, otherFrameworks] = partition(frameworks, framework => {
@@ -152,6 +153,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.includes(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.includes(framework.id);
     }
     return topJavascriptFrameworks.includes(framework.id);
   });
@@ -169,6 +173,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);
   });
@@ -226,63 +233,58 @@ export function FrameworkSuggestionModal({
     closeModal();
   }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
 
+  const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
+
   return (
     <Fragment>
       <Header>
         <CloseButton onClick={closeModal} />
       </Header>
       <Body>
-        <TopFrameworksImage
-          src={languageDetails[selectedPlatform.key].topFrameworksImage}
-        />
+        <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
-        <Description>{languageDetails[selectedPlatform.key].description}</Description>
-        <Panel>
-          <PanelBody>
+        <Description>{languageDescriptions[selectedPlatform.key]}</Description>
+        <StyledPanel>
+          <StyledPanelBody>
             <Frameworks>
-              {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
-                (framework, index) => {
-                  const frameworkCategory =
-                    categoryList.find(category => {
-                      return category.platforms.includes(framework.id as never);
-                    })?.id ?? 'all';
+              {listEntries.map((framework, index) => {
+                const frameworkCategory =
+                  categoryList.find(category => {
+                    return category.platforms?.has(framework.id);
+                  })?.id ?? 'all';
 
-                  return (
-                    <Framework key={framework.id}>
-                      <RadioLabel
-                        index={index}
-                        onClick={() =>
-                          setSelectedFramework({
-                            key: framework.id,
-                            type: framework.type,
-                            language: framework.language,
-                            category: frameworkCategory,
-                          })
-                        }
-                      >
-                        <RadioBox
-                          radioSize="small"
-                          checked={selectedFramework?.key === framework.id}
-                          readOnly
-                        />
-                        <FrameworkIcon size={24} platform={framework.id} />
-                        {framework.name}
-                      </RadioLabel>
-                    </Framework>
-                  );
-                }
-              )}
+                return (
+                  <Framework key={framework.id}>
+                    <RadioLabel
+                      index={index}
+                      onClick={() =>
+                        setSelectedFramework({
+                          key: framework.id,
+                          type: framework.type,
+                          language: framework.language,
+                          category: frameworkCategory,
+                        })
+                      }
+                    >
+                      <RadioBox
+                        radioSize="small"
+                        checked={selectedFramework?.key === framework.id}
+                        readOnly
+                      />
+                      <FrameworkIcon size={24} platform={framework.id} />
+                      {framework.name}
+                    </RadioLabel>
+                  </Framework>
+                );
+              })}
             </Frameworks>
-          </PanelBody>
-        </Panel>
+          </StyledPanelBody>
+        </StyledPanel>
       </Body>
       <Footer>
         <Actions>
-          <Button size="md" onClick={handleSkip}>
-            {t('Skip')}
-          </Button>
+          <Button onClick={handleSkip}>{t('Skip')}</Button>
           <Button
-            size="md"
             priority="primary"
             onClick={handleConfigure}
             disabled={!selectedFramework}
@@ -296,6 +298,42 @@ export function FrameworkSuggestionModal({
   );
 }
 
+function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
+  const top3 = frameworks.slice(0, 3);
+  if (top3.length < 3) {
+    return null;
+  }
+
+  return (
+    <TopFrameworksImageWrapper>
+      <TopFrameworkIcon
+        size={84}
+        platform={top3[1].id}
+        angle={-34}
+        radius={8}
+        offset={-74}
+        format="lg"
+      />
+      <TopFrameworkIcon
+        size={84}
+        platform={top3[2].id}
+        angle={34}
+        radius={8}
+        offset={+74}
+        format="lg"
+      />
+      <TopFrameworkIcon
+        size={84}
+        platform={top3[0].id}
+        angle={0}
+        radius={8}
+        offset={0}
+        format="lg"
+      />
+    </TopFrameworksImageWrapper>
+  );
+}
+
 const Header = styled('header')`
   position: relative;
   height: 30px;
@@ -306,8 +344,21 @@ const Header = styled('header')`
   }
 `;
 
-const TopFrameworksImage = styled('img')`
-  margin-bottom: ${space(2)};
+const TopFrameworkIcon = styled(PlatformIcon, {
+  shouldForwardProp: prop => prop !== 'angle' && prop !== 'offset',
+})<{angle: number; offset: number}>`
+  transform: translate(calc(-50% + ${p => p.offset}px), -50%) rotate(${p => p.angle}deg);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid ${p => p.theme.gray200};
+`;
+
+const TopFrameworksImageWrapper = styled('div')`
+  position: relative;
+  width: 256px;
+  height: 108px;
+  margin: 0px auto ${space(2)};
 `;
 
 const Heading = styled('h6')`
@@ -321,12 +372,25 @@ const Description = styled(TextBlock)`
 `;
 
 const Frameworks = styled(List)`
-  max-height: 240px;
+  display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
+  max-height: 550px;
+`;
+
+const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 `;
 
 const Framework = styled(ListItem)`
-  height: 40px;
+  min-height: 40px;
   display: grid;
   text-align: left;
   cursor: pointer;
@@ -361,7 +425,20 @@ const Actions = styled('div')`
   width: 100%;
 `;
 
+// Style the modals document and section elements as flex containers
+// to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
+  [role='document'] {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    min-height: 500px;
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
   max-width: 400px;
   width: 100%;
 `;

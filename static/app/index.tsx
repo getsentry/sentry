@@ -30,7 +30,7 @@
 //
 // 3. App initialization does the following...
 //
-//   a. Initialize the ConfigStore with clinet-config data.
+//   a. Initialize the ConfigStore with client-config data.
 //
 //   b. Initialize the Sentry SDK. This includes setting up integrations for
 //      routing and tracing.
@@ -58,8 +58,8 @@
 //    |                            parts of the application (such as loading
 //    |                            your org list)
 //    |
-//    <OrganizationDetails>    <-- Most routes live within the
-//                                 OrganizationDetails, which handles loading
+//    <OrganizationLayout>     <-- Most routes live within the
+//                                 OrganizationLayout, which handles loading
 //                                 details for the org, projects, and teams.
 //
 //

@@ -2,16 +2,14 @@ import pytest
 import responses
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests import IssueLinkRequester
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
+from sentry.sentry_apps.services.app import app_service
+from sentry.testutils.cases import TestCase
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
-@region_silo_test(stable=True)
 class TestIssueLinkRequester(TestCase):
     def setUp(self):
         super().setUp()

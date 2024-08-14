@@ -1,16 +1,20 @@
-import selectEvent from 'react-select-event';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {IncidentStatsFixture} from 'sentry-fixture/incidentStats';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
-  let projectMock: jest.Mock;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
@@ -19,7 +23,7 @@ describe('IncidentsList', () => {
   }
 
   const renderComponent = ({orgOverride}: Props = {}) => {
-    const {organization, routerContext, routerProps, router} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: {features: ['incidents'], ...orgOverride},
     });
 
@@ -28,7 +32,7 @@ describe('IncidentsList', () => {
         <AlertsContainer>
           <IncidentsList {...routerProps} organization={organization} />
         </AlertsContainer>,
-        {context: routerContext, organization}
+        {router, organization}
       ),
       router,
     };
@@ -38,13 +42,13 @@ describe('IncidentsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        IncidentFixture({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
         }),
-        TestStubs.Incident({
+        IncidentFixture({
           id: '342',
           identifier: '2',
           title: 'Second incident',
@@ -55,7 +59,7 @@ describe('IncidentsList', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/2/stats/',
-      body: TestStubs.IncidentStats({
+      body: IncidentStatsFixture({
         totalEvents: 1000,
         uniqueUsers: 32,
         eventStats: {
@@ -65,16 +69,12 @@ describe('IncidentsList', () => {
     });
 
     const projects = [
-      TestStubs.Project({slug: 'a', platform: 'javascript'}),
-      TestStubs.Project({slug: 'b'}),
-      TestStubs.Project({slug: 'c'}),
-      TestStubs.Project({slug: 'd'}),
+      ProjectFixture({slug: 'a', platform: 'javascript'}),
+      ProjectFixture({slug: 'b'}),
+      ProjectFixture({slug: 'c'}),
+      ProjectFixture({slug: 'd'}),
     ];
 
-    projectMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: projects,
-    });
     act(() => ProjectsStore.loadInitialData(projects));
   });
 
@@ -92,15 +92,6 @@ describe('IncidentsList', () => {
     expect(within(items[0]).getByText('First incident')).toBeInTheDocument();
     expect(within(items[1]).getByText('Second incident')).toBeInTheDocument();
 
-    expect(projectMock).toHaveBeenCalledTimes(1);
-
-    expect(projectMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'slug:a slug:b slug:c'}),
-      })
-    );
-
     const projectBadges = screen.getAllByTestId('badge-display-name');
     expect(within(projectBadges[0]).getByText('a')).toBeInTheDocument();
   });
@@ -115,11 +106,11 @@ describe('IncidentsList', () => {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
     });
     const promptsUpdateMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       method: 'PUT',
     });
 
@@ -142,7 +133,7 @@ describe('IncidentsList', () => {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -166,7 +157,7 @@ describe('IncidentsList', () => {
       body: [{id: 1}],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -234,16 +225,16 @@ describe('IncidentsList', () => {
   });
 
   it('displays owner from alert rule', async () => {
-    const team = TestStubs.Team();
+    const team = TeamFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        IncidentFixture({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
+          alertRule: MetricRuleFixture({owner: `team:${team.id}`}),
         }),
       ],
     });

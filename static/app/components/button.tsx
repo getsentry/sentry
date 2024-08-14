@@ -1,15 +1,18 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
+
+import Link from './links/link';
+import InteractionStateLayer from './interactionStateLayer';
+import {Tooltip, type TooltipProps} from './tooltip';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -52,10 +55,6 @@ interface CommonButtonProps {
    * interactions with the button.
    */
   disabled?: boolean;
-  /**
-   * The button is an external link. Similar to the `Link` `external` property.
-   */
-  external?: boolean;
   /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
@@ -102,14 +101,11 @@ type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 't
 
 interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
-   * For use with `href` and `data:` or `blob:` schemes. Tells the browser to
-   * download the contents.
+   * The button is an external link. Similar to the `Link` `external` property.
    *
-   * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
-   *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
-  download?: HTMLAnchorElement['download'];
+  external?: boolean;
   /**
    * @internal Used in the Button forwardRef
    */
@@ -118,7 +114,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    * When set the button acts as an anchor link. Use with `external` to have
    * the link open in a new tab.
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   href?: string;
   /**
@@ -167,6 +163,10 @@ interface HrefLinkButtonProps extends BaseLinkButtonProps {
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    */
   download?: HTMLAnchorElement['download'];
+  /**
+   * The button is an external link. Similar to the `Link` `external` property.
+   */
+  external?: boolean;
 }
 
 interface ToLinkButtonPropsWithChildren extends ToLinkButtonProps {
@@ -192,6 +192,17 @@ type LinkButtonProps =
   | ToLinkButtonPropsWithAriaLabel
   | HrefLinkButtonPropsWithChildren
   | HrefLinkButtonPropsWithAriaLabel;
+
+/**
+ * Default sizes to use for SVGIcon
+ */
+const ICON_SIZES: Partial<
+  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
+> = {
+  xs: 'xs',
+  sm: 'sm',
+  md: 'sm',
+};
 
 function BaseButton({
   size = 'md',
@@ -219,8 +230,28 @@ function BaseButton({
   const accessibleLabel =
     ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
-  const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
-  const buttonTracking = useButtonTracking?.({
+  const useButtonTrackingLogger = () => {
+    const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+    const hasCustomAnalytics = analyticsEventName || analyticsEventKey || analyticsParams;
+    if (!hasCustomAnalytics || !hasAnalyticsDebug) {
+      return () => {};
+    }
+
+    return () => {
+      // eslint-disable-next-line no-console
+      console.log('buttonAnalyticsEvent', {
+        eventKey: analyticsEventKey,
+        eventName: analyticsEventName,
+        priority,
+        href,
+        ...analyticsParams,
+      });
+    };
+  };
+
+  const useButtonTracking =
+    HookStore.get('react-hook:use-button-tracking')[0] ?? useButtonTrackingLogger;
+  const buttonTracking = useButtonTracking({
     analyticsEventName,
     analyticsEventKey,
     analyticsParams: {
@@ -240,15 +271,15 @@ function BaseButton({
         return;
       }
 
-      buttonTracking?.();
+      buttonTracking();
       onClick?.(e);
     },
     [disabled, busy, onClick, buttonTracking]
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !!child)
-    : !!children;
+    ? children.some(child => !isEmptyChild(child))
+    : !isEmptyChild(children);
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -277,7 +308,7 @@ function BaseButton({
       <ButtonLabel size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
-            {icon}
+            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
           </Icon>
         )}
         {children}
@@ -406,13 +437,13 @@ const getColors = ({
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
 
-      &.focus-visible {
+      &:focus-visible {
         color: ${colorActive || color};
         border-color: ${borderActive};
       }
     `}
 
-    &.focus-visible {
+    &:focus-visible {
       ${getFocusState()}
       z-index: 1;
     }
@@ -466,7 +497,16 @@ const StyledButton = styled(
       }
 
       if (href && external) {
-        return <ExternalLink {...props} ref={ref} href={href} disabled={disabled} />;
+        return (
+          <a
+            {...props}
+            ref={ref}
+            href={href}
+            aria-disabled={disabled}
+            target="_blank"
+            rel="noreferrer noopener"
+          />
+        );
       }
 
       if (href) {
@@ -492,13 +532,16 @@ const StyledButton = styled(
   display: inline-block;
   border-radius: ${p => p.theme.borderRadius};
   text-transform: none;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${getColors};
   ${getSizeStyles};
   ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+  transition:
+    background 0.1s,
+    border 0.1s,
+    box-shadow 0.1s;
 
   ${p =>
     p.priority === 'link' &&
@@ -544,6 +587,20 @@ const getIconMargin = ({size, hasChildren}: ChildrenIconProps) => {
   }
 };
 
+function isEmptyChild(child: React.ReactNode) {
+  // truthy values are non empty
+  if (child) {
+    return false;
+  }
+
+  // out of the falsey values, 0 is the only one that takes space
+  if (child === 0) {
+    return false;
+  }
+
+  return true;
+}
+
 interface IconProps extends ChildrenIconProps, Omit<StyledButtonProps, 'theme'> {}
 const Icon = styled('span')<IconProps>`
   display: flex;
@@ -556,11 +613,10 @@ const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
 export {
   Button,
-  ButtonProps,
   LinkButton,
-  LinkButtonProps,
-
-  // Also export these styled components so we can use them as selectors
   StyledButton,
   ButtonLabel,
+  type ButtonProps,
+  type BaseButtonProps,
+  type LinkButtonProps,
 };

@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import RelayUsage
+from sentry.models.relay import RelayUsage
 
 
 @register(RelayUsage)
 class RelayUsageSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "relayId": obj.relay_id,
             "version": obj.version,

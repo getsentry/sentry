@@ -1,24 +1,39 @@
-from typing import FrozenSet
+from __future__ import annotations
+
+from collections.abc import Sequence
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
-from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
+from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import ArrayField, control_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.types.region import find_all_region_names
+
+MAX_USER_ROLE_NAME_LENGTH = 32
 
 
-@control_silo_only_model
-class UserRole(DefaultFieldsModel):
+@control_silo_model
+class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Config
+    __relocation_custom_ordinal__ = ["name"]
 
-    name = models.CharField(max_length=32, unique=True)
-    permissions = ArrayField()
+    date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+
+    name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
+    permissions: models.Field[Sequence[str], list[str]] = ArrayField()
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 
     class Meta:
@@ -27,24 +42,36 @@ class UserRole(DefaultFieldsModel):
 
     __repr__ = sane_repr("name", "permissions")
 
-    @classmethod
-    def permissions_for_user(cls, user_id: int) -> FrozenSet[str]:
-        """
-        Return a set of permission for the given user ID scoped to roles.
-        """
-        return frozenset(
-            i
-            for sl in cls.objects.filter(users=user_id).values_list("permissions", flat=True)
-            for i in sl
-        )
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
+        regions = list(find_all_region_names())
+        return [
+            outbox
+            for user_id in self.users.values_list("id", flat=True)
+            for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
+                region_names=regions,
+                shard_identifier=user_id,
+                object_identifier=user_id,
+            )
+        ]
 
 
-@control_silo_only_model
-class UserRoleUser(DefaultFieldsModel):
-    __include_in_export__ = True
+@control_silo_model
+class UserRoleUser(ControlOutboxProducingModel):
+    __relocation_scope__ = RelocationScope.Config
+
+    date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
+        regions = list(find_all_region_names())
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     class Meta:
         app_label = "sentry"

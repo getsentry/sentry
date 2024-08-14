@@ -3,27 +3,33 @@ import type {Replayer} from '@sentry-internal/rrweb';
 const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 
 const highlightsByNodeId: Map<number, {canvas: HTMLCanvasElement}> = new Map();
+const highlightsBySelector: Map<string, {canvas: HTMLCanvasElement}> = new Map();
 
-interface AddHighlightParams {
+type DrawProps = {annotation: string; color: string; spotlight: boolean};
+
+interface AddHighlightByNodeIdParams extends Partial<DrawProps> {
   nodeId: number;
-  replayer: Replayer;
-  annotation?: string;
-  color?: string;
-  spotlight?: boolean;
+}
+interface AddHighlightBySelectorParams extends Partial<DrawProps> {
+  selector: string;
 }
 
-interface RemoveHighlightParams {
-  nodeId: number;
-  replayer: Replayer;
-}
+type AddHighlightParams = AddHighlightByNodeIdParams | AddHighlightBySelectorParams;
 
-interface ClearAllHighlightsParams {
-  replayer: Replayer;
-}
+type RemoveHighlightParams =
+  | {
+      nodeId: number;
+    }
+  | {
+      selector: string;
+    };
 
-export function clearAllHighlights({replayer}: ClearAllHighlightsParams) {
+export function clearAllHighlights(replayer: Replayer) {
   for (const nodeId of highlightsByNodeId.keys()) {
-    removeHighlightedNode({replayer, nodeId});
+    removeHighlightedNode(replayer, {nodeId});
+  }
+  for (const selector of highlightsBySelector.keys()) {
+    removeHighlightedNode(replayer, {selector});
   }
 }
 
@@ -33,37 +39,33 @@ export function clearAllHighlights({replayer}: ClearAllHighlightsParams) {
  * XXX: This is potentially not good if we have a lot of highlights, as we
  * are creating a new canvas PER highlight.
  */
-export function removeHighlightedNode({replayer, nodeId}: RemoveHighlightParams) {
-  if (!highlightsByNodeId.has(nodeId)) {
-    return false;
+export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlightParams) {
+  if ('nodeId' in props) {
+    const highlightObj = highlightsByNodeId.get(props.nodeId);
+    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
+      replayer.wrapper.removeChild(highlightObj.canvas);
+      highlightsByNodeId.delete(props.nodeId);
+    }
+  } else {
+    const highlightObj = highlightsBySelector.get(props.selector);
+    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
+      replayer.wrapper.removeChild(highlightObj.canvas);
+      highlightsBySelector.delete(props.selector);
+    }
   }
-
-  const highlightObj = highlightsByNodeId.get(nodeId);
-
-  if (!highlightObj || !replayer.wrapper.contains(highlightObj.canvas)) {
-    return false;
-  }
-
-  replayer.wrapper.removeChild(highlightObj.canvas);
-  highlightsByNodeId.delete(nodeId);
-
-  return true;
 }
 
 /**
  * Attempt to highlight the node inside of a replay recording
  */
-export function highlightNode({
-  replayer,
-  nodeId,
-  annotation = '',
-  color,
-  spotlight,
-}: AddHighlightParams) {
-  // @ts-expect-error mouseTail is private
-  const {mouseTail, wrapper} = replayer;
+export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
+  const {wrapper} = replayer;
   const mirror = replayer.getMirror();
-  const node = mirror.getNode(nodeId);
+
+  const node =
+    'nodeId' in props
+      ? mirror.getNode(props.nodeId)
+      : replayer.iframe.contentDocument?.body.querySelector(props.selector);
 
   // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
   // mirror will be empty and highlight does not get added because node is null
@@ -75,25 +77,56 @@ export function highlightNode({
     return null;
   }
 
-  // @ts-expect-error This builds locally, but fails in CI -- ignoring for now
-  const {top, left, width, height} = node.getBoundingClientRect();
-  const highlightColor = color ?? DEFAULT_HIGHLIGHT_COLOR;
+  // Create a new canvas with the same dimensions as the iframe. We may need to
+  // revisit this strategy as we create a new canvas for every highlight. See
+  // additional notes in removeHighlight() method.
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
-  // Clone the mouseTail canvas as it has the dimensions and position that we
-  // want on top of the replay. We may need to revisit this strategy as we
-  // create a new canvas for every highlight. See additional notes in
-  // removeHighlight() method.
-  const canvas = mouseTail.cloneNode();
+  if (!element) {
+    return null;
+  }
 
+  const canvas = document.createElement('canvas');
+  canvas.width = Number(replayer.iframe.width);
+  canvas.height = Number(replayer.iframe.height);
+  canvas.setAttribute('style', 'position:absolute;');
+
+  const boundingClientRect = element.getBoundingClientRect();
+  const drawProps = {
+    annotation: props.annotation ?? '',
+    color: props.color ?? DEFAULT_HIGHLIGHT_COLOR,
+    spotlight: props.spotlight ?? false,
+  };
+
+  drawCtx(canvas, boundingClientRect, drawProps);
+
+  if ('nodeId' in props) {
+    highlightsByNodeId.set(props.nodeId, {canvas});
+  } else {
+    highlightsBySelector.set(props.selector, {canvas});
+  }
+
+  wrapper.insertBefore(canvas, replayer.iframe);
+
+  return {
+    canvas,
+  };
+}
+
+function drawCtx(
+  canvas: HTMLCanvasElement,
+  {top, left, width, height}: DOMRect,
+  {annotation, color, spotlight}: DrawProps
+) {
   const ctx = canvas.getContext('2d') as undefined | CanvasRenderingContext2D;
 
   if (!ctx) {
-    return null;
+    return;
   }
 
   // TODO(replays): Does not account for scrolling (should we attempt to keep highlight visible, or does it disappear)
 
-  ctx.fillStyle = highlightColor;
+  ctx.fillStyle = color;
   if (spotlight) {
     // Create a screen over the whole area, so only the highlighted part is normal
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -140,14 +173,4 @@ export function highlightNode({
     ctx.fillStyle = 'white';
     ctx.fillText(annotation, left + width, top + height);
   }
-
-  highlightsByNodeId.set(nodeId, {
-    canvas,
-  });
-
-  wrapper.insertBefore(canvas, mouseTail);
-
-  return {
-    canvas,
-  };
 }

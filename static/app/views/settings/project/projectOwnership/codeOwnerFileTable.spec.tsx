@@ -1,11 +1,15 @@
+import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodeOwnerFileTable} from './codeOwnerFileTable';
 
 describe('CodeOwnerFileTable', () => {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const codeowner = TestStubs.CodeOwner();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+  const codeowner = CodeOwnerFixture();
 
   it('renders empty', () => {
     const {container} = render(
@@ -25,6 +29,11 @@ describe('CodeOwnerFileTable', () => {
       ...codeowner,
       raw: '# new codeowner rules',
     };
+    const codeOwnerSyncData = {
+      ...codeowner,
+      raw: '# new codeowner rules',
+      date_updated: new Date('2023-10-03'),
+    };
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
@@ -33,7 +42,7 @@ describe('CodeOwnerFileTable', () => {
     MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
-      body: newCodeowner,
+      body: codeOwnerSyncData,
     });
 
     MockApiClient.addMockResponse({
@@ -63,7 +72,7 @@ describe('CodeOwnerFileTable', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Sync'}));
 
     await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalledWith(newCodeowner);
+      expect(onUpdate).toHaveBeenCalledWith(codeOwnerSyncData);
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));

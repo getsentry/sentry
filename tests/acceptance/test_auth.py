@@ -1,10 +1,10 @@
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@control_silo_test(stable=True)
+@no_silo_test
 class AuthTest(AcceptanceTestCase):
     def enter_auth(self, username, password):
         self.browser.get("/auth/login/")
@@ -19,15 +19,12 @@ class AuthTest(AcceptanceTestCase):
 
     def test_renders(self):
         self.browser.get("/auth/login/")
-        self.browser.snapshot(name="login")
 
     def test_no_credentials(self):
         self.enter_auth("", "")
-        self.browser.snapshot(name="login fields required")
 
     def test_invalid_credentials(self):
         self.enter_auth("bad-username", "bad-username")
-        self.browser.snapshot(name="login fields invalid")
 
     def test_success(self):
         email = "dummy@example.com"
@@ -38,4 +35,3 @@ class AuthTest(AcceptanceTestCase):
 
         self.enter_auth(email, password)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot(name="login success")

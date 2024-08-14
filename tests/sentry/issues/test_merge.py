@@ -6,9 +6,14 @@ import rest_framework
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
-from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
-from sentry.testutils import TestCase
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class HandleIssueMergeTest(TestCase):
@@ -25,8 +30,11 @@ class HandleIssueMergeTest(TestCase):
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)
 
-        statuses = Group.objects.filter(id__in=[g.id for g in self.groups]).values_list("status")
-        statuses = [status[0] for status in statuses]
+        statuses = list(
+            Group.objects.filter(id__in=[g.id for g in self.groups]).values_list(
+                "status", flat=True
+            )
+        )
         assert statuses.count(GroupStatus.PENDING_MERGE) == 4
         assert merge_groups.called
 

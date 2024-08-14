@@ -4,14 +4,15 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -21,10 +22,14 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -32,49 +37,49 @@ import {
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-
-import {ERROR_TYPES} from './constants';
-import GroupHeader from './header';
-import SampleEventAlert from './sampleEventAlert';
-import {Tab, TabPaths} from './types';
+import {useUser} from 'sentry/utils/useUser';
+import GroupHeader from 'sentry/views/issueDetails//header';
+import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
-} from './utils';
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type RouterParams = {groupId: string; eventId?: string};
 type RouteProps = RouteComponentProps<RouterParams, {}>;
 
-type GroupDetailsProps = {
+interface GroupDetailsProps extends RouteComponentProps<{groupId: string}, {}> {
   children: React.ReactNode;
-  organization: Organization;
-  projects: Project[];
-};
+}
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -160,24 +165,21 @@ function getReprocessingNewRoute({
   const {routes, params, location} = router;
   const {groupId} = params;
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, organization, router});
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
 
   const {id: nextGroupId} = group;
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
   if (groupId !== nextGroupId) {
-    if (hasReprocessingV2Feature) {
-      // Redirects to the Activities tab
-      if (
-        reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        currentTab !== Tab.ACTIVITY
-      ) {
-        return {
-          pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-          query: {...params, groupId: nextGroupId},
-        };
-      }
+    // Redirects to the Activities tab
+    if (
+      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+      currentTab !== Tab.ACTIVITY
+    ) {
+      return {
+        pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+        query: {...params, groupId: nextGroupId},
+      };
     }
 
     return recreateRoute('', {
@@ -187,48 +189,40 @@ function getReprocessingNewRoute({
     });
   }
 
-  if (hasReprocessingV2Feature) {
-    if (
-      reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-      currentTab !== Tab.DETAILS
-    ) {
-      return {
-        pathname: baseUrl,
-        query: params,
-      };
-    }
-
-    if (
-      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-      currentTab !== Tab.ACTIVITY &&
-      currentTab !== Tab.USER_FEEDBACK
-    ) {
-      return {
-        pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-        query: params,
-      };
-    }
+  if (
+    reprocessingStatus === ReprocessingStatus.REPROCESSING &&
+    currentTab !== Tab.DETAILS
+  ) {
+    return {
+      pathname: baseUrl,
+      query: params,
+    };
   }
+
+  if (
+    reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+    currentTab !== Tab.ACTIVITY &&
+    currentTab !== Tab.USER_FEEDBACK
+  ) {
+    return {
+      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+      query: params,
+    };
+  }
+
   return undefined;
 }
 
 function useRefetchGroupForReprocessing({
   refetchGroup,
 }: Pick<FetchGroupDetailsState, 'refetchGroup'>) {
-  const organization = useOrganization();
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-
   useEffect(() => {
-    let refetchInterval: number;
-
-    if (hasReprocessingV2Feature) {
-      refetchInterval = window.setInterval(refetchGroup, 30000);
-    }
+    const refetchInterval = window.setInterval(refetchGroup, 30000);
 
     return () => {
       window.clearInterval(refetchInterval);
     };
-  }, [hasReprocessingV2Feature, refetchGroup]);
+  }, [refetchGroup]);
 }
 
 function useEventApiQuery({
@@ -242,50 +236,70 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
-  const hasMostHelpfulEventFeature = organization.features.includes(
-    'issue-details-most-helpful-event'
-  );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'helpful' : 'latest');
+  const router = useRouter();
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const eventIdUrl = eventId ?? defaultIssueEvent;
+  const recommendedEventQuery =
+    typeof location.query.query === 'string' ? location.query.query : undefined;
 
   const queryKey: ApiQueryKey = [
-    `/issues/${groupId}/events/${eventIdUrl}/`,
+    `/organizations/${organization.slug}/issues/${groupId}/events/${eventIdUrl}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: hasMostHelpfulEventFeature ? location.query.query : undefined,
+        query: recommendedEventQuery,
       }),
     },
   ];
 
-  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
+  const tab = getCurrentTab({router});
+  const isOnDetailsTab = tab === Tab.DETAILS;
 
-  const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
-    // Latest/helpful event will change over time, so only cache for 30 seconds
+  const isLatestOrRecommendedEvent =
+    eventIdUrl === 'latest' || eventIdUrl === 'recommended';
+  const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
+    // Latest/recommended event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isLatestOrHelpfulEvent,
-    retry: (_, error) => error.status !== 404,
+    enabled: isOnDetailsTab && isLatestOrRecommendedEvent,
+    retry: false,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: !isLatestOrHelpfulEvent,
-    retry: (_, error) => error.status !== 404,
+    enabled: isOnDetailsTab && !isLatestOrRecommendedEvent,
+    retry: false,
   });
 
-  return isLatestOrHelpfulEvent ? latestOrHelpfulEvent : otherEventQuery;
+  useEffect(() => {
+    if (latestOrRecommendedEvent.isError) {
+      // If we get an error from the helpful event endpoint, it probably means
+      // the query failed validation. We should remove the query to try again.
+      browserHistory.replace({
+        ...window.location,
+        query: omit(qs.parse(window.location.search), 'query'),
+      });
+    }
+  }, [latestOrRecommendedEvent.isError]);
+
+  return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
 }
 
 type FetchGroupQueryParameters = {
   environments: string[];
   groupId: string;
+  organizationSlug: string;
 };
 
 function makeFetchGroupQueryKey({
   groupId,
+  organizationSlug,
   environments,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [`/issues/${groupId}/`, {query: getGroupDetailsQueryData({environments})}];
+  return [
+    `/organizations/${organizationSlug}/issues/${groupId}/`,
+    {query: getGroupDetailsQueryData({environments})},
+  ];
 }
 
 /**
@@ -294,30 +308,33 @@ function makeFetchGroupQueryKey({
  * Once we remove all references to GroupStore in the issue details page we
  * should remove this.
  */
-function useSyncGroupStore(incomingEnvs: string[]) {
+function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   const queryClient = useQueryClient();
+  const organization = useOrganization();
 
-  const environmentsRef = useRef<string[]>(incomingEnvs);
-  environmentsRef.current = incomingEnvs;
-
-  const unlisten = useRef<Function>();
-  if (unlisten.current === undefined) {
-    unlisten.current = GroupStore.listen(() => {
+  // It's possible the overview page is still unloading the store
+  useEffect(() => {
+    return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      const environments = environmentsRef.current;
-      if (defined(storeGroup)) {
+      if (
+        defined(storeGroup) &&
+        storeGroup.id === groupId &&
+        // Check for properties that are only set after the group has been loaded
+        defined(storeGroup.participants) &&
+        defined(storeGroup.activity)
+      ) {
         setApiQueryData(
           queryClient,
-          makeFetchGroupQueryKey({groupId: storeGroup.id, environments}),
+          makeFetchGroupQueryKey({
+            groupId: storeGroup.id,
+            organizationSlug: organization.slug,
+            environments: incomingEnvs,
+          }),
           storeGroup
         );
       }
-    }, undefined);
-  }
-
-  useEffect(() => {
-    return () => unlisten.current?.();
-  }, []);
+    }, undefined) as () => void;
+  }, [groupId, incomingEnvs, organization.slug, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {
@@ -326,9 +343,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const router = useRouter();
   const params = router.params;
 
-  const [error, setError] = useState<boolean>(false);
-  const [errorType, setErrorType] = useState<Error | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
   const environments = useEnvironmentsFromUrl();
@@ -336,11 +350,15 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const groupId = params.groupId;
 
   const {
-    data: eventData,
+    data: event,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery({groupId, eventId: params.eventId, environments});
+  } = useEventApiQuery({
+    groupId,
+    eventId: params.eventId,
+    environments,
+  });
 
   const {
     data: groupData,
@@ -348,10 +366,29 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
-    staleTime: 30000,
-    cacheTime: 30000,
-  });
+  } = useApiQuery<Group>(
+    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+      retry: false,
+    }
+  );
+
+  /**
+   * Allows the GroupEventHeader to display the previous event while the new event is loading.
+   * This is not closer to the GroupEventHeader because it is unmounted
+   * between route changes like latest event => eventId
+   */
+  const previousEvent = useMemoWithPrevious<typeof event | null>(
+    previousInstance => {
+      if (event) {
+        return event;
+      }
+      return previousInstance;
+    },
+    [event]
+  );
 
   const group = groupData ?? null;
 
@@ -361,13 +398,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [groupId, group]);
 
-  useSyncGroupStore(environments);
-
-  useEffect(() => {
-    if (eventData) {
-      setEvent(eventData);
-    }
-  }, [eventData]);
+  useSyncGroupStore(groupId, environments);
 
   useEffect(() => {
     if (group && event) {
@@ -380,7 +411,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
-        return;
       }
     }
   }, [group, event, router, organization]);
@@ -442,25 +472,15 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [allProjectsFlag, group?.project.id, allProjectChanged]);
 
-  const handleError = useCallback((e: RequestError) => {
-    Sentry.captureException(e);
-
-    setErrorType(getFetchDataRequestErrorType(e?.status));
-    setError(true);
-  }, []);
-
+  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
   useEffect(() => {
     if (isGroupError) {
-      handleError(groupError);
+      Sentry.captureException(groupError);
     }
-  }, [isGroupError, groupError, handleError]);
+  }, [isGroupError, groupError]);
 
   const refetchGroup = useCallback(() => {
-    if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
-      loadingGroup ||
-      loadingEvent
-    ) {
+    if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
       return;
     }
 
@@ -468,22 +488,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [group, loadingGroup, loadingEvent, refetchGroupCall]);
 
   const refetchData = useCallback(() => {
-    // Set initial state
-    setError(false);
-    setErrorType(null);
-
-    // refetchEvent comes from useApiQuery since event and group data are separately fetched
     refetchEvent();
     refetchGroup();
   }, [refetchGroup, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
-    if (group) {
-      if ((group as Group & {stale?: boolean}).stale) {
-        refetchGroup();
-        return;
-      }
+    if (group && (group as Group & {stale?: boolean}).stale) {
+      refetchGroup();
     }
   }, [refetchGroup, group]);
 
@@ -499,13 +511,29 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     loadingEvent,
     group,
-    event,
+    // Allow previous event to be displayed while new event is loading
+    event: (loadingEvent ? event ?? previousEvent : event) ?? null,
     errorType,
-    error,
+    error: isGroupError,
     eventError: isError,
     refetchData,
     refetchGroup,
   };
+}
+
+function useLoadedEventType() {
+  const params = useParams<{eventId?: string}>();
+  const defaultIssueEvent = useDefaultIssueEvent();
+
+  switch (params.eventId) {
+    case undefined:
+      return defaultIssueEvent;
+    case 'latest':
+    case 'oldest':
+      return params.eventId;
+    default:
+      return 'event_id';
+  }
 }
 
 function useTrackView({
@@ -519,9 +547,12 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
+  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
+  const groupEventType = useLoadedEventType();
+  const user = useUser();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -537,12 +568,29 @@ function useTrackView({
     alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
+    group_event_type: groupEventType,
+    has_hierarchical_grouping:
+      !!organization.features?.includes('grouping-stacktrace-ui') &&
+      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
+    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
+  });
+  // Set default values for properties that may be updated in subcomponents.
+  // Must be separate from the above values, otherwise the actual values filled in
+  // by subcomponents may be overwritten when the above values change.
+  useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
     trace_status: 'none',
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
+    // Will be updated in ReplayPreview if there is a replay
+    event_replay_status: 'none',
+    // Will be updated in SuspectCommits if there are suspect commits
+    num_suspect_commits: 0,
+    suspect_commit_calculation: 'no suspect commit',
+    // Will be updated in Autofix if enabled
+    autofix_status: 'none',
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
@@ -638,22 +686,9 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   useTrackView({group, event, project, tab: currentTab});
-
-  useEffect(() => {
-    if (
-      currentTab === Tab.DETAILS &&
-      group &&
-      event &&
-      group.id !== event?.groupID &&
-      !eventError
-    ) {
-      // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
-      const redirectUrl = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.id}/`;
-
-      router.push(normalizeUrl(redirectUrl));
-    }
-  }, [currentTab, event, eventError, group, organization.slug, router]);
 
   const childProps = {
     environments,
@@ -672,14 +707,23 @@ function GroupDetailsContent({
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      <GroupHeader
-        organization={organization}
-        groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
-        group={group}
-        baseUrl={baseUrl}
-        project={project as Project}
-      />
+      {hasStreamlinedUI ? (
+        <StreamlinedGroupHeader
+          group={group}
+          project={project}
+          groupReprocessingStatus={groupReprocessingStatus}
+          baseUrl={baseUrl}
+        />
+      ) : (
+        <GroupHeader
+          organization={organization}
+          groupReprocessingStatus={groupReprocessingStatus}
+          event={event ?? undefined}
+          group={group}
+          baseUrl={baseUrl}
+          project={project as Project}
+        />
+      )}
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}
@@ -691,14 +735,30 @@ function GroupDetailsContent({
 
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
+  const api = useApi();
+  const organization = useOrganization();
+  const [injectedEvent, setInjectedEvent] = useState(null);
   const {
     projects,
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
 
+  // Preload detailed project data for highlighted data section
+  useDetailedProject(
+    {
+      orgSlug: organization.slug,
+      projectSlug: projectSlug ?? '',
+    },
+    {enabled: !!projectSlug}
+  );
+
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
+
+  const isRegressionIssue =
+    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
@@ -708,10 +768,30 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
           projectId: props.group?.project.id,
           availableProjects: projectIds,
         });
+        scope.setFingerprint(['group-details-project-not-found']);
         Sentry.captureException(new Error('Project not found'));
       });
     }
   }, [props.group, project, projects, projectsLoaded]);
+
+  useEffect(() => {
+    const fetchLatestEvent = async () => {
+      const event = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
+      );
+      setInjectedEvent(event);
+    };
+    if (isRegressionIssue && !defined(props.event)) {
+      fetchLatestEvent();
+    }
+  }, [
+    api,
+    organization.slug,
+    props.event,
+    props.group,
+    props.group?.id,
+    isRegressionIssue,
+  ]);
 
   if (props.error) {
     return (
@@ -729,12 +809,23 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     );
   }
 
-  if (!projectsLoaded || !projectWithFallback || !props.group) {
+  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
+  if (
+    !projectsLoaded ||
+    !projectWithFallback ||
+    !props.group ||
+    (isRegressionIssue && !regressionIssueLoaded)
+  ) {
     return <LoadingIndicator />;
   }
 
   return (
-    <GroupDetailsContent {...props} project={projectWithFallback} group={props.group} />
+    <GroupDetailsContent
+      {...props}
+      project={projectWithFallback}
+      group={props.group}
+      event={props.event ?? injectedEvent}
+    />
   );
 }
 
@@ -749,6 +840,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests
@@ -775,6 +867,8 @@ function GroupDetails(props: GroupDetailsProps) {
     return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
+  const config = group && getConfigForIssueType(group, group.project);
+
   return (
     <Fragment>
       {isSampleError && group && (
@@ -786,6 +880,7 @@ function GroupDetails(props: GroupDetailsProps) {
           forceProject={group?.project}
           shouldForceProject
         >
+          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
           <GroupDetailsPageContent
             {...props}
             {...{

@@ -1,95 +1,77 @@
-import {Component} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {Organization, Plugin, Project} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  api: Client;
-  data: Plugin;
-  onDisablePlugin: (data: Plugin) => void;
-  organization: Organization;
+interface PluginConfigProps {
+  plugin: Plugin;
   project: Project;
   enabled?: boolean;
-};
+  onDisablePlugin?: (data: Plugin) => void;
+}
 
-type State = {
-  testResults: string;
-  loading?: boolean;
-};
+export default function PluginConfig({
+  plugin,
+  project,
+  enabled,
+  onDisablePlugin,
+}: PluginConfigProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  // If passed via props, use that value instead of from `data`
+  const isEnabled = typeof enabled !== 'undefined' ? enabled : plugin.enabled;
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const [testResults, setTestResults] = useState('');
+  const [isPluginLoading, setIsPluginLoading] = useState(!plugins.isLoaded(plugin));
+  const loadingPluginIdRef = useRef<string | undefined>();
 
-class PluginConfig extends Component<Props, State> {
-  static defaultProps = {
-    onDisablePlugin: () => {},
-  };
+  useEffect(() => {
+    // Avoid loading the same plugin multiple times
+    if (!plugins.isLoaded(plugin) && loadingPluginIdRef.current !== plugin.id) {
+      setIsPluginLoading(true);
+      loadingPluginIdRef.current = plugin.id;
+      plugins.load(plugin, () => {
+        setIsPluginLoading(false);
+      });
+    }
+  }, [plugin]);
 
-  state: State = {
-    loading: !plugins.isLoaded(this.props.data),
-    testResults: '',
-  };
-
-  componentDidMount() {
-    this.loadPlugin(this.props.data);
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    this.loadPlugin(nextProps.data);
-  }
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    return !isEqual(nextState, this.state) || !isEqual(nextProps.data, this.props.data);
-  }
-
-  loadPlugin(data: Plugin) {
-    this.setState(
-      {
-        loading: true,
-      },
-      () => {
-        plugins.load(data, () => {
-          this.setState({loading: false});
-        });
-      }
-    );
-  }
-
-  getPluginEndpoint() {
-    const {organization, project, data} = this.props;
-    return `/projects/${organization.slug}/${project.slug}/plugins/${data.id}/`;
-  }
-
-  handleDisablePlugin = () => {
-    this.props.onDisablePlugin(this.props.data);
-  };
-
-  handleTestPlugin = async () => {
-    this.setState({testResults: ''});
+  const handleTestPlugin = async () => {
+    setTestResults('');
     addLoadingMessage(t('Sending test...'));
 
     try {
-      const data = await this.props.api.requestPromise(this.getPluginEndpoint(), {
-        method: 'POST',
-        data: {
-          test: true,
-        },
-      });
+      const pluginEndpointData = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/plugins/${plugin.id}/`,
+        {
+          method: 'POST',
+          data: {
+            test: true,
+          },
+        }
+      );
 
-      this.setState({testResults: JSON.stringify(data.detail)});
+      setTestResults(JSON.stringify(pluginEndpointData.detail));
       addSuccessMessage(t('Test Complete!'));
     } catch (_err) {
       addErrorMessage(
@@ -98,77 +80,62 @@ class PluginConfig extends Component<Props, State> {
     }
   };
 
-  createMarkup() {
-    return {__html: this.props.data.doc};
-  }
+  const handleDisablePlugin = () => {
+    onDisablePlugin?.(plugin);
+  };
 
-  render() {
-    const {data, organization, project} = this.props;
-    // If passed via props, use that value instead of from `data`
-    const enabled =
-      typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
-    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  return (
+    <Panel
+      className={`plugin-config ref-plugin-config-${plugin.id}`}
+      data-test-id="plugin-config"
+    >
+      <PanelHeader hasButtons>
+        <PluginName>
+          <StyledPluginIcon pluginId={plugin.id} />
+          <span>{plugin.name}</span>
+        </PluginName>
 
-    return (
-      <Panel
-        className={`plugin-config ref-plugin-config-${data.id}`}
-        data-test-id="plugin-config"
-      >
-        <PanelHeader hasButtons>
-          <PluginName>
-            <StyledPluginIcon pluginId={data.id} />
-            <span>{data.name}</span>
-          </PluginName>
-
-          {data.canDisable && enabled && (
-            <Actions>
-              {data.isTestable && (
-                <TestPluginButton onClick={this.handleTestPlugin} size="sm">
-                  {t('Test Plugin')}
-                </TestPluginButton>
-              )}
-              <Button
-                size="sm"
-                onClick={this.handleDisablePlugin}
-                disabled={!hasWriteAccess}
-              >
-                {t('Disable')}
+        {plugin.canDisable && isEnabled && (
+          <ButtonBar gap={1}>
+            {plugin.isTestable && (
+              <Button onClick={handleTestPlugin} size="xs">
+                {t('Test Plugin')}
               </Button>
-            </Actions>
-          )}
-        </PanelHeader>
-
-        {data.status === 'beta' && (
-          <PanelAlert type="warning">
-            {t('This plugin is considered beta and may change in the future.')}
-          </PanelAlert>
+            )}
+            <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
+              {t('Disable')}
+            </Button>
+          </ButtonBar>
         )}
+      </PanelHeader>
 
-        {this.state.testResults !== '' && (
-          <PanelAlert type="info">
-            <strong>Test Results</strong>
-            <div>{this.state.testResults}</div>
-          </PanelAlert>
+      {plugin.status === 'beta' && (
+        <PanelAlert type="warning">
+          {t('This plugin is considered beta and may change in the future.')}
+        </PanelAlert>
+      )}
+
+      {testResults !== '' && (
+        <PanelAlert type="info">
+          <strong>Test Results</strong>
+          <div>{testResults}</div>
+        </PanelAlert>
+      )}
+
+      <StyledPanelBody>
+        <div dangerouslySetInnerHTML={{__html: plugin.doc}} />
+        {isPluginLoading ? (
+          <LoadingIndicator />
+        ) : (
+          plugins.get(plugin).renderSettings({
+            organization,
+            project,
+          })
         )}
-
-        <StyledPanelBody>
-          <div dangerouslySetInnerHTML={this.createMarkup()} />
-          {this.state.loading ? (
-            <LoadingIndicator />
-          ) : (
-            plugins.get(data).renderSettings({
-              organization: this.props.organization,
-              project: this.props.project,
-            })
-          )}
-        </StyledPanelBody>
-      </Panel>
-    );
-  }
+      </StyledPanelBody>
+    </Panel>
+  );
 }
-
-export {PluginConfig};
-export default withApi(PluginConfig);
 
 const PluginName = styled('div')`
   display: flex;
@@ -177,13 +144,6 @@ const PluginName = styled('div')`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-`;
-const TestPluginButton = styled(Button)`
   margin-right: ${space(1)};
 `;
 

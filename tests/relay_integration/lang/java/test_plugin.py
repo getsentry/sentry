@@ -6,9 +6,12 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, ProjectDebugFile
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.files.file import File
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -17,7 +20,10 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     65:65:void <init>() -> <init>
     67:67:java.lang.Class[] getClassContext() -> a
     69:69:java.lang.Class[] getExtraClassContext() -> a
+    68:68:java.lang.Class[] getContext() -> a
     65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
+org.slf4j.helpers.Util$ClassContext -> org.a.b.g$b:
+    65:65:void <init>() -> <init>
 """
 PROGUARD_INLINE_UUID = "d748e578-b3d1-5be5-b0e5-a42e8c9bf8e0"
 PROGUARD_INLINE_SOURCE = b"""\
@@ -79,6 +85,12 @@ class MainActivity : ComponentActivity() {
 
     class AdditionalInnerClass {
         fun whoops3() {
+            OneMoreInnerClass().whoops4()
+        }
+    }
+
+    class OneMoreInnerClass {
+        fun whoops4() {
             throw RuntimeException("whoops")
         }
     }
@@ -383,12 +395,18 @@ class AnotherClassInSameFile {
 
 @pytest.mark.django_db(transaction=True)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     def upload_proguard_mapping(self, uuid, mapping_file_content):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -411,8 +429,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -486,6 +506,233 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_value(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        metrics = event.data["_metrics"]
+        assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_does_not_fail_when_no_module_or_function(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                                {
+                                    "function": "__start_thread",
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 196,
+                                    "in_app": False,
+                                },
+                                {
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 214,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        metrics = event.data["_metrics"]
+        assert not metrics.get("flag.processing.error")
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sets_inapp_after_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        version = "org.slf4j@1.2.3"
+        env_name = "some_env"
+        event = self.store_event(
+            data={"release": version, "environment": env_name}, project_id=self.project.id
+        )
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "release": "org.slf4j@1.2.3",
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                    "in_app": False,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 68,
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "init",
+                                    "abs_path": None,
+                                    "module": "com.android.Zygote",
+                                    "filename": None,
+                                    "lineno": 62,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$b",
+                                    "filename": None,
+                                    "lineno": 70,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        assert exc.module == "org.slf4j.helpers"
+        assert frames[0].in_app is True
+        assert frames[1].in_app is False
+        assert frames[2].in_app is True
+        assert frames[3].in_app is False
+        assert frames[4].in_app is True
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -560,12 +807,115 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_resolving_inline_with_native_frames(self):
+        self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "onClick",
+                                    "abs_path": None,
+                                    "module": "e.a.c.a",
+                                    "filename": None,
+                                    "lineno": 2,
+                                },
+                                {
+                                    "function": "t",
+                                    "abs_path": None,
+                                    "module": "io.sentry.sample.MainActivity",
+                                    "filename": "MainActivity.java",
+                                    "lineno": 1,
+                                },
+                                {
+                                    "abs_path": "Thread.java",
+                                    "filename": "Thread.java",
+                                    "function": "sleep",
+                                    "lineno": 450,
+                                    "lock": {
+                                        "address": "0x0ddc1f22",
+                                        "class_name": "Object",
+                                        "package_name": "java.lang",
+                                        "type:": 1,
+                                    },
+                                    "module": "java.lang.Thread",
+                                },
+                                {
+                                    "function": "__start_thread",
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 196,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Oh no",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        assert len(frames) == 6
+
+        assert frames[0].function == "onClick"
+        assert frames[0].module == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+
+        assert frames[1].filename == "MainActivity.java"
+        assert frames[1].module == "io.sentry.sample.MainActivity"
+        assert frames[1].function == "onClickHandler"
+        assert frames[1].lineno == 40
+        assert frames[2].function == "foo"
+        assert frames[2].lineno == 44
+        assert frames[3].function == "bar"
+        assert frames[3].lineno == 54
+        assert frames[3].filename == "MainActivity.java"
+        assert frames[3].module == "io.sentry.sample.MainActivity"
+        assert frames[4].function == "sleep"
+        assert frames[4].lineno == 450
+        assert frames[4].filename == "Thread.java"
+        assert frames[4].module == "java.lang.Thread"
+        assert frames[5].function == "__start_thread"
+        assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_error_on_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -586,7 +936,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
         event_data = {
             "user": {"ip_address": "31.172.207.97"},
@@ -626,10 +976,9 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_event(event_data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "mapping_uuid": "071207ac-b491-4a74-957c-2c94fd9594f2",
-            "type": "proguard_missing_lineno",
-        }
+        error = event.data["errors"][0]
+        assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
+        assert error["type"] == "proguard_missing_lineno"
 
     def upload_jvm_bundle(self, debug_id, source_files):
         files = {}
@@ -644,14 +993,18 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "files": files,
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
-            for source_file in source_files:
-                zip.writestr(f"files/_/_/{source_file}", source_files[source_file])
+        file_like = BytesIO(b"SYSB")
+        with zipfile.ZipFile(file_like, "a") as zip:
+            for path, contents in source_files.items():
+                zip.writestr(f"files/_/_/{path}", contents)
             zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
-        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file = File.objects.create(
+            name="bundle.zip",
+            type="sourcebundle",
+            headers={"Content-Type": "application/x-sentry-bundle+zip"},
+        )
         file.putfile(file_like)
 
         ProjectDebugFile.objects.create(
@@ -660,6 +1013,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             file=file,
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_source_lookup(self):
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
@@ -716,6 +1071,13 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                                     "module": "io.sentry.samples.MainActivity$AdditionalInnerClass",
                                     "filename": "MainActivity.kt",
                                     "lineno": 32,
+                                },
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
                                 },
                             ]
                         },
@@ -825,7 +1187,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "whoops3"
         assert frames[5].module == "io.sentry.samples.MainActivity$AdditionalInnerClass"
         assert frames[5].lineno == 32
-        assert frames[5].context_line == '            throw RuntimeException("whoops")'
+        assert frames[5].context_line == "            OneMoreInnerClass().whoops4()"
         assert frames[5].pre_context == [
             "        }",
             "    }",
@@ -833,8 +1195,29 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "    class AdditionalInnerClass {",
             "        fun whoops3() {",
         ]
-        assert frames[5].post_context == ["        }", "    }", "}", "", ""]
+        assert frames[5].post_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
 
+        assert frames[6].function == "whoops4"
+        assert frames[6].module == "io.sentry.samples.MainActivity$OneMoreInnerClass"
+        assert frames[6].lineno == 38
+        assert frames[6].context_line == '            throw RuntimeException("whoops")'
+        assert frames[6].pre_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
+        assert frames[6].post_context == ["        }", "    }", "}", ""]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
@@ -1140,3 +1523,127 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].context_line is None
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_invalid_exception(self):
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {"type": "PlatformException"},
+                    {"type": "SecurityException", "module": "java.lang"},
+                    {"type": "RemoteException", "module": "android.os"},
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        expected = [
+            {"type": e.get("type", None), "module": e.get("module", None)}
+            for e in event_data["exception"]["values"]
+        ]
+        received = [
+            {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
+        ]
+
+        assert received == expected
+
+    def test_is_jvm_event(self):
+        from sentry.lang.java.utils import is_jvm_event
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        assert is_jvm_event(event)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        # has no platform
+        assert is_jvm_event(event)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+        # has no modules
+        assert not is_jvm_event(event)

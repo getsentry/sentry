@@ -1,10 +1,15 @@
-import type {PlatformType} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 type SetupType = 'automatic' | 'manual';
 type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';
 
 export type EcosystemEventParameters = {
+  'integrations.non_inapp_stacktrace_link_clicked': {
+    group_id: number;
+    provider: string;
+    view: StackTraceView;
+  } & BaseEventAnalyticsParams;
   'integrations.stacktrace_codecov_link_clicked': {
     group_id: number;
     view: StackTraceView;
@@ -36,7 +41,7 @@ export type EcosystemEventParameters = {
     provider: string;
     setup_type: SetupType;
     view: StackTraceView;
-    platform?: PlatformType;
+    platform?: PlatformKey;
     // BaseEventAnalyticsParams partial because it is not always present
   } & Partial<BaseEventAnalyticsParams>;
   'integrations.stacktrace_submit_config': {
@@ -60,4 +65,6 @@ export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
   'integrations.stacktrace_submit_config': 'Integrations: Stacktrace Submit Config',
   'integrations.stacktrace_codecov_link_clicked':
     'Integrations: Stacktrace Codecov Link Clicked',
+  'integrations.non_inapp_stacktrace_link_clicked':
+    'Integrations: Non-InApp Stacktrace Link Clicked',
 };

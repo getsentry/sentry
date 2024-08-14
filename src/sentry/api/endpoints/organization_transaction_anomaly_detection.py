@@ -1,26 +1,27 @@
 from collections import namedtuple
 from datetime import datetime, timedelta, timezone
 
+import orjson
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.net.http import connection_from_url
-from sentry.snuba.discover import timeseries_query
-from sentry.utils import json
+from sentry.snuba.metrics_enhanced_performance import timeseries_query
 
 ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+    settings.SEER_ANOMALY_DETECTION_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
 MappedParams = namedtuple("MappedParams", ["query_start", "query_end", "granularity"])
@@ -30,13 +31,13 @@ def get_anomalies(snuba_io):
     response = ads_connection_pool.urlopen(
         "POST",
         "/anomaly/predict",
-        body=json.dumps(snuba_io),
+        body=orjson.dumps(snuba_io, option=orjson.OPT_UTC_Z),
         headers={"content-type": "application/json;charset=utf-8"},
     )
-    return Response(json.loads(response.data), status=200)
+    return Response(orjson.loads(response.data), status=200)
 
 
-def get_time_params(start, end):
+def get_time_params(start: datetime, end: datetime) -> MappedParams:
     """
     Takes visualization start/end timestamps
     and returns the start/end/granularity
@@ -65,7 +66,7 @@ def get_time_params(start, end):
         granularity = 600
 
     additional_time_needed = snuba_range - anomaly_detection_range
-    now = datetime.utcnow().astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
     start_limit = now - timedelta(days=90)
     end_limit = now
     start = max(start, start_limit)
@@ -97,6 +98,10 @@ def get_time_params(start, end):
 
 @region_silo_endpoint
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-anomaly-detection-ui", organization, actor=request.user
@@ -108,7 +113,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
 
         start, end = get_date_range_from_params(request.GET)
         time_params = get_time_params(start, end)
-        query_params = self.get_snuba_params(request, organization)
+        snuba_params, _ = self.get_snuba_dataclass(request, organization)
         query = request.GET.get("query")
         query = f"{query} event.type:transaction" if query else "event.type:transaction"
 
@@ -121,14 +126,15 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         }
 
         # overwrite relevant time params
-        query_params["start"] = time_params.query_start
-        query_params["end"] = time_params.query_end
+        snuba_params.start = time_params.query_start
+        snuba_params.end = time_params.query_end
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             snuba_response = timeseries_query(
                 selected_columns=["count()"],
                 query=query,
-                params=query_params,
+                params={},
+                snuba_params=snuba_params,
                 rollup=time_params.granularity,
                 referrer="transaction-anomaly-detection",
                 zerofill_results=False,

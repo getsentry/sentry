@@ -1,54 +1,53 @@
-import {memo} from 'react';
-import isObject from 'lodash/isObject';
-
-import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {OnExpandCallback} from 'sentry/components/objectInspector';
-import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {objectIsEmpty} from 'sentry/utils';
-
-import Format from './format';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
+import {defined} from 'sentry/utils';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import {isConsoleFrame} from 'sentry/utils/replays/types';
+import Format from 'sentry/views/replays/detail/console/format';
 
 interface Props {
-  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  frame: BreadcrumbFrame;
   expandPaths?: string[];
   onExpand?: OnExpandCallback;
+}
+
+// There is a special case where `console.error()` is called with an Error object.
+// The SDK uses the Error's `message` property as the breadcrumb message, but we lose the Error type,
+// resulting in an empty object in the breadcrumb arguments.
+//
+// In this special case, we re-create the error object
+function isSerializedError(frame: ConsoleFrame) {
+  const args = frame.data.arguments;
+  return (
+    frame.message &&
+    typeof frame.message === 'string' &&
+    Array.isArray(args) &&
+    args.length <= 2 &&
+    args[0] &&
+    typeof args[0] === 'object' &&
+    Object.keys(args[0]).length === 0
+  );
 }
 
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onExpand}: Props) {
-  let args = breadcrumb.data?.arguments;
-
-  if (!args) {
-    // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
-    // In these cases we just need the message prop.
-
-    // There are cases in which our prop message is an array, we want to force it to become a string
+export default function MessageFormatter({frame, expandPaths, onExpand}: Props) {
+  if (!isConsoleFrame(frame)) {
     return (
-      <AnnotatedText
-        meta={getMeta(breadcrumb, 'message')}
-        value={breadcrumb.message?.toString() || ''}
+      <Format
+        expandPaths={expandPaths}
+        onExpand={onExpand}
+        args={[frame.category, frame.message, frame.data].filter(defined)}
       />
     );
   }
 
-  // There is a special case where `console.error()` is called with an Error object.
-  // The SDK uses the Error's `message` property as the breadcrumb message, but we lose the Error type,
-  // resulting in an empty object in the breadcrumb arguments.
-  //
-  // In this special case, we re-create the error object
-  const isSerializedError =
-    breadcrumb.message &&
-    typeof breadcrumb.message === 'string' &&
-    args.length <= 2 &&
-    isObject(args[0]);
+  const args = frame.data.arguments;
 
   // Turn this back into an Error object so <Format> can pretty print it
-  if (isSerializedError && objectIsEmpty(args[0]) && breadcrumb.message) {
+  if (args && isSerializedError(frame)) {
     // Sometimes message can include stacktrace
-    const splitMessage = breadcrumb.message.split('\n');
+    const splitMessage = frame.message.split('\n');
     const errorMessagePiece = splitMessage[0].trim();
     // Error.prototype.toString() will prepend the error type meaning it will
     // not be the same as `message` property. We want message only when
@@ -62,7 +61,7 @@ function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onExpand}: Props) 
 
     try {
       // Messages generally do not include stack trace due to SDK serialization
-      fakeError.stack = args.length === 2 ? args[1] : undefined;
+      fakeError.stack = args.length === 2 ? (args[1] as string) : undefined;
 
       // Re-create the error name
       if (errorMessageSplit.length > 1) {
@@ -72,11 +71,14 @@ function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onExpand}: Props) 
       // Some browsers won't allow you to write to error properties
     }
 
-    args = [fakeError];
+    return <Format expandPaths={expandPaths} onExpand={onExpand} args={[fakeError]} />;
   }
 
-  return <Format expandPaths={expandPaths} onExpand={onExpand} args={args} />;
+  return (
+    <Format
+      expandPaths={expandPaths}
+      onExpand={onExpand}
+      args={args ?? [frame.message]}
+    />
+  );
 }
-
-const MessageFormatter = memo(UnmemoizedMessageFormatter);
-export default MessageFormatter;

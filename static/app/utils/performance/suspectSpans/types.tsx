@@ -3,6 +3,7 @@ export type ExampleSpan = {
   finishTimestamp: number;
   id: string;
   startTimestamp: number;
+  trace: string;
 };
 
 export type ExampleTransaction = {

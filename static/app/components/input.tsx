@@ -1,9 +1,10 @@
 import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 export interface InputStylesProps {
   monospace?: boolean;
@@ -22,7 +23,9 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   border-radius: ${p.theme.borderRadius};
   box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
-  transition: border 0.1s, box-shadow 0.1s;
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
 
   ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
   ${p.readOnly ? 'cursor: default;' : ''}
@@ -35,7 +38,8 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     opacity: 1;
   }
 
-  &[disabled] {
+  &[disabled],
+  &[aria-disabled='true'] {
     background: ${p.theme.backgroundSecondary};
     color: ${p.theme.disabled};
     cursor: not-allowed;
@@ -46,7 +50,7 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p.theme.focusBorder};
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;

@@ -1,6 +1,8 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Organization, Project} from 'sentry/types';
+import type {StrictStoreDefinition} from 'sentry/stores/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type State = {
   environment: string | string[] | null;
@@ -9,14 +11,13 @@ type State = {
   project: Project | null;
 };
 
-interface LatestContextStoreDefinition extends StoreDefinition {
+interface LatestContextStoreDefinition extends StrictStoreDefinition<State> {
   get(): State;
   onSetActiveOrganization(organization: Organization): void;
   onSetActiveProject(project: Project | null): void;
   onUpdateOrganization(organization: Partial<Organization>): void;
   onUpdateProject(project: Project | null): void;
   reset(): void;
-  state: State;
 }
 
 /**
@@ -120,6 +121,10 @@ const storeConfig: LatestContextStoreDefinition = {
       project,
     };
     this.trigger(this.state);
+  },
+
+  getState() {
+    return this.state;
   },
 };
 

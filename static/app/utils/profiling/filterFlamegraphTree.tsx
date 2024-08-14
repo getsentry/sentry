@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 // Utility fn to filter a tree.
 // The filtering is done in two steps - the first step marks nodes
@@ -10,7 +10,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 // A tiny but important implementation details is that we only need to find every node's
 // first new parent and not all of the parents. That is because we rely on insertion order
 // of nodesToKeep (dfs). This effectively means that when a node is marked as kept, all of
-// it's parent nodes have already been considered and exist in our new tree.
+// its parent nodes have already been considered and exist in our new tree.
 export function filterFlamegraphTree(
   roots: FlamegraphFrame[],
   skipFn: (frame: FlamegraphFrame) => boolean

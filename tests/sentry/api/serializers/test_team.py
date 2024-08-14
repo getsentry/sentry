@@ -1,18 +1,17 @@
+from unittest import mock
+
 from django.conf import settings
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
-from sentry.models import InviteStatus
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.organizationmember import InviteStatus
+from sentry.testutils.cases import TestCase
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
 class TeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -33,18 +32,8 @@ class TeamSerializerTest(TestCase):
             "teamRole": None,
             "flags": {"idp:provisioned": False},
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
         }
-
-    def test_simple_with_group_org_role(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        team = self.create_team(organization=organization, org_role="manager")
-        self.create_member(user=user, organization=organization, role="owner")
-
-        result = serialize(team, user)
-        assert result["orgRole"] == "manager"
 
     def test_member_count(self):
         user = self.create_user(username="foo")
@@ -236,91 +225,24 @@ class TeamSerializerTest(TestCase):
         req = self.make_request()
         req.user = user
         req.superuser.set_logged_in(req.user)
-        env.request = req
 
-        result = serialize(team, user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
+        with mock.patch.object(env, "request", req):
+            result = serialize(team, user)
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
+            assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(team, user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-    def test_member_on_owner_team(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        manager_team = self.create_team(organization=organization, org_role="manager")
-        owner_team = self.create_team(organization=organization, org_role="owner")
-        self.create_member(
-            user=user, organization=organization, role="member", teams=[manager_team, owner_team]
-        )
-        team = self.create_team(organization=organization)
-
-        result = serialize(team, user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(team, user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        self.create_team_membership(user=user, team=team, role=None)
-        result = serialize(team, user)
-        # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is True
-        assert result["teamRole"] == TEAM_ADMIN["id"]
-
-    def test_member_with_team_role_on_owner_team(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        manager_team = self.create_team(organization=organization, org_role="manager")
-        member = self.create_member(
-            user=user, organization=organization, role="member", teams=[manager_team]
-        )
-        team = self.create_team(organization=organization)
-        OrganizationMemberTeam(organizationmember=member, team=team, role="admin")
-
-        result = serialize(team, user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(team, user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        self.create_team_membership(user=user, team=team, role="contributor")
-        result = serialize(team, user)
-        # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is True
-        assert result["teamRole"] == TEAM_ADMIN["id"]
+            organization.flags.allow_joinleave = False
+            organization.save()
+            result = serialize(team, user)
+            # after changing to allow_joinleave=False
+            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["hasAccess"] is True
+            assert result["isMember"] is False
+            assert result["teamRole"] is None
 
 
-@region_silo_test
 class TeamWithProjectsSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -344,14 +266,12 @@ class TeamWithProjectsSerializerTest(TestCase):
             "flags": {"idp:provisioned": False},
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],
         }
 
 
-@region_silo_test
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self):
         user = self.create_user(username="foo")

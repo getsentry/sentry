@@ -1,13 +1,14 @@
 import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Form} from 'sentry/components/forms';
-import {OnSubmitCallback} from 'sentry/components/forms/types';
+import Form from 'sentry/components/forms/form';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -18,21 +19,11 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-function validateSortOption({
-  sort,
-  organization,
-}: {
-  organization: Organization;
-  sort?: string;
-}) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+function validateSortOption({sort}: {sort?: string}) {
   const sortOptions = [
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
@@ -58,7 +49,7 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({sort, organization}),
+    sort: validateSortOption({sort}),
     visibility: SavedSearchVisibility.OWNER,
   };
 

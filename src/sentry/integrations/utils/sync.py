@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Organization, Project
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.tasks.integrations import sync_assignee_outbound
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.silo.base import region_silo_function
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 @region_silo_function
@@ -40,9 +44,7 @@ def where_should_sync(
         organization
         for organization in organizations.filter(**kwargs)
         if features.has("organizations:integrations-issue-sync", organization)
-        and integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).should_sync(key)
+        and integration.get_installation(organization_id=organization.id).should_sync(key)
     ]
 
 
@@ -79,7 +81,13 @@ def sync_group_assignee_inbound(
         orgs_with_sync_enabled,
         external_issue_key,
     )
+    log_context = {
+        "integration_id": integration.id,
+        "email": email,
+        "issue_key": external_issue_key,
+    }
     if not affected_groups:
+        logger.info("no-affected-groups", extra=log_context)
         return []
 
     if not assign:
@@ -99,19 +107,12 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.assign(group, user)
             groups_assigned.append(group)
         else:
-            logger.info(
-                "assignee-not-found-inbound",
-                extra={
-                    "integration_id": integration.id,
-                    "email": email,
-                    "issue_key": external_issue_key,
-                },
-            )
+            logger.info("assignee-not-found-inbound", extra=log_context)
     return groups_assigned
 
 
 def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool = True) -> None:
-    from sentry.models import GroupLink
+    from sentry.models.grouplink import GroupLink
 
     external_issue_ids = GroupLink.objects.filter(
         project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue

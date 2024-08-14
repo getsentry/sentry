@@ -1,18 +1,19 @@
-import {Fragment, useMemo, useState} from 'react';
-import capitalize from 'lodash/capitalize';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {
+import type {
   AvailableNotificationAction,
   NotificationAction,
-  NotificationActionService,
 } from 'sentry/types/notificationActions';
+import {NotificationActionService} from 'sentry/types/notificationActions';
+import type {Project} from 'sentry/types/project';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type NotificationActionManagerProps = {
   /**
@@ -28,15 +29,15 @@ type NotificationActionManagerProps = {
    * TODO(enterprise): refactor to account for multiple projects
    */
   project: Project;
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount: (projectId: number, alertCount: number) => void;
   disabled?: boolean;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
+  /**
+   * Updates the notification alert count for this project
+   */
+  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 function NotificationActionManager({
@@ -44,18 +45,20 @@ function NotificationActionManager({
   availableActions,
   recipientRoles,
   project,
-  updateAlertCount = () => {},
   disabled = false,
 }: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
+
+  useEffect(() => {
+    setNotificationActions(actions);
+  }, [actions]);
 
   const removeNotificationAction = (index: number) => {
     // Removes notif action from state using the index
     const updatedActions = [...notificationActions];
     updatedActions.splice(index, 1);
     setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
   };
 
   const updateNotificationAction = (index: number, updatedAction: NotificationAction) => {
@@ -80,6 +83,8 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
+      [NotificationActionService.DISCORD]: [],
     };
     availableActions.forEach(a => {
       availableServicesMap[a.action.serviceType as NotificationActionService].push(a);
@@ -103,6 +108,8 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
+      [NotificationActionService.DISCORD]: [],
     };
     notificationActions.forEach((action, index) => {
       if (action.serviceType) {
@@ -129,6 +136,21 @@ function NotificationActionManager({
       return integrations;
     }, [availableServices]);
 
+  const opsgenieIntegrations: Record<number, AvailableNotificationAction[]> =
+    useMemo(() => {
+      const integrations: Record<number, AvailableNotificationAction[]> = {};
+      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+        const integrationId = team.action.integrationId;
+        if (integrationId) {
+          if (integrationId in integrations) {
+            integrations[integrationId].push(team);
+          } else {
+            integrations[integrationId] = [team];
+          }
+        }
+      });
+      return integrations;
+    }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];
@@ -145,6 +167,7 @@ function NotificationActionManager({
           action={action}
           recipientRoles={recipientRoles}
           availableActions={availableServices[serviceType]}
+          opsgenieIntegrations={opsgenieIntegrations}
           pagerdutyIntegrations={pagerdutyIntegrations}
           project={project}
           onDelete={removeNotificationAction}
@@ -154,9 +177,19 @@ function NotificationActionManager({
       ));
     });
   };
+  const getLabel = (serviceType: string) => {
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return t('Send a Sentry notification');
+      case NotificationActionService.OPSGENIE:
+        return t('Send an Opsgenie notification');
+      default:
+        return t('Send a %s notification', capitalize(serviceType));
+    }
+  };
 
-  const getMenuItems = () => {
-    const menuItems: MenuItemProps[] = [];
+  const menuItems = useMemo(() => {
+    const dropdownMenuItems: MenuItemProps[] = [];
     Object.entries(availableServices).forEach(([serviceType, validActions]) => {
       if (validActions.length === 0) {
         return;
@@ -168,33 +201,35 @@ function NotificationActionManager({
       ) {
         return;
       }
-
-      menuItems.push({
+      const label = getLabel(serviceType);
+      dropdownMenuItems.push({
         key: serviceType,
-        label: t(
-          'Send a %s notification',
-          serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-            ? capitalize(serviceType)
-            : 'Sentry'
-        ),
+        label,
         onAction: () => {
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];
           setNotificationActions(updatedActions);
-          updateAlertCount(parseInt(project.id, 10), updatedActions.length);
         },
       });
     });
-    return menuItems;
-  };
+    return dropdownMenuItems;
+  }, [actionsMap, availableServices, notificationActions]);
+
+  let toolTipText: undefined | string = undefined;
+  if (disabled) {
+    toolTipText = t(
+      'You do not have permission to add notification actions for this project'
+    );
+  } else if (menuItems.length === 0) {
+    toolTipText = t('You do not have any notification actions to add');
+  }
+
+  const isAddAlertDisabled = disabled || menuItems.length === 0;
 
   const addAlertButton = (
-    <Tooltip
-      disabled={!disabled}
-      title={t('You do not have permission to add notification actions for this project')}
-    >
+    <Tooltip disabled={!isAddAlertDisabled} title={toolTipText}>
       <DropdownMenu
-        items={getMenuItems()}
+        items={menuItems}
         trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
@@ -202,12 +237,12 @@ function NotificationActionManager({
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}
-            disabled={disabled}
+            disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
           </DropdownButton>
         )}
-        isDisabled={disabled}
+        isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"
       />
     </Tooltip>

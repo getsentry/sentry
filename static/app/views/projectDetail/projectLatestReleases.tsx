@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -15,7 +15,9 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -23,20 +25,20 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
   projectSlug: string;
-  projectId?: string;
+  project?: Project;
 };
 
 type State = {
   releases: Release[] | null;
   hasOlderReleases?: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ProjectLatestReleases extends AsyncComponent<Props, State> {
+class ProjectLatestReleases extends DeprecatedAsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
@@ -62,7 +64,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug, isProjectStabilized} = this.props;
 
     if (!isProjectStabilized) {
@@ -85,13 +87,13 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {releases} = this.state;
-    const {organization, projectId, isProjectStabilized} = this.props;
+    const {organization, project, isProjectStabilized} = this.props;
 
     if (!isProjectStabilized) {
       return;
     }
 
-    if ((releases ?? []).length !== 0 || !projectId) {
+    if ((releases ?? []).length !== 0 || !project?.id) {
       this.setState({hasOlderReleases: true});
       return;
     }
@@ -101,7 +103,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const hasOlderReleases = await fetchAnyReleaseExistence(
       this.api,
       organization.slug,
-      projectId
+      project.id
     );
 
     this.setState({hasOlderReleases, loading: false});
@@ -123,7 +125,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   }
 
   renderReleaseRow = (release: Release) => {
-    const {projectId} = this.props;
+    const {project} = this.props;
     const {lastDeploy, dateCreated} = release;
 
     return (
@@ -133,7 +135,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
           <StyledVersion
             version={release.version}
             tooltipRawVersion
-            projectId={projectId}
+            projectId={project?.id}
           />
         </TextOverflow>
       </Fragment>
@@ -141,7 +143,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
-    const {organization, projectId, isProjectStabilized} = this.props;
+    const {organization, project, isProjectStabilized} = this.props;
     const {loading, releases, hasOlderReleases} = this.state;
     const checkingForOlderReleases =
       !(releases ?? []).length && hasOlderReleases === undefined;
@@ -153,7 +155,13 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
 
     if (!hasOlderReleases) {
-      return <MissingReleasesButtons organization={organization} projectId={projectId} />;
+      return (
+        <MissingReleasesButtons
+          organization={organization}
+          projectId={project?.id}
+          platform={project?.platform}
+        />
+      );
     }
 
     if (!releases || releases.length === 0) {

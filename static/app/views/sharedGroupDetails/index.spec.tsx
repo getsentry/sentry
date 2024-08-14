@@ -1,34 +1,47 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {RouteContext} from 'sentry/views/routeContext';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
-  const eventEntry = TestStubs.EventEntry();
-  const exception = TestStubs.EventStacktraceException().entries[0];
+  const eventEntry = EventEntryFixture();
+  const exception = EventStacktraceExceptionFixture().entries[0];
   const params = {shareId: 'a'};
-  const router = TestStubs.router({params});
+  const router = RouterFixture({params});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/actionable-items/`,
+      body: {
+        errors: [],
+      },
     });
   });
 
@@ -36,41 +49,38 @@ describe('SharedGroupDetails', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
-    const {container} = render(
-      <RouteContext.Provider value={{router, ...router}}>
-        <SharedGroupDetails
-          params={params}
-          api={new MockApiClient()}
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-        />
-      </RouteContext.Provider>
+  it('renders', async function () {
+    render(
+      <SharedGroupDetails
+        params={params}
+        api={new MockApiClient()}
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+      />,
+      {router}
     );
-
-    expect(container).toSnapshot();
+    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
   });
 
-  it('renders with org slug in path', function () {
+  it('renders with org slug in path', async function () {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
-    const router_with_slug = TestStubs.router({params_with_slug});
-    const {container} = render(
-      <RouteContext.Provider value={{router, ...router}}>
-        <SharedGroupDetails
-          params={params}
-          api={new MockApiClient()}
-          route={{}}
-          router={router_with_slug}
-          routes={router_with_slug.routes}
-          routeParams={router_with_slug.params}
-          location={router_with_slug.location}
-        />
-      </RouteContext.Provider>
+    const router_with_slug = RouterFixture({params_with_slug});
+    render(
+      <SharedGroupDetails
+        params={params}
+        api={new MockApiClient()}
+        route={{}}
+        router={router_with_slug}
+        routes={router_with_slug.routes}
+        routeParams={router_with_slug.params}
+        location={router_with_slug.location}
+      />,
+      {router}
     );
-
-    expect(container).toSnapshot();
+    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('sgh-timestamp')).toBeInTheDocument());
   });
 });

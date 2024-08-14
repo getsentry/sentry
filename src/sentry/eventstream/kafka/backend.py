@@ -1,28 +1,19 @@
 from __future__ import annotations
 
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
-from django.conf import settings
 
 from sentry import options
+from sentry.conf.types.kafka_definition import Topic
 from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -34,15 +25,15 @@ if TYPE_CHECKING:
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
-        self.topic = settings.KAFKA_EVENTS
-        self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
-        self.__producers: MutableMapping[str, Producer] = {}
+        self.topic = Topic.EVENTS
+        self.transactions_topic = Topic.TRANSACTIONS
+        self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
+        self.__producers: MutableMapping[Topic, Producer] = {}
 
-    def get_transactions_topic(self, project_id: int) -> str:
+    def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
-    def get_producer(self, topic: str) -> Producer:
+    def get_producer(self, topic: Topic) -> Producer:
         if topic not in self.__producers:
             cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
@@ -50,7 +41,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: Optional[KafkaError], message: KafkaMessage) -> None:
+    def delivery_callback(self, error: KafkaError | None, message: KafkaMessage) -> None:
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
 
@@ -60,18 +51,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
-        received_timestamp: float,
+        primary_hash: str | None,
+        received_timestamp: float | datetime,
         skip_consume: bool,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
-
         # HACK: We are putting all this extra information that is required by the
         # post process forwarder into the headers so we can skip parsing entire json
         # messages. The post process forwarder is currently bound to a single core.
         # Once we are able to parallelize the JSON parsing and other transformation
         # steps being done there we may want to remove this hack.
-        def encode_bool(value: Optional[bool]) -> str:
+        def encode_bool(value: bool | None) -> str:
             if value is None:
                 value = False
             return str(int(value))
@@ -81,7 +71,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
-        def strip_none_values(value: Mapping[str, Optional[str]]) -> MutableMapping[str, str]:
+        def strip_none_values(value: Mapping[str, str | None]) -> MutableMapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
         send_new_headers = options.get("eventstream:kafka-headers")
@@ -118,17 +108,28 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        event: Union[Event, GroupEvent],
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
-        received_timestamp: float,
+        primary_hash: str | None,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
+
         event_type = self._get_event_type(event)
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in KafkaEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                    "event_type": event_type.value,
+                },
+            )
 
         assign_partitions_randomly = (
             (event_type == EventStreamEventType.Generic)
@@ -141,6 +142,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+
+        if event.get_tag("sample_event"):
+            logger.info(
+                "insert: inserting event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
+            )
+            kwargs["asynchronous"] = False
 
         super().insert(
             event,
@@ -158,9 +170,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[MutableMapping[str, str]] = None,
+        headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -192,16 +204,18 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         assert isinstance(extra_data, tuple)
 
+        real_topic = get_topic_definition(topic)["real_topic_name"]
+
         try:
             producer.produce(
-                topic=topic,
+                topic=real_topic,
                 key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
             )
         except Exception as error:
-            logger.error("Could not publish message: %s", error, exc_info=True)
+            logger.exception("Could not publish message: %s", error)
             return
 
         if not asynchronous:
@@ -210,25 +224,3 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def requires_post_process_forwarder(self) -> bool:
         return True
-
-    def run_post_process_forwarder(
-        self,
-        entity: PostProcessForwarderType,
-        consumer_group: str,
-        topic: Optional[str],
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: bool,
-    ) -> None:
-        PostProcessForwarder().run(
-            entity,
-            consumer_group,
-            topic,
-            commit_log_topic,
-            synchronize_commit_group,
-            concurrency,
-            initial_offset_reset,
-            strict_offset_reset,
-        )

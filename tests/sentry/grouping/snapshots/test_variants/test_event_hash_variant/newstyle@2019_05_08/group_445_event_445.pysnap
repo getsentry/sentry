@@ -146,7 +146,7 @@ app:
               "crashpad::`anonymous namespace'::HandleAbortSignal"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:

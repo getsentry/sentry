@@ -1,14 +1,12 @@
+import orjson
 import responses
 from django.urls import reverse
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="boop@example.com")
@@ -57,7 +55,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
                 "projectSlug": self.project.slug,
                 "installationId": self.install.uuid,
                 "query": "proj",
-                "dependentData": json.dumps({"org_id": "A"}),
+                "dependentData": orjson.dumps({"org_id": "A"}).decode(),
             }
         )
         responses.add(
@@ -73,7 +71,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
                 "projectId": self.project.id,
                 "uri": "/get-projects",
                 "query": "proj",
-                "dependentData": json.dumps({"org_id": "A"}),
+                "dependentData": orjson.dumps({"org_id": "A"}).decode(),
             }
         )
         url = f"{self.url}?{qs}"

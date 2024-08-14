@@ -1,9 +1,16 @@
 import posixpath
+from collections.abc import Mapping
 
 from symbolic.common import parse_addr
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
+from sentry.lang.native.registers import (
+    REGISTERS_ARM,
+    REGISTERS_ARM64,
+    REGISTERS_X86,
+    REGISTERS_X86_64,
+)
 from sentry.lang.native.utils import image_name
 from sentry.utils.safe import get_path
 
@@ -25,6 +32,7 @@ class AppleCrashReport:
         rv.append(self._get_meta_header())
         rv.append(self._get_exception_info())
         rv.append(self.get_threads_apple_string())
+        rv.append(self._get_crashed_thread_registers())
         rv.append(self.get_binary_images_apple_string())
         return "\n\n".join(rv) + "\n\nEOF"
 
@@ -35,6 +43,84 @@ class AppleCrashReport:
             get_path(self.context, "os", "build"),
             REPORT_VERSION,
         )
+
+    def _get_register_index(self, register: str, register_map: Mapping[str, int]) -> int:
+        return register_map.get(register[1:] if register.startswith("$") else register, -1)
+
+    def _get_sorted_registers(
+        self, registers: Mapping[str, str | None], register_map: Mapping[str, int]
+    ) -> list[tuple[str, str | None]]:
+        return [
+            (register_name, registers.get(register_name))
+            for register_name in sorted(
+                registers.keys(), key=lambda name: self._get_register_index(name, register_map)
+            )
+        ]
+
+    def _get_register_map_for_arch(self) -> tuple[str, bool, Mapping[str, int]]:
+        arch = get_path(self.context, "device", "arch")
+
+        if not isinstance(arch, str):
+            return (NATIVE_UNKNOWN_STRING, False, {})
+
+        if arch.startswith("x86_64"):
+            return ("x86", True, REGISTERS_X86_64)
+        if arch.startswith("x86"):
+            return ("x86", False, REGISTERS_X86)
+        if arch.startswith("arm64"):
+            return ("ARM", True, REGISTERS_ARM64)
+        if arch.startswith("arm"):
+            return ("ARM", False, REGISTERS_ARM)
+        return (arch, False, {})
+
+    def _get_padded_hex_value(self, value: str) -> str:
+        try:
+            num_value = int(value, 16)
+            padded_hex_value = f"{num_value:x}".rjust(16, "0")
+            return "0x" + padded_hex_value
+        except Exception:
+            return value
+
+    def _get_crashed_thread_registers(self):
+        rv = []
+        exception = get_path(self.exceptions, 0)
+        if not exception:
+            return ""
+
+        thread_id = exception.get("thread_id")
+        crashed_thread_info = next(
+            filter(lambda t: t.get("id") == thread_id, self.threads or []), None
+        )
+        crashed_thread_registers = get_path(crashed_thread_info, "stacktrace", "registers")
+
+        if not isinstance(crashed_thread_registers, Mapping):
+            return ""
+
+        arch_label, is_64_bit, register_map = self._get_register_map_for_arch()
+
+        rv.append(
+            "Thread {} crashed with {} Thread State ({}-bit):".format(
+                thread_id, arch_label, "64" if is_64_bit else "32"
+            )
+        )
+
+        line = " "
+        for i, register in enumerate(
+            self._get_sorted_registers(crashed_thread_registers, register_map)
+        ):
+            if i != 0 and (i % 4 == 0):
+                rv.append(line)
+                line = " "
+
+            register_name, register_value = register
+            line += "{}: {}".format(
+                register_name.rjust(5), self._get_padded_hex_value(register_value or "0x0")
+            )
+
+        if line != " ":
+            rv.append(line)
+
+        return "\n".join(rv)
 
     def _get_exception_info(self):
         rv = []

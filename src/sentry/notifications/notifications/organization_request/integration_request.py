@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.owner_recipient_strategy import (
     OwnerRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models.organization import Organization
+    from sentry.users.models.user import User
 
 provider_types = {
     "first_party": "integrations",
@@ -76,10 +78,10 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     ) -> str:
         return self.get_subject()
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return "Request to Install"
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
@@ -87,7 +89,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

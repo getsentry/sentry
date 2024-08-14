@@ -1,11 +1,9 @@
 from django.urls import reverse
 
 from sentry.plugins.base import plugins
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationPluginsTest(APITestCase):
     def setUp(self):
         self.projectA = self.create_project(slug="proj_a")
@@ -16,7 +14,7 @@ class OrganizationPluginsTest(APITestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-plugins-configs",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         self.login_as(user=self.user)

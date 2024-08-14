@@ -25,8 +25,7 @@ describe('ReplayTagsTableRow', () => {
         name="foo"
         values={['bar', 'baz']}
         generateUrl={(name, value) => ({pathname: '/home', query: {[name]: value}})}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     expect(screen.getByText('bar').closest('a')).toHaveAttribute('href', '/home?foo=bar');
@@ -39,8 +38,7 @@ describe('ReplayTagsTableRow', () => {
         name="foo bar"
         values={['biz baz']}
         generateUrl={(name, value) => ({pathname: '/home', query: {[name]: value}})}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     expect(screen.getByText('foo bar')).toBeInTheDocument();

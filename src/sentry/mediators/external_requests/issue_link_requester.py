@@ -5,16 +5,18 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from django.db import router
+from django.utils.functional import cached_property
+
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.group import Group
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.users.services.user import RpcUser
 from sentry.utils import json
-from sentry.utils.cache import memoize
 
 logger = logging.getLogger("sentry.mediators.external-requests")
 
@@ -55,6 +57,7 @@ class IssueLinkRequester(Mediator):
     fields = Param(dict)
     user = Param(RpcUser)
     action = Param(str)
+    using = router.db_for_write(Group)
 
     def call(self):
         return self._make_request()
@@ -109,7 +112,7 @@ class IssueLinkRequester(Mediator):
             "Sentry-App-Signature": self.sentry_app.build_signature(self.body),
         }
 
-    @memoize
+    @cached_property
     def body(self):
         body: dict[str, Any] = {"fields": {}}
         for name, value in self.fields.items():
@@ -123,6 +126,6 @@ class IssueLinkRequester(Mediator):
         body["actor"] = {"type": "user", "id": self.user.id, "name": self.user.name}
         return json.dumps(body)
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app

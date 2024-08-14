@@ -3,14 +3,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import ControlSiloOrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.audit_log.manager import AuditLogEventNotRegistered
 from sentry.db.models.fields.bounded import BoundedIntegerField
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 
 class AuditLogQueryParamSerializer(serializers.Serializer):
@@ -26,10 +32,19 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
 
 
 @control_silo_endpoint
-class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
+class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuditPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         queryset = AuditLogEntry.objects.filter(organization_id=organization.id).select_related(
             "actor"
         )

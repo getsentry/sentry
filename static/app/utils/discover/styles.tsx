@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';

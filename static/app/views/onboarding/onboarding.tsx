@@ -1,37 +1,40 @@
 import {useCallback, useContext, useEffect, useRef, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button, ButtonProps} from 'sentry/components/button';
-import Confirm, {openConfirmModal, OpenConfirmOptions} from 'sentry/components/confirm';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import type {OpenConfirmOptions} from 'sentry/components/confirm';
+import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import categoryList from 'sentry/data/platformCategories';
+import categoryList from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
-import {StepDescriptor} from './types';
+import type {StepDescriptor} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {
@@ -79,11 +82,12 @@ function Onboarding(props: Props) {
   const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+  const projectSlug =
+    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
-    projectSlug:
-      onboardingSteps[stepIndex].id === 'setup-docs' ? selectedProjectSlug : undefined,
+    projectSlug,
   });
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
@@ -116,7 +120,7 @@ function Onboarding(props: Props) {
 
       const frameworkCategory =
         categoryList.find(category => {
-          return category.platforms.includes(platform.id as never);
+          return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
       onboardingContext.setData({
@@ -138,17 +142,8 @@ function Onboarding(props: Props) {
     props.location.pathname,
   ]);
 
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
-  );
-
-  const projectDeletionOnBackClick = !!organization?.features.includes(
-    'onboarding-project-deletion-on-back-click'
-  );
-
   const shallProjectBeDeleted =
-    projectDeletionOnBackClick &&
-    onboardingSteps[stepIndex].id === 'setup-docs' &&
+    stepObj?.id === 'setup-docs' &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it
     recentCreatedProject.firstError === false &&
@@ -336,7 +331,9 @@ function Onboarding(props: Props) {
     );
   };
 
-  if (!stepObj || stepIndex === -1) {
+  // Redirect to the first step if we end up in an invalid state
+  const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
+  if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
     return (
       <Redirect
         to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`)}
@@ -404,11 +401,11 @@ function Onboarding(props: Props) {
           />
         </UpsellWrapper>
       </Header>
-      <Container hasFooter={containerHasFooter} heartbeatFooter={heartbeatFooter}>
+      <Container hasFooter={containerHasFooter}>
         <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
-        <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+        <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component
@@ -439,14 +436,13 @@ function Onboarding(props: Props) {
   );
 }
 
-const Container = styled('div')<{hasFooter: boolean; heartbeatFooter: boolean}>`
+const Container = styled('div')<{hasFooter: boolean}>`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
-  padding: ${p =>
-    p.heartbeatFooter ? `120px ${space(3)} 0 ${space(3)}` : `120px ${space(3)}`};
+  padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
@@ -546,7 +542,7 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
       },
     }}
   >
-    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
       {t('Back')}
     </Button>
   </motion.div>

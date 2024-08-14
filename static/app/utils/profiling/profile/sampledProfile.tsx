@@ -1,8 +1,11 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
+import {assertValidProfilingUnit} from '../units/units';
+
 import {Frame} from './../frame';
 import {Profile} from './profile';
-import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
+import type {createFrameIndex} from './utils';
+import {resolveFlamegraphSamplesProfileIds} from './utils';
 
 function sortStacks(
   a: {stack: number[]; weight: number},
@@ -27,13 +30,14 @@ function sortStacks(
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ) {
   return profile.samples.map((stack, index) => {
     return {
       stack: frameFilter ? stack.filter(frameFilter) : stack,
       weight: profile.weights[index],
+      aggregate_sample_duration: profile.sample_durations_ns?.[index] ?? 0,
       profileIds: profileIds[index],
     };
   });
@@ -41,10 +45,24 @@ function stacksWithWeights(
 
 function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
-): {stack: number[]; weight: number}[] {
+): {aggregate_sample_duration: number; stack: number[]; weight: number}[] {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
+}
+
+function mergeProfileExamples(
+  profileIds: Readonly<Profiling.SampledProfile['samples_profiles']>,
+  profileReferences: Readonly<Profiling.SampledProfile['samples_examples']>
+): number[][] {
+  const merged: number[][] = [];
+
+  const l = Math.max(profileIds?.length ?? 0, profileReferences?.length ?? 0);
+  for (let i = 0; i < l; i++) {
+    merged[i] = (profileIds?.[i] ?? []).concat(profileReferences?.[i] ?? []);
+  }
+
+  return merged;
 }
 
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
@@ -55,9 +73,12 @@ export class SampledProfile extends Profile {
     options: {
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
-      profileIds?: Readonly<string[]>;
+      profileIds?:
+        | Profiling.Schema['shared']['profile_ids']
+        | Profiling.Schema['shared']['profiles'];
     }
   ): Profile {
+    assertValidProfilingUnit(sampledProfile.unit);
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
       startedAt: sampledProfile.startValue,
@@ -74,19 +95,22 @@ export class SampledProfile extends Profile {
       );
     }
 
-    let resolvedProfileIds: string[][] = [];
+    let resolvedProfileIds: Profiling.ProfileReference[][] = [];
     if (
       options.type === 'flamegraph' &&
-      sampledProfile.samples_profiles &&
+      (sampledProfile.samples_profiles || sampledProfile.samples_examples) &&
       options.profileIds
     ) {
       resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
-        sampledProfile.samples_profiles,
-        options.profileIds
+        mergeProfileExamples(
+          sampledProfile.samples_profiles,
+          sampledProfile.samples_examples
+        ),
+        options.profileIds as Profiling.ProfileReference[]
       );
     }
 
-    function resolveFrame(index) {
+    function resolveFrame(index: number) {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -122,6 +146,7 @@ export class SampledProfile extends Profile {
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
+      let aggregate_duration_ns = samples[i].aggregate_sample_duration;
 
       const isGCStack =
         options.type === 'flamechart' &&
@@ -156,6 +181,7 @@ export class SampledProfile extends Profile {
               '(garbage collector) [native code]'
           ) {
             weight += samples[++i].weight;
+            aggregate_duration_ns += samples[i].aggregate_sample_duration;
           }
         }
       } else {
@@ -171,7 +197,13 @@ export class SampledProfile extends Profile {
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
+      profile.appendSampleWithWeight(
+        resolvedStack,
+        weight,
+        size,
+        resolvedProfileIds[i],
+        aggregate_duration_ns
+      );
     }
 
     return profile.build();
@@ -209,7 +241,8 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: string[]
+    resolvedProfileIds?: Profiling.ProfileReference[] | string[],
+    aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
@@ -221,7 +254,6 @@ export class SampledProfile extends Profile {
 
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
-
     for (let i = 0; i < end; i++) {
       const frame = stack[i];
       const last = node.children[node.children.length - 1];
@@ -238,6 +270,7 @@ export class SampledProfile extends Profile {
       }
 
       node.totalWeight += weight;
+      node.aggregate_duration_ns += aggregate_duration_ns ?? 0;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -270,6 +303,7 @@ export class SampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
+      stackNode.frame.aggregateDuration += aggregate_duration_ns ?? 0;
       stackNode.count++;
     }
 

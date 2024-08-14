@@ -1,11 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
+  PRIORITIZED = DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -14,6 +14,8 @@ export enum Query {
   REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
+
+export const CUSTOM_TAB_VALUE = '__custom__';
 
 type OverviewTab = {
   /**
@@ -29,6 +31,7 @@ type OverviewTab = {
    */
   enabled: boolean;
   name: string;
+  hidden?: boolean;
   /**
    * Tooltip text to be hoverable when text has links
    */
@@ -42,33 +45,27 @@ type OverviewTab = {
 /**
  * Get a list of currently active tabs
  */
-export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
-  const hasAssignToMe = organization.features.includes('assign-to-me');
+export function getTabs() {
   const tabs: Array<[string, OverviewTab]> = [
     [
-      Query.UNRESOLVED,
+      Query.PRIORITIZED,
       {
-        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
-        analyticsName: 'unresolved',
+        name: t('Prioritized'),
+        analyticsName: 'prioritized',
         count: true,
         enabled: true,
       },
     ],
     [
-      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
+      Query.FOR_REVIEW,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle: hasEscalatingIssuesUi
-          ? t(
-              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
-            )
-          : t(`Issues are marked for review when they are created, unresolved, or unignored.
-          Mark an issue reviewed to move it out of this list.
-          Issues are automatically marked reviewed in 7 days.`),
+        tooltipTitle: t(
+          'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+        ),
       },
     ],
     [
@@ -77,7 +74,7 @@ export function getTabs(organization: Organization) {
         name: t('Regressed'),
         analyticsName: 'regressed',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -86,7 +83,7 @@ export function getTabs(organization: Organization) {
         name: t('Escalating'),
         analyticsName: 'escalating',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -95,7 +92,7 @@ export function getTabs(organization: Organization) {
         name: t('Archived'),
         analyticsName: 'archived',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -104,7 +101,7 @@ export function getTabs(organization: Organization) {
         name: t('Ignored'),
         analyticsName: 'ignored',
         count: true,
-        enabled: !hasEscalatingIssuesUi,
+        enabled: false,
         tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
       },
@@ -115,7 +112,7 @@ export function getTabs(organization: Organization) {
         name: t('Reprocessing'),
         analyticsName: 'reprocessing',
         count: true,
-        enabled: organization.features.includes('reprocessing-v2'),
+        enabled: true,
         tooltipTitle: tct(
           `These [link:reprocessing issues] will take some time to complete.
         Any new issues that are created during reprocessing will be flagged for review.`,
@@ -128,6 +125,19 @@ export function getTabs(organization: Organization) {
         tooltipHoverable: true,
       },
     ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
+      },
+    ],
   ];
 
   return tabs.filter(([_query, tab]) => tab.enabled);
@@ -136,8 +146,8 @@ export function getTabs(organization: Organization) {
 /**
  * @returns queries that should have counts fetched
  */
-export function getTabsWithCounts(organization: Organization) {
-  const tabs = getTabs(organization);
+export function getTabsWithCounts() {
+  const tabs = getTabs();
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
@@ -158,8 +168,7 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  PRIORITY = 'priority',
-  BETTER_PRIORITY = 'betterPriority',
+  TRENDS = 'trends',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -167,29 +176,16 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({
-  query,
-  sort,
-  organization,
-}: {
-  organization: Organization;
-  query: string;
-  sort: string;
-}) {
-  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
-    ? IssueSortOptions.BETTER_PRIORITY
-    : DEFAULT_ISSUE_STREAM_SORT;
-  return query === DEFAULT_QUERY && sort === defaultSort;
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
-      return t('Priority');
-    case IssueSortOptions.BETTER_PRIORITY:
-      return t('Priority');
+    case IssueSortOptions.TRENDS:
+      return t('Trends');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:
@@ -217,7 +213,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   '__text',
 ];
 
-export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

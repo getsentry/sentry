@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import Modal, {
@@ -14,11 +14,12 @@ import Modal, {
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelBody} from 'sentry/components/panels';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueAttachment, Project} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -161,7 +162,7 @@ export function ScreenshotCard({
 
 const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Detail = styled('div')`

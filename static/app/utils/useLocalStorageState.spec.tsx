@@ -1,4 +1,4 @@
-import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -12,17 +12,25 @@ describe('useLocalStorageState', () => {
     }
   });
 
-  it('throws if key is not a string', () => {
-    const results = reactHooks.renderHook(() =>
-      // @ts-expect-error force incorrect usage
-      useLocalStorageState({}, 'default value')
-    );
-    expect(results.result.error).toBeInstanceOf(TypeError);
-    expect(results.result.error?.message).toBe('useLocalStorage: key must be a string');
+  it('throws if key is not a string', async () => {
+    let errorResult!: TypeError;
+
+    renderHook(() => {
+      try {
+        // @ts-expect-error force incorrect usage
+        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+        useLocalStorageState({}, 'default value');
+      } catch (err) {
+        errorResult = err;
+      }
+    });
+
+    await waitFor(() => expect(errorResult).toBeInstanceOf(TypeError));
+    expect(errorResult.message).toBe('useLocalStorage: key must be a string');
   });
 
   it('initialized with value', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
@@ -32,7 +40,7 @@ describe('useLocalStorageState', () => {
 
   it('initializes with init fn', () => {
     const initialize = jest.fn(() => 'default value');
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -45,7 +53,7 @@ describe('useLocalStorageState', () => {
   it('initializes with default value', () => {
     localStorageWrapper.setItem('key', JSON.stringify('initial storage value'));
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
@@ -55,28 +63,42 @@ describe('useLocalStorageState', () => {
   });
 
   it('sets new value', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
     );
 
-    reactHooks.act(() => {
+    act(() => {
       result.current[1]('new value');
     });
 
     expect(result.current[0]).toBe('new value');
   });
 
+  it('sets new value using previous state', () => {
+    const {result} = renderHook(
+      (args: Parameters<typeof useLocalStorageState>) =>
+        useLocalStorageState(args[0], args[1]),
+      {initialProps: ['key', 'default value']}
+    );
+
+    act(() => {
+      result.current[1](p => `${p} + new value`);
+    });
+
+    expect(result.current[0]).toBe('default value + new value');
+  });
+
   it('updates localstorage value', async () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', 'default value']}
     );
     const spy = jest.spyOn(Storage.prototype, 'setItem');
 
-    reactHooks.act(() => {
+    act(() => {
       result.current[1]('new value');
     });
 
@@ -86,10 +108,31 @@ describe('useLocalStorageState', () => {
     });
   });
 
+  it('updates localstorage value with function callback', async () => {
+    const {result} = renderHook(
+      (args: Parameters<typeof useLocalStorageState>) =>
+        useLocalStorageState(args[0], args[1]),
+      {initialProps: ['key', 'default value']}
+    );
+    const spy = jest.spyOn(Storage.prototype, 'setItem');
+
+    act(() => {
+      result.current[1](p => `${p} + new value`);
+    });
+
+    // Exhaust task queue because setItem is scheduled as microtask
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        'key',
+        JSON.stringify('default value + new value')
+      );
+    });
+  });
+
   it('when no value is present in storage, calls init with undefined and null', () => {
     const initialize = jest.fn(() => 'default value');
 
-    reactHooks.renderHook(
+    renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -101,7 +144,7 @@ describe('useLocalStorageState', () => {
     localStorageWrapper.setItem('key', JSON.stringify('invalid').slice(0, 5));
     const initialize = jest.fn(() => 'default value');
 
-    reactHooks.renderHook(
+    renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -119,7 +162,7 @@ describe('useLocalStorageState', () => {
       return value;
     });
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -133,7 +176,7 @@ describe('useLocalStorageState', () => {
       return 'super ' + decodedValue;
     });
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -145,7 +188,7 @@ describe('useLocalStorageState', () => {
     localStorageWrapper.setItem('key', JSON.stringify('valid json'));
     const initialize = jest.fn(() => 'default value');
 
-    reactHooks.renderHook(
+    renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', initialize]}
@@ -159,7 +202,7 @@ describe('useLocalStorageState', () => {
 
     jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', recursiveReferenceMap]}
@@ -182,7 +225,7 @@ describe('useLocalStorageState', () => {
 
     jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', recursiveObject]}
@@ -209,7 +252,7 @@ describe('useLocalStorageState', () => {
     ['WeakSet', {nested: new WeakSet()}],
     ['WeakMap', {nested: new WeakMap()}],
   ])('when attempting to serialize a %s', (type, value) => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
         useLocalStorageState(args[0], args[1]),
       {initialProps: ['key', value]}

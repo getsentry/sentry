@@ -7,15 +7,17 @@ sudo.views
 """
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured
-from django.http import HttpResponseRedirect, QueryDict
+from django.http import HttpRequest, HttpResponseRedirect, QueryDict
+from django.http.response import HttpResponseBase
 from django.shortcuts import resolve_url
 from django.template.response import TemplateResponse
 from django.utils.decorators import method_decorator
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.module_loading import import_string
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
@@ -38,15 +40,15 @@ class SudoView(View):
     template_name = "sudo/sudo.html"
     extra_context: dict[str, str] | None = None
 
-    def handle_sudo(self, request, redirect_to, context):
+    def handle_sudo(self, request: HttpRequest, context: dict[str, Any]) -> bool:
         return request.method == "POST" and context["form"].is_valid()
 
-    def grant_sudo_privileges(self, request, redirect_to):
+    def grant_sudo_privileges(self, request: HttpRequest, redirect_to: str) -> HttpResponseRedirect:
         grant_sudo_privileges(request)
         # Restore the redirect destination from the GET request
         redirect_to = request.session.pop(REDIRECT_TO_FIELD_NAME, redirect_to)
         # Double check we're not redirecting to other sites
-        if not is_safe_url(redirect_to, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=(request.get_host(),)):
             redirect_to = resolve_url(REDIRECT_URL)
         return HttpResponseRedirect(redirect_to)
 
@@ -54,11 +56,11 @@ class SudoView(View):
     @method_decorator(never_cache)
     @method_decorator(csrf_protect)
     @method_decorator(login_required)
-    def dispatch(self, request):
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         redirect_to = request.GET.get(REDIRECT_FIELD_NAME, REDIRECT_URL)
 
         # Make sure we're not redirecting to other sites
-        if not is_safe_url(redirect_to, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect_to, allowed_hosts=(request.get_host(),)):
             redirect_to = resolve_url(REDIRECT_URL)
 
         if request.is_sudo():
@@ -72,14 +74,14 @@ class SudoView(View):
             "request": request,
             REDIRECT_FIELD_NAME: redirect_to,
         }
-        if self.handle_sudo(request, redirect_to, context):
+        if self.handle_sudo(request, context):
             return self.grant_sudo_privileges(request, redirect_to)
         if self.extra_context is not None:
             context.update(self.extra_context)
         return TemplateResponse(request, self.template_name, context)
 
 
-def sudo(request, **kwargs):
+def sudo(request: HttpRequest, **kwargs: object) -> HttpResponseBase:
     return SudoView(**kwargs).dispatch(request)
 
 

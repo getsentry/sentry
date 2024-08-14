@@ -1,21 +1,24 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
-import {Query} from 'history';
+import type {WithRouterProps} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
+import type {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {DateString, Organization} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {DateString} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
-import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -61,7 +64,7 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
-type Props = WithRouterProps & {
+export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
@@ -79,14 +82,14 @@ type Props = WithRouterProps & {
   releases?: ReleaseMetaBasic[] | null;
   tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
-};
+}
 
 type State = {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
 };
 
-class ReleaseSeries extends Component<Props, State> {
+class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
     releaseSeries: [],
@@ -254,10 +257,14 @@ class ReleaseSeries extends Component<Props, State> {
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
         onClick: () => {
-          router.push({
-            pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-            query,
-          });
+          router.push(
+            normalizeUrl({
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(release.version)}/`,
+              query,
+            })
+          );
         },
         label: {
           formatter: () => formatVersion(release.version, true),

@@ -1,9 +1,7 @@
 {
   "_fingerprinting_rules": [
     {
-      "matchers": [
-        ["value", "*went wrong*"]
-      ],
+      "matchers": [["value", "*went wrong*"]],
       "fingerprint": ["something-went-wrong", "{{ error.value }}"]
     }
   ],

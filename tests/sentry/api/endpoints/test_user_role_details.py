@@ -1,9 +1,18 @@
-from sentry.models import UserRole
-from sentry.testutils import APITestCase
+from sentry.models.userrole import UserRole
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-class PermissionTestMixin:
+@control_silo_test
+class UserUserRolesTest(APITestCase):
+    endpoint = "sentry-api-0-user-userrole-details"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "users.admin")
+
     def test_fails_without_superuser(self):
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
@@ -23,19 +32,8 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
-@control_silo_test(stable=True)
-class UserUserRolesTest(APITestCase, PermissionTestMixin):
-    endpoint = "sentry-api-0-user-userrole-details"
-
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        self.add_user_permission(self.user, "users.admin")
-
-
-@control_silo_test(stable=True)
-class UserUserRolesDetailsTest(UserUserRolesTest, PermissionTestMixin):
+@control_silo_test
+class UserUserRolesDetailsTest(UserUserRolesTest):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
         role.users.add(self.user)
@@ -46,8 +44,8 @@ class UserUserRolesDetailsTest(UserUserRolesTest, PermissionTestMixin):
         assert resp.data["name"] == "support"
 
 
-@control_silo_test(stable=True)
-class UserUserRolesCreateTest(UserUserRolesTest, PermissionTestMixin):
+@control_silo_test
+class UserUserRolesCreateTest(UserUserRolesTest):
     method = "POST"
 
     def test_adds_role(self):
@@ -70,8 +68,8 @@ class UserUserRolesCreateTest(UserUserRolesTest, PermissionTestMixin):
         assert resp.status_code == 410
 
 
-@control_silo_test(stable=True)
-class UserUserRolesDeleteTest(UserUserRolesTest, PermissionTestMixin):
+@control_silo_test
+class UserUserRolesDeleteTest(UserUserRolesTest):
     method = "DELETE"
 
     def test_removes_role(self):

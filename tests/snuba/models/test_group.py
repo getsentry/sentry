@@ -1,17 +1,36 @@
-import uuid
+from __future__ import annotations
 
+import uuid
+from collections.abc import Sequence
+from unittest.mock import patch
+
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import Group
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.models.group import Group
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
+def _get_recommended_non_null(g: Group) -> GroupEvent:
+    ret = g.get_recommended_event_for_environments()
+    assert ret is not None
+    return ret
+
+
+def _get_latest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEvent:
+    ret = g.get_latest_event_for_environments(environments)
+    assert ret is not None
+    return ret
+
+
+def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEvent:
+    ret = g.get_oldest_event_for_environments(environments)
+    assert ret is not None
+    return ret
+
+
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()
@@ -41,15 +60,13 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             project_id=project.id,
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
-        assert group.get_latest_event_for_environments().event_id == "c" * 32
+        assert _get_latest_non_null(group).event_id == "c" * 32
         assert group.get_latest_event_for_environments(["staging"]) is None
-        assert group.get_latest_event_for_environments(["production"]).event_id == "b" * 32
-        assert group.get_oldest_event_for_environments().event_id == "a" * 32
-        assert (
-            group.get_oldest_event_for_environments(["staging", "production"]).event_id == "a" * 32
-        )
+        assert _get_latest_non_null(group, ["production"]).event_id == "b" * 32
+        assert _get_oldest_non_null(group).event_id == "a" * 32
+        assert _get_oldest_non_null(group, ["staging", "production"]).event_id == "a" * 32
         assert group.get_oldest_event_for_environments(["staging"]) is None
 
     def test_perf_issue(self):
@@ -76,8 +93,8 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
         perf_group = transaction_event_1.group
 
-        assert perf_group.get_latest_event_for_environments().event_id == "d" * 32
-        assert perf_group.get_oldest_event_for_environments().event_id == "f" * 32
+        assert _get_latest_non_null(perf_group).event_id == "d" * 32
+        assert _get_oldest_non_null(perf_group).event_id == "f" * 32
 
     def test_error_issue_get_helpful_for_environments(self):
         project = self.create_project()
@@ -120,16 +137,10 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             project_id=project.id,
         )
 
-        group = Group.objects.first()
-        assert (
-            group.get_helpful_event_for_environments().event_id == event_all_helpful_params.event_id
-        )
-        assert (
-            group.get_latest_event_for_environments().event_id == event_none_helpful_params.event_id
-        )
-        assert (
-            group.get_oldest_event_for_environments().event_id == event_all_helpful_params.event_id
-        )
+        group = Group.objects.get()
+        assert _get_recommended_non_null(group).event_id == event_all_helpful_params.event_id
+        assert _get_latest_non_null(group).event_id == event_none_helpful_params.event_id
+        assert _get_oldest_non_null(group).event_id == event_all_helpful_params.event_id
 
     def test_perf_issue_helpful(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
@@ -169,24 +180,17 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
         perf_group = transaction_event_1.group
 
-        assert (
-            perf_group.get_helpful_event_for_environments().event_id == transaction_event_1.event_id
-        )
-        assert (
-            perf_group.get_latest_event_for_environments().event_id == transaction_event_1.event_id
-        )
-        assert (
-            perf_group.get_oldest_event_for_environments().event_id == transaction_event_2.event_id
-        )
+        assert _get_recommended_non_null(perf_group).event_id == transaction_event_1.event_id
+        assert _get_latest_non_null(perf_group).event_id == transaction_event_1.event_id
+        assert _get_oldest_non_null(perf_group).event_id == transaction_event_2.event_id
 
     def test_profile_issue_helpful(self):
         event_id_1 = uuid.uuid4().hex
-        occurrence = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1, project_id=self.project.id),
-            {
-                "event_id": event_id_1,
+        occurrence, _ = self.process_occurrence(
+            event_id=event_id_1,
+            project_id=self.project.id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=2).isoformat(),
                 "contexts": {
                     "profile": {"profile_id": uuid.uuid4().hex},
@@ -199,25 +203,49 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
                 },
                 "errors": [],
             },
-        )[0]
+        )
 
         event_id_2 = uuid.uuid4().hex
-        occurrence_2 = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_2, project_id=self.project.id),
-            {
-                "event_id": event_id_2,
+        occurrence_2, _ = self.process_occurrence(
+            event_id=event_id_2,
+            project_id=self.project.id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )[0]
+        )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
         group.update(type=ProfileFileIOGroupType.type_id)
 
-        group_event = group.get_helpful_event_for_environments()
+        group_event = _get_recommended_non_null(group)
         assert group_event.event_id == occurrence.event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
 
-        assert group.get_latest_event_for_environments().event_id == occurrence_2.event_id
-        assert group.get_oldest_event_for_environments().event_id == occurrence.event_id
+        assert _get_latest_non_null(group).event_id == occurrence_2.event_id
+        assert _get_oldest_non_null(group).event_id == occurrence.event_id
+
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_get_recommended_event_for_environments_retention_limit(self, mock_get_event_retention):
+        """
+        If last_seen is outside of the retention limit, falls back to the latest event behavior.
+        """
+        mock_get_event_retention.return_value = 90
+        project = self.create_project()
+        outside_retention_date = before_now(days=91)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(outside_retention_date),
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=project.id,
+            assert_no_errors=False,
+        )
+
+        group = Group.objects.get()
+        group.last_seen = before_now(days=91)
+        assert _get_recommended_non_null(group).event_id == event.event_id

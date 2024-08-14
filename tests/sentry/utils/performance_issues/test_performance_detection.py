@@ -12,10 +12,10 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.performance_issues.base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
@@ -108,13 +108,13 @@ class PerformanceDetectionTest(TestCase):
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
-        detect_performance_problems({}, self.project)
-        assert mock.call_count == 0
+        with override_options({"performance.issues.all.problem-detection": 0.0}):
+            detect_performance_problems({}, self.project)
+            assert mock.call_count == 0
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
-        with override_options({"performance.issues.all.problem-detection": 1.0}):
-            detect_performance_problems({}, self.project)
+        detect_performance_problems({}, self.project)
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
@@ -132,13 +132,10 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    def test_project_options_overrides_default_settings(self):
-
+    def test_project_options_overrides_default_detection_settings(self):
         default_settings = get_detection_settings(self.project)
 
-        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
         assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
         assert default_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -152,9 +149,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
         self.project_option_mock.return_value = {
-            "n_plus_one_db_duration_threshold": 100000,
             "n_plus_one_db_queries_detection_enabled": False,
-            "slow_db_query_duration_threshold": 5000,
             "slow_db_queries_detection_enabled": False,
             "uncompressed_assets_detection_enabled": False,
             "consecutive_http_spans_detection_enabled": False,
@@ -168,11 +163,7 @@ class PerformanceDetectionTest(TestCase):
 
         configured_settings = get_detection_settings(self.project)
 
-        assert (
-            configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
-        )
         assert not configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
         assert not configured_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -186,6 +177,64 @@ class PerformanceDetectionTest(TestCase):
             configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["detection_enabled"]
         )
         assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
+
+    def test_project_options_overrides_default_threshold_settings(self):
+
+        default_settings = get_detection_settings(self.project)
+
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 50
+        assert (
+            default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
+        )
+        assert default_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 16
+        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 16
+        assert (
+            default_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 500 * 1024
+        )
+        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 300
+        assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 100
+        assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
+        assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
+        assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+            "slow_db_query_duration_threshold": 5000,
+            "render_blocking_fcp_ratio": 0.8,
+            "large_http_payload_size_threshold": 7000000,
+            "uncompressed_asset_size_threshold": 2000000,
+            "uncompressed_asset_duration_threshold": 300,
+            "db_on_main_thread_duration_threshold": 50,
+            "file_io_on_main_thread_duration_threshold": 33,
+            "consecutive_db_min_time_saved_threshold": 500,
+            "n_plus_one_api_calls_total_duration_threshold": 500,
+            "consecutive_http_spans_min_time_saved_threshold": 1000,
+        }
+
+        configured_settings = get_detection_settings(self.project)
+
+        assert (
+            configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
+        )
+        assert configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 500
+        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
+        assert (
+            configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"]
+            == 0.8
+        )
+        assert (
+            configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 2000000
+        )
+        assert configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 300
+        assert (
+            configured_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"]
+            == 7000000
+        )
+        assert configured_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 50
+        assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 33
+        assert configured_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 500
+        assert configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 1000
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
@@ -371,7 +420,7 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 8
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -382,6 +431,7 @@ class PerformanceDetectionTest(TestCase):
                     "_pi_sdk_name",
                     "",
                 ),
+                call("is_standalone_spans", False),
                 call(
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
@@ -421,37 +471,29 @@ class PerformanceDetectionTest(TestCase):
             call(
                 "performance.performance_issue.uncompressed_assets",
                 1,
-                tags={"op_resource.script": True},
+                tags={"op_resource.script": True, "is_standalone_spans": False},
             )
             in incr_mock.mock_calls
         )
-        assert (
-            call(
-                "performance.performance_issue.detected",
-                instance="True",
-                tags={
-                    "sdk_name": "sentry.javascript.react",
-                    "consecutive_db": False,
-                    "large_http_payload": False,
-                    "consecutive_http": False,
-                    "slow_db_query": False,
-                    "render_blocking_assets": False,
-                    "n_plus_one_db": False,
-                    "n_plus_one_db_ext": False,
-                    "file_io_main_thread": False,
-                    "db_main_thread": False,
-                    "n_plus_one_api_calls": False,
-                    "m_n_plus_one_db": False,
-                    "uncompressed_assets": True,
-                    "browser_name": "Chrome",
-                    "is_early_adopter": False,
-                },
-            )
-            in incr_mock.mock_calls
-        )
+        detection_calls = [
+            call
+            for call in incr_mock.mock_calls
+            if call.args[0] == "performance.performance_issue.detected"
+        ]
+        assert len(detection_calls) == 1
+        tags = detection_calls[0].kwargs["tags"]
+
+        assert tags["uncompressed_assets"]
+        assert tags["sdk_name"] == "sentry.javascript.react"
+        assert not tags["is_early_adopter"]
+        assert tags["browser_name"] == "Chrome"
+
+        # Ensure all other detections are set to false in tags
+        pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
+        assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
-@region_silo_test
+@no_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`
@@ -461,7 +503,6 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
-@region_silo_test
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")
@@ -478,7 +519,9 @@ class EventPerformanceProblemTest(TestCase):
         )
 
         EventPerformanceProblem(event, problem).save()
-        assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+        found = EventPerformanceProblem.fetch(event, problem.fingerprint)
+        assert found is not None
+        assert found.problem == problem
 
     def test_fetch_multi(self):
         event_1 = Event(self.project.id, "something")

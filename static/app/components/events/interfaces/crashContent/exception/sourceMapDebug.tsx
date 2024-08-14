@@ -1,27 +1,30 @@
-import React, {Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
+import type {
   SourceMapDebugError,
   SourceMapDebugResponse,
-  SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
+} from './useSourceMapDebug';
+import {
+  SourceMapProcessingIssueType,
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 import {sourceMapSdkDocsMap} from './utils';
@@ -52,9 +55,12 @@ function getErrorMessage(
     if (docPlatform === 'react-native') {
       return 'https://docs.sentry.io/platforms/react-native/troubleshooting/#source-maps';
     }
-    return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
+    return (
+      `${baseSourceMapDocsLink}troubleshooting_js/legacy-uploading-methods/` +
+      (section ? `#${section}` : '')
+    );
   }
-  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
+  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -82,20 +88,6 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
-        },
-      ];
-    case SourceMapProcessingIssueType.MISSING_USER_AGENT:
-      return [
-        {
-          title: t('Sentry not part of release pipeline'),
-          desc: tct(
-            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your [init]. The value for this event is [version].",
-            {
-              init: sentryInit,
-              version: <code>{error.data.version}</code>,
-            }
-          ),
-          docsLink: defaultDocsLink,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -167,16 +159,9 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
-    case SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE:
-      return [
-        {
-          title: t('Sentry not part of build pipeline'),
-          desc: t(
-            'Integrate Sentry into your build pipeline using a tool like Webpack or the CLI.'
-          ),
-          docsLink: defaultDocsLink,
-        },
-      ];
+    // Need to return something but this does not need to follow the pattern since it uses a different alert
+    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
+      return [{title: 'Debug Id but no Sourcemaps'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -232,17 +217,12 @@ function combineErrors(
   sdkName?: string
 ) {
   const combinedErrors = uniqBy(
-    response
-      .map(res => res?.errors)
-      .flat()
-      .filter(defined),
+    response.flatMap(res => res?.errors).filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors
-    .map(error =>
-      getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
-    )
-    .flat();
+  const errors = combinedErrors.flatMap(error =>
+    getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
+  );
 
   return errors;
 }
@@ -295,6 +275,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       type,
     });
   };
+
+  if (
+    errorMessages.filter(
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
+    ).length > 0
+  ) {
+    return <SourceMapsWizard analyticsParams={analyticsParams} />;
+  }
 
   return (
     <Alert

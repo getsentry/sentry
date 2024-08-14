@@ -1,99 +1,109 @@
-from datetime import datetime
-from unittest.mock import patch
+from datetime import datetime, timezone
 
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
-from django.utils import timezone
 
-from sentry.grouping.utils import hash_from_values
-from sentry.issues.grouptype import (
-    MonitorCheckInFailure,
-    MonitorCheckInMissed,
-    MonitorCheckInTimeout,
-)
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
-    MonitorFailure,
     MonitorLimitsExceeded,
-    MonitorStatus,
     MonitorType,
     ScheduleType,
 )
 from sentry.monitors.validators import ConfigValidator
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test(stable=True)
 class MonitorTestCase(TestCase):
-    def test_next_run_crontab_implicit(self):
-        ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
-        monitor = Monitor(config={"schedule": "* * * * *"})
-        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
-
-        # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 1, 1, 1, 11, tzinfo=timezone.utc
-        )
-
-        monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 1, 1, 1, 15, tzinfo=timezone.utc
-        )
-
-    def test_next_run_crontab_explicit(self):
-        ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
-        monitor = Monitor(
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
-        )
-        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
-
-        # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 1, 1, 1, 11, tzinfo=timezone.utc
-        )
-
-        monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
-            2019, 1, 1, 1, 15, tzinfo=timezone.utc
-        )
-
-    def test_next_run_crontab_explicit_timezone(self):
+    def test_next_run_crontab(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
             config={
-                "schedule": "0 12 * * *",
                 "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            }
+        )
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        # XXX: Seconds are removed as we clamp to the minute
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
+            2019, 1, 1, 1, 11, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 12, tzinfo=timezone.utc
+        )
+
+        monitor.config["schedule"] = "*/5 * * * *"
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
+            2019, 1, 1, 1, 15, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 16, tzinfo=timezone.utc
+        )
+
+    def test_next_run_latest_crontab_with_margin(self):
+        ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
+        monitor = Monitor(
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "checkin_margin": 5,
+                "max_runtime": None,
+            }
+        )
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        # XXX: Seconds are removed as we clamp to the minute
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
+            2019, 1, 1, 1, 11, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 16, tzinfo=timezone.utc
+        )
+
+    def test_next_run_crontab_with_timezone(self):
+        ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
+        monitor = Monitor(
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 12 * * *",
                 "timezone": "UTC",
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
     def test_next_run_interval(self):
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -103,7 +113,12 @@ class MonitorTestCase(TestCase):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug == "my-awesome-monitor"
@@ -115,7 +130,12 @@ class MonitorTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             slug="my-awesome-monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug == "my-awesome-monitor"
@@ -126,7 +146,12 @@ class MonitorTestCase(TestCase):
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         assert monitor.slug.startswith("my-awesome-monitor-")
@@ -140,7 +165,12 @@ class MonitorTestCase(TestCase):
                 type=MonitorType.CRON_JOB,
                 name=f"Unicron-{i}",
                 slug=f"unicron-{i}",
-                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+                config={
+                    "schedule": [1, "month"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "checkin_margin": None,
+                    "max_runtime": None,
+                },
             )
 
         with pytest.raises(
@@ -153,391 +183,16 @@ class MonitorTestCase(TestCase):
                 type=MonitorType.CRON_JOB,
                 name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
                 slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
-                config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+                config={
+                    "schedule": [1, "month"],
+                    "schedule_type": ScheduleType.INTERVAL,
+                    "checkin_margin": None,
+                    "max_runtime": None,
+                },
             )
 
 
-@region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
-    @with_feature({"organizations:crons-issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-        assert monitor_environment.mark_failed()
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.environment.name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
-                "fingerprint": ["monitor", str(monitor.guid), "unknown"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature({"organizations:crons-issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-        assert monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.environment.name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
-                "fingerprint": ["monitor", str(monitor.guid), "duration"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature({"organizations:crons-issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-        assert monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
-
-        monitor.refresh_from_db()
-        monitor_environment.refresh_from_db()
-        assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.environment.name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (missed_checkin)"},
-                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-
-        last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(last_checkin=last_checkin)
-
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-
-        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
-        occurrence = occurrence.to_dict()
-
-        assert dict(
-            occurrence,
-            **{
-                "project_id": self.project.id,
-                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
-                "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
-                "resource_id": None,
-                "evidence_data": {},
-                "evidence_display": [
-                    {"name": "Failure reason", "value": "error", "important": True},
-                    {
-                        "name": "Environment",
-                        "value": monitor_environment.environment.name,
-                        "important": False,
-                    },
-                    {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
-                        "important": False,
-                    },
-                ],
-                "type": MonitorCheckInFailure.type_id,
-                "level": "error",
-                "culprit": "error",
-            },
-        ) == dict(occurrence)
-
-        assert dict(
-            event,
-            **{
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "environment": monitor_environment.environment.name,
-                "event_id": occurrence["event_id"],
-                "fingerprint": ["monitor", str(monitor.guid), "error"],
-                "platform": "other",
-                "project_id": monitor.project_id,
-                "sdk": None,
-                "tags": {
-                    "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
-                },
-            },
-        ) == dict(event)
-
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-        last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.DURATION
-        )
-
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-
-        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
-        occurrence = occurrence.to_dict()
-
-        assert dict(
-            occurrence,
-            **{
-                "project_id": self.project.id,
-                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
-                "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
-                "resource_id": None,
-                "evidence_data": {},
-                "evidence_display": [
-                    {"name": "Failure reason", "value": "duration", "important": True},
-                    {
-                        "name": "Environment",
-                        "value": monitor_environment.environment.name,
-                        "important": False,
-                    },
-                    {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
-                        "important": False,
-                    },
-                ],
-                "type": MonitorCheckInTimeout.type_id,
-                "level": "error",
-                "culprit": "duration",
-            },
-        ) == dict(occurrence)
-
-        assert dict(
-            event,
-            **{
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "environment": monitor_environment.environment.name,
-                "event_id": occurrence["event_id"],
-                "fingerprint": ["monitor", str(monitor.guid), "duration"],
-                "platform": "other",
-                "project_id": monitor.project_id,
-                "sdk": None,
-                "tags": {
-                    "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
-                },
-            },
-        ) == dict(event)
-
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=monitor.status,
-        )
-        last_checkin = timezone.now()
-        assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.MISSED_CHECKIN
-        )
-
-        monitor.refresh_from_db()
-        monitor_environment.refresh_from_db()
-        assert monitor_environment.status == MonitorStatus.MISSED_CHECKIN
-
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-
-        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
-        occurrence = occurrence.to_dict()
-
-        assert dict(
-            occurrence,
-            **{
-                "project_id": self.project.id,
-                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
-                "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
-                "resource_id": None,
-                "evidence_data": {},
-                "evidence_display": [
-                    {"name": "Failure reason", "value": "missed_checkin", "important": True},
-                    {
-                        "name": "Environment",
-                        "value": monitor_environment.environment.name,
-                        "important": False,
-                    },
-                    {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
-                        "important": False,
-                    },
-                ],
-                "type": MonitorCheckInMissed.type_id,
-                "level": "warning",
-                "culprit": "missed_checkin",
-            },
-        ) == dict(occurrence)
-
-        assert dict(
-            event,
-            **{
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "environment": monitor_environment.environment.name,
-                "event_id": occurrence["event_id"],
-                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
-                "platform": "other",
-                "project_id": monitor.project_id,
-                "sdk": None,
-                "tags": {
-                    "monitor.id": str(monitor.guid),
-                    "monitor.slug": monitor.slug,
-                },
-            },
-        ) == dict(event)
-
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
         monitor = Monitor.objects.create(
@@ -546,7 +201,12 @@ class MonitorEnvironmentTestCase(TestCase):
             type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
 
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR):
@@ -571,6 +231,8 @@ class MonitorEnvironmentTestCase(TestCase):
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,
                 "alert_rule_id": 1,
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
 
@@ -590,6 +252,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert monitor.config == {
             "schedule": "0 0 1 2 *",
             "schedule_type": ScheduleType.CRONTAB,
+            "checkin_margin": None,
             "max_runtime": 10,
             "alert_rule_id": 1,
         }

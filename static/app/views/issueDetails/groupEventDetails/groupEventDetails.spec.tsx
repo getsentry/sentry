@@ -1,16 +1,29 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Location} from 'history';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
-import {Organization} from 'sentry/types/organization';
-import {Project} from 'sentry/types/project';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
-import GroupEventDetails, {
-  GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -19,7 +32,7 @@ const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project,
-  environments?: string[]
+  query?: Record<string, string | string[]>
 ): {
   event: Event;
   group: Group;
@@ -30,15 +43,13 @@ const makeDefaultMockData = (
   return {
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
-    group: TestStubs.Group(),
-    router: TestStubs.router({
-      location: TestStubs.location({
-        query: {
-          environment: environments,
-        },
+    group: GroupFixture(),
+    router: RouterFixture({
+      location: LocationFixture({
+        query: query ?? {},
       }),
     }),
-    event: TestStubs.Event({
+    event: EventFixture({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
@@ -48,6 +59,38 @@ const makeDefaultMockData = (
         {key: 'mechanism', value: 'ANR'},
       ],
       contexts: {
+        app: {
+          app_start_time: '2021-08-31T15:14:21Z',
+          device_app_hash: '0b77c3f2567d65fe816e1fa7013779fbe3b51633',
+          build_type: 'test',
+          app_identifier: 'io.sentry.sample.iOS-Swift',
+          app_name: 'iOS-Swift',
+          app_version: '7.2.3',
+          app_build: '390',
+          app_id: 'B2690307-FDD1-3D34-AA1E-E280A9C2406C',
+          type: 'app',
+        },
+        device: {
+          family: 'iOS',
+          model: 'iPhone13,4',
+          model_id: 'D54pAP',
+          memory_size: 5987008512,
+          free_memory: 154435584,
+          usable_memory: 4706893824,
+          storage_size: 127881465856,
+          boot_time: '2021-08-29T06:05:51Z',
+          timezone: 'CEST',
+          type: 'device',
+        },
+        os: {
+          name: 'iOS',
+          version: '14.7.1',
+          build: '18G82',
+          kernel_version:
+            'Darwin Kernel Version 20.6.0: Mon Jun 21 21:23:35 PDT 2021; root:xnu-7195.140.42~10/RELEASE_ARM64_T8101',
+          rooted: false,
+          type: 'os',
+        },
         trace: {
           trace_id: TRACE_ID,
           span_id: 'b0e6f15b45c36b12',
@@ -60,16 +103,15 @@ const makeDefaultMockData = (
 };
 
 function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {environments?: string[]}
+  props: Partial<GroupEventDetailsProps> & {query?: Record<string, string | string[]>}
 ) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project,
-    props.environments ?? ['dev']
+    props.query ?? {environment: ['dev']}
   );
 
   const mergedProps: GroupEventDetailsProps = {
-    api: new MockApiClient(),
     group,
     event,
     project,
@@ -97,7 +139,7 @@ function TestComponent(
         routes: router.routes,
       }}
     >
-      <GroupEventDetails {...mergedProps} />;
+      <GroupEventDetails {...mergedProps} />
     </RouteContext.Provider>
   );
 }
@@ -122,6 +164,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        message: 'ANR for at least 5000 ms.',
         level: 'error',
         issue: '',
       },
@@ -136,6 +179,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'File IO on Main Thread',
+        message: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
@@ -157,7 +201,7 @@ const mockGroupApis = (
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
   });
 
@@ -177,37 +221,47 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/tags/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
     body: [],
   });
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
-    body: trace ? [trace] : [],
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
   });
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace ? [trace] : [],
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
   });
 
   MockApiClient.addMockResponse({
-    url: `/groups/${group.id}/integrations/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
     body: [],
   });
 
   MockApiClient.addMockResponse({
-    url: `/groups/${group.id}/external-issues/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+    body: [],
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/current-release/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/current-release/`,
     body: {currentRelease: null},
   });
 
   MockApiClient.addMockResponse({
-    url: '/prompts-activity/',
-    body: undefined,
+    url: `/organizations/${organization.slug}/prompts-activity/`,
+    body: {data: {}, features: {['issue_feedback_hidden']: {}}},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/prompts-activity/`,
+    method: 'PUT',
   });
 
   MockApiClient.addMockResponse({
@@ -228,6 +282,12 @@ const mockGroupApis = (
     method: 'GET',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
+    body: {
+      errors: [],
+    },
+  });
 
   // Sentry related mocks
   MockApiClient.addMockResponse({
@@ -246,8 +306,9 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-components/?projectId=${project.id}`,
+    url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
+    match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
   MockApiClient.addMockResponse({
@@ -258,6 +319,10 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
 
   MockApiClient.addMockResponse({
     url: `/customers/org-slug/policies/`,
@@ -265,8 +330,19 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/first-last-release/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
     method: 'GET',
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    body: {
+      data: [],
+      meta: {fields: {}, units: {}},
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/`,
+    body: project,
   });
 };
 
@@ -277,19 +353,17 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
-    rerender(<TestComponent environments={['prod']} />);
+    rerender(<TestComponent query={{environment: ['prod']}} />);
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
   });
@@ -298,12 +372,10 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
-    rerender(<TestComponent environments={[]} />);
+    rerender(<TestComponent query={{environment: []}} />);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
@@ -317,7 +389,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -328,9 +400,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent event={undefined} eventError />, {
-      organization: props.organization,
-    });
+    render(<TestComponent event={undefined} eventError />);
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
@@ -339,11 +409,11 @@ describe('groupEventDetails', () => {
 
   it('renders the Span Evidence and Resources section for Performance Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
     });
 
@@ -351,7 +421,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -362,10 +432,8 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
-      context: routerContext,
     });
 
     expect(
@@ -382,11 +450,11 @@ describe('groupEventDetails', () => {
 
   it('renders the Function Evidence and Resources section for Profile Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [],
       occurrence: {
         evidenceDisplay: [],
@@ -401,7 +469,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -412,11 +480,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
-    render(<TestComponent group={group} event={transaction} />, {
-      organization: props.organization,
-      context: routerContext,
-    });
+    render(<TestComponent group={group} event={transaction} />, {});
 
     expect(
       await screen.findByRole('heading', {
@@ -429,6 +493,26 @@ describe('groupEventDetails', () => {
       })
     ).toBeInTheDocument();
   });
+
+  it('renders event tags ui', async () => {
+    const props = makeDefaultMockData();
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+    render(<TestComponent group={props.group} event={props.event} />, {});
+
+    expect(await screen.findByText('Event ID:')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+    const highlights = screen.getByTestId('event-highlights');
+    expect(
+      within(highlights).getByRole('button', {name: 'View All'})
+    ).toBeInTheDocument();
+    expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    // No highlights setup
+    expect(
+      within(highlights).getByRole('button', {name: 'Add Highlights'})
+    ).toBeInTheDocument();
+    expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
+  });
 });
 
 describe('EventCause', () => {
@@ -438,20 +522,20 @@ describe('EventCause', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('renders suspect commit', async function () {
     const props = makeDefaultMockData(
       undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
+      ProjectFixture({firstEvent: EventFixture().dateCreated})
     );
 
     mockGroupApis(
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -467,17 +551,16 @@ describe('EventCause', () => {
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
-            author: TestStubs.CommitAuthor(),
+            commits: [CommitFixture({author: CommitAuthorFixture()})],
+            author: CommitAuthorFixture(),
           },
         ],
       },
     });
 
-    render(<TestComponent project={props.project} />, {organization: props.organization});
+    render(<TestComponent project={props.project} />);
 
-    expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
-    expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
 });
 
@@ -491,17 +574,17 @@ describe('Platform Integrations', () => {
   it('loads Integration UI components', async () => {
     const props = makeDefaultMockData();
 
-    const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
-    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+    const unpublishedIntegration = SentryAppFixture({status: 'unpublished'});
+    const internalIntegration = SentryAppFixture({status: 'internal'});
 
-    const unpublishedInstall = TestStubs.SentryAppInstallation({
+    const unpublishedInstall = SentryAppInstallationFixture({
       app: {
         slug: unpublishedIntegration.slug,
         uuid: unpublishedIntegration.uuid,
       },
     });
 
-    const internalInstall = TestStubs.SentryAppInstallation({
+    const internalInstall = SentryAppInstallationFixture({
       app: {
         slug: internalIntegration.slug,
         uuid: internalIntegration.uuid,
@@ -512,7 +595,7 @@ describe('Platform Integrations', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -523,7 +606,7 @@ describe('Platform Integrations', () => {
       })
     );
 
-    const component = TestStubs.SentryAppComponent({
+    const component = SentryAppComponentFixture({
       sentryApp: {
         uuid: unpublishedIntegration.uuid,
         slug: unpublishedIntegration.slug,
@@ -537,11 +620,12 @@ describe('Platform Integrations', () => {
     });
 
     componentsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/sentry-app-components/?projectId=${props.project.id}`,
+      url: `/organizations/${props.organization.slug}/sentry-app-components/`,
       body: [component],
+      match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
-    render(<TestComponent />, {organization: props.organization});
+    render(<TestComponent />);
 
     expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();
@@ -552,11 +636,7 @@ describe('Platform Integrations', () => {
       MockApiClient.clearMockResponses();
     });
     it('shows anr root cause', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       mockGroupApis(
         props.organization,
         props.project,
@@ -564,11 +644,9 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = TestStubs.routerContext();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       expect(
@@ -580,21 +658,15 @@ describe('Platform Integrations', () => {
     });
 
     it('does not render root issues section if related perf issues do not exist', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
       mockGroupApis(props.organization, props.project, props.group, props.event, {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = TestStubs.routerContext();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       // mechanism: ANR

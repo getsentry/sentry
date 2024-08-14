@@ -2,7 +2,6 @@ from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
@@ -28,11 +27,10 @@ class ProjectGroupEventBase(APIDocsTestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/"
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -41,11 +39,12 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-@region_silo_test
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/latest/"
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/latest/"
+        )
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -54,11 +53,12 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-@region_silo_test
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/oldest/"
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/oldest/"
+        )
 
     def test_get(self):
         response = self.client.get(self.url)

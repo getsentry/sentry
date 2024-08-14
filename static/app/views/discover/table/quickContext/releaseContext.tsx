@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -23,12 +24,17 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
   const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
-    [`/organizations/${organization.slug}/releases/${dataRow.release}/`],
+    [
+      `/organizations/${organization.slug}/releases/${encodeURIComponent(
+        dataRow.release
+      )}/`,
+    ],
     {
       staleTime: tenSecondInMs,
     }
@@ -59,14 +65,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by you and 1 other', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by you and [authorsCount] others', {
-            authorsCount,
-          })
-        : t('1 commit by you and 1 other');
+          ? tct('[commitCount] commits by you and 1 other', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by you and [authorsCount] others', {
+                authorsCount,
+              })
+            : t('1 commit by you and 1 other');
     }
 
     return (
@@ -77,14 +83,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by 1 author', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by [authorsCount] authors', {
-            authorsCount,
-          })
-        : t('1 commit by 1 author'))
+          ? tct('[commitCount] commits by 1 author', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by [authorsCount] authors', {
+                authorsCount,
+              })
+            : t('1 commit by 1 author'))
     );
   };
 
@@ -108,8 +114,7 @@ function ReleaseContext(props: BaseContextProps) {
   };
 
   const renderLastCommit = () =>
-    data &&
-    data.lastCommit && (
+    data?.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
         <ContextHeader>
           <ContextTitle>{t('Last Commit')}</ContextTitle>

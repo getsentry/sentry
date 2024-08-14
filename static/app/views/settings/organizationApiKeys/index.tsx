@@ -1,15 +1,16 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
-import {DeprecatedApiKey} from './types';
+import type {DeprecatedApiKey} from './types';
 
 type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
@@ -17,13 +18,13 @@ type Props = RouteComponentProps<{}, {}> & {
 
 type State = {
   keys: DeprecatedApiKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 /**
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
-class OrganizationApiKeys extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationApiKeys extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [['keys', `/organizations/${organization.slug}/api-keys/`]];
   }

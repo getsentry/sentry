@@ -5,7 +5,7 @@ import requests
 import responses
 
 from sentry import eventstore
-from sentry.models import EventAttachment
+from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.helpers import get_auth_header
 
 if TYPE_CHECKING:
@@ -166,7 +166,6 @@ class RelayStoreHelper(RequiredBaseclass):
     def relay_setup_fixtures(
         self,
         settings,
-        live_server,
         get_relay_store_url,
         get_relay_minidump_url,
         get_relay_unreal_url,

@@ -49,23 +49,31 @@ See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4
 """
 from __future__ import annotations
 
-from typing import Any, Protocol, Type, TypeVar
+from typing import TypeVar
 
-from sentry.services.hybrid_cloud.tombstone import RpcTombstone, tombstone_service
+from sentry.db.models import Model
+from sentry.hybridcloud.services.tombstone import (
+    RpcTombstone,
+    control_tombstone_service,
+    region_tombstone_service,
+)
+from sentry.silo.base import SiloMode
+
+T = TypeVar("T", bound=Model)
 
 
-class ModelLike(Protocol):
-    objects: Any
-
-
-T = TypeVar("T", bound=ModelLike)
-
-
-def maybe_process_tombstone(model: Type[T], object_identifier: int) -> T | None:
+def maybe_process_tombstone(
+    model: type[T], object_identifier: int, region_name: str | None = None
+) -> T | None:
     if instance := model.objects.filter(id=object_identifier).last():
         return instance
 
-    tombstone_service.record_remote_tombstone(
-        RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
-    )
+    tombstone = RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
+    # tombstones sent from control must have a region name, and monolith needs to provide a region_name
+    if region_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
+        region_tombstone_service.record_remote_tombstone(
+            region_name=region_name, tombstone=tombstone
+        )
+    else:
+        control_tombstone_service.record_remote_tombstone(tombstone=tombstone)
     return None

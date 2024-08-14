@@ -1,20 +1,23 @@
 from __future__ import annotations
 
+from typing import Any, ClassVar
+
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 
 
 class OnboardingTask:
@@ -58,12 +61,12 @@ class OnboardingTaskStatus:
 #   ISSUE_TRACKER:   Tracker added, issue not yet created
 
 
-class OrganizationOnboardingTaskManager(BaseManager):
+class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:
@@ -81,7 +84,7 @@ class AbstractOnboardingTask(Model):
     which allows for the creation of tasks that are unique to users instead of organizations.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
@@ -98,9 +101,10 @@ class AbstractOnboardingTask(Model):
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
-    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+    # INVITE_MEMBER { invited_member: user.id }
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
-    # fields for typing
+    # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
     SKIPPABLE_TASKS: frozenset[int]
 
@@ -108,7 +112,7 @@ class AbstractOnboardingTask(Model):
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationOnboardingTask(AbstractOnboardingTask):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
@@ -175,7 +179,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
-    objects = OrganizationOnboardingTaskManager()
+    objects: ClassVar[OrganizationOnboardingTaskManager] = OrganizationOnboardingTaskManager()
 
     class Meta:
         app_label = "sentry"

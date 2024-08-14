@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
-export const GRID_BODY_ROW_HEIGHT = 40;
+export const GRID_BODY_ROW_HEIGHT = 42;
 export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
@@ -13,7 +14,6 @@ export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  */
 // Parent context is Panel
 const Z_INDEX_PANEL = 1;
-const Z_INDEX_GRID_STATUS = -1;
 const Z_INDEX_GRID = 5;
 
 // Parent context is GridHeadCell
@@ -52,6 +52,7 @@ export const Body = styled(({children, ...props}) => (
   </Panel>
 ))`
   overflow-x: auto;
+  overflow-y: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -94,24 +95,27 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
       : ''}
 `;
 
-export const GridRow = styled('tr')`
-  display: contents;
-
-  &:last-child,
-  &:last-child > td:first-child,
-  &:last-child > td:last-child {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-`;
-
 /**
  * GridHead is the collection of elements that builds the header section of the
  * Grid. As the entirety of the add/remove/resize actions are performed on the
  * header, most of the elements behave different for each stage.
  */
 export const GridHead = styled('thead')`
-  display: contents;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+  color: ${p => p.theme.subText};
+
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
 export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
@@ -126,13 +130,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  text-transform: uppercase;
-  user-select: none;
 
   ${p => (p.sticky ? `position: sticky; top: 0;` : '')}
 
@@ -146,12 +143,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
     overflow: hidden;
   }
 
-  &:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-  }
-
   &:last-child {
-    border-top-right-radius: ${p => p.theme.borderRadius};
     border-right: none;
   }
 
@@ -170,17 +162,11 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  line-height: 1;
-  text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
 
   &:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
     padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 `;
@@ -190,12 +176,31 @@ export const GridHeadCellStatic = styled('th')`
  * of the Grid. They are rather simple.
  */
 export const GridBody = styled('tbody')`
-  display: contents;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+`;
 
-  > tr:first-child td {
-    border-top: 1px solid ${p => p.theme.border};
+export const GridRow = styled('tr')`
+  display: grid;
+  position: relative;
+  grid-template-columns: subgrid;
+  grid-column: 1/-1;
+
+  &:not(thead > &) {
+    background-color: ${p => p.theme.background};
+
+    &:not(:last-child) {
+      border-bottom: 1px solid ${p => p.theme.innerBorder};
+    }
+
+    &:last-child {
+      border-bottom-left-radius: ${p => p.theme.borderRadius};
+      border-bottom-right-radius: ${p => p.theme.borderRadius};
+    }
   }
 `;
+
 export const GridBodyCell = styled('td')`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
@@ -206,21 +211,19 @@ export const GridBodyCell = styled('td')`
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
-  background-color: ${p => p.theme.background};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-
   display: flex;
   flex-direction: column;
   justify-content: center;
 
   font-size: ${p => p.theme.fontSizeMedium};
 
-  &:first-child {
+  /* Need to select the 2nd child to select the first cell
+     as the first child is the interaction state layer */
+  &:nth-child(2) {
     padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 
   &:last-child {
-    border-right: none;
     padding: ${space(1)} ${space(2)};
   }
 `;
@@ -231,19 +234,20 @@ const GridStatusWrapper = styled(GridBodyCell)`
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
 `;
+
 const GridStatusFloat = styled('div')`
   position: absolute;
-  top: 45px;
+  top: 0;
   left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
-
-  z-index: ${Z_INDEX_GRID_STATUS};
-  background: ${p => p.theme.background};
+  overflow: hidden;
 `;
+
 export function GridBodyCellStatus(props) {
   return (
     <GridStatusWrapper>
@@ -266,12 +270,9 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
-
-    if (numOfRows >= 1) {
-      // account for border-bottom height
-      height += numOfRows;
-    }
+    // 1px for the border
+    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
 
     return height;
   }}px;

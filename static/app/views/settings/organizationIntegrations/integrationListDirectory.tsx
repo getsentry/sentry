@@ -1,38 +1,41 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
-import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   AppOrProviderOrPlugin,
   DocIntegration,
   Integration,
   IntegrationProvider,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import {uniq} from 'sentry/utils/array/uniq';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
   isPlugin,
@@ -43,6 +46,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -83,9 +87,9 @@ type State = {
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
-export class IntegrationListDirectory extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+export class IntegrationListDirectory extends DeprecatedAsyncComponent<
+  Props & DeprecatedAsyncComponent['props'],
+  State & DeprecatedAsyncComponent['state']
 > {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
@@ -170,7 +174,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${organization.slug}/config/integrations/`],
@@ -233,6 +237,21 @@ export class IntegrationListDirectory extends AsyncComponent<
     }
 
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
+  }
+
+  getInstallStatuses(integrations: Integration[]) {
+    const statusList = integrations?.map(getIntegrationStatus);
+    // if we have conflicting statuses, we have a priority order
+    if (statusList.includes('active')) {
+      return 'Installed';
+    }
+    if (statusList.includes('disabled')) {
+      return 'Disabled';
+    }
+    if (statusList.includes('pending_deletion')) {
+      return 'Pending Deletion';
+    }
+    return 'Not Installed';
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
@@ -394,7 +413,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         type="firstParty"
         slug={provider.slug}
         displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
+        status={this.getInstallStatuses(integrations)}
         publishStatus="published"
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
@@ -488,15 +507,13 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderBody() {
     const {organization} = this.props;
-    const {displayedList, list, searchInput, selectedCategory} = this.state;
-
+    const {displayedList, list, searchInput, selectedCategory, integrations} = this.state;
     const title = t('Integrations');
-    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
+    const categoryList = uniq(list.flatMap(getCategoriesForIntegration)).sort();
 
     return (
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
@@ -527,8 +544,8 @@ export class IntegrationListDirectory extends AsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-
         <PermissionAlert access={['org:integrations']} />
+        <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (
@@ -581,7 +598,7 @@ const EmptyResultsBody = styled('div')`
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export default withOrganization(IntegrationListDirectory);

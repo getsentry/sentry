@@ -1,22 +1,15 @@
-import logging
+from datetime import datetime
+from typing import Any
 
-from django.db.models import F
+from django.db.models import Expression, F
 
+from sentry.db import models
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.services import Service
 
 
-class BufferMount(type):
-    logger: logging.Logger
-
-    def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger(f"sentry.buffer.{new_cls.__name__.lower()}")
-        return new_cls
-
-
-class Buffer(Service, metaclass=BufferMount):
+class Buffer(Service):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -30,15 +23,85 @@ class Buffer(Service, metaclass=BufferMount):
     keep up with the updates.
     """
 
-    __all__ = ("get", "incr", "process", "process_pending", "validate")
+    __all__ = (
+        "get",
+        "incr",
+        "process",
+        "process_pending",
+        "process_batch",
+        "validate",
+        "push_to_sorted_set",
+        "push_to_hash",
+        "get_sorted_set",
+        "get_hash",
+        "get_hash_length",
+        "delete_hash",
+        "delete_key",
+    )
 
-    def get(self, model, columns, filters):
+    def get(
+        self,
+        model: type[models.Model],
+        columns: list[str],
+        filters: dict[str, Any],
+    ) -> dict[str, int]:
         """
         We can't fetch values from Celery, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
 
-    def incr(self, model, columns, filters, extra=None, signal_only=None):
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        return {}
+
+    def get_hash_length(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> int:
+        raise NotImplementedError
+
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+        return []
+
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        return None
+
+    def push_to_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+        value: str,
+    ) -> None:
+        return None
+
+    def push_to_hash_bulk(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        data: dict[str, str],
+    ) -> None:
+        raise NotImplementedError
+
+    def delete_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        fields: list[str],
+    ) -> None:
+        return None
+
+    def delete_key(self, key: str, min: float, max: float) -> None:
+        return None
+
+    def incr(
+        self,
+        model: type[models.Model],
+        columns: dict[str, int],
+        filters: dict[str, models.Model | str | int],
+        extra: dict[str, Any] | None = None,
+        signal_only: bool | None = None,
+    ) -> None:
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         signal_only - added to indicate that `process` should only call the complete
@@ -53,20 +116,31 @@ class Buffer(Service, metaclass=BufferMount):
                 "filters": filters,
                 "extra": extra,
                 "signal_only": signal_only,
-            }
+            },
+            headers={"sentry-propagate-traces": False},
         )
 
-    def process_pending(self, partition=None):
-        return []
+    def process_pending(self) -> None:
+        return
 
-    def process(self, model, columns, filters, extra=None, signal_only=None):
+    def process_batch(self) -> None:
+        return
+
+    def process(
+        self,
+        model: type[models.Model],
+        columns: dict[str, int],
+        filters: dict[str, Any],
+        extra: dict[str, Any] | None = None,
+        signal_only: bool | None = None,
+    ) -> None:
         from sentry.event_manager import ScoreClause
-        from sentry.models import Group
+        from sentry.models.group import Group
 
         created = False
 
         if not signal_only:
-            update_kwargs = {c: F(c) + v for c, v in columns.items()}
+            update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 update_kwargs.update(extra)
@@ -91,7 +165,7 @@ class Buffer(Service, metaclass=BufferMount):
                     # continue
                     pass
                 else:
-                    group.update(**update_kwargs)
+                    group.update(using=None, **update_kwargs)
                 created = False
             else:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)

@@ -1,14 +1,19 @@
 import {Fragment} from 'react';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
-import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
-describe('Incident Rules Duplicate', function () {
-  beforeAll(function () {
+import MetricRuleDuplicate from './duplicate';
+import type {Action} from './types';
+import {AlertRuleTriggerType} from './types';
+
+describe('MetricRuleDuplicate', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -48,12 +53,12 @@ describe('Incident Rules Duplicate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [MemberFixture()],
     });
   });
 
-  it('renders new alert form with values copied over', function () {
-    const rule = TestStubs.MetricRule();
+  it('renders new alert form with values copied over', async function () {
+    const rule = MetricRuleFixture();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 60,
@@ -74,8 +79,6 @@ describe('Incident Rules Duplicate', function () {
           },
         },
       },
-      project: rule.projects[0],
-      projects: rule.projects,
     });
 
     const req = MockApiClient.addMockResponse({
@@ -86,29 +89,24 @@ describe('Incident Rules Duplicate', function () {
     render(
       <Fragment>
         <GlobalModal />
-        <MetricRulesDuplicate
-          organization={organization}
-          project={project}
-          userTeamIds={[]}
-          {...routerProps}
-        />
+        <MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />
       </Fragment>
     );
 
-    // Duplicated alert has been called
-    expect(req).toHaveBeenCalled();
-
     // Has correct values copied from the duplicated alert
-    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
     expect(screen.getByTestId('warning-threshold')).toHaveValue('60');
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('50');
+
+    // Duplicated alert has been called
+    expect(req).toHaveBeenCalled();
 
     // Has the updated alert rule name
     expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
   });
 
-  it('duplicates slack actions', function () {
-    const rule = TestStubs.MetricRule();
+  it('duplicates slack actions', async function () {
+    const rule = MetricRuleFixture();
     rule.triggers[0].actions.push({
       id: '13',
       alertRuleTriggerId: '12',
@@ -119,7 +117,9 @@ describe('Incident Rules Duplicate', function () {
       integrationId: 1,
       sentryAppId: null,
       desc: 'Send a Slack notification to #feed-ecosystem',
-    });
+      options: null,
+      // TODO(scttcper): Action shouldn't required unsaved properties
+    } as Action);
 
     const {organization, project, routerProps} = initializeOrg({
       organization: {
@@ -134,8 +134,6 @@ describe('Incident Rules Duplicate', function () {
           },
         },
       },
-      project: rule.projects[0],
-      projects: rule.projects,
     });
 
     const req = MockApiClient.addMockResponse({
@@ -143,23 +141,16 @@ describe('Incident Rules Duplicate', function () {
       body: rule,
     });
 
-    render(
-      <MetricRulesDuplicate
-        organization={organization}
-        project={project}
-        userTeamIds={[]}
-        {...routerProps}
-      />
-    );
-
-    // Duplicated alert has been called
-    expect(req).toHaveBeenCalled();
+    render(<MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />);
 
     // Still has a selected slack action
-    expect(screen.getByText('Slack')).toBeInTheDocument();
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('optional: channel ID or user ID')).toHaveValue(
       'ABC123'
     );
     expect(screen.getByText(/Enter a channel or user ID/)).toBeInTheDocument();
+
+    // Duplicated alert has been called
+    expect(req).toHaveBeenCalled();
   });
 });

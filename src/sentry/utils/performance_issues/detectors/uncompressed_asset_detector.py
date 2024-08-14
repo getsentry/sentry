@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from sentry import features
+import re
+from typing import Any
+
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,
@@ -16,7 +19,8 @@ from ..base import (
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_ALLOWLIST = ("css", "json", "js")
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+FILE_EXTENSION_ALLOWLIST = ("CSS", "JSON", "JS")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -29,7 +33,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     settings_key = DetectorType.UNCOMPRESSED_ASSETS
     type = DetectorType.UNCOMPRESSED_ASSETS
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.any_compression = False
 
@@ -47,7 +53,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         # TODO(nar): The sentence-style keys can be removed once SDK adoption has increased and
         # we are receiving snake_case keys consistently, likely beyond October 2023
         transfer_size = data and (
-            data.get("http.transfer_size", None) or data.get("Transfer Size", None)
+            data.get("http.response_transfer_size", None) or data.get("Transfer Size", None)
         )
         encoded_body_size = data and (
             data.get("http.response_content_length", None) or data.get("Encoded Body Size", None)
@@ -76,7 +82,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if not description.endswith(FILE_EXTENSION_ALLOWLIST):
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
 
         # Ignore assets under a certain duration threshold
@@ -119,19 +127,18 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 ],
             )
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span: Span) -> str:
         resource_span = fingerprint_resource_span(span)
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-issues-compressed-assets-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def is_event_eligible(cls, event):
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         tags = event.get("tags", [])
         browser_name = next(
             (

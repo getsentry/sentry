@@ -1,63 +1,67 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationRepositories from './organizationRepositories';
 
-type Props = RouteComponentProps<{}, {}> & {
-  organization: Organization;
-} & AsyncView['props'];
+function OrganizationRepositoriesContainer() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const queryClient = useQueryClient();
 
-type State = AsyncView['state'] & {
-  itemList: Repository[] | null;
-};
+  const {
+    data: itemList,
+    isLoading,
+    isError,
+    getResponseHeader,
+  } = useApiQuery<Repository[]>(
+    [`/organizations/${organization.slug}/repos/`, {query: location.query}],
+    {staleTime: 0}
+  );
+  const itemListPageLinks = getResponseHeader?.('Link');
 
-class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    return [
-      ['itemList', `/organizations/${organization.slug}/repos/`, {query: {status: ''}}],
-    ];
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
   }
 
   // Callback used by child component to signal state change
-  onRepositoryChange = (data: Pick<Repository, 'id' | 'status'>) => {
-    const itemList = this.state.itemList;
-    itemList?.forEach(item => {
-      if (item.id === data.id) {
-        item.status = data.status;
-      }
-    });
-    this.setState({itemList});
-  };
-
-  getTitle() {
-    const {organization} = this.props;
-    return routeTitleGen(t('Repositories'), organization.slug, false);
-  }
-
-  renderBody() {
-    const {itemList, itemListPageLinks} = this.state;
-
-    return (
-      <Fragment>
-        <OrganizationRepositories
-          {...this.props}
-          itemList={itemList!}
-          onRepositoryChange={this.onRepositoryChange}
-        />
-        {itemListPageLinks && (
-          <Pagination pageLinks={itemListPageLinks} {...this.props} />
-        )}
-      </Fragment>
+  function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
+    setApiQueryData<Repository[]>(
+      queryClient,
+      [`/organizations/${organization.slug}/repos/`, {query: location.query}],
+      oldItemList =>
+        oldItemList.map(item =>
+          item.id === data.id ? {...item, status: data.status} : item
+        )
     );
   }
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Repositories'), organization.slug, false)}
+      />
+      <OrganizationRepositories
+        organization={organization}
+        itemList={itemList!}
+        onRepositoryChange={onRepositoryChange}
+      />
+      {itemListPageLinks && <Pagination pageLinks={itemListPageLinks} />}
+    </Fragment>
+  );
 }
 
-export default withOrganization(OrganizationRepositoriesContainer);
+export default OrganizationRepositoriesContainer;

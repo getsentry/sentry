@@ -1,30 +1,36 @@
+from django.db import router
+from django.utils.functional import cached_property
+
 from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer, serialize
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import SentryAppInstallation, User
-from sentry.utils.cache import memoize
+from sentry.models.apigrant import ApiGrant
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 
 class InstallationNotifier(Mediator):
     install = Param(SentryAppInstallation)
-    user = Param(User)
+    user = Param(RpcUser)
     action = Param(str)
+    using = router.db_for_write(SentryAppInstallation)
 
-    def call(self):
+    def call(self) -> None:
         self._verify_action()
         self._send_webhook()
 
-    def _verify_action(self):
+    def _verify_action(self) -> None:
         if self.action not in ["created", "deleted"]:
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
-    def _send_webhook(self):
-        return send_and_save_webhook_request(self.sentry_app, self.request)
+    def _send_webhook(self) -> None:
+        send_and_save_webhook_request(self.sentry_app, self.request)
 
     @property
-    def request(self):
+    def request(self) -> AppPlatformEvent:
         data = serialize(
             [self.install], user=self.user, serializer=SentryAppInstallationSerializer()
         )[0]
@@ -37,10 +43,10 @@ class InstallationNotifier(Mediator):
             actor=self.user,
         )
 
-    @memoize
-    def sentry_app(self):
+    @cached_property
+    def sentry_app(self) -> SentryApp:
         return self.install.sentry_app
 
-    @memoize
-    def api_grant(self):
+    @cached_property
+    def api_grant(self) -> ApiGrant | None:
         return self.install.api_grant_id and self.install.api_grant

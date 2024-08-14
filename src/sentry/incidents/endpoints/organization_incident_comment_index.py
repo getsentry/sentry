@@ -2,27 +2,32 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.mentions import (
     MentionsMixin,
     extract_user_ids_from_mentions,
 )
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
+from sentry.incidents.models.incident import IncidentActivityType
 
 
 class CommentSerializer(serializers.Serializer, MentionsMixin):
     comment = serializers.CharField(required=True)
-    mentions = ListField(child=ActorField(), required=False)
+    mentions = serializers.ListField(child=ActorField(), required=False)
     external_id = serializers.CharField(allow_null=True, required=False)
 
 
 @region_silo_endpoint
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IncidentPermission,)
 
     def post(self, request: Request, organization, incident) -> Response:

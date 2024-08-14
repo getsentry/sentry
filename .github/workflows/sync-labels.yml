@@ -21,8 +21,12 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
 
       - name: Install github-label-sync
         run: yarn global add github-label-sync@2.2.0
@@ -37,7 +41,7 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:

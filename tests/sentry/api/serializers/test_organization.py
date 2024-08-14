@@ -14,13 +14,24 @@ from sentry.api.serializers import (
 from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
-from sentry.models import Deploy, Environment, OrganizationOnboardingTask, ReleaseProjectEnvironment
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 
-default_owner_scopes = frozenset(filter(lambda scope: scope != "org:ci", settings.SENTRY_SCOPES))
+pytestmark = [requires_snuba]
+
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -42,7 +53,6 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -61,21 +71,24 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-codeowners",
             "integrations-deployment",
+            "integrations-enterprise-alert-rule",
+            "integrations-enterprise-incident-management",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "performance-tracing-without-performance",
             "invite-members",
-            "invite-members-rate-limits",
             "minute-resolution-sessions",
+            "new-page-filter",
             "open-membership",
-            "project-stats",
             "relay",
             "shared-issues",
             "session-replay-ui",
@@ -83,9 +96,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
-            "performance-issues-search",
-            "transaction-name-normalize",
-            "transaction-name-mark-scrubbed-as-sanitized",
+            "team-roles",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -93,8 +104,8 @@ class OrganizationSerializerTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
-        features.add("organizations:test-feature", OrganizationFeature)
-        features.add("organizations:disabled-feature", OrganizationFeature)
+        features.add("organizations:test-feature", OrganizationFeature, api_expose=True)
+        features.add("organizations:disabled-feature", OrganizationFeature, api_expose=True)
         mock_batch.return_value = {
             f"organization:{organization.id}": {
                 "organizations:test-feature": True,
@@ -131,7 +142,6 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -147,9 +157,9 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
+        assert result["requiresSso"] == acc.requires_sso
 
 
-@region_silo_test
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized
@@ -170,7 +180,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         self.team
         self.project
         self.release = self.create_release(self.project)
-        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=datetime.UTC)
         self.environment_1 = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
@@ -206,7 +216,6 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
-@region_silo_test
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -226,7 +235,6 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
-@region_silo_test
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

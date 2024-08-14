@@ -1,11 +1,11 @@
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
@@ -40,7 +40,7 @@ class IssueCategoryFilter(EventFilter):
         return self._passes(event.group)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)
@@ -48,3 +48,9 @@ class IssueCategoryFilter(EventFilter):
             return False
 
         return self._passes(group)
+
+    def render_label(self) -> str:
+        value = self.data["value"]
+        title = CATEGORY_CHOICES.get(value)
+        group_category_name = title.title() if title else ""
+        return self.label.format(value=group_category_name)

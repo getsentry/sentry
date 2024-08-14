@@ -3,18 +3,26 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity
+from sentry.models.activity import Activity
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 
 
 @region_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
     # We explicitly don't allow a request with an ApiKey
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
@@ -23,12 +31,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
-        try:
-            note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
-            )
-        except Activity.DoesNotExist:
+        notes_by_user = Activity.objects.filter(
+            group=group, type=ActivityType.NOTE.value, user_id=request.user.id
+        )
+        if not len(notes_by_user):
             raise ResourceDoesNotExist
+
+        user_note = [n for n in notes_by_user if n.id == int(note_id)]
+        if not user_note or len(user_note) > 1:
+            raise ResourceDoesNotExist
+        note = user_note[0]
 
         webhook_data = {
             "comment_id": note.id,
@@ -46,6 +58,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             data=webhook_data,
             sender="delete",
         )
+        # if the user left more than one comment, we want to keep the subscription
+        if len(notes_by_user) == 1:
+            GroupSubscription.objects.filter(
+                user_id=request.user.id,
+                group=group,
+                project=group.project,
+                reason=GroupSubscriptionReason.comment,
+            ).delete()
 
         return Response(status=204)
 
@@ -64,8 +84,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         if serializer.is_valid():
             payload = serializer.validated_data
-            # TODO adding mentions to a note doesn't do subscriptions
-            # or notifications. Should it?
+            # TODO adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
             payload.pop("mentions", [])
 

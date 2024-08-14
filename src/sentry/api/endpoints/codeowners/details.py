@@ -9,12 +9,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
-from sentry.models import Project, ProjectCodeOwners
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
@@ -23,17 +26,23 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
+        organization_id_or_slug: int | str,
+        project_id_or_slug: int | str,
         codeowners_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(
-            request, organization_slug, project_slug, *args, **kwargs
+            request, organization_id_or_slug, project_id_or_slug, *args, **kwargs
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(
@@ -49,8 +58,8 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         Update a CodeOwners
         `````````````
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project to get.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project to get.
         :pparam string codeowners_id: id of codeowners object
         :param string raw: the raw CODEOWNERS text
         :param string codeMappingId: id of the RepositoryProjectPathConfig object

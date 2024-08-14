@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {decodeInteger} from 'sentry/utils/queryString';
 

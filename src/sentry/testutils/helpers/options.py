@@ -29,10 +29,11 @@ def override_options(options):
             return wrapped(key, **kwargs)
 
     def new_lookup(self: OptionsManager, key):
-        if key in options:
-            return self.make_key(key, lambda: "", Any, 1 << 0, 0, 0, None)
-        else:
+        # use the default key definition if available
+        if key not in options or key in self.registry:
             return original_lookup(self, key)
+        else:
+            return self.make_key(key, lambda: "", Any, 1 << 0, 0, 0, None)
 
     # Patch options into SENTRY_OPTIONS as well
     new_options = settings.SENTRY_OPTIONS.copy()

@@ -1,28 +1,32 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
-import moment from 'moment';
+import type {Location, Query} from 'history';
+import moment from 'moment-timezone';
 
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
+  getSavedQueryWithDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateHomepageQuery,
@@ -140,7 +144,12 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const eventView = EventView.fromNewQueryWithLocation(view, location);
+      const newQuery = organization.features.includes(
+        'performance-discover-dataset-selector'
+      )
+        ? (getSavedQueryWithDataset(view) as NewQuery)
+        : view;
+      const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
       // on the pre-built queries
@@ -158,7 +167,11 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewUrlTarget(organization.slug);
+      const to = eventView.getResultsViewUrlTarget(
+        organization.slug,
+        false,
+        hasDatasetSelector(organization) ? view.queryDataset : undefined
+      );
 
       const menuItems = [
         {
@@ -211,7 +224,7 @@ class QueryList extends Component<Props> {
             });
           }}
           renderContextMenu={() => (
-            <Feature organization={organization} features={['dashboards-edit']}>
+            <Feature organization={organization} features="dashboards-edit">
               {({hasFeature}) => {
                 return hasFeature && this.renderDropdownMenu(menuItems);
               }}
@@ -231,7 +244,12 @@ class QueryList extends Component<Props> {
       return [];
     }
 
-    return savedQueries.map((savedQuery, index) => {
+    return savedQueries.map((query, index) => {
+      const savedQuery = organization.features.includes(
+        'performance-discover-dataset-selector'
+      )
+        ? (getSavedQueryWithDataset(query) as SavedQuery)
+        : query;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
@@ -305,15 +323,11 @@ class QueryList extends Component<Props> {
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              yAxis={
-                savedQuery.yAxis && savedQuery.yAxis.length
-                  ? savedQuery.yAxis
-                  : ['count()']
-              }
+              yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
             />
           )}
           renderContextMenu={() => (
-            <Feature organization={organization} features={['dashboards-edit']}>
+            <Feature organization={organization} features="dashboards-edit">
               {({hasFeature}) => this.renderDropdownMenu(menuItems(hasFeature))}
             </Feature>
           )}

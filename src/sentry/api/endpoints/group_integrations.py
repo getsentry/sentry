@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, integrations
+from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.integrations import IntegrationFeatures
+from sentry.api.serializers import serialize
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
-from sentry.utils.json import JSONData
+from sentry.users.models.user import User
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
@@ -25,7 +28,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self.group = group
 
     def get_attrs(
-        self, item_list: List[RpcIntegration], user: User, **kwargs: Any
+        self, item_list: list[RpcIntegration], user: User, **kwargs: Any
     ) -> MutableMapping[RpcIntegration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.get_group_issues(self.group).values_list(
@@ -40,9 +43,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             integration = integration_service.get_integration(integration_id=ei.integration_id)
             if integration is None:
                 continue
-            installation = integration_service.get_installation(
-                integration=integration, organization_id=self.group.organization.id
-            )
+            installation = integration.get_installation(organization_id=self.group.organization.id)
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):
@@ -63,7 +64,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
@@ -71,6 +72,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user

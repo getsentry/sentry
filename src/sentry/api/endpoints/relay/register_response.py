@@ -1,17 +1,20 @@
+import orjson
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay import UnpackErrorSignatureExpired, validate_register_response
+from sentry_relay.auth import validate_register_response
+from sentry_relay.exceptions import UnpackErrorSignatureExpired
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, relay_from_id
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
-from sentry.models import Relay, RelayUsage
+from sentry.models.relay import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.utils import json
 
 from . import RelayIdSerializer
 
@@ -22,6 +25,10 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
 
 @region_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.OWNERS_INGEST
     authentication_classes = ()
     permission_classes = ()
 
@@ -38,8 +45,8 @@ class RelayRegisterResponseEndpoint(Endpoint):
         """
 
         try:
-            json_data = json.loads(request.body)
-        except ValueError:
+            json_data = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return Response({"detail": "No valid json body"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = RelayRegisterResponseSerializer(data=json_data)

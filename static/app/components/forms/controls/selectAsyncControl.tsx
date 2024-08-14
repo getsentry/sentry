@@ -1,14 +1,15 @@
 import {Component, forwardRef} from 'react';
-import ReactSelect from 'react-select';
+import type ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
-import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
+import type {ControlProps, GeneralSelectValue} from './selectControl';
+import SelectControl from './selectControl';
 
 export type Result = {
   label: string;

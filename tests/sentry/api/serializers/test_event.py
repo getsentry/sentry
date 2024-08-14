@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
@@ -7,17 +8,19 @@ from sentry.api.serializers.models.event import (
     SqlFormatEventSerializer,
 )
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
+from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
 class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
@@ -122,6 +125,65 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert result["message"] == "baz"
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
 
+    def test_exception_interface(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValidationError",
+                            "value": "Bad request",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "foo.py",
+                                        "lineno": 100,
+                                        "in_app": True,
+                                        "vars": {"foo": "[Filtered]"},
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "_meta": {
+                    "exception": {
+                        "values": {
+                            "0": {
+                                "stacktrace": {
+                                    "frames": {
+                                        "0": {
+                                            "lineno": 100,
+                                            "in_app": True,
+                                            "vars": {"foo": {"": {"err": ["some error"]}}},
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event)
+
+        assert result["entries"][0]["type"] == "exception"
+
+        # Exception interface data should be preserved
+        assert (
+            result["entries"][0]["data"]["values"][0]["stacktrace"]["frames"][0]["vars"]["foo"]
+            == "[Filtered]"
+        )
+        # Exception meta should be preserved
+        assert result["_meta"]["entries"][0]["data"]["values"]["0"]["stacktrace"]["frames"]["0"][
+            "vars"
+        ]["foo"] == {"": {"err": ["some error"]}}
+
     def test_tags_tuples(self):
         event = self.store_event(
             data={
@@ -219,6 +281,29 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert "breakdowns" in result
         assert result["breakdowns"] == event_data["breakdowns"]
 
+    def test_transaction_event_with_metrics_summary(self):
+        metrics_summary = {
+            "d:custom/sentry.event_manager.get_event_instance@second": [
+                {
+                    "min": 10.0,
+                    "max": 20.0,
+                    "sum": 30.0,
+                    "count": 2,
+                    "tags": {
+                        "environment": "prod",
+                        "event_type": "default",
+                        "release": "backend",
+                        "result": "success",
+                        "transaction": "sentry.tasks.store.save_event",
+                    },
+                }
+            ]
+        }
+        event_data = load_data("transaction", metrics_summary=metrics_summary)
+        event = self.store_event(data=event_data, project_id=self.project.id)
+        result = serialize(event)
+        assert result["_metrics_summary"] == metrics_summary
+
     def test_transaction_event_empty_spans(self):
         event_data = load_data("transaction")
         event_data["spans"] = []
@@ -231,6 +316,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             data={},
             project_id=self.project.id,
         )
+        assert event.group is not None
         event_group = event.for_group(event.group)
         event_group.occurrence = occurrence = self.build_occurrence()
         result = serialize(event_group)
@@ -239,7 +325,6 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
 
-@region_silo_test
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
@@ -260,7 +345,6 @@ class SharedEventSerializerTest(TestCase):
             assert entry["type"] != "breadcrumbs"
 
 
-@region_silo_test
 class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
@@ -274,6 +358,7 @@ class SimpleEventSerializerTest(TestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         result = serialize(event, None, SimpleEventSerializer())
 
         assert result["eventID"] == event.event_id
@@ -315,7 +400,6 @@ class SimpleEventSerializerTest(TestCase):
         assert result["groupID"] is None
 
 
-@region_silo_test
 class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
@@ -397,171 +481,201 @@ class IssueEventSerializerTest(TestCase):
         assert result["sdkUpdates"] == []
 
 
-@region_silo_test
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
-        with self.feature("organizations:sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {"category": "generic", "message": "should not format this"},
-                        {
-                            "category": "query",
-                            "message": "select * from table where something = $1",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {"category": "generic", "message": "should not format this"},
+                    {
+                        "category": "query",
+                        "message": "select * from table where something = $1",
+                    },
+                ]
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            breadcrumb_entry = result["entries"][0]
-            breadcrumbs = breadcrumb_entry["data"]["values"]
+        breadcrumb_entry = result["entries"][0]
+        breadcrumbs = breadcrumb_entry["data"]["values"]
 
-            assert breadcrumb_entry["type"] == "breadcrumbs"
-            # First breadcrumb should not have a message_formatted property
-            assert breadcrumbs[0]["message"] == "should not format this"
-            assert "messageRaw" not in breadcrumbs[0]
-            assert "messageFormat" not in breadcrumbs[0]
-            # Second breadcrumb should have whitespace added
-            assert breadcrumbs[1]["message"] == "select *\nfrom table\nwhere something = $1"
-            assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
-            assert breadcrumbs[1]["messageFormat"] == "sql"
+        assert breadcrumb_entry["type"] == "breadcrumbs"
+        # First breadcrumb should not have a message_formatted property
+        assert breadcrumbs[0]["message"] == "should not format this"
+        assert "messageRaw" not in breadcrumbs[0]
+        assert "messageFormat" not in breadcrumbs[0]
+        # Second breadcrumb should have whitespace added
+        assert breadcrumbs[1]["message"] == "select *\nfrom table\nwhere something = $1"
+        assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
+        assert breadcrumbs[1]["messageFormat"] == "sql"
 
     def test_event_breadcrumb_formatting_remove_quotes(self):
-        with self.feature("organizations:sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {
-                            "category": "query",
-                            "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
-                        },
-                        {
-                            "category": "query",
-                            "message": """This is not "SQL" content.""",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {
+                        "category": "query",
+                        "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                    },
+                    {
+                        "category": "query",
+                        "message": """This is not "SQL" content.""",
+                    },
+                ]
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
-            assert (
-                result["entries"][0]["data"]["values"][0]["message"]
-                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
-            )
+        # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
+        assert (
+            result["entries"][0]["data"]["values"][0]["message"]
+            == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+        )
 
-            # For breadcrumb 2: Not SQL so shouldn't be changed
-            assert (
-                result["entries"][0]["data"]["values"][1]["message"]
-                == """This is not "SQL" content."""
-            )
+        # For breadcrumb 2: Not SQL so shouldn't be changed
+        assert (
+            result["entries"][0]["data"]["values"][1]["message"] == """This is not "SQL" content."""
+        )
+
+    def test_adds_release_info(self):
+        event = self.store_event(
+            data={
+                "tags": {
+                    "sentry:release": "internal@1.0.0",
+                }
+            },
+            project_id=self.project.id,
+        )
+
+        repo = self.create_repo(project=self.project, name=self.project.name)
+
+        release = Release.objects.create(
+            version="internal@1.0.0",
+            organization=self.organization,
+            date_released=datetime(2023, 1, 1, tzinfo=UTC),
+        )
+        release.add_project(self.project)
+        release.set_commits(
+            [
+                {
+                    "id": "917ac271787e74ff2dbe52b67e77afcff9aaa305",
+                    "repository": repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "I hope this fixes it",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+
+        result = serialize(event, None, SqlFormatEventSerializer())
+
+        assert result["release"]["version"] == "internal@1.0.0"
+        assert result["release"]["lastCommit"]["id"] == "917ac271787e74ff2dbe52b67e77afcff9aaa305"
 
     def test_event_db_span_formatting(self):
-        with self.feature("organizations:sql-format"):
-            event_data = get_event("n-plus-one-in-django-new-view")
-            event_data["contexts"] = {
-                "trace": {
-                    "trace_id": "530c14e044aa464db6ddb43660e6474f",
-                    "span_id": "139fcdb7c5534eb4",
-                }
+        event_data = get_event("n-plus-one-in-django-new-view")
+        event_data["contexts"] = {
+            "trace": {
+                "trace_id": "530c14e044aa464db6ddb43660e6474f",
+                "span_id": "139fcdb7c5534eb4",
             }
-            event = self.store_event(
-                data={
-                    "type": "transaction",
-                    "transaction": "/organizations/:orgId/performance/:eventSlug/",
-                    "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "contexts": {
-                        "trace": {
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                            "span_id": "8f5a2b8768cafb4e",
-                            "type": "trace",
-                        }
-                    },
-                    "spans": [
-                        {
-                            "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
-                            "op": "db",
-                            "parent_span_id": "abe79ad9292b90a9",
-                            "span_id": "9c045ea336297177",
-                            "start_timestamp": timestamp_format(
-                                before_now(minutes=1, milliseconds=200)
-                            ),
-                            "timestamp": timestamp_format(before_now(minutes=1)),
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                        },
-                        {
-                            "description": "http span",
-                            "op": "http",
-                            "parent_span_id": "a99fd04e79e17631",
-                            "span_id": "abe79ad9292b90a9",
-                            "start_timestamp": timestamp_format(
-                                before_now(minutes=1, milliseconds=200)
-                            ),
-                            "timestamp": timestamp_format(before_now(minutes=1)),
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                        },
-                    ],
+        }
+        event = self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "/organizations/:orgId/performance/:eventSlug/",
+                "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
+                "timestamp": iso_format(before_now(minutes=1)),
+                "contexts": {
+                    "trace": {
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        "span_id": "8f5a2b8768cafb4e",
+                        "type": "trace",
+                    }
                 },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+                "spans": [
+                    {
+                        "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                        "op": "db",
+                        "parent_span_id": "abe79ad9292b90a9",
+                        "span_id": "9c045ea336297177",
+                        "start_timestamp": timestamp_format(
+                            before_now(minutes=1, milliseconds=200)
+                        ),
+                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                    },
+                    {
+                        "description": "http span",
+                        "op": "http",
+                        "parent_span_id": "a99fd04e79e17631",
+                        "span_id": "abe79ad9292b90a9",
+                        "start_timestamp": timestamp_format(
+                            before_now(minutes=1, milliseconds=200)
+                        ),
+                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                    },
+                ],
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
-            assert (
-                result["entries"][0]["data"][0]["description"]
-                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
-            )
+        # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
+        assert (
+            result["entries"][0]["data"][0]["description"]
+            == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+        )
 
-            # For span 2: Not a db span so no change
-            assert result["entries"][0]["data"][1]["description"] == """http span"""
+        # For span 2: Not a db span so no change
+        assert result["entries"][0]["data"][1]["description"] == """http span"""
 
     def test_db_formatting_perf_optimizations(self):
-        with self.feature("organizations:sql-format"):
-            SQL_QUERY_OK = """select * from table where something in (%s, %s, %s)"""
-            SQL_QUERY_TOO_LARGE = "a" * 1501
+        SQL_QUERY_OK = """select * from table where something in (%s, %s, %s)"""
+        SQL_QUERY_TOO_LARGE = "a" * 1501
 
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_OK,
-                        },
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_OK,
-                        },
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_TOO_LARGE,
-                        },
-                    ]
-                    + [{"category": "query", "message": str(i)} for i in range(0, 30)]
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_OK,
+                    },
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_OK,
+                    },
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_TOO_LARGE,
+                    },
+                ]
+                + [{"category": "query", "message": str(i)} for i in range(0, 30)]
+            },
+            project_id=self.project.id,
+        )
 
-            with mock.patch("sqlparse.format", return_value="") as mock_format:
-                serialize(event, None, SqlFormatEventSerializer())
+        with mock.patch("sqlparse.format", return_value="") as mock_format:
+            serialize(event, None, SqlFormatEventSerializer())
 
-                assert (
-                    len(
-                        list(
-                            filter(
-                                lambda args: SQL_QUERY_OK in args[0],
-                                mock_format.call_args_list,
-                            )
+            assert (
+                len(
+                    list(
+                        filter(
+                            lambda args: SQL_QUERY_OK in args[0],
+                            mock_format.call_args_list,
                         )
                     )
-                    == 1
-                ), "SQL_QUERY_OK should have been formatted a single time"
+                )
+                == 1
+            ), "SQL_QUERY_OK should have been formatted a single time"
 
-                assert not any(
-                    SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
-                ), "SQL_QUERY_TOO_LARGE should not have been formatted"
+            assert not any(
+                SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
+            ), "SQL_QUERY_TOO_LARGE should not have been formatted"
 
-                assert mock_format.call_count == 20, "Format should have been called 20 times"
+            assert mock_format.call_count == 20, "Format should have been called 20 times"

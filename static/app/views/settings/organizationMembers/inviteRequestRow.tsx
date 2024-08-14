@@ -1,18 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import {PanelItem} from 'sentry/components/panels';
+import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
+import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
+import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import Tag from 'sentry/components/tag';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, OrgRole} from 'sentry/types';
+import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 
 type Props = {
   allRoles: OrgRole[];
@@ -24,14 +25,6 @@ type Props = {
   organization: Organization;
 };
 
-const InviteModalHook = HookOrDefault({
-  hookName: 'member-invite-modal:customization',
-  defaultComponent: ({onSendInvites, children}) =>
-    children({sendInvites: onSendInvites, canSend: true}),
-});
-
-type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
-
 function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
@@ -42,11 +35,10 @@ function InviteRequestRow({
   allRoles,
 }: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
-  const roleDisallowed = !(role && role.allowed);
+  const roleDisallowed = !role?.isAllowed;
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
-  // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>
@@ -90,7 +82,7 @@ function InviteRequestRow({
       {canApprove ? (
         <TeamSelectControl
           name="teams"
-          placeholder={t('Add to teams\u2026')}
+          placeholder={t('None')}
           onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
           value={inviteRequest.teams}
           clearable

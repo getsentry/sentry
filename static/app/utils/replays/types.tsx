@@ -1,26 +1,120 @@
-import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
 
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType} from '@sentry-internal/rrweb';
+export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 
 import type {
-  BreadcrumbFrame as TRawBreadcrumbFrame,
-  BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  OptionFrameEvent as TOptionFrameEvent,
-  SpanFrame as TRawSpanFrame,
-  SpanFrameEvent as TSpanFrameEvent,
-} from '@sentry/replay';
+  ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
+  ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
+  ReplayOptionFrameEvent as TOptionFrameEvent,
+  ReplaySpanFrame as TRawSpanFrame,
+  ReplaySpanFrameEvent as TSpanFrameEvent,
+} from '@sentry/react';
 import invariant from 'invariant';
 
-export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+
+// Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
+// the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
+// field.
+type ReplayWebVitalFrameOps =
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint';
+type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
+/**
+ * These are deprecated SDK fields that the UI needs to be
+ * aware of to maintain backwards compatibility, i.e. for
+ * replay recordings for SDK version < 8.22.0
+ */
+type DeprecatedReplayWebVitalFrameData = {
+  nodeId?: number;
+};
+interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
+  data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
+}
+
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+// Needed for tests
+// TODO[ryan953]: Remove this once the SDK is exporting the type as part of ReplayBreadcrumbFrame
+export type RawHydrationErrorFrame = {
+  category: 'replay.hydrate-error';
+  timestamp: number;
+  type: string;
+  data?: {
+    url?: string;
+  };
+  message?: string;
+};
+
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+type StubBreadcrumbTypes = RawHydrationErrorFrame;
+
+// TODO: more types get added here
+type MobileBreadcrumbTypes =
+  | {
+      category: 'ui.tap';
+      data: any;
+      message: string;
+      timestamp: number;
+      type: string;
+    }
+  | {
+      category: 'device.battery';
+      data: {charging: boolean; level: number};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.connectivity';
+      data: {state: 'offline' | 'wifi' | 'cellular' | 'ethernet'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.orientation';
+      data: {position: 'landscape' | 'portrait'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    };
+
+/**
+ * Extra breadcrumb types not included in `@sentry/replay`.
+ * Also includes mobile types.
+ * The navigation breadcrumb has data['from'] marked as optional
+ * because the mobile SDK does not send that property currently.
+ */
+type ExtraBreadcrumbTypes =
+  | StubBreadcrumbTypes
+  | MobileBreadcrumbTypes
+  | {
+      category: 'navigation';
+      data: {
+        to: string;
+        from?: string;
+      };
+      message: string;
+      timestamp: number;
+      type: string; // For compatibility reasons
+    };
+
+export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
-export type RawSpanFrame = TRawSpanFrame;
+export type RawSpanFrame =
+  | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
+  | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
 export function isRecordingFrame(
@@ -47,10 +141,87 @@ export function isOptionFrameEvent(
   return attachment.data?.tag === 'options';
 }
 
-export function frameOpOrCategory(frame: BreadcrumbFrame | SpanFrame | ErrorFrame) {
+export function isVideoFrameEvent(
+  attachment: Record<string, any>
+): attachment is VideoFrameEvent {
+  return attachment.type === EventType.Custom && attachment.data.tag === 'video';
+}
+
+export function isBreadcrumbFrame(
+  frame: ReplayFrame | undefined
+): frame is BreadcrumbFrame {
+  return Boolean(frame && 'category' in frame && frame.category !== 'issue');
+}
+
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'feedback');
+}
+
+export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
+  return Boolean(frame && 'op' in frame);
+}
+
+export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'issue');
+}
+
+export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
+}
+
+export function getNodeId(frame: ReplayFrame) {
+  return 'data' in frame && frame.data && 'nodeId' in frame.data
+    ? frame.data.nodeId
+    : undefined;
+}
+
+export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
+  if (frame.category === 'console') {
+    frame.data = frame.data ?? {};
+    return true;
+  }
+  return false;
+}
+
+export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
+  return frame.op === 'web-vital';
+}
+
+export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
+  return frame.op === 'paint';
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  return (
+    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.data.endReason === 'timeout'
+  );
+}
+
+export function isDeadRageClick(frame: SlowClickFrame) {
+  return Boolean(
+    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+  );
+}
+
+export function isRageClick(frame: MultiClickFrame) {
+  return frame.data.clickCount >= 5;
+}
+
+export function isHydrationErrorFrame(
+  frame: BreadcrumbFrame
+): frame is HydrationErrorFrame {
+  return frame.category === 'replay.hydrate-error';
+}
+
+export function isBackgroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.background';
+}
+
+export function isForegroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.foreground';
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -69,8 +240,9 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<TRawBreadcrumbFrame, {category: Category}>,
+  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
 
@@ -106,40 +278,94 @@ type HydratedSpan<Op extends string> = Overwrite<
 >;
 
 // Breadcrumbs
-export type BreadcrumbFrame = Overwrite<TRawBreadcrumbFrame, HydratedTimestamp>;
-export type ConsoleFrame = HydratedBreadcrumb<'console'>;
-export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
-export type InputFrame = HydratedBreadcrumb<'ui.input'>;
-export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
-export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
-export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
-export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
-export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
-export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
+export type BreadcrumbFrame = Overwrite<
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
+  HydratedTimestamp
+>;
 
-// This list should match each of the categories used in `HydratedBreadcrumb` above.
+export type FeedbackFrame = {
+  category: 'feedback';
+  data: {
+    eventId: string;
+    groupId: number;
+    groupShortId: string;
+    label: string;
+    labels: string[];
+    projectSlug: string;
+  };
+  message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
+  type: string;
+};
+
+export type ForegroundFrame = HydratedBreadcrumb<'app.foreground'>;
+export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
+export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
+export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
+export type ConsoleFrame = HydratedBreadcrumb<'console'>;
+export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
+export type InputFrame = HydratedBreadcrumb<'ui.input'>;
+export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
+export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
+export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
+export type HydrationErrorFrame = Overwrite<
+  HydratedBreadcrumb<'replay.hydrate-error'>,
+  {
+    data: {
+      description: string;
+      url?: string;
+    };
+  }
+>;
+export type NavFrame = HydratedBreadcrumb<'navigation'>;
+export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
+export type DeviceConnectivityFrame = HydratedBreadcrumb<'device.connectivity'>;
+export type DeviceOrientationFrame = HydratedBreadcrumb<'device.orientation'>;
+
+// This list must match each of the categories used in `HydratedBreadcrumb` above
+// and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
   'console',
-  'ui.click',
-  'ui.input',
+  'device.battery',
+  'device.connectivity',
+  'device.orientation',
+  'navigation',
+  'replay.init',
   'replay.mutations',
-  'ui.keyDown',
+  'replay.hydrate-error',
   'ui.blur',
+  'ui.click',
+  'ui.tap',
   'ui.focus',
-  'ui.slowClickDetected',
+  'ui.input',
+  'ui.keyDown',
   'ui.multiClick',
+  'ui.slowClickDetected',
+  'app.foreground',
+  'app.background',
 ];
 
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type HistoryFrame = HydratedSpan<'navigation.push'>;
-export type LargestContentfulPaintFrame = HydratedSpan<'largest-contentful-paint'>;
+export type WebVitalFrame = HydratedSpan<
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint'
+>;
 export type MemoryFrame = HydratedSpan<'memory'>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
 export type PaintFrame = HydratedSpan<'paint'>;
-export type RequestFrame = HydratedSpan<'resource.fetch' | 'resource.xhr'>;
+export type RequestFrame = HydratedSpan<
+  'resource.fetch' | 'resource.xhr' | 'resource.http'
+>;
 export type ResourceFrame = HydratedSpan<
   | 'resource.css'
   | 'resource.iframe'
@@ -149,31 +375,33 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.script'
 >;
 
-// This list should match each of the operations used in `HydratedSpan` above.
+// This list should match each of the operations used in `HydratedSpan` above
+// And any app-specific types that we hydrate (ie: replay.end).
 export const SpanOps = [
-  'navigation.push',
-  'largest-contentful-paint',
+  'web-vital',
   'memory',
-  'navigation.navigate',
-  'navigation.reload',
   'navigation.back_forward',
+  'navigation.navigate',
+  'navigation.push',
+  'navigation.reload',
   'paint',
-  'resource.fetch',
-  'resource.xhr',
+  'replay.end',
   'resource.css',
+  'resource.fetch',
   'resource.iframe',
   'resource.img',
   'resource.link',
   'resource.other',
   'resource.script',
+  'resource.xhr',
+  'resource.http',
 ];
 
 /**
  * This is a result of a custom discover query
  */
 export type RawReplayError = {
-  ['error.type']: string[];
-  // ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
+  ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
   ['issue.id']: number;
@@ -197,3 +425,40 @@ export type ErrorFrame = Overwrite<
     message: string;
   }
 >;
+
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+
+interface VideoFrame {
+  container: string;
+  duration: number;
+  encoding: string;
+  frameCount: number;
+  frameRate: number;
+  frameRateType: string;
+  height: number;
+  left: number;
+  segmentId: number;
+  size: number;
+  top: number;
+  width: number;
+}
+
+export interface VideoFrameEvent {
+  data: {
+    payload: VideoFrame;
+    tag: 'video';
+  };
+  timestamp: number;
+  type: EventType.Custom;
+}
+
+export interface VideoEvent {
+  duration: number;
+  id: number;
+  timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
+}

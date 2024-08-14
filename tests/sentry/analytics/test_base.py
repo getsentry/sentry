@@ -1,5 +1,5 @@
 from sentry.analytics import Analytics
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DummyAnalytics(Analytics):

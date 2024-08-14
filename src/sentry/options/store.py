@@ -4,11 +4,13 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional, Set
+from typing import Any
 
+from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
@@ -34,9 +36,9 @@ class Key:
     ttl: int
     grace: int
     cache_key: str
-    grouping_info: Optional[GroupingInfo]
+    grouping_info: GroupingInfo | None
 
-    def has_any_flag(self, flags: Set[int]) -> bool:
+    def has_any_flag(self, flags: set[int]) -> bool:
         """
         Returns true if the option is registered with at least one
         of the flags passed as argument.
@@ -78,7 +80,7 @@ class OptionsStore:
     @classmethod
     def model_cls(cls):
         from sentry.models.options import ControlOption, Option
-        from sentry.silo import SiloMode
+        from sentry.silo.base import SiloMode
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             return ControlOption
@@ -183,11 +185,18 @@ class OptionsStore:
         is limited at the moment.
         """
         try:
-            value = self.model.objects.get(key=key.name).value
+            # NOTE: To greatly reduce test bugs due to cache leakage, we don't enforce cross db constraints
+            # because in practice the option query is consistent with the process level silo mode.
+            # If you do change the way the option class model is picked, keep in mind it may not be deeply
+            # tested due to the core assumption it should be stable per process in practice.
+            with in_test_hide_transaction_boundary():
+                value = self.model.objects.get(key=key.name).value
         except (self.model.DoesNotExist, ProgrammingError, OperationalError):
             value = None
         except Exception:
-            if not silent:
+            if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
+                raise
+            elif not silent:
                 logger.exception("option.failed-lookup", extra={"key": key.name})
             value = None
         else:
@@ -204,7 +213,7 @@ class OptionsStore:
                     )
         return value
 
-    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
+    def get_last_update_channel(self, key) -> UpdateChannel | None:
         """
         Gets how the option was last updated to check for drift.
         """

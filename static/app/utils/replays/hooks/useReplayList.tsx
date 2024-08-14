@@ -1,17 +1,21 @@
 import {useCallback, useEffect, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {
+  ReplayListLocationQuery,
+  ReplayListQueryReferrer,
+} from 'sentry/views/replays/types';
 
 type Options = {
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
-  queryReferrer?: 'issueReplays';
+  perPage?: number;
+  queryReferrer?: ReplayListQueryReferrer;
 };
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};
@@ -23,6 +27,7 @@ function useReplayList({
   location,
   organization,
   queryReferrer,
+  perPage,
 }: Options): Result {
   const api = useApi();
 
@@ -45,10 +50,11 @@ function useReplayList({
       location,
       eventView,
       queryReferrer,
+      perPage,
     });
 
     setData({...response, isFetching: false});
-  }, [api, organization, location, eventView, queryReferrer]);
+  }, [api, organization, location, eventView, queryReferrer, perPage]);
 
   useEffect(() => {
     loadReplays();

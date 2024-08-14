@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Field, JsonFormObject} from 'sentry/components/forms/types';
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 

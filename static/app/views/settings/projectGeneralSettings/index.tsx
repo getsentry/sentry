@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -12,38 +12,44 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = AsyncView['props'] &
+type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Project;
 };
 
-class ProjectGeneralSettings extends AsyncView<Props, State> {
+class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
   private _form: Record<string, FieldValue> = {};
 
   getTitle() {
@@ -51,7 +57,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -216,7 +222,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
                   )}
                 </TextBlock>
                 <Panel>
@@ -269,13 +275,14 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
-    /*
-    HACK: The <Form /> component applies its props to its children meaning the hooked component
-          would need to conform to the form settings applied in a separate repository. This is
-          not feasible to maintain and may introduce compatability errors if something changes
-          in either repository. For that reason, the Form component is split in two, since the
-          fields do not depend on one another, allowing for the Hook to manage it's own state.
-    */
+    // XXX: HACK
+    //
+    // The <Form /> component applies its props to its children meaning the
+    // hooked component would need to conform to the form settings applied in a
+    // separate repository. This is not feasible to maintain and may introduce
+    // compatability errors if something changes in either repository. For that
+    // reason, the Form component is split in two, since the fields do not
+    // depend on one another, allowing for the Hook to manage its own state.
     const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,
@@ -297,32 +304,27 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       },
     };
 
-    const hasRecapServerFeature = project.features.includes('recap-server');
+    const projectIdField: FieldObject = {
+      name: 'projectId',
+      type: 'string',
+      disabled: true,
+      label: t('Project ID'),
+      setValue(_, _name) {
+        return project.id;
+      },
+      help: `The unique identifier for this project. It cannot be modified.`,
+    };
 
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
-
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            // TODO(recap): Move this to a separate page or debug files one, not general settings
-            fields={[
-              fields.name,
-              fields.platform,
-              {
-                ...fields.recapServerUrl,
-                visible: hasRecapServerFeature,
-              },
-              {
-                ...fields.recapServerToken,
-                visible: hasRecapServerFeature,
-              },
-            ]}
+            fields={[fields.name, projectIdField, fields.platform]}
           />
-
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}

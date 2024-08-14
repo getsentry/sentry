@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -20,15 +22,20 @@ import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './ut
 
 interface StatusCounts {
   total: number;
+  archived_forever?: number;
+  archived_until_condition_met?: number;
+  archived_until_escalating?: number;
   deleted?: number;
+  escalating?: number;
   ignored?: number;
   new?: number;
   regressed?: number;
   resolved?: number;
+  unarchived?: number;
   unignored?: number;
 }
 
-type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
+export type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
 
 type Statuses = keyof Omit<StatusCounts, 'total'>;
 
@@ -40,7 +47,19 @@ interface TeamIssuesBreakdownProps extends DateTimeObject {
   environment?: string;
 }
 
-const keys = ['deleted', 'ignored', 'resolved', 'unignored', 'regressed', 'new', 'total'];
+const keys = [
+  'deleted',
+  'ignored',
+  'resolved',
+  'unignored',
+  'regressed',
+  'new',
+  'total',
+  'escalating',
+  'archived_until_escalating',
+  'archived_forever',
+  'archived_until_condition_met',
+];
 
 function TeamIssuesBreakdown({
   organization,
@@ -83,10 +102,14 @@ function TeamIssuesBreakdown({
       if (!projectTotals[projectId]) {
         projectTotals[projectId] = {
           deleted: 0,
+          escalating: 0,
           ignored: 0,
           resolved: 0,
           unignored: 0,
           regressed: 0,
+          archived_until_escalating: 0,
+          archived_forever: 0,
+          archived_until_condition_met: 0,
           new: 0,
           total: 0,
         };
@@ -151,7 +174,9 @@ function TeamIssuesBreakdown({
               numActions={statuses.length}
               headers={[
                 t('Project'),
-                ...statuses.map(action => <AlignRight key={action}>{action}</AlignRight>),
+                ...statuses
+                  .map(action => action.replace('ignore', 'archive'))
+                  .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
                   {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
                 </AlignRight>,

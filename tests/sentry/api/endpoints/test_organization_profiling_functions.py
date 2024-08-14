@@ -8,16 +8,14 @@ from sentry.api.endpoints.organization_profiling_functions import (
     get_rollup_from_range,
 )
 from sentry.constants import MAX_ROLLUP_POINTS
-from sentry.testutils import ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
 
 PROFILING_FEATURES = {
     "organizations:profiling-global-suspect-functions": True,
 }
 
 
-@region_silo_test
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 
@@ -62,8 +60,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             ]
         }
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
-    def test_min_threshold(self, mock_trends_query):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
+    def test_min_threshold(self, mock_detect_breakpoints):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -91,38 +89,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_trends_query.return_value = [
-            {
-                "absolute_percentage_change": 0.9090909090909091,
-                "aggregate_range_1": 110000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1688022000,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
-                ),
-                "trend_difference": -10000000.0,
-                "trend_percentage": 0.9090909090909091,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-            {
-                "absolute_percentage_change": 0.1,
-                "aggregate_range_1": 1000000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1688022000,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
-                ),
-                "trend_difference": -900000000.0,
-                "trend_percentage": 0.1,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 0.9090909090909091,
+                    "aggregate_range_1": 110000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1688022000,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -10000000.0,
+                    "trend_percentage": 0.9090909090909091,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 0.1,
+                    "aggregate_range_1": 1000000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1688022000,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -900000000.0,
+                    "trend_percentage": 0.1,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(
@@ -139,8 +141,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         results = response.json()
         assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
-    def test_regression(self, mock_trends_query):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
+    def test_regression(self, mock_detect_breakpoints):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -168,38 +170,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_trends_query.return_value = [
-            {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
-                ),
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-            {
-                "absolute_percentage_change": 10.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 1000000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
-                ),
-                "trend_difference": 900000000.0,
-                "trend_percentage": 10.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 10.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 1000000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": 900000000.0,
+                    "trend_percentage": 10.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(
@@ -217,9 +223,11 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert results
         trend_percentages = [data["trend_percentage"] for data in results]
         assert trend_percentages == [10.0, 5.0]
+        for data in results:
+            assert isinstance(data["worst"], list)
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
-    def test_improvement(self, mock_trends_query):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
+    def test_improvement(self, mock_detect_breakpoints):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -247,38 +255,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_trends_query.return_value = [
-            {
-                "absolute_percentage_change": 0.2,
-                "aggregate_range_1": 500000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1687323600,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
-                ),
-                "trend_difference": -400000000.0,
-                "trend_percentage": 0.2,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-            {
-                "absolute_percentage_change": 0.1,
-                "aggregate_range_1": 1000000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1687323600,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
-                ),
-                "trend_difference": -900000000.0,
-                "trend_percentage": 0.1,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 0.2,
+                    "aggregate_range_1": 500000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -400000000.0,
+                    "trend_percentage": 0.2,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 0.1,
+                    "aggregate_range_1": 1000000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -900000000.0,
+                    "trend_percentage": 0.1,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(
@@ -296,6 +308,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert results
         trend_percentages = [data["trend_percentage"] for data in results]
         assert trend_percentages == [0.1, 0.2]
+        for data in results:
+            assert isinstance(data["worst"], list)
 
 
 def test_get_rollup_from_range_max_buckets():

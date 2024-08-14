@@ -1,4 +1,4 @@
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.base import CorePluginMixin
@@ -43,15 +43,15 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
         ),
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("api_key", project))
 
-    def get_config(self, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             get_secret_field_config(
                 name="api_key",
                 label="API Key",
-                secret=self.get_option("api_key", kwargs["project"]),
+                secret=self.get_option("api_key", project),
                 help_text="VictorOps's Sentry API Key",
                 include_prefix=True,
             ),
@@ -84,7 +84,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
 
         return "\n\n".join((f"{k}\n-----------\n\n{v}" for k, v in interface_list))
 
-    def notify_users(self, group, event, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 

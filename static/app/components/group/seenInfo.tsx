@@ -2,15 +2,17 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release} from 'sentry/types';
-import {defined, toTitleCase} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
@@ -153,7 +155,7 @@ const StyledTimeSince = styled(TimeSince)`
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {

@@ -1,59 +1,60 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import {Release} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 
-import {ConfirmAction, getConfirm, getLabel} from './utils';
+import type {getConfirm, getLabel} from './utils';
+import {ConfirmAction} from './utils';
 
 type Props = {
   anySelected: boolean;
+  confirm: ReturnType<typeof getConfirm>;
+  label: ReturnType<typeof getLabel>;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
-  params: {
-    confirm: ReturnType<typeof getConfirm>;
-    hasReleases: boolean;
-    label: ReturnType<typeof getLabel>;
-    disabled?: boolean;
-    latestRelease?: Release;
-    loadingProjects?: boolean;
-    projectFetchError?: boolean;
-    projectId?: string;
-  };
+  selectedProjectSlug: string | undefined;
 };
 
 function ResolveActionsContainer({
-  params,
   anySelected,
   onShouldConfirm,
   onUpdate,
+  selectedProjectSlug,
+  confirm,
+  label,
 }: Props) {
-  const {
-    hasReleases,
-    latestRelease,
-    projectId,
-    confirm,
-    label,
-    loadingProjects,
-    projectFetchError,
-  } = params;
+  const {initiallyLoaded, projects, fetchError} = useProjects({
+    slugs: selectedProjectSlug ? [selectedProjectSlug] : [],
+  });
+
+  const project = selectedProjectSlug
+    ? projects.find(p => p.slug === selectedProjectSlug)
+    : null;
+
+  const hasRelease =
+    project && 'features' in project ? project.features.includes('releases') : false;
+
+  const latestRelease =
+    project && 'latestRelease' in project ? project.latestRelease : undefined;
 
   // resolve requires a single project to be active in an org context
   // projectId is null when 0 or >1 projects are selected.
-  const resolveDisabled = Boolean(!anySelected || projectFetchError);
+  const resolveDisabled = Boolean(!anySelected || fetchError);
   const resolveDropdownDisabled = Boolean(
-    !anySelected || !projectId || loadingProjects || projectFetchError
+    !anySelected || !project?.slug || !initiallyLoaded || fetchError
   );
 
   return (
     <ResolveActions
-      hasRelease={hasReleases}
+      hasRelease={hasRelease}
+      multipleProjectsSelected={!selectedProjectSlug}
       latestRelease={latestRelease}
-      projectSlug={projectId}
+      projectSlug={project?.slug}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
       confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
       disabled={resolveDisabled}
       disableDropdown={resolveDropdownDisabled}
-      projectFetchError={projectFetchError}
+      projectFetchError={Boolean(fetchError)}
     />
   );
 }

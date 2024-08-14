@@ -1,43 +1,8 @@
-import {Crumb} from 'sentry/types/breadcrumbs';
-import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-
-/**
- * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
- * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
- * @returns Unix timestamp of the adjusted timestamp, in milliseconds
- */
-export function relativeTimeInMs(
-  timestamp: ConstructorParameters<typeof Date>[0],
-  diffMs: number
-): number {
-  return Math.abs(new Date(timestamp).getTime() - diffMs);
-}
-
-export function showPlayerTime(
-  timestamp: ConstructorParameters<typeof Date>[0],
-  relativeTimeMs: number,
-  showMs: boolean = false
-): string {
-  return formatTime(relativeTimeInMs(timestamp, relativeTimeMs), showMs);
-}
-
-export function formatTime(ms: number, showMs?: boolean): string {
-  if (ms <= 0 || isNaN(ms)) {
-    if (showMs) {
-      return '00:00.000';
-    }
-
-    return '00:00';
-  }
-
-  const seconds = ms / 1000;
-  return formatSecondsToClock(showMs ? seconds : Math.floor(seconds));
-}
 
 /**
  * Figure out how many ticks to show in an area.
@@ -96,43 +61,36 @@ export function countColumns(durationMs: number, width: number, minWidth: number
  * This function groups crumbs into columns based on the number of columns available
  * and the timestamp of the crumb.
  */
-export function getCrumbsByColumn(
-  startTimestampMs: number,
+export function getFramesByColumn(
   durationMs: number,
-  crumbs: Crumb[],
+  frames: ReplayFrame[],
   totalColumns: number
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnCrumbPairs = crumbs.map(breadcrumb => {
-    const {timestamp} = breadcrumb;
-    const timestampMilliSeconds = +new Date(String(timestamp));
-    const sinceStart = isNaN(timestampMilliSeconds)
-      ? 0
-      : timestampMilliSeconds - startTimestampMs;
-
+  const columnFramePairs = frames.map(frame => {
     const columnPositionCalc =
-      Math.floor((sinceStart / safeDurationMs) * (totalColumns - 1)) + 1;
+      Math.floor((frame.offsetMs / safeDurationMs) * (totalColumns - 1)) + 1;
 
     // Should start at minimum in the first column
     const column = Math.max(1, columnPositionCalc);
 
-    return [column, breadcrumb] as [number, Crumb];
+    return [column, frame] as [number, ReplayFrame];
   });
 
-  const crumbsByColumn = columnCrumbPairs.reduce<Map<number, Crumb[]>>(
-    (map, [column, breadcrumb]) => {
+  const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
+    (map, [column, frame]) => {
       if (map.has(column)) {
-        map.get(column)?.push(breadcrumb);
+        map.get(column)?.push(frame);
       } else {
-        map.set(column, [breadcrumb]);
+        map.set(column, [frame]);
       }
       return map;
     },
     new Map()
   );
 
-  return crumbsByColumn;
+  return framesByColumn;
 }
 
 type FlattenedSpanRange = {
@@ -198,11 +156,41 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
 }
 
 /**
- * Divide two numbers safely
+ * Finds the index of the mobile replay segment that is nearest
  */
-export function divide(numerator: number, denominator: number | undefined) {
-  if (denominator === undefined || isNaN(denominator) || denominator === 0) {
-    return 0;
+export function findVideoSegmentIndex(
+  trackList: [ts: number, index: number][],
+  segments: VideoEvent[],
+  targetTimestamp: number,
+  optionalStart?: number,
+  optionalEnd?: number
+) {
+  const start = optionalStart ?? 0;
+  const end = optionalEnd ?? segments.length - 1;
+
+  if (start > end) {
+    // XXX: This means we are not returning "exact" segments, but the prior
+    // segment if it doesn't not satisfy the exact time constraints
+    //
+    // In the case where targetTimestamp is < first segment, end can be -1
+    return end;
   }
-  return numerator / denominator;
+
+  const mid = Math.floor((start + end) / 2);
+
+  const [ts, index] = trackList[mid];
+  const segment = segments[index];
+
+  // Segment match found
+  if (targetTimestamp >= ts && targetTimestamp <= ts + segment.duration) {
+    return index;
+  }
+
+  // Search higher half
+  if (targetTimestamp > ts) {
+    return findVideoSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
+  }
+
+  // Search lower half
+  return findVideoSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
 }

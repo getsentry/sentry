@@ -2,16 +2,15 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t, tct} from 'sentry/locale';
 
-import {Monitor} from '../types';
+import type {Monitor} from '../types';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';
 
 interface Props {
   monitor: Monitor;
-  orgId: string;
 }
 
-function MonitorOnboarding({orgId, monitor}: Props) {
+function MonitorOnboarding({monitor}: Props) {
   return (
     <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
@@ -25,7 +24,7 @@ function MonitorOnboarding({orgId, monitor}: Props) {
           }
         )}
       </p>
-      <MonitorQuickStartGuide orgId={orgId} monitor={monitor} />
+      <MonitorQuickStartGuide monitor={monitor} />
     </OnboardingPanel>
   );
 }

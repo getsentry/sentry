@@ -1,18 +1,23 @@
 from __future__ import annotations
 
-from django.http import HttpResponse
+import logging
+
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 from .base import GithubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook
 
+logger = logging.getLogger(__name__)
 
-class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
+
+class GithubPluginIntegrationsWebhookEndpoint(GithubWebhookBase):
     _handlers = {
         "push": PushEventWebhook,
         "installation": InstallationEventWebhook,
@@ -20,7 +25,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -30,4 +35,8 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
         return options.get("github.integration-hook-secret")
 
     def post(self, request: Request) -> HttpResponse:
+        logger.error(
+            "github_plugin.install.deprecation_check",
+            extra={"meta": request.META},
+        )
         return self.handle(request)

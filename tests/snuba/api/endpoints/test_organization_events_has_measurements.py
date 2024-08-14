@@ -1,13 +1,11 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
 class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -26,7 +24,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-has-measurements",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")

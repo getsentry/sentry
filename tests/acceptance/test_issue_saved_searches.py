@@ -6,13 +6,12 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.models import Visibility
-from sentry.models.savedsearch import SavedSearch, SortOptions
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -51,17 +50,13 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('button[aria-label="Errors Only"]')
         self.page.wait_until_loaded()
 
-        self.browser.snapshot("issue list after navigating to saved search", desktop_only=True)
-
     def test_create_saved_search(self):
         self.page.visit_issue_list(self.org.slug)
         self.browser.click_when_visible('button[aria-label="Custom Search"]')
-        self.browser.snapshot("issue list with no saved searches", desktop_only=True)
 
         self.browser.click('[aria-label="Add saved search"]')
 
         self.browser.wait_until('[role="dialog"]')
-        self.browser.snapshot("create saved search modal open", desktop_only=True)
 
         self.browser.find_element(by=By.NAME, value="name").send_keys("My Saved Search")
         query_input = self.browser.find_element(
@@ -105,7 +100,6 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('[data-test-id="edit"]')
 
         self.browser.wait_until('[role="dialog"]')
-        self.browser.snapshot("edit saved search modal open", desktop_only=True)
 
         self.browser.find_element(by=By.NAME, value="name").clear()
         self.browser.find_element(by=By.NAME, value="name").send_keys("New Saved Search Name")

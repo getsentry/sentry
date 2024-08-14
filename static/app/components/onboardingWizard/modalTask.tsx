@@ -10,7 +10,7 @@ export default function ModalTask({title}: Props) {
   return (
     <TaskCard>
       <Title>
-        {<IconCheckmark isCircled color="successText" />}
+        <IconCheckmark isCircled color="successText" />
         {title}
       </Title>
     </TaskCard>
@@ -22,7 +22,7 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const TaskCard = styled(Card)`

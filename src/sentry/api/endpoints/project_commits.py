@@ -1,15 +1,21 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Commit
+from sentry.models.commit import Commit
 
 
 @region_silo_endpoint
 class ProjectCommitsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
     permission_classes = (ProjectReleasePermission,)
 
@@ -20,9 +26,9 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
 
         Retrieve a list of commits for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           commit belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      commits of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the commit key.

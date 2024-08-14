@@ -1,29 +1,27 @@
-import base64
 from functools import cached_property
 from unittest.mock import patch
 
 from django.test import RequestFactory
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import ApiKey, ApiToken, UserIP
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.userip import UserIP
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.services.user.service import user_service
 from sentry.utils.auth import login
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = cached_property(AuthenticationMiddleware)
 
     def assert_user_equals(self, request):
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            assert request.user == self.user
-        else:
-            assert request.user == user_service.get_user(user_id=self.user.id)
+        assert request.user == user_service.get_user(user_id=self.user.id)
 
     def setUp(self):
         from django.core.cache import cache
@@ -44,14 +42,16 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_user(self):
         request = self.request
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             assert login(request, self.user)
         with outbox_runner():
             self.middleware.process_request(request)
             # Force the user object to materialize
-            request.user.id  # noqa
-        with exempt_from_silo_limits():
-            assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
+            request.user.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.refresh_from_db()
+            assert UserIP.objects.filter(user_id=self.user.id, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated
         self.assert_user_equals(request)
@@ -61,7 +61,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         self.middleware.process_request(request)
@@ -73,7 +73,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         del request.session["_nonce"]
@@ -84,7 +84,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         request.session["_nonce"] = "gtfo"
@@ -92,13 +92,16 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
 
     def test_process_request_valid_authtoken(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         request = self.make_request(method="GET")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
         self.middleware.process_request(request)
         self.assert_user_equals(request)
-        assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(token)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(
+                token
+            )
 
     def test_process_request_invalid_authtoken(self):
         request = self.make_request(method="GET")
@@ -109,14 +112,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth is None
 
     def test_process_request_valid_apikey(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(
                 organization_id=self.organization.id, allowed_origins="*"
             )
             request = self.make_request(method="GET")
-            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-                apikey.key.encode("utf-8")
-            )
+            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         self.middleware.process_request(request)
         # ApiKey is tied to an organization not user
@@ -132,6 +133,17 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
+    def test_process_request_rpc_path_ignored(self):
+        request = self.make_request(
+            method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+        )
+        request.META["HTTP_AUTHORIZATION"] = b"Rpcsignature not-a-checksum"
+
+        self.middleware.process_request(request)
+        # No errors, and no user identified.
+        assert request.user.is_anonymous
+        assert request.auth is None
+
     @patch("sentry.models.userip.geo_by_addr")
     def test_process_request_log_userip(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
@@ -141,18 +153,18 @@ class AuthenticationMiddlewareTestCase(TestCase):
         }
         request = self.request
         request.META["REMOTE_ADDR"] = "8.8.8.8"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             assert login(request, self.user)
 
         with outbox_runner():
             self.middleware.process_request(request)
+            # Should be logged in and have logged a UserIp record.
+            assert request.user.id == self.user.id
+            assert mock_geo_by_addr.call_count == 1
 
-        # Should be logged in and have logged a UserIp record.
-        assert request.user.id == self.user.id
-        assert mock_geo_by_addr.call_count == 1
-
-        with exempt_from_silo_limits():
-            userip = UserIP.objects.get(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert UserIP.objects.count() > 0
+            userip = UserIP.objects.get(user_id=self.user.id)
         assert userip.ip_address == "8.8.8.8"
         assert userip.country_code == "US"
         assert userip.region_code == "CA"

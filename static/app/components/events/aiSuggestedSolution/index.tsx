@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,10 +18,6 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
   const organization = useOrganization();
 
   const [openSuggestion, setOpenSuggestion] = useState(false);
-
-  if (!organization.features.includes('open-ai-suggestion')) {
-    return null;
-  }
 
   return (
     <div>

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from collections import namedtuple
 from copy import deepcopy
@@ -7,9 +9,9 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -22,7 +24,6 @@ HistogramSpec = namedtuple(
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
-@region_silo_test
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -55,7 +56,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     self.store_event(data, self.project.id)
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
@@ -71,7 +72,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -82,6 +83,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {}
 
+    @pytest.mark.querybuilder
     def test_good_params(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
@@ -1025,7 +1027,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == self.as_response_data(expected)
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -1045,10 +1046,11 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
                         metric=suffix_key,
                         tags={"transaction": suffix_key, **spec.tags},
                         timestamp=start,
+                        aggregation_option=AggregationOption.HIST,
                     )
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
@@ -1067,7 +1069,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -1157,7 +1159,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         assert response.data == expected_response
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
 ):

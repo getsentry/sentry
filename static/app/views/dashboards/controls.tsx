@@ -6,21 +6,28 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
+import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
+import exportDashboard from './exportDashboard';
+import type {DashboardListItem} from './types';
+import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onAddWidget: () => void;
+  onAddWidget: (dataset: DataSet) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -31,7 +38,6 @@ type Props = {
 };
 
 function Controls({
-  organization,
   dashboardState,
   dashboards,
   hasUnsavedFilters,
@@ -56,6 +62,8 @@ function Controls({
       </Button>
     );
   }
+
+  const organization = useOrganization();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -124,11 +132,32 @@ function Controls({
     );
   }
 
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
+            <FeedbackWidgetButton />
+            <Feature features="dashboards-import">
+              <Button
+                data-test-id="dashboard-export"
+                onClick={e => {
+                  e.preventDefault();
+                  exportDashboard();
+                }}
+                icon={<IconDownload />}
+                priority="default"
+                size="sm"
+              >
+                {t('Export Dashboard')}
+              </Button>
+            </Feature>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -150,21 +179,31 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  size="sm"
-                  disabled={widgetLimitReached}
-                  icon={<IconAdd isCircled />}
-                  onClick={() => {
-                    trackAnalytics('dashboards_views.widget_library.opened', {
-                      organization,
-                    });
-                    onAddWidget();
-                  }}
-                >
-                  {t('Add Widget')}
-                </Button>
+                {hasCustomMetrics(organization) ? (
+                  <AddWidgetButton
+                    onAddWidget={onAddWidget}
+                    aria-label={t('Add Widget')}
+                    priority="primary"
+                    data-test-id="add-widget-library"
+                    disabled={widgetLimitReached}
+                  />
+                ) : (
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    size="sm"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAnalytics('dashboards_views.widget_library.opened', {
+                        organization,
+                      });
+                      onAddWidget(defaultDataset);
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                )}
               </Tooltip>
             ) : null}
           </Fragment>
@@ -196,7 +235,7 @@ function DashboardEditFeature({
   return (
     <Feature
       hookName="feature-disabled:dashboards-edit"
-      features={['organizations:dashboards-edit']}
+      features="organizations:dashboards-edit"
       renderDisabled={renderDisabled}
     >
       {({hasFeature}) => children(hasFeature)}

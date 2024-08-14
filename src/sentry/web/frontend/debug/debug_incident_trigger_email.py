@@ -1,17 +1,15 @@
 from unittest import mock
+from uuid import uuid4
 
 from django.utils import timezone
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleTrigger,
-    Incident,
-    IncidentStatus,
-    TriggerStatus,
-)
-from sentry.models import Organization, Project, User
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
+from sentry.incidents.models.incident import Incident, IncidentStatus, TriggerStatus
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
+from sentry.users.models.user import User
 
 from .mail import MailPreviewView
 
@@ -22,7 +20,8 @@ class MockedIncidentTrigger:
 
 class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
-        "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
+        "sentry.incidents.models.incident.IncidentTrigger.objects.get",
+        return_value=MockedIncidentTrigger(),
     )
     @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
     def get_context(self, request, incident_trigger_mock, user_option_mock):
@@ -45,7 +44,13 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         return generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status), user
+            project,
+            incident,
+            trigger,
+            TriggerStatus.ACTIVE,
+            IncidentStatus(incident.status),
+            user,
+            notification_uuid=str(uuid4()),
         )
 
     @property

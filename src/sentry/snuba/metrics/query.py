@@ -1,17 +1,20 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
-from collections.abc import Mapping
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
+from typing import Literal, Union
 
 from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
-from sentry.api.utils import InvalidParams
-from sentry.models import Project
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.exceptions import InvalidParams
+from sentry.models.project import Project
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
@@ -26,6 +29,7 @@ from .utils import (
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
+    MetricEntity,
     MetricOperationType,
     get_num_intervals,
 )
@@ -33,10 +37,10 @@ from .utils import (
 
 @dataclass(frozen=True)
 class MetricField:
-    op: Optional[MetricOperationType]
+    op: MetricOperationType | None
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
-    alias: Optional[str] = None
+    params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None = None
+    alias: str | None = None
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -44,15 +48,18 @@ class MetricField:
         if parsed_mri is None:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
-        # Validates that the MRI requested is an MRI the metrics layer exposes
-        metric_name = get_public_name_from_mri(self.metric_mri)
+        # We compute the metric name before the alias, since we want to make sure it's a public facing metric.
+        metric_name = self._metric_name
         if not self.alias:
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
 
+    @property
+    def _metric_name(self) -> str:
+        return get_public_name_from_mri(self.metric_mri)
+
     def __str__(self) -> str:
-        metric_name = get_public_name_from_mri(self.metric_mri)
-        return f"{self.op}({metric_name})" if self.op else metric_name
+        return f"{self.op}({self._metric_name})" if self.op else self._metric_name
 
     def __eq__(self, other: object) -> bool:
         # The equal method is called after the hash method to verify for equality of objects to insert
@@ -62,7 +69,7 @@ class MetricField:
         return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
-        hashable_list = []
+        hashable_list: list[MetricOperationType | str] = []
         if self.op is not None:
             hashable_list.append(self.op)
         hashable_list.append(self.metric_mri)
@@ -75,12 +82,12 @@ class MetricField:
 
 @dataclass(frozen=True)
 class MetricActionByField:
-    field: Union[str, MetricField]
+    field: str | MetricField
 
 
 @dataclass(frozen=True)
 class MetricGroupByField(MetricActionByField):
-    alias: Optional[str] = None
+    alias: str | None = None
 
     def __post_init__(self) -> None:
         if not self.alias:
@@ -114,11 +121,10 @@ class MetricConditionField:
 
     lhs: MetricField
     op: Op
-    rhs: Union[int, float, str]
+    rhs: int | float | str
 
 
-Tag = str
-Groupable = Union[Tag, Literal["project_id"]]
+Groupable = Union[str, Literal["project_id"]]
 
 
 class MetricsQueryValidationRunner:
@@ -130,14 +136,21 @@ class MetricsQueryValidationRunner:
         The validation is performed by calling a function named:
             `validate_<field_name>(self) -> None`
         """
-        for name, _ in self.__dataclass_fields__.items():  # type: ignore
+        for name, _ in self.__dataclass_fields__.items():  # type: ignore[attr-defined]
             if method := getattr(self, f"validate_{name}", None):
                 method()
 
 
 @dataclass(frozen=True)
-class MetricsQuery(MetricsQueryValidationRunner):
-    """Definition of a metrics query, inspired by snuba_sdk.Query"""
+class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
+    """
+    Snuba provides a new language called MQL which has been designed to replace the old metrics language.
+    We intend to deprecate the old metrics language in the future. For any new features, we recommend using MQL.
+    Documentation of MQL can be found at https://getsentry.github.io/snuba/language/mql.html and
+    https://getsentry.github.io/snuba-sdk/snuba_sdk.html#MetricsQuery
+
+    Definition of a metrics query, inspired by snuba_sdk.Query
+    """
 
     org_id: int
     project_ids: Sequence[int]
@@ -145,45 +158,48 @@ class MetricsQuery(MetricsQueryValidationRunner):
     granularity: Granularity
     # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
     #  instances of MetricConditionField
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
-    having: Optional[ConditionGroup] = None
-    groupby: Optional[Sequence[MetricGroupByField]] = None
-    orderby: Optional[Sequence[MetricOrderByField]] = None
-    limit: Optional[Limit] = None
-    offset: Optional[Offset] = None
+    start: datetime | None = None
+    end: datetime | None = None
+    where: Sequence[BooleanCondition | Condition | MetricConditionField] | None = None
+    having: ConditionGroup | None = None
+    groupby: Sequence[MetricGroupByField] | None = None
+    orderby: Sequence[MetricOrderByField] | None = None
+    limit: Limit | None = None
+    # In cases where limit involves calculation (eg. top N series), we want to cap the limit since it'll be blocked otherwise.
+    max_limit: Limit | None = None
+    offset: Offset | None = None
     include_totals: bool = True
     include_series: bool = True
-    interval: Optional[int] = None
+    interval: int | None = None
     # This field is used as a temporary fix to allow the metrics layer to support alerts by generating snql that
     # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
     # to dataset changes.
     is_alerts_query: bool = False
+    # Need to skip the orderby validation for ondemand queries, this is because ondemand fields are based on a spec
+    # instead of being direct fields
+    skip_orderby_validation: bool = False
 
     @cached_property
-    def projects(self) -> QuerySet:
+    def projects(self) -> QuerySet[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
-    def use_case_key(self) -> UseCaseKey:
+    def use_case_id(self) -> UseCaseID:
         return self._use_case_id(self.select[0].metric_mri)
 
     @staticmethod
-    def _use_case_id(metric_mri: str) -> UseCaseKey:
+    def _use_case_id(metric_mri: str) -> UseCaseID:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
         assert parsed_mri is not None
-
-        if parsed_mri.namespace == "transactions":
-            return UseCaseKey.PERFORMANCE
-        elif parsed_mri.namespace == "sessions":
-            return UseCaseKey.RELEASE_HEALTH
-        raise ValueError("Can't find correct use_case_id based on metric MRI")
+        try:
+            return UseCaseID(parsed_mri.namespace)
+        except ValueError:
+            raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
-        derived_metrics_mri = get_derived_metrics(exclude_private=True)
+        all_derived_metrics = get_derived_metrics()
 
         # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
         # of the supported operations and that the metric mri should be one of the aggregated derived metrics
@@ -192,7 +208,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 raise InvalidParams(
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
-            if field.metric_mri in derived_metrics_mri:
+            if field.metric_mri in all_derived_metrics:
                 raise DerivedMetricParseException(
                     f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
@@ -227,7 +243,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                     )
 
     def validate_orderby(self) -> None:
-        if not self.orderby:
+        if not self.orderby or self.skip_orderby_validation:
             return
 
         for metric_order_by_field in self.orderby:
@@ -236,9 +252,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
             if isinstance(metric_order_by_field.field, MetricField):
                 self._validate_field(metric_order_by_field.field)
 
-        orderby_metric_fields: Set[MetricField] = set()
-        metric_entities: Set[MetricField] = set()
-        group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
+        orderby_metric_fields: set[MetricField] = set()
+        metric_entities: set[MetricEntity] = set()
+        group_by_str_fields: set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):
                 orderby_metric_fields.add(metric_order_by_field.field)
@@ -272,8 +288,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
-    def action_by_str_fields(self, on_group_by: bool) -> Set[str]:
-        action_by_str_fields: Set[str] = set()
+    def action_by_str_fields(self, on_group_by: bool) -> set[str]:
+        action_by_str_fields: set[str] = set()
 
         for action_by_field in (self.groupby if on_group_by else self.orderby) or []:
             if isinstance(action_by_field.field, str):
@@ -290,6 +306,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
             granularity=self.granularity.granularity,
             interval=self.interval,
         )
+        if self.max_limit and self.max_limit < MAX_POINTS:
+            return
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
@@ -297,7 +315,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if self.start and self.end and self.include_series:
             if intervals_len * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
-                    f"Requested interval of timedelta of "
+                    f"Requested intervals ({intervals_len}) of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "
                     f"timedelta of {self.end - self.start} is too granular for a per_page of "
                     f"{self.limit.limit} elements. Increase your interval, decrease your "
@@ -341,7 +359,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_granularity(self) -> None:
         # Logic specific to how we handle time series in discover in terms of granularity and interval
         if (
-            self.use_case_key == UseCaseKey.PERFORMANCE
+            self.use_case_id == UseCaseID.TRANSACTIONS
             and self.include_series
             and self.interval is not None
         ):
@@ -369,8 +387,16 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
+        # see what's our effective interval (either the one passed in or the one from the granularity)
+        if self.interval is None:
+            interval = self.granularity.granularity
+        else:
+            interval = self.interval
+
         if self.start and self.end and self.include_series:
-            if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
+            # For this calculation, we decided to round down to the integer since if we get 10.000,x we prefer to allow
+            # the query and lose some data points. On the other hand, if we get 11.000,x we will not allow the query.
+            if int((self.end - self.start).total_seconds() / interval) > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."
@@ -378,8 +404,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def validate_interval(self) -> None:
         if self.interval is not None:
-            if self.use_case_key == UseCaseKey.RELEASE_HEALTH or (
-                self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
+            if self.use_case_id is UseCaseID.SESSIONS or (
+                self.use_case_id is UseCaseID.TRANSACTIONS and not self.include_series
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
@@ -400,7 +426,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_key == UseCaseKey.PERFORMANCE
+            self.use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
             and self.include_series
             and self.interval is None
         ):

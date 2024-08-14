@@ -1,44 +1,41 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
-interface OrganizationsStoreDefinition extends StoreDefinition {
+import type {StrictStoreDefinition} from './types';
+
+interface State {
+  loaded: boolean;
+  organizations: Organization[];
+}
+
+interface OrganizationsStoreDefinition extends StrictStoreDefinition<State> {
   addOrReplace(item: Organization): void;
   get(slug: string): Organization | undefined;
-
   getAll(): Organization[];
-  getState(): Organization[];
   load(items: Organization[]): void;
-  loaded: boolean;
   onChangeSlug(prev: Organization, next: Partial<Organization>): void;
   onRemoveSuccess(slug: string): void;
   onUpdate(org: Partial<Organization>): void;
   remove(slug: string): void;
-  state: Organization[];
 }
 
 const storeConfig: OrganizationsStoreDefinition = {
-  state: [],
-  loaded: false,
-
-  // So we can use Reflux.connect in a component mixin
-  getInitialState() {
-    return this.state;
-  },
+  state: {organizations: [], loaded: false},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.state = [];
-    this.loaded = false;
+    this.state = {organizations: [], loaded: false};
   },
 
   onUpdate(org) {
     let match = false;
-    this.state.forEach((existing, idx) => {
+    const newOrgs = [...this.state.organizations];
+    newOrgs.forEach((existing, idx) => {
       if (existing.id === org.id) {
-        this.state[idx] = {...existing, ...org};
+        newOrgs[idx] = {...existing, ...org};
         match = true;
       }
     });
@@ -47,7 +44,8 @@ const storeConfig: OrganizationsStoreDefinition = {
         'Cannot update an organization that is not in the OrganizationsStore'
       );
     }
-    this.trigger(this.state);
+    this.state = {...this.state, organizations: newOrgs};
+    this.trigger(newOrgs);
   },
 
   onChangeSlug(prev, next) {
@@ -64,11 +62,11 @@ const storeConfig: OrganizationsStoreDefinition = {
   },
 
   get(slug) {
-    return this.state.find((item: Organization) => item.slug === slug);
+    return this.state.organizations.find((item: Organization) => item.slug === slug);
   },
 
   getAll() {
-    return this.state;
+    return this.state.organizations;
   },
 
   getState() {
@@ -76,28 +74,33 @@ const storeConfig: OrganizationsStoreDefinition = {
   },
 
   remove(slug) {
-    this.state = this.state.filter(item => slug !== item.slug);
-    this.trigger(this.state);
+    this.state = {
+      ...this.state,
+      organizations: this.state.organizations.filter(item => slug !== item.slug),
+    };
+    this.trigger(this.state.organizations);
   },
 
   addOrReplace(item) {
     let match = false;
-    this.state.forEach((existing, idx) => {
+    const newOrgs = [...this.state.organizations];
+    newOrgs.forEach((existing, idx) => {
       if (existing.id === item.id) {
-        this.state[idx] = {...existing, ...item};
+        newOrgs[idx] = {...existing, ...item};
         match = true;
       }
     });
     if (!match) {
-      this.state = [...this.state, item];
+      newOrgs.push(item);
     }
-    this.trigger(this.state);
+    this.state = {...this.state, organizations: newOrgs};
+    this.trigger(newOrgs);
   },
 
   load(items: Organization[]) {
-    this.state = items;
-    this.loaded = true;
-    this.trigger(items);
+    const newOrgs = [...items];
+    this.state = {organizations: newOrgs, loaded: true};
+    this.trigger(newOrgs);
   },
 };
 

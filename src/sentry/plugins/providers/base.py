@@ -6,27 +6,30 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud.user import RpcUser
-from social_auth.models import UserSocialAuth
+from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.users.services.user import RpcUser
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 
 class ProviderMixin:
     auth_provider: str | None = None
-    logger: logging.Logger | None = None
+    logger = logging.getLogger(__name__)
 
     def link_auth(self, user, organization, data):
-        try:
-            usa = UserSocialAuth.objects.get(
-                user=user, id=data["default_auth_id"], provider=self.auth_provider
-            )
-        except UserSocialAuth.DoesNotExist:
+        usa = usersocialauth_service.get_one_or_none(
+            filter={
+                "id": data["default_auth_id"],
+                "user_id": user.id,
+                "provider": self.auth_provider,
+            }
+        )
+        if not usa:
             raise PluginError
 
-        integration = Integration.objects.get_or_create(
-            provider=self.auth_provider, external_id=usa.uid
-        )[0]
-        integration.add_organization(organization, user, default_auth_id=usa.id)
+        rpc_organization = serialize_rpc_organization(org=organization)
+        usersocialauth_service.link_auth(usa=usa, organization=rpc_organization)
 
     def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
         if self.auth_provider is None:
@@ -80,41 +83,43 @@ class ProviderMixin:
 
         organization = kwargs.get("organization")
         if organization:
-            has_auth = OrganizationIntegration.objects.filter(
-                integration__provider=self.auth_provider, organization_id=organization.id
-            ).exists()
+            ois = integration_service.get_organization_integrations(
+                providers=[self.auth_provider], organization_id=organization.id
+            )
+            has_auth = len(ois) > 0
             if has_auth:
                 return False
 
         if not user.is_authenticated:
             return True
 
-        return not UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).exists()
+        auths = usersocialauth_service.get_many(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return len(auths) == 0
 
-    def get_auth(self, user: RpcUser, **kwargs):
+    def get_auth(self, user: RpcUser, **kwargs) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
 
         organization = kwargs.get("organization")
         if organization:
-            try:
-                auth = UserSocialAuth.objects.get(
-                    id=OrganizationIntegration.objects.filter(
-                        organization_id=organization.id, integration__provider=self.auth_provider
-                    ).values_list("default_auth_id", flat=True)[0]
-                )
-            except UserSocialAuth.DoesNotExist:
-                pass
-            else:
-                return auth
+            ois = integration_service.get_organization_integrations(
+                providers=[self.auth_provider], organization_id=organization.id
+            )
+            if len(ois) > 0 and ois[0].default_auth_id is not None:
+                auth = usersocialauth_service.get_one_or_none(filter={"id": ois[0].default_auth_id})
+                if auth:
+                    return auth
 
         if not user.is_authenticated:
             return None
+        return usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
 
-        return UserSocialAuth.objects.filter(user_id=user.id, provider=self.auth_provider).first()
-
-    def handle_api_error(self, e):
-        context = {"error_type": "unknown"}
+    def handle_api_error(self, e: Exception) -> Response:
+        context: dict[str, object] = {"error_type": "unknown"}
         if isinstance(e, InvalidIdentity):
             if self.auth_provider is None:
                 context.update(
@@ -135,7 +140,6 @@ class ProviderMixin:
             context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
             status = 400
         else:
-            if self.logger:
-                self.logger.exception(str(e))
+            self.logger.exception(str(e))
             status = 500
         return Response(context, status=status)

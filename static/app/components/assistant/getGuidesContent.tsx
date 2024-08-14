@@ -1,55 +1,67 @@
-import {GuidesContent} from 'sentry/components/assistant/types';
+import type {GuidesContent} from 'sentry/components/assistant/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 
-export default function getGuidesContent(orgSlug: string | null): GuidesContent {
+export default function getGuidesContent(
+  organization: Organization | null
+): GuidesContent {
   if (ConfigStore.get('demoMode')) {
     return getDemoModeGuides();
   }
   return [
     {
       guide: 'issue',
-      requiredTargets: ['issue_number', 'exception'],
+      requiredTargets: ['issue_header_stats', 'breadcrumbs', 'issue_sidebar_owners'],
       steps: [
         {
-          title: t('Identify Your Issues'),
-          target: 'issue_number',
-          description: tct(
-            `You have Issues. That's fine. Use the Issue number in your commit message,
-                and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
-            {link: <ExternalLink href="https://docs.sentry.io/product/releases/" />}
-          ),
-        },
-        {
-          title: t('Annoy the Right People'),
-          target: 'owners',
-          description: tct(
-            `Notification overload makes it tempting to hurl your phone into the ocean.
-                Define who is responsible for what, so alerts reach the right people and your
-                devices stay on dry land. [link:Learn more]`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-              ),
-            }
-          ),
-        },
-        {
-          title: t('Narrow Down Suspects'),
-          target: 'exception',
+          title: t('How bad is it?'),
+          target: 'issue_header_stats',
           description: t(
-            `We've got stack trace. See the exact sequence of function calls leading to the error
-                in question, no detective skills necessary.`
+            `You have Issues and that's fine.
+              Understand impact at a glance by viewing total issue frequency and affected users.`
+          ),
+        },
+        {
+          title: t('Find problematic releases'),
+          target: 'issue_sidebar_releases',
+          description: t(
+            `See which release introduced the issue and which release it last appeared in.`
+          ),
+        },
+        {
+          title: t('Not your typical stack trace'),
+          target: 'stacktrace',
+          description: t(
+            `Sentry can show your source code in the stack trace.
+              See the exact sequence of function calls leading to the error in question.`
+          ),
+        },
+        {
+          title: t('Pinpoint hotspots'),
+          target: 'issue_sidebar_tags',
+          description: t(
+            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
           ),
         },
         {
           title: t('Retrace Your Steps'),
           target: 'breadcrumbs',
           description: t(
-            `Not sure how you got here? Sentry automatically captures breadcrumbs for events in web
-                frameworks to lead you straight to your error.`
+            `Not sure how you got here? Sentry automatically captures breadcrumbs for
+              events your user and app took that led to the error.`
+          ),
+        },
+        {
+          title: t('Annoy the Right People'),
+          target: 'issue_sidebar_owners',
+          description: t(
+            `Automatically assign issues to the person who introduced the commit,
+              notify them over notification tools like Slack,
+              and triage through issue management tools like Jira. `
           ),
         },
       ],
@@ -82,7 +94,11 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: tct(
             `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
             {
-              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+              link: (
+                <Link
+                  to={organization?.slug ? `/settings/${organization.slug}` : `/settings`}
+                />
+              ),
             }
           ),
           nextText: t('Allow'),
@@ -102,16 +118,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Transactions'),
+          title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
           ),
         },
         {
-          title: t('Transactions Details'),
+          title: t('Event Details'),
           target: 'trace_view_guide_row_details',
-          description: t('Click on any transaction to see more details.'),
+          description: t('Click on any transaction or error row to see more details.'),
         },
       ],
     },
@@ -167,124 +183,67 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'semver',
-      requiredTargets: ['releases_search'],
-      dateThreshold: new Date('2021-05-01'),
+      guide: 'metrics_onboarding',
+      requiredTargets: ['metrics_onboarding'],
       steps: [
         {
-          title: t('Filter by Semver'),
-          target: 'releases_search',
+          title: t('Metrics Selector'),
+          target: 'metrics_selector',
+          description: t('Your metrics are available here.'),
+        },
+        {
+          title: t('Aggregate Metrics'),
+          target: 'metrics_aggregate',
+          description: t('See different facets of your metric through aggregations.'),
+        },
+        ...(organization && hasMetricsNewInputs(organization)
+          ? [
+              {
+                title: t('Grouping'),
+                target: 'metrics_groupby',
+                description: t('Segment your data by the tags you’ve attached.'),
+              },
+              {
+                title: t('Filtering'),
+                target: 'metrics_filterby',
+                description: t('Filter your data by the tags you’ve attached.'),
+              },
+            ]
+          : [
+              {
+                title: t('Grouping & Filtering'),
+                target: 'metrics_groupby',
+                description: t(
+                  'Segment or filter your data by the tags you’ve attached.'
+                ),
+              },
+            ]),
+        {
+          title: t('Multiple Metrics'),
+          target: 'add_metric_query',
+          description: t('Plot a second metric to see correlations.'),
+        },
+        {
+          title: t('Visualization'),
+          target: 'metrics_chart',
+          description: t(
+            'View plotted metrics, dots on the chart represent associated sample spans.'
+          ),
+        },
+        {
+          title: t('Span Samples'),
+          target: 'metrics_table',
           description: tct(
-            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
+            'See sample spans summarized in a table format. [openInTraces]',
             {
-              br: <br />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
-              ),
+              openInTraces:
+                organization?.features.includes(
+                  'performance-trace-explorer-with-metrics'
+                ) && organization?.features.includes('performance-trace-explorer')
+                  ? t('To filter by tags found only on spans, click "Open in Traces".')
+                  : '',
             }
           ),
-          nextText: t('Leave me alone'),
-        },
-      ],
-    },
-    {
-      guide: 'new_page_filters',
-      requiredTargets: ['new_page_filter_button'],
-      expectedTargets: ['new_page_filter_pin'],
-      dateThreshold: new Date('2022-04-05'),
-      steps: [
-        {
-          title: t('Selection filters here now'),
-          target: 'new_page_filter_button',
-          description: t(
-            "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
-          ),
-          nextText: t('Sounds good'),
-        },
-        {
-          title: t('Pin your filters'),
-          target: 'new_page_filter_pin',
-          description: t(
-            "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'releases_widget',
-      requiredTargets: ['releases_widget'],
-      dateThreshold: new Date('2022-06-22'),
-      steps: [
-        {
-          title: t('Releases are here'),
-          target: 'releases_widget',
-          description: t(
-            'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
-          ),
-          nextText: t('Sounds good'),
-        },
-      ],
-    },
-    {
-      guide: 'activate_sampling_rule',
-      requiredTargets: ['sampling_rule_toggle'],
-      dateThreshold: new Date('2022-07-05'),
-      steps: [
-        {
-          title: t('Activate your first rule'),
-          target: 'sampling_rule_toggle',
-          description: t(
-            'Activating a rule will take immediate effect, as well as any changes given to an active rule.'
-          ),
-          nextText: t('Activate Rule'),
-          dismissText: t('Later'),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'create_conditional_rule',
-      requiredTargets: ['add_conditional_rule'],
-      dateThreshold: new Date('2022-07-05'),
-      steps: [
-        {
-          title: t('Create a new sample rule'),
-          target: 'add_conditional_rule',
-          description: t(
-            'Sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
-          ),
-          dismissText: t('Enough already'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_archive_button_issue_details',
-      requiredTargets: ['issue_details_archive_button'],
-      dateThreshold: new Date('2023-07-05'),
-      steps: [
-        {
-          title: t('Ignore is Now Archive'),
-          target: 'issue_details_archive_button',
-          description: t(
-            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
-          ),
-          dismissText: t('Go Away'),
-        },
-      ],
-    },
-    {
-      guide: 'explain_archive_tab_issue_stream',
-      requiredTargets: ['issue_stream_archive_tab'],
-      dateThreshold: new Date('2023-07-05'),
-      steps: [
-        {
-          title: t('Nothing to see here'),
-          target: 'issue_stream_archive_tab',
-          description: t(
-            "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
-          ),
-          dismissText: t('Goodbye Forever'),
         },
       ],
     },
@@ -389,7 +348,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compaed to previous releases.`
+            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],

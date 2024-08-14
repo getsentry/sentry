@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import typing
+from typing import TypeGuard
 
-from typing_extensions import TypeGuard
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
@@ -138,13 +138,16 @@ class DictType(Type[dict]):
             return None
 
 
-class SequenceType(Type[tuple]):
-    """Coerce a tuple out of a json/yaml string or a list"""
+class SequenceType(Type[list]):
+    """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
-    default = ()
-    expected_types = (tuple, list)
+    expected_types = (list,)
     compatible_types = (str, tuple, list)
+
+    def _default(self) -> list[typing.Any]:
+        # make sure we create a fresh list each time
+        return []
 
     def convert(self, value):
         if isinstance(value, str):
@@ -152,8 +155,8 @@ class SequenceType(Type[tuple]):
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
                 return None
-        if isinstance(value, list):
-            value = tuple(value)
+        if isinstance(value, tuple):
+            value = list(value)
         return value
 
 
@@ -174,14 +177,53 @@ _type_mapping: dict[type[object], Type] = {
     bytes: String,
     str: String,
     dict: Dict,
-    tuple: Sequence,
     list: Sequence,
 }
 
 
-def type_from_value(value: typing.Any) -> typing.Callable[[typing.Any], typing.Any]:
+# @typing.overload
+# def type_from_value(value: bool) -> BoolType:
+
+
+@typing.overload
+def type_from_value(value: int) -> IntType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: float) -> FloatType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: bytes) -> StringType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: str) -> StringType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: dict) -> DictType:
+    ...
+
+
+@typing.overload
+def type_from_value(value: list) -> SequenceType:
+    ...
+
+
+def type_from_value(value):
     """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]
 
 
 AnyCallable = typing.Callable[..., AnyType]
+
+
+def NonNone(value: T | None) -> T:
+    """A hacked version of TS's non-null assertion operator"""
+    assert value is not None
+    return value

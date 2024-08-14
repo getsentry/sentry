@@ -3,14 +3,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {ButtonProps, StyledButton} from 'sentry/components/button';
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ButtonProps} from 'sentry/components/button';
+import {StyledButton} from 'sentry/components/button';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type ButtonBarProps = {
   children: React.ReactNode;
   active?: ButtonProps['barId'];
   className?: string;
-  gap?: ValidSize;
+  gap?: ValidSize | 0;
   merged?: boolean;
 };
 
@@ -119,14 +121,13 @@ const MergedStyles = () => css`
   }
 `;
 
-const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
+const ButtonGrid = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${p => space(p.gap)};
+  grid-column-gap: ${p => (p.gap === 0 ? '0' : space(p.gap))};
   align-items: center;
 
   ${p => p.merged && MergedStyles}
 `;
 
-export {ButtonGrid, MergedStyles};
 export default ButtonBar;

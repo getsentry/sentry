@@ -4,8 +4,12 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';
@@ -32,7 +36,7 @@ type Props = Omit<
     React.ComponentProps<typeof Default>,
     'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
-    components: Array<SentryAppComponent>;
+    components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
     event: Event;
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
@@ -43,7 +47,6 @@ type Props = Omit<
 
 function Line({
   frame,
-  debugFrames,
   nextFrame,
   prevFrame,
   timesRepeated,
@@ -65,10 +68,10 @@ function Line({
   isHoverPreviewed = false,
   ...props
 }: Props) {
-  /* Prioritize the frame platform but fall back to the platform
-   of the stack trace / exception */
-  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
-  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  // Prioritize the frame platform but fall back to the platform
+  // of the stack trace / exception
+  const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformKey;
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
 
   const expandable =
     !leadsToApp || includeSystemFrames
@@ -95,6 +98,7 @@ function Line({
       case 'objc':
       case 'cocoa':
       case 'native':
+      case 'nintendo-switch':
         return (
           <Native
             event={event}
@@ -129,7 +133,6 @@ function Line({
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
             frameMeta={frameMeta}
-            debugFrames={debugFrames}
           />
         );
     }
@@ -141,7 +144,6 @@ function Line({
     expanded: isExpanded,
     collapsed: !isExpanded,
     'system-frame': !frame.inApp,
-    'frame-errors': !!(frame.errors ?? []).length,
     'leads-to-app': leadsToApp,
   });
 
@@ -160,10 +162,10 @@ function Line({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(frame, platform)}
-        expandable={expandable}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
+        platform={platform}
       />
     </StyleListItem>
   );

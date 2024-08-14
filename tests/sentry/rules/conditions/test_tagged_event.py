@@ -1,9 +1,11 @@
-from sentry.rules.conditions.tagged_event import MatchType, TaggedEventCondition
+from sentry.rules.conditions.tagged_event import TaggedEventCondition
+from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class TaggedEventConditionTest(RuleTestCase):
     rule_cls = TaggedEventCondition
 
@@ -129,3 +131,23 @@ class TaggedEventConditionTest(RuleTestCase):
 
         rule = self.get_rule(data={"match": MatchType.NOT_SET, "key": "missing"})
         self.assertPasses(rule, event)
+
+    def test_is_in(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.IS_IN, "key": "logger", "value": "bar.foo, wee, wow"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(data={"match": MatchType.IS_IN, "key": "logger", "value": "foo.bar"})
+        self.assertPasses(rule, event)
+
+    def test_not_in(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_IN, "key": "logger", "value": "bar.foo, wee, wow"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(data={"match": MatchType.NOT_IN, "key": "logger", "value": "foo.bar"})
+        self.assertDoesNotPass(rule, event)

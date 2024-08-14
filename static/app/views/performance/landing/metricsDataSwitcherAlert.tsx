@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
-import {WithRouterProps} from 'react-router';
-import {Location} from 'history';
+import type {WithRouterProps} from 'react-router';
+import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Alert} from 'sentry/components/alert';
@@ -9,14 +9,15 @@ import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {Organization, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
+import type {DiscoverQueryPageSource} from '../utils';
 import {
-  areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
-  DiscoverQueryPageSource,
+  getIsMultiProject,
   getSelectedProjectPlatformsArray,
 } from '../utils';
 
@@ -107,7 +108,7 @@ export function MetricsDataSwitcherAlert(
         {t('update your SDK version')}
       </Link>
     );
-    if (areMultipleProjectsSelected(props.eventView)) {
+    if (getIsMultiProject(props.eventView.project)) {
       if ((props.compatibleProjects ?? []).length === 0) {
         return (
           <Alert

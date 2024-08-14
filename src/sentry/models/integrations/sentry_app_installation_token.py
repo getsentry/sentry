@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db.models import QuerySet
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, control_silo_only_model
-from sentry.models import ApiToken
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
+from sentry.models.apitoken import ApiToken
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
 
-class SentryAppInstallationTokenManager(BaseManager):
+class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):
     def get_token(self, organization_id: int, provider: str) -> str | None:
         """Find a token associated with the installation so we can use it for authentication."""
         sentry_app_installation_tokens = self.select_related("api_token").filter(
@@ -24,10 +28,9 @@ class SentryAppInstallationTokenManager(BaseManager):
         return sentry_app_installation_tokens[0].api_token.token
 
     def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
-        id: int
         if isinstance(token, ApiToken):
             id = token.id
-        elif token.kind == "api_token":
+        elif token.kind == "api_token" and token.entity_id is not None:
             id = token.entity_id
         else:
             return None
@@ -39,7 +42,7 @@ class SentryAppInstallationTokenManager(BaseManager):
         return None
 
     def get_projects(self, token: ApiToken) -> QuerySet:
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         install_token = self._get_token(token)
         if not install_token:
@@ -59,16 +62,22 @@ class SentryAppInstallationTokenManager(BaseManager):
         return install_token.sentry_app_installation.organization_id == organization_id
 
 
-@control_silo_only_model
-class SentryAppInstallationToken(Model):
-    __include_in_export__ = False
+@control_silo_model
+class SentryAppInstallationToken(ControlOutboxProducingModel):
+    __relocation_scope__ = RelocationScope.Excluded
 
     api_token = FlexibleForeignKey("sentry.ApiToken")
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
 
-    objects = SentryAppInstallationTokenManager()
+    objects: ClassVar[SentryAppInstallationTokenManager] = SentryAppInstallationTokenManager()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappinstallationtoken"
         unique_together = (("sentry_app_installation", "api_token"),)
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
+        try:
+            return self.api_token.outboxes_for_update()
+        except ApiToken.DoesNotExist:
+            return []

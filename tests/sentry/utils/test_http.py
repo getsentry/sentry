@@ -4,7 +4,7 @@ from unittest import mock
 from django.http import HttpRequest
 
 from sentry import options
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.http import absolute_uri, get_origins, is_valid_origin, origin_from_request
 
 

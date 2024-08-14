@@ -1,4 +1,5 @@
-from sentry.models import Environment, Project, ScheduledDeletion
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -7,13 +8,12 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import APITestCase, TransactionTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
-@region_silo_test
-class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
+class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
@@ -27,11 +27,11 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
         )
         monitor_env = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=env,
+            environment_id=env.id,
         )
         monitor_env_2 = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=env_2,
+            environment_id=env_2.id,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -48,11 +48,10 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase):
             status=CheckInStatus.OK,
         )
 
-        deletion = ScheduledDeletion.schedule(monitor_env, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=monitor_env, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()

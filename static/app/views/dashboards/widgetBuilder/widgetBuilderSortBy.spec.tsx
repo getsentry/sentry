@@ -1,17 +1,18 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -19,9 +20,6 @@ const defaultOrgFeatures = [
   'global-views',
   'dashboards-mep',
 ];
-
-// Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
@@ -49,7 +47,7 @@ function renderTestComponent({
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -62,6 +60,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(projects);
 
   render(
     <WidgetBuilder
@@ -88,7 +88,7 @@ function renderTestComponent({
       }}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -181,11 +181,6 @@ describe('WidgetBuilder', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
-    });
-
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -193,23 +188,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -250,7 +241,9 @@ describe('WidgetBuilder', function () {
       // Selector "sortDirection"
       expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
-      expect(screen.getAllByText('count()')).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(3);
+      });
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {
@@ -387,10 +380,12 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(await screen.findByText('Low to high')).toBeInTheDocument();
 
       // Selector "sortBy"
-      expect(screen.getAllByText('title')).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getAllByText('title')).toHaveLength(2);
+      });
 
       // Saves the widget
       await userEvent.click(screen.getByText('Add Widget'));
@@ -562,7 +557,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
+      await selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
 
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
 

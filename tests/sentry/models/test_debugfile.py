@@ -9,9 +9,9 @@ from typing import Any
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import DifMeta, File, ProjectDebugFile, debugfile
-from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.debugfile import DifMeta, ProjectDebugFile, create_dif_from_id
+from sentry.models.files.file import File
+from sentry.testutils.cases import APITestCase, TestCase
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -24,7 +24,6 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test(stable=True)
 class DebugFileTest(TestCase):
     def test_delete_dif(self):
         dif = self.create_dif_file(
@@ -113,6 +112,11 @@ class DebugFileTest(TestCase):
         )
         assert debug_id not in difs
 
+    def test_find_missing(self):
+        dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
+        ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
+        assert ret == ["a" * 40]
+
 
 class CreateDebugFileTest(APITestCase):
     @property
@@ -129,9 +133,7 @@ class CreateDebugFileTest(APITestCase):
         }
 
         args.update(kwargs)
-        return debugfile.create_dif_from_id(
-            self.project, DifMeta(**args), fileobj=fileobj, file=file
-        )
+        return create_dif_from_id(self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
     def test_create_dif_from_file(self):
         file = self.create_file(
@@ -243,7 +245,10 @@ class DebugFilesClearTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)

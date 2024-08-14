@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import IntegrityError, models
@@ -9,21 +10,23 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import ExternalProviders
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import User
-    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
+    from sentry.identity.base import Provider
+    from sentry.identity.services.identity import RpcIdentityProvider
+    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ class IdentityStatus:
     INVALID = 2
 
 
-@control_silo_only_model
+@control_silo_model
 class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.
@@ -47,10 +50,10 @@ class IdentityProvider(Model):
     acme-org.onelogin.com.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
-    config = JSONField()
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -65,7 +68,7 @@ class IdentityProvider(Model):
         return get(self.type)
 
 
-class IdentityManager(BaseManager):
+class IdentityManager(BaseManager["Identity"]):
     def get_identities_for_user(
         self, user: User | RpcUser, provider: ExternalProviders
     ) -> QuerySet:
@@ -80,7 +83,7 @@ class IdentityManager(BaseManager):
         idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         should_reattach: bool = True,
-        defaults: Optional[Mapping[str, Any | None]] = None,
+        defaults: Mapping[str, Any | None] | None = None,
     ) -> Identity:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
@@ -98,9 +101,9 @@ class IdentityManager(BaseManager):
             )
             if not created:
                 identity.update(**defaults)
-        except IntegrityError as e:
+        except IntegrityError:
             if not should_reattach:
-                raise e
+                raise
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
@@ -170,7 +173,7 @@ class IdentityManager(BaseManager):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={
@@ -183,31 +186,31 @@ class IdentityManager(BaseManager):
         return identity_model
 
 
-@control_silo_only_model
+@control_silo_model
 class Identity(Model):
     """
     A verified link between a user and a third party identity.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField()
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = IdentityManager()
+    objects: ClassVar[IdentityManager] = IdentityManager()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
 
-    def get_provider(self):
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.idp.type)

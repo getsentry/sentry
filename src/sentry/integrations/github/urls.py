@@ -1,6 +1,7 @@
 from django.urls import re_path
 
-from .search import GitHubSearchEndpoint
+from .installation import GitHubIntegrationsInstallationEndpoint
+from .search import GithubSharedSearchEndpoint
 from .webhook import GitHubIntegrationsWebhookEndpoint
 
 urlpatterns = [
@@ -10,8 +11,13 @@ urlpatterns = [
         name="sentry-integration-github-webhook",
     ),
     re_path(
-        r"^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$",
-        GitHubSearchEndpoint.as_view(),
+        r"^installation/(?P<installation_id>\d+)/$",
+        GitHubIntegrationsInstallationEndpoint.as_view(),
+        name="sentry-integration-github-installation",
+    ),
+    re_path(
+        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+        GithubSharedSearchEndpoint.as_view(),
         name="sentry-integration-github-search",
     ),
 ]

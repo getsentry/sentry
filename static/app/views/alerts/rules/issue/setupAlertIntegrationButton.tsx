@@ -1,17 +1,19 @@
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
+  refetchConfigs: () => void;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   detailedProject?: Project & {
     hasAlertIntegrationInstalled: boolean;
   };
@@ -19,10 +21,13 @@ type State = AsyncComponent['state'] & {
 
 /**
  * This component renders a button to Set up an alert integration (just Slack for now)
- * if the project has no alerting integrations setup already.
+ * if the project has no alerting integrations setup already. To be replaced by SetupMessagingIntegrationButton.
  */
-export default class SetupAlertIntegrationButton extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {projectSlug, organization} = this.props;
     return [
       [
@@ -44,6 +49,7 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
   renderBody(): React.ReactNode {
     const {organization} = this.props;
     const {detailedProject} = this.state;
+
     // don't render anything if we don't have the project yet or if an alert integration
     // is installed
     if (!detailedProject || detailedProject.hasAlertIntegrationInstalled) {
@@ -60,7 +66,6 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
       : {
           to: `/settings/${organization.slug}/integrations/slack/${referrerQuery}`,
         };
-
     // TOOD(Steve): need to use the Tooltip component because adding a title to the button
     // puts the tooltip in the upper left hand corner of the page instead of the button
     return (

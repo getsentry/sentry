@@ -1,7 +1,10 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, PlatformType} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import type {Event, Frame} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {SymbolicatorStatus} from '../types';
 
@@ -11,7 +14,7 @@ export function trimPackage(pkg: string) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
+export function getPlatform(dataPlatform: PlatformKey | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
   return dataPlatform || platform;
@@ -73,11 +76,11 @@ export function hasContextSource(frame: Frame) {
 }
 
 export function hasContextVars(frame: Frame) {
-  return !objectIsEmpty(frame.vars || {});
+  return !isEmptyObject(frame.vars || {});
 }
 
 export function hasContextRegisters(registers: Record<string, string>) {
-  return !objectIsEmpty(registers);
+  return !isEmptyObject(registers);
 }
 
 export function hasAssembly(frame: Frame, platform?: string) {
@@ -137,4 +140,12 @@ function isAnrEvent(event: Event) {
     mechanismTag === 'AppHang' ||
     mechanismTag === 'mx_hang_diagnostic';
   return isANR;
+}
+
+export function hasFileExtension(filepath: string) {
+  // Regular expression to match a file extension
+  const fileExtensionPattern = /\.[0-9a-z]+$/i;
+
+  // Check if the filepath matches the pattern
+  return fileExtensionPattern.test(filepath);
 }

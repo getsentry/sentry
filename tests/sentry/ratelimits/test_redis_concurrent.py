@@ -2,11 +2,11 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-
-from freezegun import freeze_time
+from unittest import mock
 
 from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ConcurrentLimiterTest(TestCase):
@@ -47,11 +47,11 @@ class ConcurrentLimiterTest(TestCase):
                 return fail
 
         limiter = ConcurrentRateLimiter()
-        limiter.client = FakeClient(limiter.client)  # type: ignore[assignment]
-        failed_request = limiter.start_request("key", 100, "some_uid")
-        assert failed_request.current_executions == -1
-        assert failed_request.limit_exceeded is False
-        limiter.finish_request("key", "some_uid")
+        with mock.patch.object(limiter, "client", FakeClient(limiter.client)):
+            failed_request = limiter.start_request("key", 100, "some_uid")
+            assert failed_request.current_executions == -1
+            assert failed_request.limit_exceeded is False
+            limiter.finish_request("key", "some_uid")
 
     def test_cleanup_stale(self):
         limit = 10

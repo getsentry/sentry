@@ -1,3 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as OrganizationsActionCreator from 'sentry/actionCreators/organizations';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -6,12 +10,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('OrganizationActionCreator', function () {
-  const org = TestStubs.Organization();
-  delete org.teams;
-  delete org.projects;
+  const org = OrganizationFixture();
 
-  const teams = [TestStubs.Team()];
-  const projects = [TestStubs.Project()];
+  const teams = [TeamFixture()];
+  const projects = [ProjectFixture()];
 
   const api = new MockApiClient();
 

@@ -1,25 +1,25 @@
 import round from 'lodash/round';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
+import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
-import {defined, percent} from 'sentry/utils';
+import type {PageFilters} from 'sentry/types/core';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
-import {displayCrashFreePercent, getCrashFreePercent} from 'sentry/views/releases/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -27,234 +27,174 @@ import {
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
-type Props = AsyncComponent['props'] & {
-  field: SessionFieldWithOperation.SESSIONS | SessionFieldWithOperation.USERS;
+type Props = {
+  field:
+    | SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
+    | SessionFieldWithOperation.CRASH_FREE_RATE_USERS;
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
-  organization: Organization;
   selection: PageFilters;
+  project?: Project;
   query?: string;
 };
 
-type State = AsyncComponent['state'] & {
-  currentSessions: SessionApiResponse | null;
-  previousSessions: SessionApiResponse | null;
+const useCrashFreeRate = (props: Props) => {
+  const organization = useOrganization();
+  const {selection, isProjectStabilized, hasSessions, query, field} = props;
+
+  const isEnabled = !!(isProjectStabilized && hasSessions);
+  const {projects, environments: environment, datetime} = selection;
+  const {period} = datetime;
+
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
+
+  const commonQuery = {
+    environment,
+    project: projects[0],
+    interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
+    query,
+    field,
+  };
+
+  // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
+  // https://github.com/getsentry/sentry/pull/22770#issuecomment-758595553
+
+  const currentQuery = useApiQuery<SessionApiResponse>(
+    [
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          ...commonQuery,
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {staleTime: 0, enabled: isEnabled}
+  );
+
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
+  const previousQuery = useApiQuery<SessionApiResponse>(
+    [
+      `/organizations/${organization.slug}/sessions/`,
+      {
+        query: {
+          ...commonQuery,
+          statsPeriodStart: doubledPeriod,
+          statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: isEnabled && isPreviousPeriodEnabled,
+    }
+  );
+
+  return {
+    crashFreeRate: currentQuery.data,
+    previousCrashFreeRate: previousQuery.data,
+    isLoading:
+      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
+    error: currentQuery.error || previousQuery.error,
+    refetch: () => {
+      currentQuery.refetch();
+      previousQuery.refetch();
+    },
+  };
 };
 
-class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
+// shouldRenderBadRequests = true;
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      currentSessions: null,
-      previousSessions: null,
-    };
-  }
+function ProjectStabilityScoreCard(props: Props) {
+  const {hasSessions} = props;
+  const organization = useOrganization();
 
-  getEndpoints() {
-    const {organization, selection, isProjectStabilized, hasSessions, query, field} =
-      this.props;
-
-    if (!isProjectStabilized || !hasSessions) {
-      return [];
-    }
-
-    const {projects, environments: environment, datetime} = selection;
-    const {period} = datetime;
-    const commonQuery = {
-      environment,
-      project: projects[0],
-      groupBy: 'session.status',
-      interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
-      query,
-      field,
-    };
-
-    // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
-    // https://github.com/getsentry/sentry/pull/22770#issuecomment-758595553
-
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
-      [
-        'currentSessions',
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            ...commonQuery,
-            ...normalizeDateTimeParams(datetime),
-          },
-        },
-      ],
-    ];
-
-    if (
-      shouldFetchPreviousPeriod({
-        start: datetime.start,
-        end: datetime.end,
-        period: datetime.period,
-      })
-    ) {
-      const doubledPeriod = getPeriod(
-        {period, start: undefined, end: undefined},
-        {shouldDoublePeriod: true}
-      ).statsPeriod;
-
-      endpoints.push([
-        'previousSessions',
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            ...commonQuery,
-            statsPeriodStart: doubledPeriod,
-            statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
-          },
-        },
-      ]);
-    }
-
-    return endpoints;
-  }
-
-  get cardTitle() {
-    return this.props.field === SessionFieldWithOperation.SESSIONS
+  const cardTitle =
+    props.field === SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
       ? t('Crash Free Sessions')
       : t('Crash Free Users');
-  }
 
-  get cardHelp() {
-    return getSessionTermDescription(
-      this.props.field === SessionFieldWithOperation.SESSIONS
-        ? SessionTerm.CRASH_FREE_SESSIONS
-        : SessionTerm.CRASH_FREE_USERS,
-      null
-    );
-  }
+  const cardHelp = getSessionTermDescription(
+    props.field === SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
+      ? SessionTerm.CRASH_FREE_SESSIONS
+      : SessionTerm.CRASH_FREE_USERS,
+    null
+  );
 
-  get score() {
-    const {currentSessions} = this.state;
+  const {crashFreeRate, previousCrashFreeRate, isLoading, error, refetch} =
+    useCrashFreeRate(props);
 
-    return this.calculateCrashFree(currentSessions);
-  }
+  const score = !crashFreeRate
+    ? undefined
+    : crashFreeRate?.groups[0]?.totals[props.field] * 100;
 
-  get trend() {
-    const {previousSessions} = this.state;
+  const previousScore = !previousCrashFreeRate
+    ? undefined
+    : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
 
-    const previousScore = this.calculateCrashFree(previousSessions);
+  const trend =
+    defined(score) && defined(previousScore)
+      ? round(score - previousScore, 3)
+      : undefined;
 
-    if (!defined(this.score) || !defined(previousScore)) {
-      return undefined;
-    }
+  const shouldRenderTrend = !isLoading && defined(score) && defined(trend);
 
-    return round(this.score - previousScore, 3);
-  }
-
-  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
-    if (!this.trend) {
-      return undefined;
-    }
-
-    return this.trend > 0 ? 'good' : 'bad';
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized, hasSessions, query} = this.props;
-
-    if (
-      prevProps.selection !== selection ||
-      prevProps.hasSessions !== hasSessions ||
-      prevProps.isProjectStabilized !== isProjectStabilized ||
-      prevProps.query !== query
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  calculateCrashFree(data?: SessionApiResponse | null) {
-    const {field} = this.props;
-
-    if (!data) {
-      return undefined;
-    }
-
-    const totalSessions = data.groups.reduce(
-      (acc, group) => acc + group.totals[field],
-      0
-    );
-
-    const crashedSessions = data.groups.find(
-      group => group.by['session.status'] === 'crashed'
-    )?.totals[field];
-
-    if (totalSessions === 0 || !defined(totalSessions) || !defined(crashedSessions)) {
-      return undefined;
-    }
-
-    const crashedSessionsPercent = percent(crashedSessions, totalSessions);
-
-    return getCrashFreePercent(100 - crashedSessionsPercent);
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderMissingFeatureCard() {
-    const {organization} = this.props;
+  if (hasSessions === false) {
     return (
       <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
-        score={<MissingReleasesButtons organization={organization} health />}
+        title={cardTitle}
+        help={cardHelp}
+        score={
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={props.project?.platform}
+          />
+        }
       />
     );
   }
 
-  renderScore() {
-    const {loading} = this.state;
-
-    if (loading || !defined(this.score)) {
-      return '\u2014';
-    }
-
-    return displayCrashFreePercent(this.score);
-  }
-
-  renderTrend() {
-    const {loading} = this.state;
-
-    if (loading || !defined(this.score) || !defined(this.trend)) {
-      return null;
-    }
-
+  if (error) {
     return (
-      <div>
-        {this.trend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
-        ) : (
-          <IconArrow direction="down" size="xs" />
-        )}
-        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
-      </div>
-    );
-  }
-
-  renderBody() {
-    const {hasSessions} = this.props;
-
-    if (hasSessions === false) {
-      return this.renderMissingFeatureCard();
-    }
-
-    return (
-      <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
-        score={this.renderScore()}
-        trend={this.renderTrend()}
-        trendStatus={this.trendStatus}
+      <LoadingError
+        message={
+          (error.responseJSON?.detail as React.ReactNode) ||
+          t('There was an error loading data.')
+        }
+        onRetry={refetch}
       />
     );
   }
+
+  return (
+    <ScoreCard
+      title={cardTitle}
+      help={cardHelp}
+      score={isLoading || !defined(score) ? '\u2014' : displayCrashFreePercent(score)}
+      trend={
+        shouldRenderTrend ? (
+          <div>
+            {trend >= 0 ? (
+              <IconArrow direction="up" size="xs" />
+            ) : (
+              <IconArrow direction="down" size="xs" />
+            )}
+            {`${formatAbbreviatedNumber(Math.abs(trend))}\u0025`}
+          </div>
+        ) : null
+      }
+      trendStatus={!trend ? undefined : trend > 0 ? 'good' : 'bad'}
+    />
+  );
 }
 
 export default ProjectStabilityScoreCard;

@@ -1,13 +1,21 @@
+import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/api');
+jest.mock('sentry/utils/analytics');
 
 describe('IssueDiff', function () {
-  const entries = TestStubs.Entries();
+  const entries123Target = Entries123Target();
+  const entries123Base = Entries123Base();
   const api = new MockApiClient();
-  const project = TestStubs.ProjectDetails();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({features: ['similarity-embeddings']});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -25,7 +33,7 @@ describe('IssueDiff', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
-        entries: entries[0],
+        entries: entries123Target,
       },
     });
 
@@ -33,7 +41,7 @@ describe('IssueDiff', function () {
       url: `/projects/org-slug/${project.slug}/events/123base/`,
       body: {
         platform: 'javascript',
-        entries: entries[1],
+        entries: entries123Base,
       },
     });
   });
@@ -42,33 +50,53 @@ describe('IssueDiff', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', function () {
-    const wrapper = render(
+  it('is loading when initially rendering', async function () {
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
 
   it('can dynamically import SplitDiff', async function () {
-    const wrapper = render(
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        organization={organization}
+        shouldBeGrouped="Yes"
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
+    expect(trackAnalytics).toHaveBeenCalled();
   });
 
   it('can diff message', async function () {
@@ -86,17 +114,25 @@ describe('IssueDiff', function () {
       },
     });
 
-    const wrapper = render(
+    render(
       <IssueDiff
         api={api}
         baseIssueId="base"
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
   });
 });

@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, NotRequired, TypedDict
 
 import requests
 from rest_framework import status
-from sentry_sdk import configure_scope
+from sentry_sdk import Scope
 
 from sentry import options
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.stacktrace_link import RepositoryLinkOutcome
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 
-LineCoverage = Sequence[Tuple[int, int]]
+LineCoverage = Sequence[tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
@@ -35,16 +38,16 @@ def codecov_enabled(organization: Organization) -> bool:
     return bool(organization.flags.codecov_access)
 
 
-def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
+def has_codecov_integration(organization: Organization) -> tuple[bool, str | None]:
     """
     Checks if the organization has a Codecov integration.
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id, provider="github"
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id, providers=["github"]
     )
-    if not integrations.exists():
+    if not integrations:
         logger.info(
             "codecov.get_integrations",
             extra={"error": "Missing github integration", "org_id": organization.id},
@@ -82,7 +85,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
     )
 
 
-def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage | None, str | None]:
+def get_codecov_data(repo: str, service: str, path: str) -> tuple[LineCoverage | None, str | None]:
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
         return None, None
@@ -99,43 +102,58 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     )
 
     line_coverage, codecov_url = None, None
-    with configure_scope() as scope:
-        response = requests.get(
-            url,
-            params={"walk_back": 10},
-            headers={"Authorization": f"Bearer {codecov_token}"},
-            timeout=CODECOV_TIMEOUT,
-        )
-        tags = {
-            "codecov.request_url": url,
-            "codecov.request_path": path,
-            "codecov.http_code": response.status_code,
-        }
+    scope = Scope.get_isolation_scope()
 
-        response_json = response.json()
+    response = requests.get(
+        url,
+        params={"walk_back": 10},
+        headers={"Authorization": f"Bearer {codecov_token}"},
+        timeout=CODECOV_TIMEOUT,
+    )
+    response.raise_for_status()
 
-        tags["codecov.new_endpoint"] = True
-        line_coverage = response_json.get("line_coverage")
+    tags = {
+        "codecov.request_url": url,
+        "codecov.request_path": path,
+        "codecov.http_code": response.status_code,
+    }
 
-        coverage_found = line_coverage not in [None, [], [[]]]
-        codecov_url = response_json.get("commit_file_url", "")
-        tags.update(
-            {
-                "codecov.coverage_found": coverage_found,
-                "codecov.coverage_url": codecov_url,
-            },
-        )
+    response_json = response.json()
 
-        for key, value in tags.items():
-            scope.set_tag(key, value)
+    tags["codecov.new_endpoint"] = True
+    line_coverage = response_json.get("line_coverage")
 
-        response.raise_for_status()
+    coverage_found = line_coverage not in [None, [], [[]]]
+    codecov_url = response_json.get("commit_file_url", "")
+    tags.update(
+        {
+            "codecov.coverage_found": coverage_found,
+            "codecov.coverage_url": codecov_url,
+        },
+    )
+
+    for key, value in tags.items():
+        scope.set_tag(key, value)
 
     return line_coverage, codecov_url
 
 
-def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
-    data = {}
+class CodecovConfig(TypedDict):
+    repository: Repository
+    # Config is a serialized RepositoryProjectPathConfig
+    config: Any
+    outcome: RepositoryLinkOutcome
+
+
+class CodecovData(TypedDict):
+    lineCoverage: NotRequired[LineCoverage]
+    coverageUrl: NotRequired[str]
+    status: NotRequired[int]
+    attemptedUrl: NotRequired[str]
+
+
+def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
+    data: CodecovData = {}
     message = ""
     try:
         repo = config["repository"].name
@@ -159,16 +177,16 @@ def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
         if error.response.status_code != status.HTTP_404_NOT_FOUND:
             message = f"Codecov HTTP error: {error.response.status_code}. Continuing execution."
     except requests.Timeout:
-        with configure_scope() as scope:
-            scope.set_tag("codecov.timeout", True)
-            scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
-            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("codecov.timeout", True)
+        scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
+        scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
         message = f"{error}. Continuing execution."
 
     if message:
-        logger.exception(message)
+        logger.error(message)
 
     return data

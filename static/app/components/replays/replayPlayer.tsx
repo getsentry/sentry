@@ -1,9 +1,9 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -17,6 +17,7 @@ type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 interface Props {
   className?: string;
   isPreview?: boolean;
+  overlayContent?: React.ReactNode;
 }
 
 function useVideoSizeLogger({
@@ -28,6 +29,8 @@ function useVideoSizeLogger({
 }) {
   const organization = useOrganization();
   const [didLog, setDidLog] = useState<boolean>(false);
+  const {analyticsContext} = useReplayContext();
+
   useEffect(() => {
     if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
       return;
@@ -48,19 +51,23 @@ function useVideoSizeLogger({
     trackAnalytics('replay.render-player', {
       organization,
       aspect_ratio,
+      context: analyticsContext,
       scale_bucket,
     });
     setDidLog(true);
-  }, [organization, windowDimensions, videoDimensions, didLog]);
+  }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({className, isPreview = false}: Props) {
+function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
-    initRoot,
+    setRoot,
     isBuffering,
+    isVideoBuffering,
     isFetching,
+    isFinished,
+    isVideoReplay,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -73,8 +80,25 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
 
   useVideoSizeLogger({videoDimensions, windowDimensions});
 
-  // Create the `rrweb` instance which creates an iframe inside `viewEl`
-  useEffect(() => initRoot(viewEl.current), [initRoot]);
+  // Sets the parent element where the player
+  // instance will use as root (i.e. where it will
+  // create an iframe)
+  useEffect(() => {
+    // XXX: This is smelly, but without the
+    // dependence on `isFetching` here, will result
+    // in ReplayContext creating a new Replayer
+    // instance before events are hydrated. This
+    // resulted in the `recording(Start/End)Frame`
+    // as the only two events when we instantiated
+    // Replayer and the rrweb Replayer requires all
+    // events to be present when instantiated.
+    if (!isFetching) {
+      setRoot(viewEl.current);
+    }
+    return () => {
+      setRoot(null);
+    };
+  }, [setRoot, isFetching]);
 
   // Read the initial width & height where the player will be inserted, this is
   // so we can shrink the video into the available space.
@@ -99,10 +123,12 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
+      // We use 1.5 here because we want to scale up mobile replays
+      // (or other replays that have height > width)
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
         windowDimensions.height / videoDimensions.height,
-        1
+        1.5
       );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
@@ -114,47 +140,22 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <SizingWindow ref={windowEl} className="sentry-block">
-      <div ref={viewEl} className={className} />
-      {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-      {isBuffering ? <PositionedBuffering /> : null}
-      {isPreview ? null : <PlayerDOMAlert />}
-      {isFetching ? <PositionedLoadingIndicator /> : null}
-    </SizingWindow>
+    <Fragment>
+      {isFinished && overlayContent && (
+        <Overlay>
+          <OverlayInnerWrapper>{overlayContent}</OverlayInnerWrapper>
+        </Overlay>
+      )}
+      <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
+        <div ref={viewEl} className={className} />
+        {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
+        {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
+        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
+        {isFetching ? <PositionedLoadingIndicator /> : null}
+      </StyledNegativeSpaceContainer>
+    </Fragment>
   );
 }
-
-// Center the viewEl inside the windowEl.
-// This is useful when the window is inside a container that has large fixed
-// dimensions, like when in fullscreen mode.
-// If the container has a dimensions that can grow/shrink then it is
-// important to also set `overflow: hidden` on the container, so that the
-// SizingWindow can calculate size as things shrink.
-const SizingWindow = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-grow: 1;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-
-  background-color: ${p => p.theme.backgroundSecondary};
-  background-image: repeating-linear-gradient(
-      -145deg,
-      transparent,
-      transparent 8px,
-      ${p => p.theme.backgroundSecondary} 8px,
-      ${p => p.theme.backgroundSecondary} 11px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 15px,
-      ${p => p.theme.gray100} 15px,
-      ${p => p.theme.gray100} 16px
-    );
-`;
 
 const PositionedFastForward = styled(FastForwardBadge)`
   position: absolute;
@@ -212,7 +213,9 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     position: absolute;
     width: 32px;
     height: 32px;
-    transition: left 0.05s linear, top 0.05s linear;
+    transition:
+      left 0.05s linear,
+      top 0.05s linear;
     background-size: contain;
     background-repeat: no-repeat;
     background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxMiAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMTZWMEwxMS42IDExLjZINC44TDQuNCAxMS43TDAgMTZaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOS4xIDE2LjdMNS41IDE4LjJMMC43OTk5OTkgNy4xTDQuNSA1LjZMOS4xIDE2LjdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNC42NzQ1MSA4LjYxODUxTDIuODMwMzEgOS4zOTI3MUw1LjkyNzExIDE2Ljc2OTVMNy43NzEzMSAxNS45OTUzTDQuNjc0NTEgOC42MTg1MVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xIDIuNFYxMy42TDQgMTAuN0w0LjQgMTAuNkg5LjJMMSAyLjRaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K');
@@ -239,11 +242,17 @@ const SentryPlayerRoot = styled(PlayerRoot)`
     margin-left: -37px;
     margin-top: -37px;
     border: 4px solid rgba(73, 80, 246, 0);
-    transition: left 0s linear, top 0s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0s linear,
+      top 0s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device.touch-active {
     border-color: ${p => p.theme.purple200};
-    transition: left 0.25s linear, top 0.25s linear, border-color 0.2s ease-in-out;
+    transition:
+      left 0.25s linear,
+      top 0.25s linear,
+      border-color 0.2s ease-in-out;
   }
   .replayer-mouse.touch-device:after {
     opacity: 0;
@@ -275,6 +284,49 @@ const SentryPlayerRoot = styled(PlayerRoot)`
       height: 10px;
     }
   }
+
+  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
+  &.video-replayer {
+    .replayer-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .replayer-wrapper > iframe {
+      opacity: 0;
+    }
+  }
+`;
+
+const Overlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+`;
+
+const OverlayInnerWrapper = styled('div')`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+`;
+
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  position: relative;
+  width: 100%;
+  height: 100%;
 `;
 
 export default SentryPlayerRoot;

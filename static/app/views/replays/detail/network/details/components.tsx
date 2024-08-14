@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useState} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -11,6 +12,10 @@ export const Indent = styled('div')`
   padding-left: ${space(4)};
 `;
 
+export const InspectorMargin = styled('div')`
+  padding: ${space(1)};
+`;
+
 const NotFoundText = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -20,14 +25,14 @@ const WarningText = styled('span')`
   color: ${p => p.theme.errorText};
 `;
 
-export function Warning({warnings}: {warnings: undefined | string[]}) {
-  if (warnings?.includes('JSON_TRUNCATED') || warnings?.includes('TEXT_TRUNCATED')) {
+export function Warning({warnings}: {warnings: string[]}) {
+  if (warnings.includes('JSON_TRUNCATED') || warnings.includes('TEXT_TRUNCATED')) {
     return (
       <WarningText>{t('Truncated (~~) due to exceeding 150k characters')}</WarningText>
     );
   }
 
-  if (warnings?.includes('INVALID_JSON')) {
+  if (warnings.includes('INVALID_JSON')) {
     return <WarningText>{t('Invalid JSON')}</WarningText>;
   }
 
@@ -44,14 +49,22 @@ export function SizeTooltip({children}: {children: ReactNode}) {
   );
 }
 
-export function keyValueTableOrNotFound(
-  data: undefined | Record<string, string>,
-  notFoundText: string
-) {
-  return data ? (
+export type KeyValueTuple = {
+  key: string;
+  value: string | ReactNode;
+  type?: 'warning' | 'error';
+};
+
+export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
+  return data.length ? (
     <StyledKeyValueTable noMargin>
-      {Object.entries(data).map(([key, value]) => (
-        <KeyValueTableRow key={key} keyName={key} value={<span>{value}</span>} />
+      {data.map(({key, value, type}) => (
+        <KeyValueTableRow
+          key={key}
+          keyName={key}
+          type={type}
+          value={<ValueContainer>{value}</ValueContainer>}
+        />
       ))}
     </StyledKeyValueTable>
   ) : (
@@ -61,12 +74,16 @@ export function keyValueTableOrNotFound(
   );
 }
 
+const ValueContainer = styled('span')`
+  overflow: auto;
+`;
+
 const SectionTitle = styled('dt')``;
 
 const SectionTitleExtra = styled('span')`
   flex-grow: 1;
   text-align: right;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SectionData = styled('dd')`
@@ -78,7 +95,7 @@ const ToggleButton = styled('button')`
   border: 0;
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   width: 100%;

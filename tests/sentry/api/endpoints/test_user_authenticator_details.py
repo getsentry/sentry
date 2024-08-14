@@ -1,20 +1,22 @@
 import datetime
 from unittest import mock
 
-from django.conf import settings
 from django.core import mail
-from django.db.models import F
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 from rest_framework import status
 
-from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.authenticators.u2f import create_credential_object
-from sentry.models import Authenticator, Organization, User
-from sentry.testutils import APITestCase
+from sentry.auth.authenticators.u2f import U2fInterface, create_credential_object
+from sentry.models.organization import Organization
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 
 def get_auth(user: User) -> Authenticator:
@@ -96,7 +98,7 @@ def assert_security_email_sent(email_type: str) -> None:
         "mfa-added": "An authenticator has been added to your Sentry account",
         "mfa-removed": "An authenticator has been removed from your Sentry account",
         "recovery-codes-regenerated": "Recovery codes have been regenerated for your Sentry account",
-    }.get(email_type)
+    }[email_type]
     assert len(mail.outbox) == 1
     assert body_fragment in mail.outbox[0].body
 
@@ -106,8 +108,9 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.create_organization(
+            name="test monkey", owner=self.user, flags=Organization.flags.require_2fa
+        )
 
 
 @control_silo_test
@@ -127,6 +130,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
             )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert len(authenticator.interface.get_registered_devices()) == 1
 
         assert_security_email_sent("mfa-removed")
@@ -160,6 +164,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
 
     def test_rename_webauthn_device(self):
@@ -174,6 +179,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
         authenticator = Authenticator.objects.get(id=auth.id)
+        assert isinstance(authenticator.interface, U2fInterface)
         assert authenticator.interface.get_device_name("webauthn") == "for testing"
 
     def test_rename_device_not_found(self):
@@ -197,6 +203,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_authenticator_details(self):
         interface = TotpInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
         auth = interface.authenticator
 
         response = self.get_success_response(self.user.id, auth.id)
@@ -213,6 +220,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_recovery_codes(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
 
         with self.tasks():
             response = self.get_success_response(self.user.id, interface.authenticator.id)
@@ -239,6 +247,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_get_device_name(self):
         auth = get_auth(self.user)
 
+        assert isinstance(auth.interface, U2fInterface)
         assert auth.interface.get_device_name("devicekeyhandle") == "Amused Beetle"
         assert auth.interface.get_device_name("aowerkoweraowerkkro") == "Sentry"
 
@@ -246,6 +255,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface = SmsInterface()
         interface.phone_number = "5551231234"
         interface.enroll(self.user)
+        assert interface.authenticator is not None
 
         response = self.get_success_response(self.user.id, interface.authenticator.id)
         assert response.data["id"] == "sms"
@@ -260,6 +270,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
+        assert interface.authenticator, "should have authenticator"
         response = self.get_success_response(self.user.id, interface.authenticator.id)
         old_codes = response.data["codes"]
         old_created_at = response.data["createdAt"]
@@ -279,12 +290,10 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert_security_email_sent("recovery-codes-regenerated")
 
-    def test_delete(self):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
+    def test_delete_superuser(self):
         user = self.create_user(email="a@example.com", is_superuser=True)
 
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             auth = Authenticator.objects.create(type=2, user=user)  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 user, ignore_backup=True
@@ -300,11 +309,30 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert_security_email_sent("mfa-removed")
 
-    def test_cannot_delete_without_superuser(self):
-        user = self.create_user(email="a@example.com", is_superuser=False)
+    def test_delete_staff(self):
+        staff_user = self.create_user(email="a@example.com", is_staff=True)
+
+        with override_options({"sms.twilio-account": "twilio-account"}):
+            auth = Authenticator.objects.create(type=2, user=staff_user)  # sms
+            available_auths = Authenticator.objects.all_interfaces_for_user(
+                staff_user, ignore_backup=True
+            )
+
+            self.assertEqual(len(available_auths), 1)
+            self.login_as(user=staff_user, staff=True)
+
+            with self.tasks():
+                self.get_success_response(staff_user.id, auth.id, method="delete")
+
+            assert not Authenticator.objects.filter(id=auth.id).exists()
+
+            assert_security_email_sent("mfa-removed")
+
+    def test_cannot_delete_without_superuser_or_staff(self):
+        user = self.create_user(email="a@example.com", is_superuser=False, is_staff=False)
         auth = Authenticator.objects.create(type=3, user=user)  # u2f
 
-        actor = self.create_user(email="b@example.com", is_superuser=False)
+        actor = self.create_user(email="b@example.com", is_superuser=False, is_staff=False)
         self.login_as(user=actor)
 
         with self.tasks():
@@ -325,6 +353,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         # enroll in one auth method
         interface = TotpInterface()
         interface.enroll(self.user)
+        assert interface.authenticator is not None
         auth = interface.authenticator
 
         with self.tasks():
@@ -346,36 +375,61 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        # enroll in one auth method
-        interface = TotpInterface()
-        interface.enroll(self.user)
-        auth = interface.authenticator
+        with override_options({"sms.twilio-account": "twilio-account"}):
+            # enroll in one auth method
+            interface = TotpInterface()
+            interface.enroll(self.user)
+            assert interface.authenticator is not None
+            auth = interface.authenticator
 
-        with self.tasks():
-            self.get_success_response(
-                self.user.id,
-                auth.id,
-                method="delete",
-                status_code=status.HTTP_204_NO_CONTENT,
-            )
-            assert_security_email_sent("mfa-removed")
+            with self.tasks():
+                self.get_success_response(
+                    self.user.id,
+                    auth.id,
+                    method="delete",
+                    status_code=status.HTTP_204_NO_CONTENT,
+                )
+                assert_security_email_sent("mfa-removed")
 
-        assert not Authenticator.objects.filter(id=auth.id).exists()
+            assert not Authenticator.objects.filter(id=auth.id).exists()
+
+    @override_options({"staff.ga-rollout": True})
+    def test_require_2fa__can_delete_last_auth_staff(self):
+        self._require_2fa_for_organization()
+
+        staff_user = self.create_user(email="a@example.com", is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        with override_options({"sms.twilio-account": "twilio-account"}):
+            # enroll in one auth method
+            interface = TotpInterface()
+            interface.enroll(self.user)
+            assert interface.authenticator is not None
+            auth = interface.authenticator
+
+            with self.tasks():
+                self.get_success_response(
+                    self.user.id,
+                    auth.id,
+                    method="delete",
+                    status_code=status.HTTP_204_NO_CONTENT,
+                )
+                assert_security_email_sent("mfa-removed")
+
+            assert not Authenticator.objects.filter(id=auth.id).exists()
 
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()
 
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             # enroll in two auth methods
-            interface = SmsInterface()
-            interface.phone_number = "5551231234"
-            interface.enroll(self.user)
+            interface_sms = SmsInterface()
+            interface_sms.phone_number = "5551231234"
+            interface_sms.enroll(self.user)
 
             interface = TotpInterface()
             interface.enroll(self.user)
+            assert interface.authenticator is not None
             auth = interface.authenticator
 
             with self.tasks():

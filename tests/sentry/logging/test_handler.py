@@ -1,9 +1,10 @@
 import logging
+from typing import Any
 from unittest import mock
 
 import pytest
 
-from sentry.logging.handlers import StructLogHandler
+from sentry.logging.handlers import JSONRenderer, StructLogHandler
 
 
 @pytest.fixture
@@ -16,18 +17,36 @@ def logger():
     return mock.MagicMock()
 
 
-def make_logrecord(**extra):
-    kwargs = dict(
-        name="name",
-        level=logging.INFO,
-        pathname="pathname",
-        lineno=10,
-        msg="msg",
-        args=None,
-        exc_info=None,
+@pytest.fixture
+def snafu() -> Any:
+    class SNAFU:
+        def __str__(self) -> str:
+            raise Exception("snafu")
+
+    return SNAFU()
+
+
+def make_logrecord(
+    *,
+    name: str = "name",
+    level: int = logging.INFO,
+    pathname: str = "pathname",
+    lineno: int = 10,
+    msg: str = "msg",
+    args: Any = None,
+    exc_info: Any = None,
+    **extra: Any,
+) -> logging.LogRecord:
+    return logging.LogRecord(
+        name=name,
+        level=level,
+        pathname=pathname,
+        lineno=lineno,
+        msg=msg,
+        args=args,
+        exc_info=exc_info,
+        **extra,
     )
-    kwargs.update(extra or {})
-    return logging.LogRecord(**kwargs)
 
 
 @pytest.mark.parametrize(
@@ -57,3 +76,46 @@ def test_log_to_metric(metrics):
 
     logger.warning("Some other problem we don't care about")
     assert metrics.incr.call_count == 0
+
+
+@mock.patch("logging.raiseExceptions", True)
+def test_emit_invalid_keys_nonprod(handler):
+    logger = mock.MagicMock()
+    logger.log.side_effect = TypeError("invalid keys")
+    with pytest.raises(TypeError):
+        handler.emit(make_logrecord(), logger=logger)
+
+
+@mock.patch("logging.raiseExceptions", False)
+def test_emit_invalid_keys_prod(handler):
+    logger = mock.MagicMock()
+    logger.log.side_effect = TypeError("invalid keys")
+    handler.emit(make_logrecord(), logger=logger)
+
+
+@mock.patch("logging.raiseExceptions", True)
+def test_JSONRenderer_nonprod():
+    renderer = JSONRenderer()
+    with pytest.raises(TypeError):
+        renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+
+
+@mock.patch("logging.raiseExceptions", False)
+def test_JSONRenderer_prod():
+    renderer = JSONRenderer()
+    renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+
+
+@mock.patch("logging.raiseExceptions", True)
+def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
+    logger = logging.getLogger(__name__)
+
+    with pytest.raises(Exception) as exc_info:
+        logger.log(logging.INFO, snafu)
+    assert exc_info.value.args == ("snafu",)
+
+
+@mock.patch("logging.raiseExceptions", False)
+def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu):
+    logger = logging.getLogger(__name__)
+    logger.log(logging.INFO, snafu)

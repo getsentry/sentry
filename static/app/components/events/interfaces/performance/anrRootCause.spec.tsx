@@ -3,7 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
-import {EntryType, Event, EventOrGroupType, LockType, Thread} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 
 const makeEventWithThreads = (threads: Thread[]): Event => {
   const event: Event = {
@@ -39,7 +40,6 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
                     colNo: null,
                     inApp: false,
                     trust: null,
-                    errors: null,
                     vars: null,
                     lock: {
                       type: LockType.BLOCKED,
@@ -89,7 +89,6 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
                     colNo: null,
                     inApp: false,
                     trust: null,
-                    errors: null,
                     vars: null,
                     lock: {
                       type: LockType.BLOCKED,
@@ -184,7 +183,6 @@ describe('anrRootCause', function () {
               colNo: null,
               inApp: false,
               trust: null,
-              errors: null,
               vars: null,
               lock: {
                 type: LockType.WAITING,
@@ -209,7 +207,6 @@ describe('anrRootCause', function () {
               colNo: null,
               inApp: false,
               trust: null,
-              errors: null,
               vars: null,
             },
           ],

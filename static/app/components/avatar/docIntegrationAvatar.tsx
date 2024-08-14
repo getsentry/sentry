@@ -1,21 +1,20 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {DocIntegration} from 'sentry/types';
+import type {DocIntegration} from 'sentry/types/integrations';
 
-type Props = {
+interface Props extends BaseAvatarProps {
   docIntegration?: DocIntegration;
-} & BaseAvatar['props'];
+}
 
 function DocIntegrationAvatar({docIntegration, ...props}: Props) {
   if (!docIntegration?.avatar) {
-    return <PluginIcon {...props} pluginId={docIntegration?.slug} />;
+    return <PluginIcon size={props.size} pluginId={docIntegration?.slug} />;
   }
   return (
     <BaseAvatar
       {...props}
       type="upload"
-      uploadPath="doc-integration-avatar"
-      uploadId={docIntegration.avatar.avatarUuid}
+      uploadUrl={docIntegration.avatar.avatarUrl}
       title={docIntegration.name}
     />
   );

@@ -6,16 +6,18 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import TextArea from 'sentry/components/forms/controls/textarea';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-
-import RuleBuilder from './ruleBuilder';
 
 const defaultProps = {
   urls: [] as string[],
@@ -33,7 +35,7 @@ type Props = {
    */
   page: 'issue_details' | 'project_settings';
   project: Project;
-  onSave?: (text: string | null) => void;
+  onSave?: (ownership: IssueOwnership) => void;
 } & typeof defaultProps;
 
 type State = {
@@ -82,14 +84,14 @@ class OwnerInput extends Component<Props, State> {
     );
 
     request
-      .then(() => {
+      .then(ownership => {
         addSuccessMessage(t('Updated issue ownership rules'));
         this.setState(
           {
             hasChanges: false,
             text,
           },
-          () => onSave && onSave(text)
+          () => onSave?.(ownership)
         );
         trackIntegrationAnalytics('project_ownership.saved', {
           page,
@@ -165,26 +167,11 @@ class OwnerInput extends Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText, dateUpdated} =
-      this.props;
+    const {disabled, initialText, dateUpdated} = this.props;
     const {hasChanges, text, error} = this.state;
-
-    const hasStreamlineTargetingFeature = organization.features.includes(
-      'streamline-targeting-context'
-    );
 
     return (
       <Fragment>
-        {!hasStreamlineTargetingFeature && (
-          <RuleBuilder
-            urls={urls}
-            paths={paths}
-            organization={organization}
-            project={project}
-            onAddRule={this.handleAddRule.bind(this)}
-            disabled={disabled}
-          />
-        )}
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
@@ -285,12 +272,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 

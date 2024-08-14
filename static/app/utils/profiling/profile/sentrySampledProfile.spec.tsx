@@ -1,6 +1,6 @@
 import merge from 'lodash/merge';
 
-import {DeepPartial} from 'sentry/types/utils';
+import type {DeepPartial} from 'sentry/types/utils';
 
 import {Frame} from '../frame';
 
@@ -77,7 +77,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -126,7 +126,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -164,7 +164,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -207,7 +207,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -240,7 +240,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -265,7 +265,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -293,7 +293,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -317,7 +317,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -345,7 +345,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -379,7 +379,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -413,7 +413,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamechart'}
     );
 
@@ -421,7 +421,7 @@ describe('SentrySampledProfile', () => {
     expect(profile.threadId).toBe(1);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const sampledProfile = makeSentrySampledProfile({
       transaction: {
         id: '',
@@ -460,7 +460,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {type: 'flamegraph'}
     );
 
@@ -501,7 +501,7 @@ describe('SentrySampledProfile', () => {
 
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
-      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
       {
         type: 'flamegraph',
         frameFilter: frame => frame.name === 'f0',

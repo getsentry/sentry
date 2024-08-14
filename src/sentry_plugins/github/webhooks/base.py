@@ -5,14 +5,15 @@ import hashlib
 import hmac
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils import json
 
 from .events import PullRequestEventWebhook, PushEventWebhook
@@ -36,7 +37,7 @@ class GithubWebhookBase(View, abc.ABC):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -62,7 +63,9 @@ class GithubWebhookBase(View, abc.ABC):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error("github.webhook.missing-event", extra=self.get_logging_data(organization))
+            logger.exception(
+                "github.webhook.missing-event", extra=self.get_logging_data(organization)
+            )
             return HttpResponse(status=400)
 
         if not handler:
@@ -85,10 +88,9 @@ class GithubWebhookBase(View, abc.ABC):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "github.webhook.invalid-json",
                 extra=self.get_logging_data(organization),
-                exc_info=True,
             )
             return HttpResponse(status=400)
 

@@ -1,9 +1,13 @@
+from django.db import router
+from django.utils.functional import cached_property
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import ApiApplication, SentryApp, User
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.utils.cache import memoize
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.users.models.user import User
 
 
 class Validator(Mediator):
@@ -14,6 +18,7 @@ class Validator(Mediator):
     install = Param(RpcSentryAppInstallation)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate_is_sentry_app_making_request()
@@ -33,14 +38,14 @@ class Validator(Mediator):
         if self.install.sentry_app.id != self.sentry_app.id:
             raise APIUnauthorized
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
             raise APIUnauthorized
 
-    @memoize
+    @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)

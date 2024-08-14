@@ -5,6 +5,11 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+feedback: 0004_index_together
+hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0504_add_artifact_bundle_index
-social_auth: 0001_initial
+remote_subscriptions: 0003_drop_remote_subscription
+replays: 0004_index_together
+sentry: 0747_create_datasecrecywaiver_table
+social_auth: 0002_default_auto_field
+uptime: 0006_projectuptimesubscription_name_owner

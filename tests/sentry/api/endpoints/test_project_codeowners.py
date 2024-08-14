@@ -2,12 +2,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import ProjectCodeOwners
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
     def setUp(self):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
@@ -30,7 +28,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.external_team = self.create_external_team(integration=self.integration)
         self.url = reverse(
             "sentry-api-0-project-codeowners",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
@@ -44,12 +45,13 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp.data == []
 
     def test_without_feature_flag(self):
-        resp = self.client.get(self.url)
+        with self.feature({"organizations:integrations-codeowners": False}):
+            resp = self.client.get(self.url)
         assert resp.status_code == 403
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_codeowners_with_integration(self, get_codeowner_mock_file):
@@ -65,7 +67,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["provider"] == self.integration.provider
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_get_expanded_codeowners_with_integration(self, get_codeowner_mock_file):
@@ -82,7 +84,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_basic_post(self, get_codeowner_mock_file):
@@ -110,7 +112,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data == {"raw": ["This field may not be blank."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_invalid_codeowners_text(self, get_codeowner_mock_file):
@@ -131,7 +133,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_cannot_find_external_user_name_association(self, get_codeowner_mock_file):
@@ -152,7 +154,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_cannot_find_sentry_user_with_email(self, get_codeowner_mock_file):
@@ -173,7 +175,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_cannot_find_external_team_name_association(self, get_codeowner_mock_file):
@@ -194,7 +196,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_cannot_find__multiple_external_name_association(self, get_codeowner_mock_file):
@@ -229,7 +231,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_no_duplicates_allowed(self, get_codeowner_mock_file):
@@ -241,7 +243,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_schema_is_correct(self, get_codeowner_mock_file):
@@ -256,15 +258,15 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_schema_preserves_comments(self, get_codeowner_mock_file):
@@ -280,15 +282,15 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_raw_email_correct_schema(self, get_codeowner_mock_file):
@@ -304,15 +306,15 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_codeowners_scope_emails_to_org_security(self, get_codeowner_mock_file):
@@ -338,7 +340,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_multiple_codeowners_for_project(self, get_codeowner_mock_file):
@@ -349,7 +351,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 201
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_users_without_access(self, get_codeowner_mock_file):
@@ -377,13 +379,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert set(errors["users_without_access"]) == {user_2.email}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_post_with_streamline_targeting(self, get_codeowner_mock_file):
+    def test_post_with_schema(self, get_codeowner_mock_file):
         with self.feature({"organizations:integrations-codeowners": True}):
-            with self.feature({"organizations:streamline-targeting-context": True}):
-                response = self.client.post(self.url, self.data)
+            response = self.client.post(self.url, self.data)
         assert response.status_code == 201
         assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
         assert response.data["codeMappingId"] == str(self.code_mapping.id)
@@ -401,62 +402,52 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_get(self, get_codeowner_mock_file):
-        # Test post + get without the streamline-targeting-context flag
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.client.post(self.url, self.data)
-            response_no_schema = self.client.get(self.url)
-            assert "schema" not in response_no_schema.data[0].keys()
-            assert "codeOwnersUrl" not in response_no_schema.data[0].keys()
+        self.client.post(self.url, self.data)
+        response = self.client.get(self.url)
 
-            # Test get after with the streamline-targeting-context flag
-            with self.feature({"organizations:streamline-targeting-context": True}):
-                self.client.get(self.url)
-                response = self.client.get(self.url)
-                response_data = response.data[0]
-                assert response.status_code == 200
-                assert (
-                    response_data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
-                )
-                assert response_data["codeMappingId"] == str(self.code_mapping.id)
-                assert response_data["schema"] == {
-                    "$version": 1,
-                    "rules": [
+        response_data = response.data[0]
+        assert response.status_code == 200
+        assert response_data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
+        assert response_data["codeMappingId"] == str(self.code_mapping.id)
+        assert response_data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                    "owners": [
                         {
-                            "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                            "owners": [
-                                {
-                                    "type": "user",
-                                    "id": self.user.id,
-                                    "name": "admin@sentry.io",
-                                },
-                                {"type": "team", "id": self.team.id, "name": "tiger-team"},
-                            ],
-                        }
+                            "type": "user",
+                            "id": self.user.id,
+                            "name": "admin@sentry.io",
+                        },
+                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
                     ],
                 }
-                assert response_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
+            ],
+        }
+        assert response_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"
 
-                # Assert that "identifier" is not renamed to "name" in the backend
-                ownership = ProjectCodeOwners.objects.get(project=self.project)
-                assert ownership.schema["rules"] == [
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [
-                            {"type": "user", "identifier": "admin@sentry.io", "id": self.user.id},
-                            {"type": "team", "identifier": "tiger-team", "id": self.team.id},
-                        ],
-                    }
-                ]
+        # Assert that "identifier" is not renamed to "name" in the backend
+        ownership = ProjectCodeOwners.objects.get(project=self.project)
+        assert ownership.schema["rules"] == [
+            {
+                "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                "owners": [
+                    {"type": "user", "identifier": "admin@sentry.io", "id": self.user.id},
+                    {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                ],
+            }
+        ]
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_rule_one_deleted_owner_with_streamline_targeting(self, get_codeowner_mock_file):
+    def test_get_rule_one_deleted_owner(self, get_codeowner_mock_file):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -469,29 +460,25 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
         self.data["raw"] = "docs/*  @delete @getsentry/ecosystem"
 
-        # Post without the streamline-targeting-context flag
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
-
-            # Test get after with the streamline-targeting-context flag
-            with self.feature({"organizations:streamline-targeting-context": True}):
-                self.external_delete_user.delete()
-                response = self.client.get(self.url)
-                assert response.data[0]["schema"] == {
-                    "$version": 1,
-                    "rules": [
-                        {
-                            "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                            "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
-                        }
-                    ],
-                }
+            self.external_delete_user.delete()
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    }
+                ],
+            }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_no_rule_deleted_owner_with_streamline_targeting(self, get_codeowner_mock_file):
+    def test_get_no_rule_deleted_owner(self, get_codeowner_mock_file):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -504,23 +491,17 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
         self.data["raw"] = "docs/*  @delete"
 
-        # Post without the streamline-targeting-context flag
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
-
-            # Test get after with the streamline-targeting-context flag
-            with self.feature({"organizations:streamline-targeting-context": True}):
-                self.external_delete_user.delete()
-                response = self.client.get(self.url)
-                assert response.data[0]["schema"] == {"$version": 1, "rules": []}
+            self.external_delete_user.delete()
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {"$version": 1, "rules": []}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_multiple_rules_deleted_owners_with_streamline_targeting(
-        self, get_codeowner_mock_file
-    ):
+    def test_get_multiple_rules_deleted_owners(self, get_codeowner_mock_file):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -545,31 +526,27 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "raw"
         ] = "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
 
-        # Post without the streamline-targeting-context flag
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)
-
-            # Test get after with the streamline-targeting-context flag
-            with self.feature({"organizations:streamline-targeting-context": True}):
-                self.external_delete_user.delete()
-                self.external_delete_user2.delete()
-                response = self.client.get(self.url)
-                assert response.data[0]["schema"] == {
-                    "$version": 1,
-                    "rules": [
-                        {
-                            "matcher": {"type": "codeowners", "pattern": "*.py"},
-                            "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
-                        },
-                        {
-                            "matcher": {"type": "codeowners", "pattern": "*.rb"},
-                            "owners": [
-                                {
-                                    "type": "user",
-                                    "name": "admin@sentry.io",
-                                    "id": self.user.id,
-                                }
-                            ],
-                        },
-                    ],
-                }
+            self.external_delete_user.delete()
+            self.external_delete_user2.delete()
+            response = self.client.get(self.url)
+            assert response.data[0]["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "*.py"},
+                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    },
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "*.rb"},
+                        "owners": [
+                            {
+                                "type": "user",
+                                "name": "admin@sentry.io",
+                                "id": self.user.id,
+                            }
+                        ],
+                    },
+                ],
+            }

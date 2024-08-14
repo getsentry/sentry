@@ -1,19 +1,18 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
@@ -169,10 +168,6 @@ class AllTeamsRow extends Component<Props, State> {
 
   getTeamRoleName = () => {
     const {organization, team} = this.props;
-    if (!organization.features.includes('team-roles') || !team.teamRole) {
-      return null;
-    }
-
     const {teamRoleList} = organization;
     const roleName = teamRoleList.find(r => r.id === team.teamRole)?.name;
 
@@ -181,17 +176,13 @@ class AllTeamsRow extends Component<Props, State> {
 
   render() {
     const {team, openMembership, organization} = this.props;
-    const {access} = organization;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const canEditTeam = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = (team.orgRole && (!canEditTeam || !isOrgOwner)) as boolean;
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
-    const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+    const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
     const display = (
       <IdBadge
@@ -205,10 +196,8 @@ class AllTeamsRow extends Component<Props, State> {
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
 
-    const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
-    const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
-    // TODO(team-roles): team admins can also manage membership
-    const isDisabled = isIdpProvisioned || isPermissionGroup;
+    const teamRoleName = this.getTeamRoleName();
+    const isDisabled = isIdpProvisioned;
 
     return (
       <TeamPanelItem>
@@ -221,8 +210,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <DisplayRole isHidden={isHidden}>{orgRoleFromTeam}</DisplayRole>
-        <DisplayRole isHidden={isHidden}>{this.getTeamRoleName()}</DisplayRole>
+        <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -275,7 +263,7 @@ class AllTeamsRow extends Component<Props, State> {
 const TeamLink = styled(Link)`
   display: inline-block;
 
-  &.focus-visible {
+  &:focus-visible {
     margin: -${space(1)};
     padding: ${space(1)};
     background: #f2eff5;
@@ -287,23 +275,18 @@ const TeamLink = styled(Link)`
 export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
-const TeamPanelItem = styled(PanelItem)`
+export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) min-content;
-  grid-template-rows: auto min-content;
-  gap: ${space(2)};
+  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px minmax(150px, 1fr);
+  gap: ${space(1)};
+`;
+
+const TeamPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE}
   align-items: center;
 
   > div:last-child {
     margin-left: auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(150px, 3fr) minmax(90px, 1fr) minmax(90px, 1fr) min-content;
-    grid-template-rows: auto;
-    > div:empty {
-      display: block !important;
-    }
   }
 `;
 

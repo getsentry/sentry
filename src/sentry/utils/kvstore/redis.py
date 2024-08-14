@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional, TypeVar
+from typing import TypeVar
 
-from sentry_redis_tools.clients import RedisCluster, StrictRedis
+from redis import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry.utils.kvstore.abstract import KVStorage
 
@@ -19,16 +20,16 @@ class RedisKVStorage(KVStorage[str, T]):
     def __init__(self, client: StrictRedis[T] | RedisCluster[T]) -> None:
         self.client: StrictRedis[T] | RedisCluster[T] = client
 
-    def get(self, key: str) -> Optional[T]:
+    def get(self, key: str) -> T | None:
         return self.client.get(key.encode("utf8"))
 
-    def set(self, key: str, value: T, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: str, value: T, ttl: timedelta | None = None) -> None:
         self.client.set(key.encode("utf8"), value, ex=ttl)
 
     def delete(self, key: str) -> None:
         self.client.delete(key.encode("utf8"))
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass  # nothing to do
 
     def destroy(self) -> None:

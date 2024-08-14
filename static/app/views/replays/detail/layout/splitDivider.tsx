@@ -1,49 +1,50 @@
-import {DOMAttributes} from 'react';
+import type {DOMAttributes, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 type Props = {
-  isHeld: boolean;
-  slideDirection: 'leftright' | 'updown';
+  'data-is-held': boolean;
+  'data-slide-direction': 'leftright' | 'updown';
+  onDoubleClick: MouseEventHandler<HTMLElement>;
+  onMouseDown: MouseEventHandler<HTMLElement>;
 };
 
-const SplitDivider = styled(
-  ({isHeld: _a, slideDirection: _b, ...props}: Props & DOMAttributes<HTMLDivElement>) => (
-    <div {...props}>
-      <IconGrabbable size="sm" />
-    </div>
-  )
-)<Props>`
+const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
+  <div {...props}>
+    <IconGrabbable size="sm" />
+  </div>
+))<Props>`
   display: grid;
   place-items: center;
   height: 100%;
   width: 100%;
 
-  user-select: ${p => (p.isHeld ? 'none' : 'inherit')};
-  background: ${p => (p.isHeld ? p.theme.hover : 'inherit')};
+  user-select: inherit;
+  background: inherit;
 
-  :hover {
+  &:hover,
+  &[data-is-held='true'] {
     background: ${p => p.theme.hover};
   }
+  &[data-is-held='true'] {
+    user-select: none;
+  }
 
-  ${p =>
-    p.slideDirection === 'leftright'
-      ? `
-        cursor: ew-resize;
-        height: 100%;
-        width: ${space(2)};
-      `
-      : `
-        cursor: ns-resize;
-        width: 100%;
-        height: ${space(2)};
+  &[data-slide-direction='leftright'] {
+    cursor: ew-resize;
+    height: 100%;
+    width: ${space(2)};
+  }
+  &[data-slide-direction='updown'] {
+    cursor: ns-resize;
+    width: 100%;
 
-        & > svg {
-          transform: rotate(90deg);
-        }
-      `}
+    & > svg {
+      transform: rotate(90deg);
+    }
+  }
 `;
 
 export default SplitDivider;

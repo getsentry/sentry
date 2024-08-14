@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
@@ -12,7 +12,7 @@ class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-scim-member-details",
-            kwargs={"organization_slug": self.organization.slug, "member_id": self.member.id},
+            kwargs={"organization_id_or_slug": self.organization.slug, "member_id": self.member.id},
         )
 
     def test_get(self):
@@ -28,7 +28,7 @@ class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
     def test_get_invalid(self):
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
-            kwargs={"organization_slug": self.organization.slug, "member_id": 321},
+            kwargs={"organization_id_or_slug": self.organization.slug, "member_id": 321},
         )
         response = self.client.get(url)
         assert response.status_code == 404

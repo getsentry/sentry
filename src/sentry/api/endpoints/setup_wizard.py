@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.utils.crypto import get_random_string
@@ -5,7 +7,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 
@@ -14,11 +18,16 @@ SETUP_WIZARD_CACHE_KEY = "setup-wizard-keys:v1:"
 SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class SetupWizard(Endpoint):
+    owner = ApiOwner.WEB_FRONTEND_SDKS
+    publish_status = {
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
     permission_classes = ()
 
-    def delete(self, request: Request, wizard_hash=None) -> Response:
+    def delete(self, request: Request, wizard_hash=None) -> Response | None:
         """
         This removes the cache content for a specific hash
         """
@@ -26,6 +35,7 @@ class SetupWizard(Endpoint):
             key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
             default_cache.delete(key)
             return Response(status=200)
+        return None
 
     def get(self, request: Request, wizard_hash=None) -> Response:
         """
@@ -45,7 +55,7 @@ class SetupWizard(Endpoint):
             return Response(serialize(wizard_data))
         else:
             # This creates a new available hash url for the project wizard
-            rate_limited = ratelimits.is_limited(
+            rate_limited = ratelimits.backend.is_limited(
                 key="rl:setup-wizard:ip:%s" % request.META["REMOTE_ADDR"], limit=10
             )
             if rate_limited:

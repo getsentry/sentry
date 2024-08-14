@@ -3,6 +3,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -34,10 +36,15 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 
 @region_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.UNOWNED
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (OrganizationSearchEditPermission,)
 
-    def convert_args(self, request: Request, organization_slug, search_id, *args, **kwargs):
-        (args, kwargs) = super().convert_args(request, organization_slug, *args, **kwargs)
+    def convert_args(self, request: Request, organization_id_or_slug, search_id, *args, **kwargs):
+        (args, kwargs) = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         # Only allow users to delete their own personal searches OR
         # organization level searches

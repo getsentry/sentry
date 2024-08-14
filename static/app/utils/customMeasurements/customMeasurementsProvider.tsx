@@ -1,21 +1,20 @@
 import {useEffect, useState} from 'react';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-import {
-  CustomMeasurementsContext,
-  CustomMeasurementsContextValue,
-} from './customMeasurementsContext';
+import type {CustomMeasurementsContextValue} from './customMeasurementsContext';
+import {CustomMeasurementsContext} from './customMeasurementsContext';
 
 type MeasurementsMetaResponse = {
   [x: string]: {functions: string[]; unit: string};
@@ -58,42 +57,36 @@ export function CustomMeasurementsProvider({
 
   useEffect(() => {
     let shouldCancelRequest = false;
+    fetchCustomMeasurements(api, organization, selection)
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-    if (
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-    ) {
-      fetchCustomMeasurements(api, organization, selection)
-        .then(response => {
-          if (shouldCancelRequest) {
-            return;
-          }
+        const newCustomMeasurements = Object.keys(
+          response
+        ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
+          acc[customMeasurement] = {
+            key: customMeasurement,
+            name: customMeasurement,
+            functions: response[customMeasurement].functions,
+            unit: response[customMeasurement].unit,
+            fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
+          };
+          return acc;
+        }, {});
 
-          const newCustomMeasurements = Object.keys(
-            response
-          ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
-            acc[customMeasurement] = {
-              key: customMeasurement,
-              name: customMeasurement,
-              functions: response[customMeasurement].functions,
-              unit: response[customMeasurement].unit,
-              fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
-            };
-            return acc;
-          }, {});
+        setState({customMeasurements: newCustomMeasurements});
+      })
+      .catch((e: RequestError) => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-          setState({customMeasurements: newCustomMeasurements});
-        })
-        .catch((e: RequestError) => {
-          if (shouldCancelRequest) {
-            return;
-          }
-
-          const errorResponse = t('Unable to fetch custom performance metrics');
-          addErrorMessage(errorResponse);
-          handleXhrErrorResponse(errorResponse, e);
-        });
-    }
+        const errorResponse = t('Unable to fetch custom performance measurements');
+        addErrorMessage(errorResponse);
+        handleXhrErrorResponse(errorResponse, e);
+      });
 
     return () => {
       shouldCancelRequest = true;

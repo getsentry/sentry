@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Sequence, Tuple
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from django import forms
 
@@ -14,7 +15,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
 
-key: Callable[[Tuple[int, str]], int] = lambda x: x[0]
+key: Callable[[tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
 
 
@@ -56,7 +57,8 @@ class LevelCondition(EventCondition):
         return False
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        return self._passes(event.get_tag("level"))
+        tag = event.get_tag("level")
+        return tag is not None and self._passes(tag)
 
     def render_label(self) -> str:
         data = {
@@ -65,14 +67,14 @@ class LevelCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns(
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns(
             [Columns.TAGS_KEY, Columns.TAGS_VALUE]
         )
         return columns
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             level = event_map[condition_activity.data["event_id"]]["tags"]["level"]

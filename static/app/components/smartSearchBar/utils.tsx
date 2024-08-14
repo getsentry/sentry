@@ -1,11 +1,10 @@
 // eslint-disable-next-line simple-import-sort/imports
+import type {TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
-  SearchConfig,
   TermOperator,
   Token,
-  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
   IconArrow,
@@ -19,18 +18,10 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {
-  AutocompleteGroup,
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
-  ShortcutType,
-  invalidTypes,
-} from './types';
-import {TagCollection} from 'sentry/types';
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {ItemType, ShortcutType, invalidTypes} from './types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -86,6 +77,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
     case 'is':
       return <IconToggle size="xs" />;
     case 'assigned':
+    case 'assigned_or_suggested':
     case 'bookmarks':
       return <IconUser size="xs" />;
     case 'firstSeen':
@@ -152,8 +144,19 @@ interface SearchGroups {
   searchGroups: SearchGroup[];
 }
 
+function isSearchGroup(searchItem: SearchItem | SearchGroup): searchItem is SearchGroup {
+  return (
+    (searchItem as SearchGroup).children !== undefined && searchItem.type === 'header'
+  );
+}
+
+function isSearchGroupArray(items: SearchItem[] | SearchGroup[]): items is SearchGroup[] {
+  // Typescript doesn't like that there's no shared properties between SearchItem and SearchGroup
+  return (items as any[]).every(isSearchGroup);
+}
+
 export function createSearchGroups(
-  searchItems: SearchItem[],
+  searchGroupItems: SearchItem[] | SearchGroup[],
   recentSearchItems: SearchItem[] | undefined,
   tagName: string,
   type: ItemType,
@@ -163,18 +166,44 @@ export function createSearchGroups(
   defaultSearchGroup?: SearchGroup,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ): SearchGroups {
-  const fieldDefinition = fieldDefinitionGetter(tagName);
-
-  const activeSearchItem = 0;
-  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
-    filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
-
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
     type: invalidTypes.includes(type) ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
-    children: filteredSearchItems,
+    children: [],
   };
+
+  if (isSearchGroupArray(searchGroupItems)) {
+    // Autocomplete item has provided its own search groups
+    const searchGroups = searchGroupItems
+      .map(group => {
+        const {searchItems: filteredSearchItems} = filterSearchItems(
+          group.children,
+          recentSearchItems,
+          maxSearchItems,
+          queryCharsLeft
+        );
+        return {...group, children: filteredSearchItems};
+      })
+      .filter(group => group.children.length > 0);
+    return {
+      // Fallback to the blank search group when "no items found"
+      searchGroups: searchGroups.length ? searchGroups : [searchGroup],
+      flatSearchItems: searchGroups.flatMap(item => item.children ?? []),
+      activeSearchItem: -1,
+    };
+  }
+
+  const fieldDefinition = fieldDefinitionGetter(tagName);
+
+  const activeSearchItem = 0;
+  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
+    filterSearchItems(
+      searchGroupItems,
+      recentSearchItems,
+      maxSearchItems,
+      queryCharsLeft
+    );
 
   const recentSearchGroup: SearchGroup | undefined =
     filteredRecentSearchItems && filteredRecentSearchItems.length > 0
@@ -185,6 +214,8 @@ export function createSearchGroups(
           children: [...filteredRecentSearchItems],
         }
       : undefined;
+
+  searchGroup.children = filteredSearchItems;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
@@ -287,7 +318,8 @@ export function generateOperatorEntryMap(tag: string) {
 }
 
 export function getValidOps(
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  disallowNegation: boolean
 ): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -302,8 +334,12 @@ export function getValidOps(
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
+    allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  if (disallowNegation) {
+    validOps.delete(TermOperator.NOT_EQUAL);
+  }
 
   return [...validOps];
 }
@@ -593,42 +629,6 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
   ];
 };
 
-export const getSearchConfigFromCustomPerformanceMetrics = (
-  customPerformanceMetrics?: CustomMeasurementCollection
-): Partial<SearchConfig> => {
-  const searchConfigMap: Record<string, string[]> = {
-    sizeKeys: [],
-    durationKeys: [],
-    percentageKeys: [],
-    numericKeys: [],
-  };
-  if (customPerformanceMetrics) {
-    Object.keys(customPerformanceMetrics).forEach(metricName => {
-      const {fieldType} = customPerformanceMetrics[metricName];
-      switch (fieldType) {
-        case 'size':
-          searchConfigMap.sizeKeys.push(metricName);
-          break;
-        case 'duration':
-          searchConfigMap.durationKeys.push(metricName);
-          break;
-        case 'percentage':
-          searchConfigMap.percentageKeys.push(metricName);
-          break;
-        default:
-          searchConfigMap.numericKeys.push(metricName);
-      }
-    });
-  }
-  const searchConfig = {
-    sizeKeys: new Set(searchConfigMap.sizeKeys),
-    durationKeys: new Set(searchConfigMap.durationKeys),
-    percentageKeys: new Set(searchConfigMap.percentageKeys),
-    numericKeys: new Set(searchConfigMap.numericKeys),
-  };
-  return searchConfig;
-};
-
 /**
  * Gets an invalid group for when the usage of wildcards are not allowed and it is used in the search query.
  * When this group is set, a message with a link to the documentation is displayed to the user in the dropdown.
@@ -651,4 +651,12 @@ export function getAutoCompleteGroupForInvalidWildcard(searchText: string) {
       type: ItemType.INVALID_QUERY_WITH_WILDCARD,
     },
   ];
+}
+
+export function escapeTagValue(value: string): string {
+  // Wrap in quotes if there is a space
+  const isArrayTag = value.startsWith('[') && value.endsWith(']') && value.includes(',');
+  return (value.includes(' ') || value.includes('"')) && !isArrayTag
+    ? `"${value.replace(/"/g, '\\"')}"`
+    : value;
 }

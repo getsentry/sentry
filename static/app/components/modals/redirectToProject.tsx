@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {LinkButton} from 'sentry/components/button';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -78,9 +78,9 @@ class RedirectToProjectModal extends Component<Props, State> {
                 )}
               </p>
               <ButtonWrapper>
-                <Button priority="primary" href={this.newPath}>
+                <LinkButton priority="primary" href={this.newPath}>
                   {t('Continue to %s', slug)}
-                </Button>
+                </LinkButton>
               </ButtonWrapper>
             </Text>
           </div>

@@ -2,15 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
-import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
+import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -25,14 +26,17 @@ type Props = {
   onInstall: () => Promise<void>;
   organization: Organization;
   sentryApp: SentryApp;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   featureData: IntegrationFeature[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 // No longer a modal anymore but yea :)
-export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
+export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
   componentDidUpdate(prevProps: Props) {
     // if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
@@ -63,7 +67,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {sentryApp} = this.props;
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
@@ -213,13 +217,14 @@ const Heading = styled('div')`
 `;
 
 const HeadingInfo = styled('div')`
-  display: grid;
-  grid-template-rows: max-content max-content;
+  display: flex;
+  flex-direction: column;
   align-items: start;
+  gap: ${space(0.75)};
 `;
 
 const Name = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 1.4em;
 `;
 
@@ -259,6 +264,7 @@ const Permission = styled('div')`
 
 const Footer = styled('div')`
   display: flex;
+  align-items: center;
   padding: 20px 30px;
   border-top: 1px solid #e2dee6;
   margin: 20px -30px -30px;
@@ -267,7 +273,7 @@ const Footer = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`

@@ -3,12 +3,16 @@ from datetime import datetime
 import pytest
 from django.conf import settings
 from django.test import override_settings
-from freezegun import freeze_time
 
-from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
+from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
     _TTL,
@@ -16,11 +20,18 @@ from sentry.utils.snowflake import (
     SnowflakeBitSegment,
     generate_snowflake_id,
     get_redis_cluster,
+    uses_snowflake_id,
 )
 
 
 class SnowflakeUtilsTest(TestCase):
     CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
+
+    def test_uses_snowflake_id(self):
+        assert uses_snowflake_id(Organization)
+        assert uses_snowflake_id(Project)
+        assert uses_snowflake_id(Team)
+        assert not uses_snowflake_id(User)
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
@@ -67,14 +78,14 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_id(self):
         regions = [
-            Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
-            Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+            r1 := Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            r2 := Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
-        with override_regions(regions):
+        with override_settings(SILO_MODE=SiloMode.REGION):
 
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="test-region-1"):
+            with override_regions(regions, r1):
                 snowflake1 = generate_snowflake_id("test_redis_key")
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="test-region-2"):
+            with override_regions(regions, r2):
                 snowflake2 = generate_snowflake_id("test_redis_key")
 
             def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:
@@ -84,5 +95,5 @@ class SnowflakeUtilsTest(TestCase):
                     value >>= s.length
                 raise AssertionError("unreachable")
 
-            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].snowflake_id
-            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == r1.snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == r2.snowflake_id

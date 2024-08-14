@@ -1,0 +1,205 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
+
+import bannerIllustration from 'sentry-images/spot/alerts-empty-state.svg';
+
+import {Button} from 'sentry/components/button';
+import type {CommitRowProps} from 'sentry/components/commitRow';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
+import Panel from 'sentry/components/panels/panel';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useCommitters from 'sentry/utils/useCommitters';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+
+interface Props {
+  commitRow: React.ComponentType<CommitRowProps>;
+  eventId: string;
+  project: AvatarProject;
+  group?: Group;
+}
+
+export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: Props) {
+  const organization = useOrganization();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const {data} = useCommitters({
+    eventId,
+    projectSlug: project.slug,
+  });
+  const committers = data?.committers ?? [];
+
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const [suspectCommitDismissed, setSuspectCommitDismissed] = useLocalStorageState(
+    `suspect-commit-dismissed-${project.slug}-${eventId}`,
+    false
+  );
+
+  function getUniqueCommitsWithAuthors() {
+    // Get a list of commits with author information attached
+    const commitsWithAuthors = committers.flatMap(({commits, author}) =>
+      commits.map(commit => ({
+        ...commit,
+        author,
+      }))
+    );
+
+    // Remove duplicate commits
+    return uniqBy(commitsWithAuthors, commit => commit.id);
+  }
+
+  const commits = getUniqueCommitsWithAuthors();
+
+  useRouteAnalyticsParams({
+    num_suspect_commits: commits.length,
+    suspect_commit_calculation: commits[0]?.suspectCommitType ?? 'no suspect commit',
+  });
+
+  if (!committers.length) {
+    return null;
+  }
+
+  const handlePullRequestClick = (commit: Commit, commitIndex: number) => {
+    trackAnalytics('issue_details.suspect_commits.pull_request_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
+      suspect_commit_index: commitIndex,
+      ...getAnalyticsDataForGroup(group),
+    });
+  };
+
+  const handleCommitClick = (commit: Commit, commitIndex: number) => {
+    trackAnalytics('issue_details.suspect_commits.commit_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      has_pull_request: commit.pullRequest?.id !== undefined,
+      suspect_commit_calculation: commit.suspectCommitType ?? 'unknown',
+      suspect_commit_index: commitIndex,
+      ...getAnalyticsDataForGroup(group),
+    });
+  };
+
+  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
+
+  const firstCommit = commits[0];
+
+  return hasStreamlinedUI ? (
+    !suspectCommitDismissed ? (
+      <StreamlinedPanel>
+        <Header>
+          <Title>{t('Suspect Commit')}</Title>
+          <DismissButton
+            borderless
+            icon={<IconClose />}
+            onClick={() => setSuspectCommitDismissed(true)}
+            aria-label={t('Close Suspect Commit Banner')}
+            size="zero"
+          />
+        </Header>
+        <div>
+          <CommitRow
+            key={firstCommit.id}
+            commit={firstCommit}
+            onCommitClick={() => handleCommitClick(firstCommit, 0)}
+            onPullRequestClick={() => handlePullRequestClick(firstCommit, 0)}
+            project={project}
+          />
+        </div>
+        <IllustrationContainer>
+          <Illustration src={bannerIllustration} />
+        </IllustrationContainer>
+      </StreamlinedPanel>
+    ) : null
+  ) : (
+    <div>
+      <SuspectCommitHeader>
+        <h3 data-test-id="suspect-commit">{commitHeading}</h3>
+        {commits.length > 1 && (
+          <ExpandButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-test-id="expand-commit-list"
+          >
+            {isExpanded ? (
+              <Fragment>
+                {t('Show less')} <IconSubtract isCircled size="md" />
+              </Fragment>
+            ) : (
+              <Fragment>
+                {t('Show more')} <IconAdd isCircled size="md" />
+              </Fragment>
+            )}
+          </ExpandButton>
+        )}
+      </SuspectCommitHeader>
+      <StyledPanel>
+        {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={() => handleCommitClick(commit, commitIndex)}
+            onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
+          />
+        ))}
+      </StyledPanel>
+    </div>
+  );
+}
+
+export const StyledPanel = styled(Panel)`
+  margin: 0;
+`;
+
+const ExpandButton = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: bold;
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 12px 0 12px;
+`;
+
+const StreamlinedPanel = styled(Panel)`
+  background: ${p => p.theme.background}
+    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
+  overflow: hidden;
+  margin-bottom: 0;
+`;
+
+const IllustrationContainer = styled('div')`
+  position: absolute;
+  top: 0px;
+  right: 50px;
+
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
+    display: none;
+    pointer-events: none;
+  }
+`;
+
+const Illustration = styled('img')`
+  height: 110px;
+`;
+const DismissButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+`;

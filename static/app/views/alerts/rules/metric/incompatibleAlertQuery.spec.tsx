@@ -1,14 +1,13 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 
 function renderComponent(eventView: EventView) {
-  const organization = TestStubs.Organization();
-  return render(
-    <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
-  );
+  return render(<IncompatibleAlertQuery eventView={eventView} />);
 }
 
 describe('IncompatibleAlertQuery', () => {
@@ -54,9 +53,10 @@ describe('IncompatibleAlertQuery', () => {
   });
 
   it('should warn when yAxis is not allowed', () => {
+    const organization = OrganizationFixture();
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
-      ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
+      ...getAllViews(organization).find(view => view.name === 'Errors by URL'),
       query: 'event.type:error',
       yAxis: ['count_unique(issue)'],
       projects: [2],
@@ -96,9 +96,10 @@ describe('IncompatibleAlertQuery', () => {
   });
 
   it('should warn with multiple errors, missing event.type and project', () => {
+    const organization = OrganizationFixture();
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
-      ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
+      ...getAllViews(organization).find(view => view.name === 'Errors by URL'),
       query: '',
       yAxis: ['count_unique(issue.id)'],
       projects: [],

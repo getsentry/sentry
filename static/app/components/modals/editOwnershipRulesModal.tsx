@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {
+import type {
   EditOwnershipRulesModalOptions,
   ModalRenderProps,
 } from 'sentry/actionCreators/modal';

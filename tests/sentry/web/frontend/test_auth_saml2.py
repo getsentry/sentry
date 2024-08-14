@@ -1,4 +1,5 @@
 import base64
+import contextlib
 from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -10,12 +11,17 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
-from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
-from sentry.testutils import AuthProviderTestCase
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 dummy_provider_config = {
     "idp": {
@@ -33,7 +39,7 @@ dummy_provider_config = {
 }
 
 
-class DummySAML2Provider(SAML2Provider):
+class DummySAML2Provider(GenericSAML2Provider):
     name = "dummy"
 
     def get_saml_setup_pipeline(self):
@@ -50,9 +56,11 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     def setUp(self):
         self.user = self.create_user("rick@onehundredyears.com")
-        self.org = self.create_organization(owner=self.user, name="saml2-org")
-        self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, config=dummy_provider_config, organization_id=self.org.id
+        self.organization = self.create_organization(owner=self.user, name="saml2-org")
+        self.auth_provider_inst = AuthProvider.objects.create(
+            provider=self.provider_name,
+            config=dummy_provider_config,
+            organization_id=self.organization.id,
         )
 
         # The system.url-prefix, which is used to generate absolute URLs, must
@@ -92,15 +100,19 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == "/sso_url"
         assert "SAMLRequest" in query
 
-    def accept_auth(self, **kwargs):
+    def accept_auth(self, follow=False, **kwargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
         saml_response = base64.b64encode(saml_response).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 
-        with mock.patch(is_valid, return_value=True):
-            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kwargs)
+        with mock.patch(is_valid, return_value=True), contextlib.ExitStack() as stack:
+            if follow:
+                stack.enter_context(self.auto_select_silo_mode_on_redirects())
+            return self.client.post(
+                self.acs_path, {"SAMLResponse": saml_response}, follow=follow, **kwargs
+            )
 
     def test_auth_sp_initiated(self):
         # Start auth process from SP side
@@ -113,7 +125,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_sp_initiated_login(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True})
 
@@ -128,7 +140,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_sp_initiated_customer_domain(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True}, HTTP_HOST="saml2-org.testserver")
 
@@ -140,11 +152,11 @@ class AuthSAML2Test(AuthProviderTestCase):
             ("http://saml2-org.testserver/issues/", 302),
         ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_auth_sp_initiated_login_customer_domain_feature(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True})
 
@@ -190,6 +202,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         def side_effect(request):
             helper = original_get_for_request(request)
+            assert helper is not None
             # This could occur if redis state has expired
             helper.state.step_index = None
             return helper
@@ -207,11 +220,11 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_setup(self, auth_log):
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        with exempt_from_silo_limits():
-            self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        assert self.organization.flags.require_2fa.is_set
 
-        self.auth_provider.delete()
+        self.auth_provider_inst.delete()
         self.login_as(self.user)
 
         data = {"init": True, "provider": self.provider_name}
@@ -232,8 +245,9 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert messages[1].startswith("SSO has been configured for your organization")
 
         # require 2FA disabled when saml is enabled
-        org = Organization.objects.get(id=self.org.id)
-        assert not org.flags.require_2fa.is_set
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = Organization.objects.get(id=self.organization.id)
+            assert not org.flags.require_2fa
 
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user
@@ -241,11 +255,11 @@ class AuthSAML2Test(AuthProviderTestCase):
         audit_log_event = audit_log.get(event.event)
         assert "require_2fa to False when enabling SSO" in audit_log_event.render(event)
         auth_log.info.assert_called_once_with(
-            "Require 2fa disabled during sso setup", extra={"organization_id": self.org.id}
+            "Require 2fa disabled during sso setup", extra={"organization_id": self.organization.id}
         )
 
     def test_auth_idp_initiated_no_provider(self):
-        self.auth_provider.delete()
+        self.auth_provider_inst.delete()
         auth = self.accept_auth(follow=True)
 
         assert auth.status_code == 200

@@ -1,153 +1,299 @@
-from django.urls import reverse
+from unittest import TestCase
+from unittest.mock import Mock
 
-from sentry.models import Project, Rule
+from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
+from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.ingest import inbound_filters
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.signals import alert_rule_created
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 
 
-@region_silo_test
-class TeamProjectIndexTest(APITestCase):
-    def test_simple(self):
-        self.login_as(user=self.user)
-        team = self.create_team(members=[self.user])
-        project_1 = self.create_project(teams=[team], slug="fiz")
-        project_2 = self.create_project(teams=[team], slug="buzz")
-
-        url = reverse(
-            "sentry-api-0-team-project-index",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
-        )
-        response = self.client.get(url)
-        assert response.status_code == 200
-        assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
-            [str(project_1.id), str(project_2.id)]
-        )
-
-
-@region_silo_test
 class TeamProjectsListTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
-        project1 = self.create_project(organization=org, teams=[team1])
-        team2 = self.create_team(organization=org, name="bar")
-        self.create_project(organization=org, teams=[team2])
+    endpoint = "sentry-api-0-team-project-index"
+    method = "get"
 
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
-
-        self.login_as(user=user)
-
-        response = self.client.get(path)
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(project1.id)
-
-
-@region_silo_test
-class TeamProjectsCreateTest(APITestCase):
-    def test_simple(self):
+    def setUp(self):
+        super().setUp()
+        self.team = self.create_team(members=[self.user])
+        self.proj1 = self.create_project(teams=[self.team])
+        self.proj2 = self.create_project(teams=[self.team])
         self.login_as(user=self.user)
-        team = self.create_team(members=[self.user])
-        url = reverse(
-            "sentry-api-0-team-project-index",
-            kwargs={"organization_slug": team.organization.slug, "team_slug": team.slug},
+
+    def test_simple(self):
+        response = self.get_success_response(
+            self.organization.slug, self.team.slug, status_code=200
         )
-        resp = self.client.post(url, data={"name": "hello world", "slug": "foobar"})
-        assert resp.status_code == 201, resp.content
-        project = Project.objects.get(id=resp.data["id"])
-        assert project.name == "hello world"
-        assert project.slug == "foobar"
-        assert project.teams.first() == team
+        project_ids = {item["id"] for item in response.data}
 
-        resp = self.client.post(url, data={"name": "hello world", "slug": "foobar"})
-        assert resp.status_code == 409, resp.content
+        assert len(response.data) == 2
+        assert project_ids == {str(self.proj1.id), str(self.proj2.id)}
 
-    def test_with_default_rules(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
+    def test_excludes_project(self):
+        proj3 = self.create_project()
+        response = self.get_success_response(
+            self.organization.slug, self.team.slug, status_code=200
+        )
 
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
+        assert str(proj3.id) not in response.data
 
-        self.login_as(user=user)
 
-        response = self.client.post(path, data={"name": "Test Project"})
+class TeamProjectsCreateTest(APITestCase, TestCase):
+    endpoint = "sentry-api-0-team-project-index"
+    method = "post"
 
-        assert response.status_code == 201, response.content
+    def setUp(self):
+        super().setUp()
+        self.team = self.create_team(members=[self.user])
+        self.data = {"name": "foo", "slug": "bar", "platform": "python"}
+        self.login_as(user=self.user)
+
+    def test_simple(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        # fetch from db to check project's team
         project = Project.objects.get(id=response.data["id"])
-        assert project.name == "Test Project"
-        assert project.slug
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
 
-        assert Rule.objects.filter(project=project).exists()
+        # Assert project option is not set for non-EA organizations
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )
 
-    def test_without_default_rules(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name="fake name",
+            slug="12345",
+            status_code=400,
+        )
 
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-        self.login_as(user=user)
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="1234",
+            status_code=201,
+        )
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
-        response = self.client.post(path, data={"name": "Test Project", "default_rules": False})
+    def test_invalid_platform(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name="fake name",
+            platform="fake platform",
+            status_code=400,
+        )
+        assert response.data["platform"][0] == "Invalid platform"
 
-        assert response.status_code == 201, response.content
+    def test_invalid_name(self):
+
+        invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name=invalid_name,
+            platform="python",
+            status_code=400,
+        )
+        assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
+
+    def test_duplicate_slug(self):
+        self.create_project(slug="bar")
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=409,
+        )
+        assert response.data["detail"] == "A project with this slug already exists."
+
+    def test_default_rules(self):
+        signal_handler = Mock()
+        alert_rule_created.connect(signal_handler)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            default_rules=True,
+            status_code=201,
+        )
+
         project = Project.objects.get(id=response.data["id"])
-        assert project.name == "Test Project"
-        assert project.slug
+        rule = Rule.objects.get(project=project)
 
-        assert not Rule.objects.filter(project=project).exists()
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_with_default_rule_fallback_targeting(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
-
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
-
-        self.login_as(user=user)
-
-        response = self.client.post(path, data={"name": "Test Project", "default_rules": True})
-
-        assert response.status_code == 201, response.content
-        project = Project.objects.get(id=response.data["id"])
-
-        rule = Rule.objects.filter(project=project).first()
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-    def test_with_duplicate_explicit_slug(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
-        self.create_project(organization=org, teams=[team1], slug="test-project")
+        # Ensure that creating the default alert rule does not trigger the
+        # alert_rule_created signal to avoid fake recording fake analytics.
+        assert signal_handler.call_count == 0
+        alert_rule_created.disconnect(signal_handler)
 
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
-
-        self.login_as(user=user)
-
-        response = self.client.post(path, data={"name": "Test Project", "slug": "test-project"})
-
-        assert response.status_code == 409, response.content
-        assert response.data == {"detail": "A project with this slug already exists."}
-
-    def test_with_invalid_platform(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team1 = self.create_team(organization=org, name="foo")
-
-        path = f"/api/0/teams/{org.slug}/{team1.slug}/projects/"
-
-        self.login_as(user=user)
-
-        response = self.client.post(
-            path, data={"name": "Test Project", "slug": "test-project", "platform": "lol"}
+    def test_without_default_rules_disable_member_project_creation(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            default_rules=False,
+            status_code=201,
         )
-        assert response.status_code == 400, response.content
+        project = Project.objects.get(id=response.data["id"])
+        assert not Rule.objects.filter(project=project).exists()
+
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+        test_team = self.create_team(organization=test_org)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.login_as(user=test_member)
+        response = self.get_error_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=403,
+        )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    def test_default_inbound_filters(self):
+        filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
+        python_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=python_response.data["id"])
+
+        python_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, python_project)
+            for filter_id in filters
+        }
+
+        assert not python_filter_states["browser-extensions"]
+        assert not python_filter_states["legacy-browsers"]
+        assert not python_filter_states["web-crawlers"]
+        assert python_filter_states["filtered-transaction"]
+
+        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
+        javascript_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **project_data,
+            status_code=201,
+        )
+
+        javascript_project = Project.objects.get(id=javascript_response.data["id"])
+
+        javascript_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, javascript_project)
+            for filter_id in filters
+        }
+
+        assert javascript_filter_states["browser-extensions"]
+        assert set(javascript_filter_states["legacy-browsers"]) == {
+            "ie",
+            "firefox",
+            "chrome",
+            "safari",
+            "opera",
+            "opera_mini",
+            "android",
+            "edge",
+        }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]
+
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
+    def test_similarity_project_option_valid(self):
+        """
+        Test that project option for similarity grouping is created for EA organizations
+        where the project platform is Seer-eligible.
+        """
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is not None
+        )
+
+    def test_similarity_project_option_invalid(self):
+        """
+        Test that project option for similarity grouping is not created for EA organizations
+        where the project platform is not seer eligible.
+        """
+
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="foo",
+            slug="bar",
+            platform="php",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "php"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )

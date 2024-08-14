@@ -1,9 +1,9 @@
 from functools import cached_property
 
+import orjson
 import responses
 
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.segment.plugin import SegmentPlugin
 
 
@@ -39,7 +39,7 @@ class SegmentPluginTest(PluginTestCase):
             self.plugin.post_process(event)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert {
             "userId": "1",
             "event": "Error Captured",

@@ -1,4 +1,5 @@
-import selectEvent from 'react-select-event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,
@@ -7,6 +8,7 @@ import {
   userEvent,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
 import ModalStore from 'sentry/stores/modalStore';
@@ -71,7 +73,11 @@ describe('ResolveActions', function () {
       expect(button).toHaveTextContent('');
 
       await userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'unresolved',
+        statusDetails: {},
+        substatus: 'ongoing',
+      });
     });
   });
 
@@ -98,7 +104,11 @@ describe('ResolveActions', function () {
       render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'resolved',
+        statusDetails: {},
+        substatus: null,
+      });
     });
   });
 
@@ -132,7 +142,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
     render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();
@@ -140,7 +150,7 @@ describe('ResolveActions', function () {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     await userEvent.click(screen.getByText('Another existing release…'));
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 
@@ -151,6 +161,107 @@ describe('ResolveActions', function () {
       statusDetails: {
         inRelease: 'sentry-android-shop@1.2.0',
       },
+      substatus: null,
     });
+  });
+
+  it('displays if the current release version uses semver', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@1.2.3'}}
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current release')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
+  });
+
+  it('displays prompt to setup releases when there are no releases', async function () {
+    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
+  });
+
+  it('does not prompt to setup releases when multiple projects are selected', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        multipleProjectsSelected
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'The current release'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Resolving is better with Releases')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease={false}
+      />
+    );
+    expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
+  });
+
+  it('does not render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease
+      />
+    );
+    expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
+  });
+
+  it('does render next release option with subtitle', async function () {
+    const onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(await screen.findByText('The next release')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The next release after the current one')
+    ).toBeInTheDocument();
+  });
+
+  it('does render in upcoming release', async function () {
+    const organization = OrganizationFixture({
+      features: ['resolve-in-upcoming-release'],
+    });
+    const onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(await screen.findByText('The upcoming release')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The next release that is not yet released')
+    ).toBeInTheDocument();
   });
 });

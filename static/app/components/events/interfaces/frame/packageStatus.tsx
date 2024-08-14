@@ -31,7 +31,7 @@ function PackageStatus({status, tooltip}: Props) {
   return (
     <StyledTooltip
       title={tooltip}
-      disabled={!(tooltip && tooltip.length)}
+      disabled={!tooltip?.length}
       containerDisplayMode="inline-flex"
     >
       <PackageStatusIcon>{icon}</PackageStatusIcon>

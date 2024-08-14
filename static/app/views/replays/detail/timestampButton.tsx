@@ -1,11 +1,11 @@
-import {MouseEvent} from 'react';
+import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
-import {showPlayerTime} from 'sentry/components/replays/utils';
+import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 
 type Props = {
   startTimestampMs: number;
@@ -30,7 +30,10 @@ function TimestampButton({
         className={className}
       >
         <IconPlay size="xs" />
-        {showPlayerTime(timestampMs, startTimestampMs, format === 'mm:ss.SSS')}
+        {formatReplayDuration(
+          Math.abs(new Date(timestampMs).getTime() - startTimestampMs),
+          format === 'mm:ss.SSS'
+        )}
       </StyledButton>
     </Tooltip>
   );
@@ -41,9 +44,11 @@ const StyledButton = styled('button')`
   border: none;
   color: inherit;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2em;
 
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-self: baseline;
   gap: ${space(0.25)};
   padding: 0;
   height: 100%;

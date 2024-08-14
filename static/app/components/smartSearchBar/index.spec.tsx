@@ -1,3 +1,7 @@
+import {Fragment} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {
   act,
   fireEvent,
@@ -18,18 +22,20 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess([
+      ...TagsFixture(),
+      {
+        key: 'firstRelease',
+        name: 'firstRelease',
+      },
+      {
+        key: 'is',
+        name: 'is',
+      },
+    ]);
     const supportedTags = TagStore.getState();
-    supportedTags.firstRelease = {
-      key: 'firstRelease',
-      name: 'firstRelease',
-    };
-    supportedTags.is = {
-      key: 'is',
-      name: 'is',
-    };
 
-    const organization = TestStubs.Organization({id: '123'});
+    const organization = OrganizationFixture({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -38,7 +44,6 @@ describe('SmartSearchBar', function () {
       },
     };
 
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -284,7 +289,7 @@ describe('SmartSearchBar', function () {
   });
 
   describe('pasting', function () {
-    it('trims pasted content', function () {
+    it('trims pasted content', async function () {
       const mockOnChange = jest.fn();
       render(<SmartSearchBar {...defaultProps} onChange={mockOnChange} />);
 
@@ -293,7 +298,9 @@ describe('SmartSearchBar', function () {
       fireEvent.paste(textbox, {clipboardData: {getData: () => ' something'}});
 
       expect(textbox).toHaveValue('something');
-      expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything());
+      await waitFor(() =>
+        expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything())
+      );
     });
   });
 
@@ -421,7 +428,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('renders nested keys correctly', async function () {
-    const {container} = render(
+    render(
       <SmartSearchBar
         {...defaultProps}
         query=""
@@ -446,8 +453,6 @@ describe('SmartSearchBar', function () {
     await userEvent.type(textbox, 'nest');
 
     await screen.findByText('Keys');
-
-    expect(container).toSnapshot();
   });
 
   it('filters keys on name and description', async function () {
@@ -607,6 +612,105 @@ describe('SmartSearchBar', function () {
       expect(mockOnChange).toHaveBeenLastCalledWith('user:"id:1" ', expect.anything());
     });
     jest.useRealTimers();
+  });
+
+  it('autocompletes assigned from string values', async function () {
+    const mockOnChange = jest.fn();
+
+    render(
+      <SmartSearchBar
+        {...defaultProps}
+        query=""
+        onChange={mockOnChange}
+        supportedTags={{
+          assigned: {
+            key: 'assigned',
+            name: 'assigned',
+            predefined: true,
+            values: ['me', '[me, none]', '#team-a'],
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.type(textbox, 'assigned:', {delay: null});
+
+    await userEvent.click(await screen.findByRole('option', {name: /#team-a/}), {
+      delay: null,
+    });
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenLastCalledWith(
+        'assigned:#team-a ',
+        expect.anything()
+      );
+    });
+  });
+
+  it('autocompletes assigned from SearchGroup objects', async function () {
+    const mockOnChange = jest.fn();
+
+    render(
+      <SmartSearchBar
+        {...defaultProps}
+        query=""
+        onChange={mockOnChange}
+        supportedTags={{
+          assigned: {
+            key: 'assigned',
+            name: 'assigned',
+            predefined: true,
+            values: [
+              {
+                title: 'Suggested Values',
+                type: 'header',
+                icon: <Fragment />,
+                children: [
+                  {
+                    value: 'me',
+                    desc: 'me',
+                    type: ItemType.TAG_VALUE,
+                  },
+                ],
+              },
+              {
+                title: 'All Values',
+                type: 'header',
+                icon: <Fragment />,
+                children: [
+                  {
+                    value: '#team-a',
+                    desc: '#team-a',
+                    type: ItemType.TAG_VALUE,
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.type(textbox, 'assigned:', {delay: null});
+
+    expect(await screen.findByText('Suggested Values')).toBeInTheDocument();
+    expect(screen.getByText('All Values')).toBeInTheDocument();
+
+    // Filter down to "team"
+    await userEvent.type(textbox, 'team', {delay: null});
+
+    expect(screen.queryByText('Suggested Values')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('option', {name: /#team-a/}), {delay: null});
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenLastCalledWith(
+        'assigned:#team-a ',
+        expect.anything()
+      );
+    });
   });
 
   it('autocompletes tag values (predefined values with spaces)', async function () {
@@ -989,56 +1093,6 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  describe('custom performance metric filters', () => {
-    it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.kibibyte': {
-              fieldType: 'size',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid file size. Expected number followed by file size unit suffix'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.minute': {
-              fieldType: 'duration',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid duration. Expected number followed by duration unit suffix'
-        )
-      ).toBeInTheDocument();
-    });
-  });
-
   describe('defaultSearchGroup', () => {
     const defaultSearchGroup = {
       title: 'default search group',
@@ -1051,7 +1105,6 @@ describe('SmartSearchBar', function () {
         {
           type: ItemType.RECOMMENDED,
           title: 'Assignee',
-          desc: 'Filter by team or member.',
           value: 'assigned_or_suggested:',
         },
       ],

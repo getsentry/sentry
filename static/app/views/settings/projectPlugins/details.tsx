@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -12,11 +12,13 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
@@ -29,7 +31,7 @@ type Props = {
 
 type State = {
   pluginDetails?: Plugin;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 /**
  * There are currently two sources of truths for plugin details:
@@ -40,7 +42,7 @@ type State = {
  *    The more correct way would be to pass `config` to PluginConfig and use plugin from
  *    PluginsStore
  */
-class ProjectPluginDetails extends AsyncView<Props, State> {
+class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
@@ -65,13 +67,13 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
 
   getTitle() {
     const {plugin} = this.state;
-    if (plugin && plugin.name) {
+    if (plugin?.name) {
       return plugin.name;
     }
     return 'Sentry';
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId, pluginId} = this.props.params;
     return [
@@ -145,12 +147,11 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const {pluginDetails} = this.state;
     const {plugins} = this.props;
 
-    const plugin =
-      plugins &&
-      plugins.plugins &&
-      plugins.plugins.find(({slug}) => slug === this.props.params.pluginId);
+    const plugin = plugins?.plugins?.find(
+      ({slug}) => slug === this.props.params.pluginId
+    );
 
-    return plugin ? plugin.enabled : pluginDetails && pluginDetails.enabled;
+    return plugin ? plugin.enabled : pluginDetails?.enabled;
   }
 
   renderActions() {
@@ -185,7 +186,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
     const {pluginDetails} = this.state;
     if (!pluginDetails) {
       return null;
@@ -197,9 +198,8 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
         <div className="row">
           <div className="col-md-7">
             <PluginConfig
-              organization={organization}
               project={project}
-              data={pluginDetails}
+              plugin={pluginDetails}
               enabled={this.getEnabled()}
               onDisablePlugin={this.handleDisable}
             />

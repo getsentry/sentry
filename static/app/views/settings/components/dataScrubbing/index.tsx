@@ -3,14 +3,18 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -22,7 +26,7 @@ import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {OrganizationRules} from './organizationRules';
 import Rules from './rules';
 import submitRules from './submitRules';
-import {Rule} from './types';
+import type {Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';
@@ -190,9 +194,9 @@ export function DataScrubbing({
           />
         )}
         <PanelAction>
-          <Button href={ADVANCED_DATASCRUBBING_LINK} external>
+          <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
           <Button disabled={disabled} onClick={handleAdd} priority="primary">
             {t('Add Rule')}
           </Button>

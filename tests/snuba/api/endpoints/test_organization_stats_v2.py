@@ -1,22 +1,17 @@
-import functools
-from datetime import datetime, timedelta
-
-import pytz
-from django.urls import reverse
-from freezegun import freeze_time
+from datetime import datetime, timedelta, timezone
 
 from sentry.constants import DataCategory
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import OutcomesSnubaTest
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
+    endpoint = "sentry-api-0-organization-stats-v2"
+
     def setUp(self):
         super().setUp()
-        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=pytz.utc)
+        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
 
         self.login_as(user=self.user)
 
@@ -66,7 +61,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "quantity": 1,
             }
         )
-
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -90,23 +84,20 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             }
         )
 
-    def do_request(self, query, user=None, org=None):
+    def do_request(self, query, user=None, org=None, status_code=200):
         self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-stats-v2",
-            kwargs={"organization_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")
+        org_slug = (org or self.organization).slug
+        if status_code >= 400:
+            return self.get_error_response(org_slug, **query, status_code=status_code)
+        return self.get_success_response(org_slug, **query, status_code=status_code)
 
     def test_empty_request(self):
-        response = self.do_request({})
-        assert response.status_code == 400, response.content
+        response = self.do_request({}, status_code=400)
         assert result_sorted(response.data) == {"detail": 'At least one "field" is required.'}
 
     def test_inaccessible_project(self):
-        response = self.do_request({"project": [self.project3.id]})
+        response = self.do_request({"project": [self.project3.id]}, status_code=403)
 
-        assert response.status_code == 403, response.content
         assert result_sorted(response.data) == {
             "detail": "You do not have permission to perform this action."
         }
@@ -122,9 +113,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             },
             user=self.user2,
             org=self.org3,
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": "No projects available",
         }
@@ -135,21 +126,53 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "field": ["summ(qarntenty)"],
                 "statsPeriod": "1d",
                 "interval": "1d",
-            }
+            },
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
     def test_no_end_param(self):
         response = self.do_request(
-            {"field": ["sum(quantity)"], "interval": "1d", "start": "2021-03-14T00:00:00Z"}
+            {"field": ["sum(quantity)"], "interval": "1d", "start": "2021-03-14T00:00:00Z"},
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {"detail": "start and end are both required"}
+
+    @freeze_time(datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc))
+    def test_future_request(self):
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "interval": "1h",
+                "category": ["error"],
+                "start": "2021-03-14T15:30:00",
+                "end": "2021-03-14T16:30:00",
+            },
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "intervals": [
+                "2021-03-14T12:00:00Z",
+                "2021-03-14T13:00:00Z",
+                "2021-03-14T14:00:00Z",
+                "2021-03-14T15:00:00Z",
+                "2021-03-14T16:00:00Z",
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "series": {"sum(quantity)": [0, 0, 0, 0, 0]},
+                    "totals": {"sum(quantity)": 0},
+                }
+            ],
+            "start": "2021-03-14T12:00:00Z",
+            "end": "2021-03-14T17:00:00Z",
+        }
 
     def test_unknown_category(self):
         response = self.do_request(
@@ -158,10 +181,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "category": "scoobydoo",
-            }
+            },
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": 'Invalid category: "scoobydoo"',
         }
@@ -174,10 +197,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "category": "error",
                 "outcome": "scoobydoo",
-            }
+            },
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": 'Invalid outcome: "scoobydoo"',
         }
@@ -189,26 +212,21 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "groupBy": ["category_"],
                 "statsPeriod": "1d",
                 "interval": "1d",
-            }
+            },
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {"detail": 'Invalid groupBy: "category_"'}
 
     def test_resolution_invalid(self):
-        self.login_as(user=self.user)
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "bad_interval",
-            }
+            },
+            org=self.org,
+            status_code=400,
         )
-
-        assert response.status_code == 400, response.content
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_attachment_filter_only(self):
@@ -219,10 +237,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "category": ["error", "attachment"],
-            }
+            },
+            status_code=400,
         )
 
-        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": "if filtering by attachment no other category may be present"
         }
@@ -236,17 +254,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
-            }
+            },
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [6]}, "totals": {"sum(quantity)": 6}}
+                {"by": {}, "series": {"sum(quantity)": [0, 6]}, "totals": {"sum(quantity)": 6}}
             ],
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
         }
 
         response = self.do_request(
@@ -256,12 +274,13 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "6h",
                 "field": ["sum(quantity)"],
                 "category": ["error"],
-            }
+            },
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "intervals": [
+                "2021-03-13T12:00:00Z",
                 "2021-03-13T18:00:00Z",
                 "2021-03-14T00:00:00Z",
                 "2021-03-14T06:00:00Z",
@@ -270,12 +289,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {},
-                    "series": {"sum(quantity)": [0, 0, 6, 0]},
+                    "series": {"sum(quantity)": [0, 0, 0, 6, 0]},
                     "totals": {"sum(quantity)": 6},
                 }
             ],
-            "start": "2021-03-13T18:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T12:00:00Z",
+            "end": "2021-03-14T18:00:00Z",
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
@@ -289,15 +308,15 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "category": ["error", "transaction"],
             },
             user=self.user2,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [7]}, "totals": {"sum(quantity)": 7}}
+                {"by": {}, "series": {"sum(quantity)": [0, 7]}, "totals": {"sum(quantity)": 7}}
             ],
         }
 
@@ -312,9 +331,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "category": ["error", "transaction"],
             },
             user=self.user2,
+            status_code=403,
         )
 
-        assert response.status_code == 403
         response = self.do_request(
             {
                 "project": [-1],
@@ -325,12 +344,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "groupBy": ["project"],
             },
             user=self.user2,
+            status_code=200,
         )
 
-        assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [],
         }
 
@@ -349,9 +368,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             },
             org=self.organization,
             user=user,
+            status_code=403,
         )
 
-        assert response.status_code == 403, response.content
         assert result_sorted(response.data) == {
             "detail": "You do not have permission to perform this action."
         }
@@ -367,9 +386,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             },
             org=self.organization,
             user=user,
+            status_code=403,
         )
 
-        assert response.status_code == 403, response.content
         assert result_sorted(response.data) == {
             "detail": "You do not have permission to perform this action."
         }
@@ -388,12 +407,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "groupBy": ["project"],
             },
             user=self.user2,
+            status_code=200,
         )
 
-        assert response.status_code == 200
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -408,23 +427,21 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_simple(self):
-        make_request = functools.partial(
-            self.client.get, reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug])
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "2d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "groupBy": ["category", "outcome", "reason"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {
@@ -433,12 +450,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "category": "attachment",
                     },
                     "totals": {"sum(quantity)": 1024},
-                    "series": {"sum(quantity)": [0, 1024]},
+                    "series": {"sum(quantity)": [0, 0, 1024]},
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
                     "totals": {"sum(quantity)": 6},
-                    "series": {"sum(quantity)": [0, 6]},
+                    "series": {"sum(quantity)": [0, 0, 6]},
                 },
                 {
                     "by": {
@@ -447,30 +464,82 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1},
-                    "series": {"sum(quantity)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1]},
                 },
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_staff_org_individual_category(self):
+        staff_user = self.create_user(is_staff=True, is_superuser=True)
+        self.login_as(user=staff_user, superuser=True)
+
+        category_group_mapping = {
+            "attachment": {
+                "by": {
+                    "outcome": "rate_limited",
+                    "reason": "spike_protection",
+                },
+                "totals": {"sum(quantity)": 1024},
+                "series": {"sum(quantity)": [0, 0, 1024]},
+            },
+            "error": {
+                "by": {"outcome": "accepted", "reason": "none"},
+                "totals": {"sum(quantity)": 6},
+                "series": {"sum(quantity)": [0, 0, 6]},
+            },
+            "transaction": {
+                "by": {
+                    "reason": "spike_protection",
+                    "outcome": "rate_limited",
+                },
+                "totals": {"sum(quantity)": 1},
+                "series": {"sum(quantity)": [0, 0, 1]},
+            },
+        }
+
+        # Test each category individually
+        for category in ["attachment", "error", "transaction"]:
+            response = self.do_request(
+                {
+                    "category": category,
+                    "statsPeriod": "2d",
+                    "interval": "1d",
+                    "field": ["sum(quantity)"],
+                    "groupBy": ["outcome", "reason"],
+                },
+                org=self.org,
+                status_code=200,
+            )
+
+            assert result_sorted(response.data) == {
+                "start": "2021-03-12T00:00:00Z",
+                "end": "2021-03-15T00:00:00Z",
+                "intervals": [
+                    "2021-03-12T00:00:00Z",
+                    "2021-03-13T00:00:00Z",
+                    "2021-03-14T00:00:00Z",
+                ],
+                "groups": [category_group_mapping[category]],
+            }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_multiple_fields(self):
-        make_request = functools.partial(
-            self.client.get, reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug])
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "2d",
                 "interval": "1d",
                 "field": ["sum(quantity)", "sum(times_seen)"],
                 "groupBy": ["category", "outcome", "reason"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {
@@ -479,12 +548,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "reason": "spike_protection",
                     },
                     "totals": {"sum(quantity)": 1024, "sum(times_seen)": 1},
-                    "series": {"sum(quantity)": [0, 1024], "sum(times_seen)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1024], "sum(times_seen)": [0, 0, 1]},
                 },
                 {
                     "by": {"outcome": "accepted", "reason": "none", "category": "error"},
                     "totals": {"sum(quantity)": 6, "sum(times_seen)": 6},
-                    "series": {"sum(quantity)": [0, 6], "sum(times_seen)": [0, 6]},
+                    "series": {"sum(quantity)": [0, 0, 6], "sum(times_seen)": [0, 0, 6]},
                 },
                 {
                     "by": {
@@ -493,31 +562,28 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                         "outcome": "rate_limited",
                     },
                     "totals": {"sum(quantity)": 1, "sum(times_seen)": 1},
-                    "series": {"sum(quantity)": [0, 1], "sum(times_seen)": [0, 1]},
+                    "series": {"sum(quantity)": [0, 0, 1], "sum(times_seen)": [0, 0, 1]},
                 },
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_group_by_project(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(times_seen)"],
                 "groupBy": ["project"],
                 "category": ["error", "transaction"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -532,27 +598,26 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_project_totals_per_project(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response_per_group = make_request(
+        response_per_group = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1h",
                 "field": ["sum(times_seen)"],
                 "groupBy": ["project"],
                 "category": ["error", "transaction"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
-
-        response_total = make_request(
+        response_total = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1h",
                 "field": ["sum(times_seen)"],
                 "category": ["error", "transaction"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
         per_group_total = 0
@@ -565,134 +630,182 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_project_filter(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "project": self.project.id,
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "category": ["error", "transaction"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_staff_project_filter(self):
+        staff_user = self.create_user(is_staff=True, is_superuser=True)
+        self.login_as(user=staff_user, superuser=True)
+
+        shared_query_params = {
+            "field": "sum(quantity)",
+            "groupBy": ["outcome", "reason"],
+            "interval": "1d",
+            "statsPeriod": "1d",
+        }
+        shared_data = {
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+        }
+
+        # Test error category
+        response = self.do_request(
+            {
+                **shared_query_params,
+                "category": "error",
+                "project": self.project.id,
+            },
+            org=self.org,
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            **shared_data,
+            "groups": [
+                {
+                    "by": {"outcome": "accepted", "reason": "none"},
+                    "totals": {"sum(quantity)": 6},
+                    "series": {"sum(quantity)": [0, 6]},
+                },
+            ],
+        }
+
+        # Test transaction category
+        response = self.do_request(
+            {
+                **shared_query_params,
+                "category": "transaction",
+                "project": self.project2.id,
+            },
+            org=self.org,
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            **shared_data,
+            "groups": [
+                {
+                    "by": {"outcome": "rate_limited", "reason": "spike_protection"},
+                    "totals": {"sum(quantity)": 1},
+                    "series": {"sum(quantity)": [0, 1]},
+                }
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_reason_filter(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(times_seen)"],
                 "reason": ["spike_protection"],
                 "groupBy": ["category"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
 
-        assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
                 {
                     "by": {"category": "attachment"},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
+                    "series": {"sum(times_seen)": [0, 1]},
                 },
                 {
                     "by": {"category": "transaction"},
                     "totals": {"sum(times_seen)": 1},
-                    "series": {"sum(times_seen)": [1]},
+                    "series": {"sum(times_seen)": [0, 1]},
                 },
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_outcome_filter(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "outcome": "accepted",
                 "category": ["error", "transaction"],
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
-        assert response.status_code == 200, response.content
+
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_category_filter(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+        response = self.do_request(
             {
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "category": "error",
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
-        assert response.status_code == 200, response.content
+
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
-            "intervals": ["2021-03-14T00:00:00Z"],
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "groups": [
-                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [6]}}
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_minute_interval(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
-        )
-        response = make_request(
+    def test_minute_interval_sum_quantity(self):
+        response = self.do_request(
             {
                 "statsPeriod": "1h",
                 "interval": "15m",
                 "field": ["sum(quantity)"],
                 "category": "error",
-            }
+            },
+            org=self.org,
+            status_code=200,
         )
-        assert response.status_code == 200, response.content
+
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T11:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-14T11:15:00Z",
+            "end": "2021-03-14T12:30:00Z",
             "intervals": [
-                "2021-03-14T11:00:00Z",
                 "2021-03-14T11:15:00Z",
                 "2021-03-14T11:30:00Z",
                 "2021-03-14T11:45:00Z",
@@ -703,7 +816,37 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {},
                     "totals": {"sum(quantity)": 6},
-                    "series": {"sum(quantity)": [0, 6, 0, 0, 0, 0]},
+                    "series": {"sum(quantity)": [6, 0, 0, 0, 0]},
+                }
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_minute_interval_sum_times_seen(self):
+        response = self.do_request(
+            {
+                "statsPeriod": "1h",
+                "interval": "15m",
+                "field": ["sum(times_seen)"],
+                "category": "error",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "start": "2021-03-14T11:15:00Z",
+            "end": "2021-03-14T12:30:00Z",
+            "intervals": [
+                "2021-03-14T11:15:00Z",
+                "2021-03-14T11:30:00Z",
+                "2021-03-14T11:45:00Z",
+                "2021-03-14T12:00:00Z",
+                "2021-03-14T12:15:00Z",
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "totals": {"sum(times_seen)": 6},
+                    "series": {"sum(times_seen)": [6, 0, 0, 0, 0]},
                 }
             ],
         }

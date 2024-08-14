@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 import os
 from collections import defaultdict
+from collections.abc import Sequence
+from typing import Any
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.group import Group, GroupStatus
+from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
+from ..manager import DeletionTaskManager
 
 # Group models that relate only to groups and not to events. We assume those to
 # be safe to delete/mutate within a single transaction for user-triggered
 # actions (delete/reprocess/merge/unmerge)
 DIRECT_GROUP_RELATED_MODELS = (
+    # prioritize GroupHash
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -30,11 +39,10 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupEmailThread,
     models.GroupSubscription,
     models.GroupHistory,
-    models.RuleFireHistory,
+    RuleFireHistory,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
-    # prioritize GroupHash
     models.UserReport,
     models.EventAttachment,
 )
@@ -48,12 +56,14 @@ class EventDataDeletionTask(BaseDeletionTask):
     # Number of events fetched from eventstore per chunk() call.
     DEFAULT_CHUNK_SIZE = 10000
 
-    def __init__(self, manager, groups, **kwargs):
+    def __init__(
+        self, manager: DeletionTaskManager, groups: Sequence[Group], **kwargs: Any
+    ) -> None:
         self.groups = groups
-        self.last_event = None
+        self.last_event: Event | None = None
         super().__init__(manager, **kwargs)
 
-    def chunk(self):
+    def chunk(self) -> bool:
         conditions = []
         if self.last_event is not None:
             conditions.extend(
@@ -80,9 +90,9 @@ class EventDataDeletionTask(BaseDeletionTask):
             limit=self.DEFAULT_CHUNK_SIZE,
             referrer="deletions.group",
             orderby=["-timestamp", "-event_id"],
-            tenant_ids={"organization_id": self.groups[0].project.organization_id}
-            if self.groups
-            else None,
+            tenant_ids=(
+                {"organization_id": self.groups[0].project.organization_id} if self.groups else None
+            ),
         )
         if not events:
             # Remove all group events now that their node data has been removed.
@@ -95,7 +105,7 @@ class EventDataDeletionTask(BaseDeletionTask):
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        nodestore.delete_multi(node_ids)
+        nodestore.backend.delete_multi(node_ids)
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
@@ -116,7 +126,7 @@ class GroupDeletionTask(ModelDeletionTask):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = 1000
 
-    def delete_bulk(self, instance_list):
+    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -125,8 +135,11 @@ class GroupDeletionTask(ModelDeletionTask):
 
         group_ids = [group.id for group in instance_list]
 
+        # Tell seer to delete grouping records with these group hashes
+        call_delete_seer_grouping_records_by_hash(group_ids)
+
         # Remove child relations for all groups first.
-        child_relations = []
+        child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
@@ -141,7 +154,7 @@ class GroupDeletionTask(ModelDeletionTask):
         # Remove group objects with children removed.
         return self.delete_instance_bulk(instance_list)
 
-    def delete_instance(self, instance):
+    def delete_instance(self, instance: Group) -> None:
         from sentry import similarity
 
         if not self.skip_models or similarity not in self.skip_models:
@@ -149,9 +162,7 @@ class GroupDeletionTask(ModelDeletionTask):
 
         return super().delete_instance(instance)
 
-    def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import Group, GroupStatus
-
+    def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)

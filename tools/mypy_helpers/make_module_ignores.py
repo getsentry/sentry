@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -24,6 +25,10 @@ def main() -> int:
         match = ERROR_RE.match(line)
         if match is not None:
             codes.add(match[1])
+
+    os.makedirs(".artifacts", exist_ok=True)
+    with open(".artifacts/mypy-all", "wb") as f:
+        f.write(out.stdout)
 
     mods = []
     for filename in sorted(filenames):

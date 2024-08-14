@@ -1,16 +1,20 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import (
-    OrganizationEndpoint,
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
-)
+from sentry.api.bases import SentryAppBaseEndpoint, add_integration_platform_metric_tag
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 
 
@@ -19,6 +23,11 @@ from sentry.sentry_apps.components import SentryAppComponentPreparer
 #  endpoint that can take project_id or sentry_app_id as a query parameter.
 @control_silo_endpoint
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
             request=request,
@@ -29,16 +38,28 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 
 @control_silo_endpoint
-class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
+class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     @add_integration_platform_metric_tag
-    def get(self, request: Request, organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         components = []
         errors = []
 
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization.id
-        ):
-            _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
+        ).order_by("pk"):
+            _components = SentryAppComponent.objects.filter(
+                sentry_app_id=install.sentry_app_id
+            ).order_by("pk")
 
             if "filter" in request.GET:
                 _components = _components.filter(type=request.GET["filter"])

@@ -4,24 +4,31 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {
-  AssigneeSelectorDropdown,
-  OnAssignCallback,
-  SuggestedAssignee,
-} from 'sentry/components/assigneeSelectorDropdown';
+import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
-import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
+import {Chevron} from 'sentry/components/chevron';
+import type {
+  OnAssignCallback,
+  SuggestedAssignee,
+} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
+import {useHandleAssigneeChange} from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
+import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Commit, Committer} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,7 +70,7 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-type EventOwners = {
+export type EventOwners = {
   owners: Actor[];
   rules: Rules;
 };
@@ -75,7 +82,7 @@ function getSuggestedReason(owner: IssueOwner) {
 
   if (owner.rules?.length) {
     const firstRule = owner.rules[0];
-    return t('Owner of %s', firstRule.join(':'));
+    return `${toTitleCase(firstRule[0])}:${firstRule[1]}`;
   }
 
   return '';
@@ -91,7 +98,7 @@ function getSuggestedReason(owner: IssueOwner) {
  * ```ts
  *   actor: <
  *    type,              # Either user or team
- *    SentryTypes.User,  # API expanded user object
+ *    {User},            # API expanded user object
  *    {email, id, name}  # Sentry user which is *not* expanded
  *    {email, name}      # Unidentified user (from commits)
  *    {id, name},        # Sentry team (check `type`)
@@ -105,10 +112,10 @@ function getSuggestedReason(owner: IssueOwner) {
  *   rules:   [...]  # Project rules matched for this owner
  * ```
  */
-function getOwnerList(
+export function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | null,
-  assignedTo: Actor
+  assignedTo: Actor | null
 ): Omit<SuggestedAssignee, 'assignee'>[] {
   const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},
@@ -148,7 +155,7 @@ function getOwnerList(
   }));
 }
 
-export function getAssignedToDisplayName(group: Group) {
+export function getAssignedToDisplayName(group: Group | FeedbackIssue) {
   if (group.assignedTo?.type === 'team') {
     const team = TeamStore.getById(group.assignedTo.id);
     return `#${team?.slug ?? group.assignedTo.name}`;
@@ -158,7 +165,7 @@ export function getAssignedToDisplayName(group: Group) {
     return user?.name ?? group.assignedTo.name;
   }
 
-  return group.assignedTo?.name ?? t('No one');
+  return group.assignedTo?.name;
 }
 
 function AssignedTo({
@@ -181,6 +188,12 @@ function AssignedTo({
       enabled: defined(event?.id),
     }
   );
+
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
+    onAssign,
+  });
 
   useEffect(() => {
     // TODO: We should check if this is already loaded
@@ -213,84 +226,94 @@ function AssignedTo({
 
   const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
 
+  const makeTrigger = (props: any, isOpen: boolean) => {
+    return (
+      <DropdownButton data-test-id="assignee-selector" {...props}>
+        <ActorWrapper>
+          {assigneeLoading ? (
+            <StyledLoadingIndicator mini size={24} />
+          ) : group.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={group.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
+          )}
+          <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
+        </ActorWrapper>
+        {!disableDropdown && (
+          <Chevron
+            data-test-id="assigned-to-chevron-icon"
+            size="large"
+            direction={isOpen ? 'up' : 'down'}
+          />
+        )}
+      </DropdownButton>
+    );
+  };
+
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
         <Access access={['project:read']}>
-          <Button
-            onClick={() => {
-              openIssueOwnershipRuleModal({
-                project,
-                organization,
-                issueId: group.id,
-                eventData: event!,
-              });
-            }}
-            aria-label={t('Create Ownership Rule')}
-            icon={<IconSettings />}
-            borderless
-            size="xs"
-          />
+          <GuideAnchor target="issue_sidebar_owners" position="bottom">
+            <Button
+              onClick={() => {
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconSettings />}
+              borderless
+              size="xs"
+            />
+          </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
-      <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown
-          organization={organization}
+      <SidebarSection.Content>
+        <StyledAssigneeSelectorDropdown
+          group={group}
           owners={owners}
-          disabled={disableDropdown}
-          id={group.id}
-          assignedTo={group.assignedTo}
-          onAssign={onAssign}
-        >
-          {({loading, isOpen, getActorProps}) => (
-            <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
-              <ActorWrapper>
-                {loading ? (
-                  <StyledLoadingIndicator mini size={24} />
-                ) : group.assignedTo ? (
-                  <ActorAvatar
-                    data-test-id="assigned-avatar"
-                    actor={group.assignedTo}
-                    hasTooltip={false}
-                    size={24}
-                  />
-                ) : (
-                  <IconWrapper>
-                    <IconUser size="md" />
-                  </IconWrapper>
-                )}
-                <ActorName>{getAssignedToDisplayName(group)}</ActorName>
-              </ActorWrapper>
-              {!disableDropdown && (
-                <IconChevron
-                  data-test-id="assigned-to-chevron-icon"
-                  direction={isOpen ? 'up' : 'down'}
-                />
-              )}
-            </DropdownButton>
-          )}
-        </AssigneeSelectorDropdown>
-      </StyledSidebarSectionContent>
+          loading={assigneeLoading}
+          onAssign={handleAssigneeChange}
+          onClear={() => handleAssigneeChange(null)}
+          trigger={makeTrigger}
+        />
+      </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
 
 export default AssignedTo;
 
+const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
+  width: 100%;
+`;
+
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: ${space(1)};
-  padding-right: ${space(0.25)};
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
 `;
 
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  max-width: 85%;
+  max-width: 100%;
   line-height: 1;
 `;
 
@@ -304,16 +327,8 @@ const ActorName = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  ${AutoCompleteRoot} {
-    display: block;
-  }
-`;
-
 const StyledSidebarTitle = styled(SidebarSection.Title)`
-  display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-right: -${space(1)};
 `;
 

@@ -2,24 +2,26 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Client} from 'sentry/api';
-import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import type {Client} from 'sentry/api';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   OnboardingSupplementComponentProps,
   OnboardingTask,
   OnboardingTaskDescriptor,
-  OnboardingTaskKey,
-  Organization,
-  Project,
-} from 'sentry/types';
+} from 'sentry/types/onboarding';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
@@ -179,18 +181,21 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
-      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={projects[0]}
-            eventType="error"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-          >
-            {() => <EventWaitingIndicator />}
-          </EventWaiter>
-        ) : null
+      SupplementComponent: withApi(
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+          !!projects?.length &&
+          task.requisiteTasks.length === 0 &&
+          !task.completionSeen ? (
+            <EventWaiter
+              api={api}
+              organization={organization}
+              project={projects[0]}
+              eventType="error"
+              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            >
+              {() => <EventWaitingIndicator />}
+            </EventWaiter>
+          ) : null
       ),
     },
     {
@@ -238,7 +243,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
-      action: ({router}) => {
+      action: router => {
         // Use `features?.` because getsentry has a different `Organization` type/payload
         if (!organization.features?.includes('performance-onboarding-checklist')) {
           window.open(
@@ -277,18 +282,21 @@ export function getOnboardingTasks({
         );
       },
       display: true,
-      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={projects[0]}
-            eventType="transaction"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-          >
-            {() => <EventWaitingIndicator />}
-          </EventWaiter>
-        ) : null
+      SupplementComponent: withApi(
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+          !!projects?.length &&
+          task.requisiteTasks.length === 0 &&
+          !task.completionSeen ? (
+            <EventWaiter
+              api={api}
+              organization={organization}
+              project={projects[0]}
+              eventType="transaction"
+              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            >
+              {() => <EventWaitingIndicator />}
+            </EventWaiter>
+          ) : null
       ),
     },
     {
@@ -313,20 +321,25 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
-      location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
+      location: normalizeUrl(
+        `/organizations/${organization.slug}/replays/#replay-sidequest`
+      ),
       display: organization.features?.includes('session-replay'),
-      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={projects[0]}
-            eventType="replay"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-          >
-            {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
-          </EventWaiter>
-        ) : null
+      SupplementComponent: withApi(
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+          !!projects?.length &&
+          task.requisiteTasks.length === 0 &&
+          !task.completionSeen ? (
+            <EventWaiter
+              api={api}
+              organization={organization}
+              project={projects[0]}
+              eventType="replay"
+              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            >
+              {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
+            </EventWaiter>
+          ) : null
       ),
     },
     {
@@ -345,7 +358,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        "Deminify Javascript source code to debug with context. Seeing code in it's original form will help you debunk the ghosts of errors past."
+        'Deminify Javascript source code to debug with context. Seeing code in its original form will help you debunk the ghosts of errors past.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -430,14 +443,15 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
             serverTask.task === desc.task || serverTask.task === desc.serverTask
         ),
         requisiteTasks: [],
-      } as OnboardingTask)
+      }) as OnboardingTask
   );
 
+  const supportedTasks = filterSupportedTasks(projects, allTasks);
   // Map incomplete requisiteTasks as full task objects
-  return allTasks.map(task => ({
+  return supportedTasks.map(task => ({
     ...task,
     requisiteTasks: task.requisites
-      .map(key => allTasks.find(task2 => task2.task === key)!)
+      .map(key => supportedTasks.find(task2 => task2.task === key)!)
       .filter(reqTask => reqTask.status !== 'complete'),
   }));
 }

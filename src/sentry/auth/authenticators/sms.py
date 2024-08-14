@@ -1,14 +1,21 @@
+from __future__ import annotations
+
 import logging
 from hashlib import md5
+from typing import TYPE_CHECKING
 
+from django.http.request import HttpRequest
+from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
-from sentry import ratelimits as ratelimiter
-from sentry.utils.decorators import classproperty
+from sentry.ratelimits import backend as ratelimiter
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 
-from .base import ActivationMessageResult, AuthenticatorInterface, OtpMixin
+from .base import ActivationMessageResult, OtpMixin
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 logger = logging.getLogger("sentry.auth")
 
@@ -21,7 +28,7 @@ class SMSRateLimitExceeded(Exception):
         self.remote_ip = remote_ip
 
 
-class SmsInterface(OtpMixin, AuthenticatorInterface):
+class SmsInterface(OtpMixin):
     """This interface sends OTP codes via text messages to the user."""
 
     type = 2
@@ -44,19 +51,18 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         config["phone_number"] = None
         return config
 
-    def make_otp(self):
+    def make_otp(self) -> TOTP:
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
-    def _get_phone_number(self):
+    @property
+    def phone_number(self):
         return self.config["phone_number"]
 
-    def _set_phone_number(self, value):
+    @phone_number.setter
+    def phone_number(self, value):
         self.config["phone_number"] = value
 
-    phone_number = property(_get_phone_number, _set_phone_number)
-    del _get_phone_number, _set_phone_number
-
-    def activate(self, request):
+    def activate(self, request: HttpRequest) -> ActivationMessageResult:
         phone_number = self.config["phone_number"]
         if len(phone_number) == 10:
             mask = "(***) ***-**%s" % (phone_number[-2:])
@@ -79,11 +85,11 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             type="error",
         )
 
-    def send_text(self, for_enrollment=False, request=None):
+    def send_text(self, *, request: HttpRequest, for_enrollment: bool = False) -> bool:
         ctx = {"code": self.make_otp().generate_otp()}
 
         if for_enrollment:
-            text = _(
+            text: _StrPromise | str = _(
                 "%(code)s is your Sentry two-factor enrollment code. "
                 "You are about to set up text message based two-factor "
                 "authentication."

@@ -1,16 +1,28 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
+import {
+  MODULE_DOC_LINK,
+  MODULE_TITLE as HTTP_MODULE_TITLE,
+} from 'sentry/views/insights/http/settings';
+import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
-  items: (() => React.ReactNode)[];
+  items: React.ReactNode[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   radioColor?: string;
@@ -26,7 +38,7 @@ export default function SelectableList(props: Props) {
           currentIndex={index}
           key={index}
         >
-          {item()}
+          {item}
         </SelectableItem>
       ))}
     </div>
@@ -84,6 +96,96 @@ export function WidgetEmptyStateWarning() {
   );
 }
 
+export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        <NoDataMessage Wrapper={Fragment} isDataAvailable={false} />
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function TimeConsumingDomainsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={MODULE_DOC_LINK}>
+                {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={`https://docs.sentry.io/product${CACHE_BASE_URL}`}>
+                {t('Cache module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
+  const pageFilters = usePageFilters();
+  const fullProjects = useProjects();
+
+  const projects = pageFilters.selection.projects;
+
+  const isMultiProject = getIsMultiProject(projects);
+
+  if (isMultiProject) {
+    return <WidgetEmptyStateWarning />;
+  }
+
+  const project = fullProjects.projects.find(p => p.id === '' + projects[0]);
+  const docsLink = getConfigurePerformanceDocsLink(project);
+
+  if (!docsLink) {
+    return <WidgetEmptyStateWarning />;
+  }
+
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
+          {
+            spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
+            link: (
+              <ExternalLink href={docsLink}>
+                {t('performance monitoring setup')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function ListClose(props: {
   onClick: () => void;
   setSelectListIndex: (n: number) => void;
@@ -112,22 +214,29 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 300px;
   justify-content: center;
   display: flex;
   align-items: center;
   flex-direction: column;
+  flex: 1;
+  padding: ${space(1)} ${space(2)} ${space(4)} ${space(2)};
+
+  svg {
+    margin-bottom: ${space(1)};
+    height: 30px;
+    width: 30px;
+  }
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   max-width: 300px;
 `;

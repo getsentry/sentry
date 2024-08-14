@@ -1,8 +1,8 @@
 import pytest
 
 from sentry.mediators.param import Param
-from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 
 class TestParam(TestCase):

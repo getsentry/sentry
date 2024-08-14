@@ -1,4 +1,5 @@
-import {Experiments, ExperimentType} from 'sentry/types/experiments';
+import type {Experiments} from 'sentry/types/experiments';
+import {ExperimentType} from 'sentry/types/experiments';
 /**
  * This is the value an experiment will have when the unit of assignment
  * (organization, user, etc) is not part of any experiment group.
@@ -12,12 +13,6 @@ export const unassignedValue = -1;
  * Frontend experiment configuration object
  */
 export const experimentList = [
-  {
-    key: 'OnboardingNewFooterExperiment',
-    type: ExperimentType.ORGANIZATION,
-    parameter: 'scenario',
-    assignments: ['baseline', 'variant1', 'variant2'],
-  },
   {
     key: 'ExtendTrialByInvitingMemberExperiment',
     type: ExperimentType.ORGANIZATION,

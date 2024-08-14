@@ -6,7 +6,7 @@ import {
   makeTimelineFormatter,
 } from 'sentry/utils/profiling/units/units';
 
-import {Profile} from './profile/profile';
+import type {Profile} from './profile/profile';
 
 export interface SpanChartNode {
   children: SpanChartNode[];
@@ -59,18 +59,77 @@ class SpanChart {
       if (newTree.orphanedSpans.length === tree.orphanedSpans.length) {
         break;
       }
+
       this.spanTrees.push(newTree);
       tree = newTree;
     }
 
     this.spans = this.collectSpanNodes();
 
+    if (tree.orphanedSpans.length > 0) {
+      const orphanTree = new SpanTree(tree.transaction, []);
+      const previousTreeNode = orphanTree.root;
+      let previous: SpanChartNode | null = null;
+      for (const span of tree.orphanedSpans) {
+        const duration = span.timestamp - span.start_timestamp;
+        const start = span.start_timestamp - tree.root.span.start_timestamp;
+        const end = start + duration;
+
+        const spanFitsInPreviousRow =
+          previous && previous.node.span.timestamp < span.start_timestamp;
+
+        const depth = spanFitsInPreviousRow
+          ? this.depth
+          : Math.max(this.depth, this.depth + 1);
+        this.depth = depth;
+
+        const spanChartNode: SpanChartNode = {
+          duration: this.toFinalUnit(duration),
+          start: this.toFinalUnit(start),
+          end: this.toFinalUnit(end),
+          text:
+            span.op && span.description
+              ? span.op + ': ' + span.description
+              : span.op || span.description || '<unknown span>',
+          node: new SpanTreeNode(span),
+          depth,
+          parent: this.root,
+          children: [],
+        };
+
+        this.spans.push(spanChartNode);
+
+        if (spanFitsInPreviousRow) {
+          previous!.parent!.children.push(spanChartNode);
+          previousTreeNode.children.push(
+            new SpanTreeNode({
+              ...span,
+              start_timestamp: previous!.node.span.timestamp,
+              timestamp: previous!.node.span.timestamp + duration,
+            })
+          );
+        } else {
+          this.root.children.push(spanChartNode);
+          orphanTree.root.children.push(
+            new SpanTreeNode({
+              ...span,
+              start_timestamp: tree.root.span.start_timestamp,
+              timestamp: tree.root.span.start_timestamp + duration,
+            })
+          );
+        }
+        previous = spanChartNode;
+      }
+      this.spanTrees.push(orphanTree);
+    }
+
     const duration = this.toFinalUnit(
       Math.max(...this.spanTrees.map(t => t.root.span.timestamp)) -
         Math.min(...this.spanTrees.map(t => t.root.span.start_timestamp))
     );
 
-    this.configSpace = new Rect(0, 0, duration, this.depth);
+    this.configSpace =
+      options.configSpace?.withHeight(this.depth) ?? new Rect(0, 0, duration, this.depth);
     this.root.end = duration;
     this.root.duration = duration;
   }
@@ -90,6 +149,7 @@ class SpanChart {
         : tree.root.children.map(child => [null, child] as [null, SpanTreeNode]);
 
     let depth = 0;
+
     while (queue.length) {
       let children_at_depth = queue.length;
 
@@ -99,6 +159,10 @@ class SpanChart {
         const duration = node.span.timestamp - node.span.start_timestamp;
         const start = node.span.start_timestamp - transactionStart;
         const end = start + duration;
+
+        if (duration <= 0) {
+          continue;
+        }
 
         const spanChartNode: SpanChartNode = {
           duration: this.toFinalUnit(duration),

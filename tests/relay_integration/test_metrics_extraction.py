@@ -1,14 +1,19 @@
+import time
 import uuid
 
 import confluent_kafka as kafka
 import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json
+
+pytestmark = [requires_kafka]
 
 
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
@@ -102,3 +107,68 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             # Make sure that all the standard strings are part of the list of common strings:
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
+
+    def test_histogram_outliers(self):
+        with Feature(
+            {
+                "organizations:transaction-metrics-extraction": True,
+            }
+        ):
+            event_data = {
+                "type": "transaction",
+                "transaction": "foo",
+                "transaction_info": {"source": "url"},  # 'transaction' tag not extracted
+                "timestamp": iso_format(before_now(seconds=1)),
+                "start_timestamp": iso_format(before_now(seconds=2)),
+                "platform": "javascript",
+                "contexts": {
+                    "trace": {
+                        "op": "pageload",
+                        "trace_id": 32 * "b",
+                        "span_id": 16 * "c",
+                        "type": "trace",
+                    }
+                },
+                "user": {"id": 123},
+                "measurements": {
+                    "fcp": {"value": 999999999.0},
+                    "lcp": {"value": 0.0},
+                },
+            }
+
+            settings = {
+                "bootstrap.servers": "127.0.0.1:9092",  # TODO: read from django settings here
+                "group.id": "test-consumer-%s" % uuid.uuid4().hex,
+                "enable.auto.commit": True,
+                "auto.offset.reset": "earliest",
+            }
+
+            consumer = kafka.Consumer(settings)
+            consumer.assign([kafka.TopicPartition("ingest-performance-metrics", 0)])
+
+            self.post_and_retrieve_event(event_data)
+
+            histogram_outlier_tags = {}
+            buckets = []
+            t0 = time.monotonic()
+            for attempt in range(1000):
+                message = consumer.poll(timeout=1.0)
+                if message is None:
+                    break
+                bucket = json.loads(message.value())
+                buckets.append(bucket)
+                try:
+                    histogram_outlier_tags[bucket["name"]] = bucket["tags"]["histogram_outlier"]
+                except KeyError:
+                    pass
+
+            consumer.close()
+            assert histogram_outlier_tags == {
+                "d:transactions/duration@millisecond": "inlier",
+                "d:transactions/measurements.fcp@millisecond": "outlier",
+                "d:transactions/measurements.lcp@millisecond": "inlier",
+            }, {
+                "attempts": attempt,
+                "time_elapsed": time.monotonic() - t0,
+                "bucket_count": len(buckets),
+            }

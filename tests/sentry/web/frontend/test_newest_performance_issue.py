@@ -7,8 +7,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.event_manager import EventManager
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -79,13 +78,9 @@ class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_simple_customer_domains(self):
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            {
-                "projects:performance-suspect-spans-ingestion": True,
-            }
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             latest_event_time = time()
             older_event_time = latest_event_time - 300
 

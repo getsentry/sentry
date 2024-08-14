@@ -1,78 +1,190 @@
+default_install_hook_types: ['pre-commit', 'pre-push']
+default_stages: [pre-commit]
+
 exclude: >
-    (?x)(
-        LICENSE$|
-        \.snap$|
-        \.map$|
-        \.map\.js$|
-        ^src/sentry/static/sentry/vendor/|
-        ^src/.*/locale/|
-        ^src/sentry/data/
-    )
+  (?x)(
+      LICENSE.md$|
+      \.snap$|
+      \.map$|
+      \.map\.js$|
+      ^src/sentry/static/sentry/vendor/|
+      ^src/.*/locale/|
+      ^src/sentry/data/
+  )
 
 repos:
-# Many of these hooks are local because people use a variety of IDEs
-# with autoformatters that need to call out to things like `black` directly.
-# pre-commit run is not the same, and something like pre-commit exec does
-# not exist yet.
--   repo: local
+  # Many of these hooks are local because people use a variety of IDEs
+  # with autoformatters that need to call out to things like `black` directly.
+  # pre-commit run is not the same, and something like pre-commit exec does
+  # not exist yet.
+  - repo: local
     hooks:
-    - id: pyupgrade
-      name: pyupgrade
-      entry: pyupgrade
-      args: ['--py38-plus', '--keep-runtime-typing']
-      language: system
-      types: [python]
-    # Configuration for black exists in pyproject.toml,
-    # but we let pre-commit take care of the file filtering.
-    - id: black
-      name: black
-      entry: black
-      language: system
-      types: [python]
-      require_serial: true
-    # Configuration for isort exists in pyproject.toml,
-    # but we let pre-commit take care of the file filtering.
-    - id: isort
-      name: isort
-      entry: isort
-      language: system
-      types: [python]
-    # Configuration for flake8 exists in setup.cfg,
-    # but we let pre-commit take care of the file filtering.
-    - id: flake8
-      name: flake8
-      entry: flake8
-      language: system
-      types: [python]
-      log_file: '.artifacts/flake8.pycodestyle.log'
-    - id: lint-requirements
-      name: lint-requirements
-      entry: python -m tools.lint_requirements
-      language: python
-      files: requirements-.*\.txt$
-      additional_dependencies: [packaging==21.3]
+      - id: pyupgrade
+        name: pyupgrade
+        entry: pyupgrade
+        args: ['--py311-plus']
+        language: system
+        types: [python]
+      # Configuration for black exists in pyproject.toml,
+      # but we let pre-commit take care of the file filtering.
+      - id: black
+        name: black
+        entry: black
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      # Configuration for isort exists in pyproject.toml,
+      # but we let pre-commit take care of the file filtering.
+      - id: isort
+        name: isort
+        entry: isort
+        language: system
+        types: [python]
+      # Configuration for flake8 exists in setup.cfg,
+      # but we let pre-commit take care of the file filtering.
+      - id: flake8
+        name: flake8
+        entry: flake8
+        language: system
+        types: [python]
+        log_file: '.artifacts/flake8.pycodestyle.log'
+      - id: mypy
+        name: mypy
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
+        language: system
+        stages: [pre-push]
+        types: [python]
+        require_serial: true
+      - id: lint-requirements
+        name: lint-requirements
+        entry: python -m tools.lint_requirements
+        language: python
+        files: requirements-.*\.txt$
+        # exclude the overrides file from this linter -- it doesn't apply at all
+        exclude: ^requirements-getsentry-overrides\.txt$
+        additional_dependencies: [packaging==21.3]
+      - id: requirements-overrides
+        name: use pinned archives (see comment in file)
+        stages: [commit]
+        language: pygrep
+        entry: |
+          (?x)
+          ^
+          # it's a comment line
+          (?!\#.*$)
+          # it's a blank line
+          (?!$)
+          # it's a pinned archive
+          (?![a-z-]+[ ]@[ ]https://github\.com/getsentry/[^/]+/archive/[a-f0-9]{40}\.zip$)
+        files: ^requirements-getsentry-overrides\.txt$
+      - id: check-mypy-bypass
+        name: do not bypass the type checker
+        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
+        language: pygrep
+        types: [python]
+      - id: sort-stronger-mypy-list
+        name: sort stronger mypy list
+        entry: python3 -m tools.mypy_helpers.sort_stronger_modules
+        files: ^pyproject\.toml$
+        language: python
+      - id: check-mypy-stronglist
+        name: check mypy stronglist
+        entry: python3 -m tools.mypy_helpers.check_stronglist
+        files: ^pyproject\.toml$
+        language: python
+      - id: prevent-push
+        name: prevent pushing master
+        stages: [pre-push]
+        entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
+        always_run: true
+        pass_filenames: false
+        language: system
 
--   repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.21.0
+      # Javascript linting, formatting.
+      # We're using the local node_modules to simplify things, otherwise would
+      # need an easy way to keep versions in sync. Furthermore some repositories
+      # are either not on pre-commit mirrors or are missing some tagged versions.
+      # pre-commit-managed nodeenv environments also do not work out of the box because
+      # additional_dependencies does not install a flattened dependency tree which is needed by,
+      # for example, our eslint setup.
+
+      - id: biome
+        name: biome (javascript, typescript, json)
+        language: system
+        files: \.(jsx?|tsx?|css)$
+        entry: ./node_modules/.bin/biome check --log-level=error --write --files-ignore-unknown=true --no-errors-on-unmatched
+
+      - id: eslint
+        name: eslint
+        language: system
+        files: \.[jt]sx?$
+        entry: ./node_modules/.bin/eslint --quiet --fix
+
+      - id: stylelint
+        name: stylelint
+        language: system
+        files: \.[jt]sx?$
+        entry: ./node_modules/.bin/stylelint --quiet
+
+      - id: prettier
+        name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
+        language: system
+        # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
+        types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
+        entry: ./node_modules/.bin/prettier --log-level=error --write
+        # https://pre-commit.com/#regular-expressions
+        exclude: |
+          (?x)^($^
+            # prettier crashes on some of these, by intent:
+            |fixtures/.*
+            # these have enormous diffs when formatted:
+            |api-docs/paths/events/issue-hashes\.json
+            |api-docs/paths/events/latest-event\.json
+            |api-docs/paths/events/oldest-event\.json
+            |api-docs/paths/events/project-event-details\.json
+            |src/sentry/issues/event\.schema\.json
+            |static/app/data/world\.json
+            |static/app/utils/profiling/profile/formats/android/trace\.json
+            |static/app/utils/profiling/profile/formats/ios/trace\.json
+            |static/app/utils/profiling/profile/formats/node/trace\.json
+            |static/app/utils/profiling/profile/formats/typescript/trace\.json
+          )$
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
     hooks:
-    - id: check-github-actions
-    - id: check-github-workflows
-      args: [--verbose]
+      - id: python-use-type-annotations
+      - id: python-check-blanket-type-ignore
 
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.24.1
+    hooks:
+      - id: check-github-actions
+      - id: check-github-workflows
+        args: [--verbose]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
     hooks:
-    - id: check-case-conflict
-    - id: check-executables-have-shebangs
-    - id: check-merge-conflict
-    - id: check-symlinks
-    - id: check-yaml
-    - id: end-of-file-fixer
-      exclude_types: [svg]
-      exclude: ^fixtures/
-    - id: trailing-whitespace
-      exclude_types: [svg]
-      exclude: ^(fixtures/|scripts/patches/)
-    - id: debug-statements
-    - id: name-tests-test
-      args: [--pytest-test-first]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude_types: [svg]
+        exclude: ^fixtures/
+      - id: trailing-whitespace
+        exclude_types: [svg]
+        exclude: ^(fixtures/|scripts/patches/)
+      - id: debug-statements
+      - id: name-tests-test
+        args: [--pytest-test-first]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        types: [file]
+        files: ^\.envrc$
+        args: [--external-sources]

@@ -1,24 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from typing import Any, Optional, TypeVar
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 # Shortcut so that types don't explode.
-Notifiable = Callable[
+NotifyCallable = Callable[
     [
         BaseNotification,
-        Iterable[RpcActor],
+        Iterable[Actor],
         Mapping[str, Any],
-        Optional[Mapping[RpcActor, Mapping[str, Any]]],
+        Optional[Mapping[Actor, Mapping[str, Any]]],
     ],
     None,
 ]
+Notifiable = TypeVar("Notifiable", bound=NotifyCallable)
 
 # Global notifier registry.
-registry: MutableMapping[ExternalProviders, Notifiable] = {}
+registry: MutableMapping[ExternalProviders, NotifyCallable] = {}
 
 
 def notification_providers() -> Iterable[ExternalProviders]:
@@ -44,9 +46,10 @@ def register_notification_provider(
 def notify(
     provider: ExternalProviders,
     notification: Any,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
+
     registry[provider](notification, recipients, shared_context, extra_context_by_actor)

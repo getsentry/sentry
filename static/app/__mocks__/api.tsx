@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import * as ApiNamespace from 'sentry/api';
+import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
@@ -27,15 +27,14 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 /**
  * Callables for matching requests based on arbitrary conditions.
  */
-interface MatchCallable {
-  (url: string, options: ApiNamespace.RequestOptions): boolean;
-}
+type MatchCallable = (url: string, options: ApiNamespace.RequestOptions) => boolean;
 
 type AsyncDelay = undefined | number;
 interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
+  host: string;
   match: MatchCallable[];
   method: string;
   statusCode: number;
@@ -49,6 +48,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
    * This will override `MockApiClient.asyncDelay` for this request.
    */
   asyncDelay?: AsyncDelay;
+  query?: Record<string, string | number | boolean | string[] | number[]>;
 }
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
@@ -76,9 +76,21 @@ afterEach(() => {
     }
     Client.errors = {};
   }
+
+  // Mock responses are removed between tests
+  Client.clearMockResponses();
 });
 
 class Client implements ApiNamespace.Client {
+  activeRequests: Record<string, ApiNamespace.Request> = {};
+  baseUrl = '';
+  // uses the default client json headers. Sadly, we cannot refernce the real client
+  // because it will cause a circular dependency and explode, hence the copy/paste
+  headers = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
+
   static mockResponses: MockResponse[] = [];
 
   /**
@@ -127,6 +139,7 @@ class Client implements ApiNamespace.Client {
 
     Client.mockResponses.unshift([
       {
+        host: '',
         url: '',
         status: 200,
         statusCode: 200,
@@ -150,6 +163,9 @@ class Client implements ApiNamespace.Client {
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
+      if (response.host && (options.host || '') !== response.host) {
+        return false;
+      }
       if (url !== response.url) {
         return false;
       }
@@ -159,9 +175,6 @@ class Client implements ApiNamespace.Client {
       return response.match.every(matcher => matcher(url, options));
     });
   }
-
-  activeRequests: Record<string, ApiNamespace.Request> = {};
-  baseUrl = '';
 
   uniqueId() {
     return '123';
@@ -245,7 +258,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (![200, 202].includes(response.statusCode)) {
+      if (response.statusCode >= 300) {
         response.callCount++;
 
         const errorResponse = Object.assign(

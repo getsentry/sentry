@@ -2,28 +2,35 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, tagstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    owner = ApiOwner.UNOWNED
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(1, 1),
-            RateLimitCategory.USER: RateLimit(1, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(1, 1),
+            RateLimitCategory.IP: RateLimit(limit=1, window=1),
+            RateLimitCategory.USER: RateLimit(limit=1, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
         },
     }
 
     def get(self, request: Request, project, key) -> Response:
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
@@ -32,7 +39,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(
+            tagkey = tagstore.backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -53,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if key in PROTECTED_TAG_KEYS:
             return Response(status=403)
 
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         try:
             from sentry import eventstream
@@ -85,7 +92,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     def get_tag_keys_for_deletion(self, project, key):
         try:
             return [
-                tagstore.get_tag_key(
+                tagstore.backend.get_tag_key(
                     project_id=project.id,
                     key=key,
                     environment_id=None,

@@ -4,17 +4,20 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BaseSafeMigrationTest(TestCase):
     BASE_PATH = "fixtures.safe_migrations_apps"
-    app = None
-    migrate_from = None
-    migrate_to = None
+    # abstract
+    app: str
+    migrate_from: str
+    migrate_to: str
 
     def run_migration(self):
-        with override_settings(INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",)):
+        with override_settings(
+            INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
+        ):
             migrate_from = [(self.app, self.migrate_from)]
             migrate_to = [(self.app, self.migrate_to)]
             executor = MigrationExecutor(connection)

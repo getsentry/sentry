@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
+from typing import Concatenate, ParamSpec, TypeVar
 
 import isodate
 from croniter import croniter
+from django.conf import settings
+from django.http.response import HttpResponseBase
 from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,19 +28,12 @@ SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
 logger = logging.getLogger(__name__)
 
 
-def _track_deprecated_metrics(request: Request, deprecation_date: datetime):
-    # TODO: Better way to track requests on deprecated endpoints
-    # indicate the request is on a deprecated endpoint
-    request.is_deprecated = True
-    request.deprecation_date = deprecation_date
-
-
-def _serialize_key(key: str) -> Tuple[str, str]:
+def _serialize_key(key: str) -> tuple[str, str]:
     """Converts the key into an option manager key used for the schedule crontab and blackout duration"""
     return f"{key}-cron", f"{key}-duration"
 
 
-def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
+def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> bool:
     """
     Determines if a request should be blocked given the current date time and a schedule
 
@@ -54,20 +50,20 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
         try:
             brownout_cron = options.get(cron_key)
         except UnknownOption:
-            logger.error(f"Unrecognized deprecation key {key}")
+            logger.exception("Unrecognized deprecation key %s", key)
             brownout_cron = options.get("api.deprecation.brownout-cron")
 
         try:
             brownout_duration = options.get(duration_key)
         except UnknownOption:
-            logger.error(f"Unrecognized deprecation duration {key}")
+            logger.exception("Unrecognized deprecation duration %s", key)
             brownout_duration = options.get("api.deprecation.brownout-duration")
 
         # Validate the formats, allow requests to pass through if validation failed
         try:
             brownout_duration = isodate.parse_duration(brownout_duration)
         except ISO8601Error:
-            logger.error("Invalid ISO8601 format for blackout duration")
+            logger.exception("Invalid ISO8601 format for blackout duration")
             return False
 
         if not croniter.is_valid(brownout_cron):
@@ -86,18 +82,23 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
 
 
 def _add_deprecation_headers(
-    response: Response, deprecation_date: datetime, suggested_api: str | None = None
-):
+    response: HttpResponseBase, deprecation_date: datetime, suggested_api: str | None = None
+) -> None:
     response[DEPRECATION_HEADER] = deprecation_date.isoformat()
     if suggested_api is not None:
         response[SUGGESTED_API_HEADER] = suggested_api
+
+
+SelfT = TypeVar("SelfT")
+P = ParamSpec("P")
+EndpointT = Callable[Concatenate[SelfT, Request, P], HttpResponseBase]
 
 
 def deprecated(
     deprecation_date: datetime,
     suggested_api: str | None = None,
     key: str = "",
-):
+) -> Callable[[EndpointT[SelfT, P]], EndpointT[SelfT, P]]:
     """
     Deprecation decorator that handles all the overhead related to deprecated endpoints
 
@@ -106,25 +107,34 @@ def deprecated(
     def get(self, request):
 
     This decorator does 3 things:
-    1) Add additional metrics to be tracked for deprecated endpoints
-    2) Add headers indicating deprecation date to requests on deprecated endpoints
-    3) Reject requests if they fall within a brownout window
+    1) Add additional metrics to be tracked for deprecated endpoints;
+    2) Add headers indicating deprecation date to requests on deprecated endpoints;
+    3) Start brownouts after the deprectation date, which reject requests if they
+       fall within a brownout's blackout window defined by a cron schedule and duration.
+
+    This decorator will do nothing if the environment is self-hosted and not set to 'development'.
+
+    :param deprecation_date: The date at which the endpoint is starts brownouts;
+    :param suggested_api: The suggested API to use instead of the deprecated one;
+    :param key: The key prefix for an option use for the brownout schedule and duration
+                If not set 'api.deprecation.brownout' will be used, which currently
+                is using schedule of a 1 minute blackout at noon UTC.
     """
 
-    def decorator(func):
+    def decorator(func: EndpointT[SelfT, P]) -> EndpointT[SelfT, P]:
         @functools.wraps(func)
-        def endpoint_method(self, request: Request, *args, **kwargs):
-
+        def endpoint_method(
+            self: SelfT, request: Request, *args: P.args, **kwargs: P.kwargs
+        ) -> HttpResponseBase:
             # Don't do anything for deprecated endpoints on self hosted
-            if is_self_hosted():
+            # but allow testing deprecation in development
+            if is_self_hosted() and not settings.ENVIRONMENT == "development":
                 return func(self, request, *args, **kwargs)
 
             now = datetime.now(timezone.utc)
-            # TODO: Need a better way to flag a request on a deprecated endpoint
-            # _track_deprecated_metrics(request, deprecation_date)
 
             if now > deprecation_date and _should_be_blocked(deprecation_date, now, key):
-                response = Response(GONE_MESSAGE, status=GONE)
+                response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
             else:
                 response = func(self, request, *args, **kwargs)
 

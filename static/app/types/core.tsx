@@ -5,8 +5,8 @@
  * or used in multiple views.
  */
 import type {getInterval} from 'sentry/components/charts/utils';
-import {MenuListItemProps} from 'sentry/components/menuListItem';
-import type {API_ACCESS_SCOPES} from 'sentry/constants';
+import type {MenuListItemProps} from 'sentry/components/menuListItem';
+import type {ALLOWED_SCOPES} from 'sentry/constants';
 
 /**
  * Visual representation of a project/team/organization/user
@@ -14,6 +14,7 @@ import type {API_ACCESS_SCOPES} from 'sentry/constants';
 export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
   avatarUuid: string | null;
+  avatarUrl?: string | null;
   color?: boolean;
 };
 
@@ -30,7 +31,7 @@ export type Actor = {
   email?: string;
 };
 
-export type Scope = (typeof API_ACCESS_SCOPES)[number];
+export type Scope = (typeof ALLOWED_SCOPES)[number];
 
 export type DateString = Date | string | null;
 
@@ -60,28 +61,30 @@ export interface SelectValue<T> extends MenuListItemProps {
  */
 export type Choice = [
   value: string | number,
-  label: string | number | React.ReactElement
+  label: string | number | React.ReactElement,
 ];
 
 export type Choices = Choice[];
 
 /**
- * @deprecated in favour of `DataCategoryExact` and `DATA_CATEGORY_INFO`.
- * This legacy type used plurals which will cause compatibility issues when categories
- * become more complex, e.g. processed transactions, session replays. Instead, access these values
- * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
+ * These are very similar to the plural types of DATA_CATEGORY_INFO.
+ * DATA_CATEGORY_INFO and DataCategoryExact have additional categories
+ * that are used in stats but not other places like billing.
  */
 export enum DataCategory {
-  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
+  MONITOR_SEATS = 'monitorSeats',
+  PROFILE_DURATION = 'profileDuration',
+  SPANS = 'spans',
+  METRIC_SECONDS = 'metricSeconds',
 }
 
 /**
- * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+ * https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
  * Matches the backend singular backend enum directly.
  * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
  */
@@ -93,6 +96,11 @@ export enum DataCategoryExact {
   REPLAY = 'replay',
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
+  MONITOR = 'monitor',
+  MONITOR_SEAT = 'monitorSeat',
+  PROFILE_DURATION = 'profileDuration',
+  SPAN = 'span',
+  METRIC_SECOND = 'metricSecond',
 }
 
 export interface DataCategoryInfo {
@@ -110,9 +118,11 @@ export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   INVALID = 'invalid',
-  DROPPED = 'dropped', // this is not a real outcome coming from the server
+  ABUSE = 'abuse',
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
+  CARDINALITY_LIMITED = 'cardinality_limited',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;

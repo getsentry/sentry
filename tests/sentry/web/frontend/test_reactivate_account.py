@@ -2,11 +2,11 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ReactivateAccountTest(TestCase):
     @cached_property
     def path(self):

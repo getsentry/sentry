@@ -1,18 +1,19 @@
 import responses
 from django.urls import reverse
 
-from sentry.models import Integration
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test
 class BitbucketSearchEndpointTest(APITestCase):
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="bitbucket",
             external_id=self.subject,
             name="meredithanya",
@@ -24,7 +25,6 @@ class BitbucketSearchEndpointTest(APITestCase):
         )
 
         self.login_as(self.user)
-        self.integration.add_organization(self.organization, self.user)
         self.path = reverse(
             "sentry-extensions-bitbucket-search", args=[self.organization.slug, self.integration.id]
         )

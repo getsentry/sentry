@@ -1,29 +1,18 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
   hash?: boolean | string;
   organizations?: Organization[];
-};
-
-const platformDocsMapping = {
-  'javascript-nextjs':
-    'https://docs.sentry.io/platforms/javascript/guides/nextjs/#verify',
-  'javascript-sveltekit':
-    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/#verify',
-  'react-native': 'https://docs.sentry.io/platforms/react-native/#verify',
-  cordova: 'https://docs.sentry.io/platforms/javascript/guides/cordova/#verify',
-  'javascript-electron':
-    'https://docs.sentry.io/platforms/javascript/guides/electron/#verify',
 };
 
 function SetupWizard({hash = false, organizations}: Props) {
@@ -47,11 +36,6 @@ function SetupWizard({hash = false, organizations}: Props) {
     }),
     [organization, projectPlatform]
   );
-
-  // outside of route context
-  const docsLink = useMemo(() => {
-    return platformDocsMapping[projectPlatform || ''] || 'https://docs.sentry.io/';
-  }, [projectPlatform]);
 
   useEffect(() => {
     return () => {
@@ -92,46 +76,34 @@ function SetupWizard({hash = false, organizations}: Props) {
 
   return (
     <ThemeAndStyleProvider>
-      <div className="container">
-        {!finished ? (
-          <LoadingIndicator style={{margin: '2em auto'}}>
-            <div className="row">
-              <h5>{t('Waiting for wizard to connect')}</h5>
-            </div>
-          </LoadingIndicator>
-        ) : (
-          <div className="row">
-            <h5>{t('Return to your terminal to complete your setup')}</h5>
-            <MinWidthButtonBar gap={1}>
-              <Button
-                priority="primary"
-                to="/"
-                onClick={() =>
-                  trackAnalytics('setup_wizard.clicked_viewed_issues', analyticsParams)
-                }
-              >
-                {t('View Issues')}
-              </Button>
-              <Button
-                href={docsLink}
-                external
-                onClick={() =>
-                  trackAnalytics('setup_wizard.clicked_viewed_docs', analyticsParams)
-                }
-              >
-                {t('See Docs')}
-              </Button>
-            </MinWidthButtonBar>
-          </div>
-        )}
-      </div>
+      {!finished ? (
+        <LoadingIndicator style={{margin: '2em auto'}}>
+          <h5>{t('Waiting for wizard to connect')}</h5>
+        </LoadingIndicator>
+      ) : (
+        <SuccessWrapper>
+          <SuccessCheckmark color="green300" size="xl" isCircled />
+          <SuccessHeading>
+            {t('Return to your terminal to complete your setup.')}
+          </SuccessHeading>
+        </SuccessWrapper>
+      )}
     </ThemeAndStyleProvider>
   );
 }
 
-const MinWidthButtonBar = styled(ButtonBar)`
-  width: min-content;
-  margin-top: 20px;
+const SuccessCheckmark = styled(IconCheckmark)`
+  flex-shrink: 0;
+`;
+
+const SuccessHeading = styled('h5')`
+  margin: 0;
+`;
+
+const SuccessWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(3)};
 `;
 
 export default SetupWizard;

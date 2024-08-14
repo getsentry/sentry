@@ -1,3 +1,7 @@
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,8 +14,8 @@ import GroupEventAttachments, {MAX_SCREENSHOTS_PER_PAGE} from './groupEventAttac
 jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
-  const {organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization(),
+  const {organization, router} = initializeOrg({
+    organization: OrganizationFixture(),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
       location: {query: {types: 'event.screenshot'}},
@@ -21,13 +25,13 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = TestStubs.Project({platform: 'apple-ios'});
+    project = ProjectFixture({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      url: '/organizations/org-slug/issues/group-id/attachments/',
+      body: [EventAttachmentFixture()],
     });
   });
 
@@ -35,7 +39,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   function renderGroupEventAttachments() {
     return render(<GroupEventAttachments project={project} />, {
-      context: routerContext,
+      router,
       organization,
     });
   }
@@ -45,7 +49,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
-      '/issues/group-id/attachments/',
+      '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
         query: {per_page: MAX_SCREENSHOTS_PER_PAGE, screenshot: 1, types: undefined},
       })
@@ -60,14 +64,14 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('calls opens modal when clicking on panel body', async function () {
     renderGroupEventAttachments();
-    await userEvent.click(screen.getByTestId('screenshot-1'));
+    await userEvent.click(await screen.findByTestId('screenshot-1'));
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('links event id to event detail', function () {
+  it('links event id to event detail', async function () {
     renderGroupEventAttachments();
     expect(
-      screen.getByText('12345678901234567890123456789012').closest('a')
+      (await screen.findByText('12345678901234567890123456789012')).closest('a')
     ).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/group-id/events/12345678901234567890123456789012/'
@@ -76,10 +80,19 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   it('links to the download URL', async function () {
     renderGroupEventAttachments();
-    await userEvent.click(screen.getByLabelText('Actions'));
+    await userEvent.click(await screen.findByLabelText('Actions'));
     expect(screen.getByText('Download').closest('a')).toHaveAttribute(
       'href',
       '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'
     );
+  });
+
+  it('displays an error message when request fails', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/attachments/',
+      statusCode: 500,
+    });
+    renderGroupEventAttachments();
+    expect(await screen.findByText(/error loading/i)).toBeInTheDocument();
   });
 });

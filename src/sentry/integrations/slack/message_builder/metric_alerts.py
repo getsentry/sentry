@@ -1,13 +1,12 @@
-from typing import Optional
-
-from sentry.incidents.models import AlertRule, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import metric_alert_attachment_info
-from sentry.integrations.slack.message_builder import (
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import (
     INCIDENT_COLOR_MAPPING,
     LEVEL_TO_COLOR,
     SlackBody,
 )
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
@@ -15,10 +14,10 @@ class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         alert_rule: AlertRule,
-        incident: Optional[Incident] = None,
-        new_status: Optional[IncidentStatus] = None,
-        metric_value: Optional[int] = None,
-        chart_url: Optional[str] = None,
+        incident: Incident | None = None,
+        new_status: IncidentStatus | None = None,
+        metric_value: int | None = None,
+        chart_url: str | None = None,
     ) -> None:
         """
         Builds a metric alert attachment for slack unfurling.

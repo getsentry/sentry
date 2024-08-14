@@ -1,7 +1,8 @@
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {MemberRole} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {BaseRole} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -41,12 +42,12 @@ const formGroups: JsonFormObject[] = [
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
           ),
         }),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
       {
         name: 'aiSuggestedSolution',
         type: 'boolean',
         label: t('AI Suggested Solution'),
-        visible: ({features}) => features.has('open-ai-suggestion'),
         help: tct(
           'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
           {
@@ -55,6 +56,18 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+      },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        // TOOD(epurkhiser): Currently there's no need for users to change this
+        // setting as it will just be confusing. In the future when
+        // autodetection is used for suggested URLs it will make more sense to
+        // for users to have the option to disable this.
+        visible: false,
       },
     ],
   },
@@ -65,20 +78,24 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'defaultRole',
         type: 'select',
-        required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },
       {
         name: 'openMembership',
         type: 'boolean',
-        required: true,
         label: t('Open Membership'),
         help: t('Allow organization members to freely join any team'),
+      },
+      {
+        name: 'allowMemberProjectCreation',
+        type: 'boolean',
+        label: t('Let Members Create Projects'),
+        help: t('Allow organization members to create and configure new projects.'),
       },
       {
         name: 'eventsMemberAdmin',
@@ -100,7 +117,7 @@ const formGroups: JsonFormObject[] = [
         name: 'attachmentsRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
           'Role required to download event attachments, such as native crash reports or log files.'
@@ -111,7 +128,7 @@ const formGroups: JsonFormObject[] = [
         name: 'debugFilesRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),
         help: t(
           'Role required to download debug information files, proguard mappings and source maps.'

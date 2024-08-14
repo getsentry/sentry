@@ -2,16 +2,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve Event Counts for a Project
@@ -26,8 +31,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         Query ranges are limited to Sentry's configured time-series
         resolutions.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``, ``"blacklisted"``, ``generated``)
         :qparam timestamp since: a timestamp to set the start of the query
@@ -62,7 +67,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             except KeyError:
                 raise ValueError("Invalid stat: %s" % stat)
 
-        data = tsdb.get_range(
+        data = tsdb.backend.get_range(
             model=stat_model,
             keys=[project.id],
             **self._parse_args(request, **query_kwargs),

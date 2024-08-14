@@ -1,10 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
+from pytest import raises
 from requests import PreparedRequest, Request
 
+from sentry.exceptions import RestrictedIPAddress
+from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.testutils import TestCase
+from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.socket import override_blocklist
 
 
 class BaseApiClientTest(TestCase):
@@ -14,9 +19,11 @@ class BaseApiClientTest(TestCase):
     """
 
     def setUp(self):
-        self.client = BaseApiClient()
-        self.client.integration_type = "integration"
-        self.client.integration_name = "base"
+        class Client(BaseApiClient):
+            integration_type = "integration"
+            integration_name = "base"
+
+        self.api_client = Client()
 
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
@@ -25,7 +32,7 @@ class BaseApiClientTest(TestCase):
         get_response = responses.add(responses.GET, "https://example.com/get", json={})
         assert not mock_finalize_request.called
         assert get_response.call_count == 0
-        self.client.get("https://example.com/get")
+        self.api_client.get("https://example.com/get")
         assert mock_finalize_request.called
         assert get_response.call_count == 1
 
@@ -53,5 +60,25 @@ class BaseApiClientTest(TestCase):
         prepared_request = Request(method="PUT", url="https://example.com/put").prepare()
         # Client should use prepared request instead of using other params
         assert put_response.call_count == 0
-        self.client.get("https://example.com/get", prepared_request=prepared_request)
+        self.api_client.get("https://example.com/get", prepared_request=prepared_request)
         assert put_response.call_count == 1
+
+    @responses.activate
+    @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
+    @patch.object(Session, "send", side_effect=RestrictedIPAddress())
+    @override_blocklist("172.16.0.0/12")
+    def test_restricted_ip_address(self, mock_finalize_request, mock_session_send):
+        assert not mock_finalize_request.called
+        with raises(ApiHostError):
+            self.api_client.get("https://172.31.255.255")
+        assert mock_finalize_request.called
+
+    @patch.object(Session, "send")
+    def test_default_timeout(self, mock_session_send):
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        self.api_client.get("https://172.31.255.255")
+        assert mock_session_send.call_count == 1
+        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 30

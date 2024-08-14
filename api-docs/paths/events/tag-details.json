@@ -5,6 +5,15 @@
     "operationId": "Retrieve Tag Details",
     "parameters": [
       {
+        "name": "organization_id_or_slug",
+        "in": "path",
+        "description": "The id or slug of the organization the issue belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
         "name": "issue_id",
         "in": "path",
         "description": "The ID of the issue to retrieve.",

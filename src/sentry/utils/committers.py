@@ -2,33 +2,26 @@ from __future__ import annotations
 
 import operator
 from collections import defaultdict
+from collections.abc import Iterator, Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import reduce
-from typing import (
-    Any,
-    Iterator,
-    List,
-    Mapping,
-    MutableMapping,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, TypedDict
 
 from django.core.cache import cache
 from django.db.models import Q
 
-from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
-from sentry.eventstore.models import Event
-from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -55,7 +48,7 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(event: Event) -> Union[Any, Sequence[Any]]:
+def get_frame_paths(event: Event | GroupEvent) -> Any | Sequence[Any]:
     return find_stack_frames(event.data)
 
 
@@ -93,7 +86,7 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
 
 
 def _get_commit_file_changes(
-    commits: Sequence[Commit], path_name_set: Set[str]
+    commits: Sequence[Commit], path_name_set: set[str]
 ) -> Sequence[CommitFileChange]:
     # Get distinct file names and bail if there are no files.
     filenames = {next(tokenize_path(path), None) for path in path_name_set}
@@ -111,9 +104,9 @@ def _get_commit_file_changes(
 
 def _match_commits_path(
     commit_file_changes: Sequence[CommitFileChange], path: str
-) -> Sequence[Tuple[Commit, int]]:
+) -> Sequence[tuple[Commit, int]]:
     # find commits that match the run time path the best.
-    matching_commits: MutableMapping[int, Tuple[Commit, int]] = {}
+    matching_commits: MutableMapping[int, tuple[Commit, int]] = {}
     best_score = 1
     for file_change in commit_file_changes:
         score = score_path_match_length(file_change.filename, path)
@@ -132,24 +125,18 @@ def _match_commits_path(
 
 
 class AuthorCommits(TypedDict):
-    author: Union[Author, None]
-    commits: Sequence[Tuple[Commit, int]]
+    author: Author | None
+    commits: Sequence[tuple[Commit, int]]
 
 
 class AuthorCommitsSerialized(TypedDict):
-    author: Union[Author, None]
+    author: Author | None
     commits: Sequence[MutableMapping[str, Any]]
-
-
-class AuthorCommitsWithReleaseSerialized(TypedDict):
-    author: Author
-    commits: Sequence[MutableMapping[str, Any]]
-    release: Release
 
 
 class AnnotatedFrame(TypedDict):
     frame: str
-    commits: Sequence[Tuple[Commit, int]]
+    commits: Sequence[tuple[Commit, int]]
 
 
 class SuspectCommitType(Enum):
@@ -161,7 +148,7 @@ class SuspectCommitType(Enum):
 
 def _get_committers(
     annotated_frames: Sequence[AnnotatedFrame],
-    commits: Sequence[Tuple[Commit, int]],
+    commits: Sequence[tuple[Commit, int]],
 ) -> Sequence[AuthorCommits]:
     # extract the unique committers and return their serialized sentry accounts
     committers: MutableMapping[int, int] = defaultdict(int)
@@ -193,7 +180,7 @@ def _get_committers(
 
 def get_previous_releases(
     project: Project, start_version: str, limit: int = 5
-) -> Union[Any, Sequence[Release]]:
+) -> Any | Sequence[Release]:
     # given a release version + project, return the previous
     # `limit` releases (includes the release specified by `version`)
     key = "get_previous_releases:1:%s" % hash_values([project.id, start_version, limit])
@@ -268,7 +255,7 @@ def get_event_file_committers(
     munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
     if munged:
         frames = munged[1]
-    app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
+    app_frames = [frame for frame in frames if frame and frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 
@@ -283,7 +270,7 @@ def get_event_file_committers(
         _get_commit_file_changes(commits, path_set) if path_set else []
     )
 
-    commit_path_matches: Mapping[str, Sequence[Tuple[Commit, int]]] = {
+    commit_path_matches: Mapping[str, Sequence[tuple[Commit, int]]] = {
         path: _match_commits_path(file_changes, path) for path in path_set
     }
 
@@ -298,7 +285,7 @@ def get_event_file_committers(
         for frame in app_frames
     ]
 
-    relevant_commits: Sequence[Tuple[Commit, int]] = [
+    relevant_commits: Sequence[tuple[Commit, int]] = [
         match for matches in commit_path_matches.values() for match in matches
     ]
 
@@ -306,20 +293,18 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25
+    project: Project, event: BaseEvent, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    integrations = integration_service.get_integrations(
-        organization_id=project.organization_id, providers=["github", "gitlab"]
-    )
 
-    if features.has("organizations:commit-context", project.organization) and integrations:
-        group_owners = GroupOwner.objects.filter(
-            group_id=event.group_id,
-            project=project,
-            organization_id=project.organization_id,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context__isnull=False,
-        ).order_by("-date_added")
+    group_owners = GroupOwner.objects.filter(
+        group_id=event.group_id,
+        project=project,
+        organization_id=project.organization_id,
+        type=GroupOwnerType.SUSPECT_COMMIT.value,
+        context__isnull=False,
+    ).order_by("-date_added")
+
+    if len(group_owners) > 0:
         owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
         if not owner:
             return []
@@ -351,7 +336,11 @@ def get_serialized_event_file_committers(
             }
         ]
 
-    # TODO(nisanthan): Delete this else block once Commit Context has GA'd
+    # TODO(nisanthan): We create GroupOwner records for
+    # legacy Suspect Commits in process_suspect_commits task.
+    # We should refactor to query GroupOwner rather than recalculate.
+    # But we need to store the commitId and a way to differentiate
+    # if the Suspect Commit came from ReleaseCommits or CommitContext.
     else:
         event_frames = get_frame_paths(event)
         sdk_name = get_sdk_name(event.data)
@@ -378,7 +367,7 @@ def get_serialized_event_file_committers(
             serialized_commit["score"] = score
             serialized_commits_by_id[commit.id] = serialized_commit
 
-        serialized_committers: List[AuthorCommitsSerialized] = []
+        serialized_committers: list[AuthorCommitsSerialized] = []
         for committer in committers:
             commit_ids = [commit.id for (commit, _) in committer["commits"]]
             commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]

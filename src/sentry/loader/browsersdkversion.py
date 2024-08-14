@@ -3,11 +3,11 @@ import logging
 import os
 import re
 
+import orjson
 from django.conf import settings
 from packaging.version import Version
 
 import sentry
-from sentry.utils import json
 
 logger = logging.getLogger("sentry")
 
@@ -22,7 +22,7 @@ def load_registry(path):
     fn = os.path.join(LOADER_FOLDER, path + ".json")
     try:
         with open(fn, "rb") as f:
-            return json.load(f)
+            return orjson.loads(f.read())
     except OSError:
         return None
 
@@ -37,7 +37,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_all_browser_sdk_version_versions():
-    return ["latest", "7.x", "6.x", "5.x", "4.x"]
+    return ["latest", "8.x", "7.x", "6.x", "5.x", "4.x"]
 
 
 def get_all_browser_sdk_version_choices():
@@ -68,20 +68,21 @@ def load_version_from_file():
 def match_selected_version_to_browser_sdk_version(selected_version):
     versions = load_version_from_file()
     if selected_version == "latest":
-        return get_highest_browser_sdk_version(versions)
+        # "latest" as an option is phased out before the v8 release of the JS SDK, meaning that we pin people to the latest pre-v8-version when they have "latest" selected
+        return get_highest_browser_sdk_version([x for x in versions if Version(x) < Version("8")])
     return get_highest_browser_sdk_version(
         # Filter for all versions that match the selected versions major
         [x for x in versions if x.startswith(selected_version[0])]
     )
 
 
-def get_browser_sdk_version(project_key):
+def get_browser_sdk_version(project_key) -> Version:
     selected_version = get_selected_browser_sdk_version(project_key)
 
     try:
         return match_selected_version_to_browser_sdk_version(selected_version)
     except Exception:
-        logger.error("error occurred while trying to read js sdk information from the registry")
+        logger.exception("error occurred while trying to read js sdk information from the registry")
         return Version(settings.JS_SDK_LOADER_SDK_VERSION)
 
 

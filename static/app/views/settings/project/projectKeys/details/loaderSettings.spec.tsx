@@ -1,11 +1,12 @@
-import selectEvent from 'react-select-event';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 
 import {KeySettings} from './keySettings';
 import {LoaderSettings} from './loaderSettings';
@@ -30,7 +31,7 @@ function renderMockRequests(
   const projectKeys = MockApiClient.addMockResponse({
     url: `/projects/${organizationSlug}/${projectSlug}/keys/${keyId}/`,
     method: 'PUT',
-    body: TestStubs.ProjectKeys()[0],
+    body: ProjectKeysFixture()[0],
   });
 
   return {projectKeys};
@@ -50,7 +51,7 @@ describe('Loader Script Settings', function () {
     });
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -101,7 +102,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...(ProjectKeysFixture()[0] as ProjectKey),
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -124,7 +125,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Toggle performance option
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: t('Enable Performance Monitoring'),
       })
@@ -145,14 +146,14 @@ describe('Loader Script Settings', function () {
     });
 
     // Update SDK version
-    await selectEvent.select(screen.getByText('latest'), '7.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            browserSdkVersion: '7.x',
+            browserSdkVersion: '6.x',
           }),
         })
       );
@@ -167,7 +168,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...(ProjectKeysFixture()[0] as ProjectKey),
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -188,7 +189,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Update SDK version - should reset performance & replay
-    await selectEvent.select(screen.getByText('latest'), '6.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
@@ -215,7 +216,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...(ProjectKeysFixture()[0] as ProjectKey),
       dynamicSdkLoaderOptions: {
         hasPerformance: false,
         hasReplay: false,
@@ -262,7 +263,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...(ProjectKeysFixture()[0] as ProjectKey),
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -278,7 +279,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.getByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).toBeInTheDocument();
 
@@ -296,8 +298,68 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.queryByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows performance message when it is enabled', function () {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const data = {
+      ...(ProjectKeysFixture()[0] as ProjectKey),
+      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+    } as ProjectKey;
+
+    const {rerender} = render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.getByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    data.dynamicSdkLoaderOptions.hasPerformance = false;
+
+    rerender(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.queryByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
     ).not.toBeInTheDocument();
   });
 });

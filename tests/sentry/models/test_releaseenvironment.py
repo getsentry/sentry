@@ -2,12 +2,12 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Environment, Release, ReleaseEnvironment
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test(stable=True)
 class GetOrCreateTest(TestCase):
     def test_simple(self):
         project = self.create_project(name="foo")

@@ -1,15 +1,22 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Group
+from sentry.models.group import Group
 
 
 @region_silo_endpoint
 class ShortIdLookupEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, short_id) -> Response:
         """
         Resolve a Short ID
@@ -17,7 +24,7 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
 
         This resolves a short ID to the project slug and internal issue ID.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           short ID should be looked up in.
         :pparam string short_id: the short ID to look up.
         :auth: required

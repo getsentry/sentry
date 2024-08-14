@@ -1,32 +1,36 @@
 import {Component} from 'react';
-import {Theme, withTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
 import {Button} from 'sentry/components/button';
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
-import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import type {WebVital} from 'sentry/utils/fields';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-import {Vital} from 'sentry/utils/performance/vitals/types';
-import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -40,7 +44,7 @@ import {
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
-import {Rectangle} from './types';
+import type {Rectangle} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
@@ -115,15 +119,6 @@ class VitalCard extends Component<Props, State> {
     return {...prevState};
   }
 
-  trackOpenInDiscoverClicked = () => {
-    const {organization} = this.props;
-    const {vitalDetails: vital} = this.props;
-    trackAnalytics('performance_views.vitals.open_in_discover', {
-      organization,
-      vital: vital.slug,
-    });
-  };
-
   trackOpenAllEventsClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
@@ -153,8 +148,8 @@ class VitalCard extends Component<Props, State> {
     return summary === null
       ? '\u2014'
       : type === 'duration'
-      ? getDuration(summary / 1000, 2, true)
-      : formatFloat(summary, 2);
+        ? getDuration(summary / 1000, 2, true)
+        : formatFloat(summary, 2);
   }
 
   renderSummary() {
@@ -226,7 +221,7 @@ class VitalCard extends Component<Props, State> {
               })}
             onClick={this.trackOpenAllEventsClicked}
           >
-            {t('View All Events')}
+            {t('View Sampled Events')}
           </Button>
         </div>
       </CardSummary>
@@ -294,7 +289,7 @@ class VitalCard extends Component<Props, State> {
       max,
       axisLabel: {
         color: theme.chartLabel,
-        formatter: formatAbbreviatedNumber,
+        formatter: (value: string | number) => formatAbbreviatedNumber(value),
       },
     };
 

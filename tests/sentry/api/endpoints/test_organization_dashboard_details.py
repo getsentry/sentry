@@ -1,19 +1,27 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
+from unittest import mock
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.discover.models import DatasetSourcesTypes
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -72,7 +80,10 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-details",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def assert_serialized_dashboard(self, data, dashboard):
@@ -81,7 +92,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
 
-@region_silo_test(stable=True)
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -113,6 +123,22 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("get", self.url("default-overview"))
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
+
+    def test_prebuilt_dashboard_with_discover_split_feature_flag(self):
+        with self.feature({"organizations:performance-discover-dataset-selector": True}):
+            response = self.do_request("get", self.url("default-overview"))
+        assert response.status_code == 200, response.data
+
+        for widget in response.data["widgets"]:
+            assert widget["widgetType"] in {"issue", "transaction-like", "error-events"}
+
+    def test_prebuilt_dashboard_without_discover_split_feature_flag(self):
+        with self.feature({"organizations:performance-discover-dataset-selector": False}):
+            response = self.do_request("get", self.url("default-overview"))
+        assert response.status_code == 200, response.data
+
+        for widget in response.data["widgets"]:
+            assert widget["widgetType"] in {"issue", "discover"}
 
     def test_get_prebuilt_dashboard_tombstoned(self):
         DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
@@ -207,8 +233,94 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             expected_adjusted_retention_start.replace(second=0)
         )
 
+    def test_dashboard_widget_type_returns_split_decision(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=1,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=2,
+            title="no split",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
 
-@region_silo_test(stable=True)
+        with self.feature({"organizations:performance-discover-dataset-selector": True}):
+            response = self.do_request(
+                "get",
+                self.url(dashboard.id),
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["widgetType"] == "error-events"
+        assert response.data["widgets"][1]["widgetType"] == "transaction-like"
+        assert response.data["widgets"][2]["widgetType"] == "discover"
+
+    def test_dashboard_widget_returns_dataset_source(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            dataset_source=DatasetSourcesTypes.INFERRED.value,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "inferred"
+
+    def test_dashboard_widget_default_dataset_source_is_unknown(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard Without",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "unknown"
+
+
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         response = self.do_request("delete", self.url(self.dashboard.id))
@@ -225,6 +337,25 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
     def test_delete_permission(self):
         self.create_user_member_role()
         self.test_delete()
+
+    def test_disallow_delete_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_dashboard_does_not_exist(self):
         response = self.do_request("delete", self.url(1234567890))
@@ -261,10 +392,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
 
-@region_silo_test(stable=True)
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
+        self.project = self.create_project()
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -330,28 +461,35 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 409, response.data
         assert list(response.data) == ["Dashboard with that title already exists."]
 
+    def test_disallow_put_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+        )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_add_widget(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
                 {"id": str(self.widget_2.id)},
                 {"id": str(self.widget_3.id)},
                 {"id": str(self.widget_4.id)},
-                {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
                 {
                     "title": "Errors per project",
                     "displayType": "table",
@@ -372,17 +510,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_with_field_aliases(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -416,7 +554,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_aggregates_and_columns(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -440,20 +578,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "aggregates": [],
                 },
                 {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": [],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
-                {
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -473,14 +597,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_missing_title(self):
         data = {
@@ -768,7 +892,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_update_widget_add_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -806,7 +930,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][1], queries[1])
 
     def test_update_widget_remove_and_update_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -1465,16 +1589,543 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             in response.content.decode()
         )
 
+    def test_update_dashboard_with_widget_filter_requiring_environment(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Widget",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "release.stage:adopted",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
 
-@region_silo_test(stable=True)
+    def test_ondemand_without_flags(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:pre-rollout"
+
+    def test_ondemand_with_unapplicable_query(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:not-applicable"
+
+    def test_ondemand_with_flags(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "enabled:creation"
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=0)
+    def test_ondemand_hits_spec_limit(self, mock_max):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:spec-limit"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_ondemand_hits_card_limit(self, mock_query):
+        mock_query.return_value = {
+            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
+        }, [
+            "sometag",
+            "someothertag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_ondemand_updates_existing_widget(self, mock_query):
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+        data = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "id": str(widgets[0].id),
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(queries[0].id),
+                            "name": "errors",
+                            "fields": ["count()", "someothertag"],
+                            "columns": ["someothertag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        mock_query.return_value = {"data": [{"count_unique(someothertag)": 0}]}, [
+            "someothertag",
+        ]
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "enabled:creation"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_ondemand_updates_new_widget(self, mock_query):
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+        data = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "id": str(widgets[0].id),
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            # without id here we'll make a new query and delete the old one
+                            "name": "errors",
+                            "fields": ["count()", "someotherothertag"],
+                            "columns": ["someotherothertag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        mock_query.return_value = {"data": [{"count_unique(someotherothertag)": 0}]}, [
+            "someotherothertag",
+        ]
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "enabled:creation"
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_cardinality_precedence_over_feature_checks(self, mock_query):
+        mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
+            "sometag",
+        ]
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {
+                    "title": "errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "fields": ["count()", "sometag"],
+                            "columns": ["sometag"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        last = list(widgets).pop()
+        queries = last.dashboardwidgetquery_set.all()
+
+        ondemand_objects = DashboardWidgetQueryOnDemand.objects.filter(
+            dashboard_widget_query=queries[0]
+        )
+        for version in OnDemandMetricSpecVersioning.get_spec_versions():
+            current_version = ondemand_objects.filter(spec_version=version.version).first()
+            assert current_version is not None
+            assert current_version.extraction_state == "disabled:high-cardinality"
+
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
+    def test_cardinality_skips_non_discover_widget_types(self, mock_get_specs):
+        widget = {
+            "title": "issues widget",
+            "displayType": "table",
+            "interval": "5m",
+            "widgetType": "issue",
+            "queries": [
+                {
+                    "name": "errors",
+                    "fields": ["count()", "sometag"],
+                    "columns": ["sometag"],
+                    "aggregates": ["count()"],
+                    "conditions": "event.type:transaction",
+                }
+            ],
+        }
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {**widget, "widgetType": "issue"},
+                {**widget, "widgetType": "metrics"},
+                {**widget, "widgetType": "custom-metrics"},
+            ],
+        }
+
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert mock_get_specs.call_count == 0
+
+    def test_add_widget_with_split_widget_type_writes_to_split_decision(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "widgetType": "error-events",
+                },
+                {
+                    "title": "Transaction Op Count",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Transaction Op Count",
+                            "fields": ["count()", "transaction.op"],
+                            "columns": ["transaction.op"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "transaction-like",
+                },
+                {
+                    "title": "Irrelevant widget type",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Issues",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "issue",
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.dashboard.dashboardwidget_set.all()
+        assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
+        assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "error-events"
+        )
+
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+
+        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[2].discover_widget_split is None
+
+
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def test_visit_dashboard(self):
+        assert self.dashboard.last_visited is not None
         last_visited = self.dashboard.last_visited
         assert self.dashboard.visits == 1
 
@@ -1483,6 +2134,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
 
         dashboard = Dashboard.objects.get(id=self.dashboard.id)
         assert dashboard.visits == 2
+        assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
 
     def test_visit_dashboard_no_access(self):

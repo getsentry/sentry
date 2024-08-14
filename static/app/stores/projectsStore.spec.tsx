@@ -1,20 +1,23 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('ProjectsStore', function () {
-  const teamFoo = TestStubs.Team({
+  const teamFoo = TeamFixture({
     slug: 'team-foo',
   });
-  const teamBar = TestStubs.Team({
+  const teamBar = TeamFixture({
     slug: 'team-bar',
   });
-  const projectFoo = TestStubs.Project({
+  const projectFoo = ProjectFixture({
     id: '2',
     slug: 'foo',
     name: 'Foo',
     teams: [teamFoo],
   });
-  const projectBar = TestStubs.Project({
+  const projectBar = ProjectFixture({
     id: '10',
     slug: 'bar',
     name: 'Bar',
@@ -48,14 +51,14 @@ describe('ProjectsStore', function () {
     it('updates when slug changes', async function () {
       ProjectsStore.onChangeSlug('foo', 'new-project');
       await tick();
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         slug: 'new-project',
       });
-      expect(ProjectsStore.itemsById[projectBar.id]).toBeDefined();
+      expect(ProjectsStore.getById(projectBar.id)).toBeDefined();
     });
 
     it('adds project to store on "create success"', function () {
-      const project = TestStubs.Project({id: '11', slug: 'created-project'});
+      const project = ProjectFixture({id: '11', slug: 'created-project'});
       const reloadOrgRequest = MockApiClient.addMockResponse({
         url: '/organizations/my-org/',
         body: {},
@@ -71,16 +74,16 @@ describe('ProjectsStore', function () {
 
       ProjectsStore.onCreateSuccess(project, 'my-org');
 
-      expect(ProjectsStore.itemsById[project.id]).toMatchObject({
+      expect(ProjectsStore.getById(project.id)).toMatchObject({
         id: '11',
         slug: 'created-project',
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         id: '2',
         slug: 'foo',
         name: 'Foo',
       });
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         id: '10',
         slug: 'bar',
       });
@@ -90,14 +93,14 @@ describe('ProjectsStore', function () {
 
     it('updates a project in store', function () {
       // Create a new project, but should have same id as `projectBar`
-      const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
+      const project = ProjectFixture({id: '10', slug: 'bar', name: 'New Name'});
       ProjectsStore.onUpdateSuccess(project);
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         id: '10',
         slug: 'bar',
         name: 'New Name',
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         id: '2',
         slug: 'foo',
         name: 'Foo',
@@ -105,7 +108,7 @@ describe('ProjectsStore', function () {
     });
 
     it('can remove a team from a single project', function () {
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
           expect.objectContaining({slug: 'team-bar'}),
@@ -113,53 +116,59 @@ describe('ProjectsStore', function () {
       });
       ProjectsStore.onRemoveTeam('team-foo', 'bar');
 
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-bar'})],
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-foo'})],
       });
     });
 
     it('removes a team from all projects when team is deleted', function () {
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
           expect.objectContaining({slug: 'team-bar'}),
         ],
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-foo'})],
       });
 
       TeamStore.onRemoveSuccess('team-foo');
 
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-bar'})],
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         teams: [],
       });
     });
 
     it('can add a team to a project', function () {
-      const team = TestStubs.Team({
+      const team = TeamFixture({
         slug: 'new-team',
       });
       ProjectsStore.onAddTeam(team, 'foo');
 
-      expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
           expect.objectContaining({slug: 'team-bar'}),
         ],
       });
-      expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
           expect.objectContaining({slug: 'new-team'}),
         ],
       });
     });
+  });
+
+  it('should return a stable reference from getState', function () {
+    ProjectsStore.loadInitialData([projectFoo, projectBar]);
+    const state = ProjectsStore.getState();
+    expect(Object.is(state, ProjectsStore.getState())).toBe(true);
   });
 });

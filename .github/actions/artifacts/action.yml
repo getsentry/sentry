@@ -3,25 +3,39 @@ description: 'Handles uploading coverage/test artifacts to codecov'
 
 inputs:
   files:
-    description: "Path to coverage file(s) - comma separated for multiple files"
-    default: ".artifacts/*.coverage.xml"
+    description: 'Path to coverage file(s) - comma separated for multiple files'
+    default: '.artifacts/*.coverage.xml'
+    required: true
+  test_result_files:
+    description: 'Path to test result file(s) - comma separated for multiple files'
+    default: '.artifacts/*.junit.xml'
     required: true
   type:
-    description: "The type of change (frontend, backend)"
-    default: "backend"
+    description: 'The type of change (frontend, backend)'
+    default: 'backend'
     required: false
   token:
-    description: "The codecov token"
+    description: 'The codecov token'
+    required: true
+  commit_sha:
+    description: 'The commit sha'
     required: true
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
-    - name: Upload to codecov
-      uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378  # v3.1.0
-      with:
-        token: ${{ inputs.token }}
-        flags: ${{ inputs.type }}
-        files: ${{ inputs.files }}
-        verbose: true
+    - name: Download and Verify Codecov CLI
+      shell: bash
+      run: |
+        ./.github/actions/artifacts/download_codecov_cli.py
+    - name: Upload Coverage and Test Results
       continue-on-error: true
+      shell: bash
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
+        INPUT_TYPE: ${{ inputs.type }}
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_TEST_RESULT_FILES: ${{ inputs.test_result_files }}
+      run: |
+        ./.github/actions/artifacts/do_upload.py

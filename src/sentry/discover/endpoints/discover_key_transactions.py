@@ -1,20 +1,25 @@
-from collections import defaultdict
+from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from collections import defaultdict
+from typing import Any
+
+from django.db import IntegrityError, router, transaction
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import ProjectTeam, Team
+from sentry.exceptions import InvalidParams
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -28,6 +33,11 @@ class KeyTransactionPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -56,7 +66,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         project = self.get_project(request, organization)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTeam)):
             serializer = serializers.TeamKeyTransactionSerializer(
                 data=request.data,
                 context={
@@ -135,6 +145,9 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
 @region_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -180,7 +193,7 @@ class KeyTransactionTeamSerializer(Serializer):
             .order_by("transaction", "project_team__project_id")
         )
 
-        attrs = defaultdict(
+        attrs: dict[Team, dict[str, Any]] = defaultdict(
             lambda: {
                 "count": 0,
                 "key_transactions": [],

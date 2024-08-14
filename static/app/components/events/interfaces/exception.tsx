@@ -1,9 +1,11 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event, ExceptionType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -27,9 +29,9 @@ export function Exception({
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
-  /* in case there are threads in the event data, we don't render the
-   exception block.  Instead the exception is contained within the
-   thread interface. */
+  // in case there are threads in the event data, we don't render the
+  // exception block.  Instead the exception is contained within the
+  // thread interface.
   if (eventHasThreads) {
     return null;
   }
@@ -40,35 +42,17 @@ export function Exception({
 
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
-  function getPlatform(): PlatformType {
-    const dataValue = data.values?.find(
-      value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
-    );
-
-    if (dataValue) {
-      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
-
-      if (framePlatform?.platform) {
-        return framePlatform.platform;
-      }
-    }
-
-    return event.platform ?? 'other';
-  }
-
   const stackTraceNotFound = !(data.values ?? []).length;
-  const platform = getPlatform();
 
   return (
     <TraceEventDataSection
-      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
+      title={t('Stack Trace')}
       type={EntryType.EXCEPTION}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      platform={platform}
+      platform={event.platform ?? 'other'}
       hasMinified={!!data.values?.some(value => value.rawStacktrace)}
       hasVerboseFunctionNames={
         !!data.values?.some(
@@ -100,7 +84,6 @@ export function Exception({
         !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
-      wrapTitle={false}
     >
       {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
@@ -114,13 +97,12 @@ export function Exception({
               display.includes('raw-stack-trace')
                 ? StackView.RAW
                 : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
+                  ? StackView.FULL
+                  : StackView.APP
             }
             projectSlug={projectSlug}
             newestFirst={recentFirst}
             event={event}
-            platform={platform}
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}

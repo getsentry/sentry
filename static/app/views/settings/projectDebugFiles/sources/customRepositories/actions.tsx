@@ -1,7 +1,6 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,7 +10,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CustomRepoType} from 'sentry/types/debugFiles';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
@@ -20,14 +18,12 @@ type Props = {
   onDelete: () => void;
   onEdit: () => void;
   repositoryName: string;
-  repositoryType: string;
   disabled?: boolean;
   syncNowButton?: React.ReactElement;
 };
 
 function Actions({
   repositoryName,
-  repositoryType,
   disabled,
   onEdit,
   onDelete,
@@ -40,35 +36,18 @@ function Actions({
       <ConfirmDelete
         confirmText={t('Delete Repository')}
         message={
-          repositoryType === CustomRepoType.APP_STORE_CONNECT ? (
-            <Fragment>
-              <TextBlock>
-                <strong>
-                  {t(
-                    'Removing App Store Connect symbol source does not remove current dSYMs.'
-                  )}
-                </strong>
-              </TextBlock>
-              <TextBlock>
-                {t(
-                  'The App Store Connect symbol source periodically imports dSYMs into the "Uploaded debug information files". Removing this symbol source does not delete those files and they will remain available for symbolication until deleted directly.'
-                )}
-              </TextBlock>
-            </Fragment>
-          ) : (
-            <Fragment>
-              <TextBlock>
-                <strong>
-                  {t('Removing this repository applies instantly to new events.')}
-                </strong>
-              </TextBlock>
-              <TextBlock>
-                {t(
-                  'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
-                )}
-              </TextBlock>
-            </Fragment>
-          )
+          <Fragment>
+            <TextBlock>
+              <strong>
+                {t('Removing this repository applies instantly to new events.')}
+              </strong>
+            </TextBlock>
+            <TextBlock>
+              {t(
+                'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
+              )}
+            </TextBlock>
+          </Fragment>
         }
         confirmInput={repositoryName}
         priority="danger"
@@ -89,8 +68,10 @@ function Actions({
           !hasFeature
             ? undefined
             : !hasAccess
-            ? t('You do not have permission to edit custom repositories configurations.')
-            : undefined
+              ? t(
+                  'You do not have permission to edit custom repositories configurations.'
+                )
+              : undefined
         }
         disabled={actionsDisabled}
       >
@@ -105,10 +86,10 @@ function Actions({
             !hasFeature
               ? undefined
               : !hasAccess
-              ? t(
-                  'You do not have permission to delete custom repositories configurations.'
-                )
-              : undefined
+                ? t(
+                    'You do not have permission to delete custom repositories configurations.'
+                  )
+                : undefined
           }
           disabled={actionsDisabled}
         >
@@ -124,17 +105,18 @@ function Actions({
           caret={false}
           disabled={actionsDisabled}
           customTitle={
-            <StyledActionButton
+            <StyledButton
+              size="xs"
               aria-label={t('Actions')}
               disabled={actionsDisabled}
               title={
                 !hasFeature
                   ? undefined
                   : !hasAccess
-                  ? t(
-                      'You do not have permission to edit and delete custom repositories configurations.'
-                    )
-                  : undefined
+                    ? t(
+                        'You do not have permission to edit and delete custom repositories configurations.'
+                      )
+                    : undefined
               }
               icon={<IconEllipsis />}
             />
@@ -151,7 +133,7 @@ function Actions({
 
 export default Actions;
 
-const StyledActionButton = styled(ActionButton)`
+const StyledButton = styled(Button)`
   height: 32px;
 `;
 

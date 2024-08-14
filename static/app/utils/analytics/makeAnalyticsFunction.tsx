@@ -1,5 +1,5 @@
-import {Organization} from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+import type {Hooks} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
 import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
@@ -18,7 +18,7 @@ type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
  */
 export default function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
-  OrgRequirement extends OptionalOrg = OptionalOrg
+  OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,
   defaultOptions?: Options

@@ -1,10 +1,11 @@
-import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
@@ -12,9 +13,8 @@ const TEST_RELEASE_NAME = 'test-project@1.0.0';
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
 
-  const organization = TestStubs.Organization({
+  const organization = OrganizationFixture({
     features,
-    projects: [TestStubs.Project()],
   });
 
   const initialData = initializeOrg({
@@ -30,7 +30,7 @@ function initializeData({query} = {query: {}}) {
     },
   });
 
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
 
   return initialData;
 }
@@ -129,7 +129,11 @@ describe('Performance > Transaction Tags', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
       body: {},
     });
   });
@@ -141,10 +145,10 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -169,14 +173,14 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
   });
 
   it('Default tagKey is set when loading the page without one', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -194,7 +198,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -208,12 +212,12 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('Passed tagKey gets used when calling queries', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {tagKey: 'effectiveConnectionType'},
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -231,7 +235,7 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -248,7 +252,7 @@ describe('Performance > Transaction Tags', function () {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
     render(<TransactionTags location={initialData.router.location} />, {
-      context: initialData.routerContext,
+      router: initialData.router,
       organization: initialData.organization,
     });
 
@@ -258,7 +262,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     // Release link is properly setup
-    expect(screen.getByText(TEST_RELEASE_NAME)).toBeInTheDocument();
+    expect(await screen.findByText(TEST_RELEASE_NAME)).toBeInTheDocument();
     expect(screen.getByText(TEST_RELEASE_NAME).parentElement).toHaveAttribute(
       'href',
       `/organizations/${initialData.organization.slug}/releases/${encodeURIComponent(
@@ -268,7 +272,7 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('clears tableCursor when selecting a new tag', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
@@ -276,7 +280,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -291,8 +295,8 @@ describe('Performance > Transaction Tags', function () {
       },
     });
 
-    expect(screen.getByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
-    expect(screen.getByRole('button', {name: 'Next'})).toHaveAttribute(
+    expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
+    expect(await screen.findByRole('button', {name: 'Next'})).toHaveAttribute(
       'aria-disabled',
       'false'
     );
@@ -326,20 +330,21 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('changes the aggregate column when a new x-axis is selected', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {tagKey: 'os'},
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
     await waitFor(() => {
+      // Table is loaded.
       expect(screen.getByRole('table')).toBeInTheDocument();
     });
 
-    expect(histogramMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
 
     expect(histogramMock).toHaveBeenNthCalledWith(
       1,
@@ -353,9 +358,7 @@ describe('Performance > Transaction Tags', function () {
 
     await selectEvent.select(screen.getByText('X-Axis'), 'LCP');
 
-    await waitFor(() => {
-      expect(screen.getByRole('table')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('table')).toBeInTheDocument();
 
     expect(histogramMock).toHaveBeenCalledTimes(2);
 

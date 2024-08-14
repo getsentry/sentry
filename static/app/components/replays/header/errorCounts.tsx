@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
@@ -10,9 +10,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -22,27 +22,15 @@ type Props = {
 
 export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const {pathname, query} = useLocation();
-  const organization = useOrganization();
-  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
   const getLink = useCallback(
     ({project}: {project?: Project}) => {
-      return hasErrorTab
-        ? {
-            pathname,
-            query: {...query, t_main: 'errors', f_e_project: project?.slug},
-          }
-        : {
-            pathname,
-            query: {
-              ...query,
-              t_main: 'console',
-              f_c_logLevel: 'issue',
-              f_c_search: undefined,
-            },
-          };
+      return {
+        pathname,
+        query: {...query, t_main: TabKey.ERRORS, f_e_project: project?.slug},
+      };
     },
-    [hasErrorTab, pathname, query]
+    [pathname, query]
   );
 
   const errorCountPerProject = useErrorCountPerProject({replayErrors, replayRecord});
@@ -81,7 +69,6 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const totalErrors = errorCountPerProject.reduce((acc, val) => acc + val.count, 0);
   return (
     <Tooltip
-      forceVisible
       title={
         <ColumnTooltipContent>
           {errorCountPerProject.map(({project, count}) => (
@@ -115,7 +102,7 @@ const Count = styled('span')`
 `;
 
 const ErrorCount = styled(Count)`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.gray300};
 `;
 
 const ColumnTooltipContent = styled(CountTooltipContent)`

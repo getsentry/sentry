@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {TeamWithProjects} from 'sentry/types';
+import type {TeamWithProjects} from 'sentry/types/project';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import Header from '../header';
 
@@ -27,7 +28,7 @@ type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsIssues({location, router}: Props) {
   const organization = useOrganization();
-  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+  const {teams, isLoading, isError} = useUserTeams();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 
@@ -54,6 +55,10 @@ function TeamStatsIssues({location, router}: Props) {
     );
   }
 
+  if (isError) {
+    return <LoadingError />;
+  }
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Team Issues')} orgSlug={organization.slug} />
@@ -68,13 +73,13 @@ function TeamStatsIssues({location, router}: Props) {
           currentEnvironment={environment}
         />
 
-        {!initiallyLoaded && <LoadingIndicator />}
-        {initiallyLoaded && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}
               description={t(
-                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or archived in the past.'
               )}
             >
               <TeamUnresolvedIssues
@@ -92,7 +97,7 @@ function TeamStatsIssues({location, router}: Props) {
             <DescriptionCard
               title={t('New and Returning Issues')}
               description={t(
-                'The new, regressed, and unignored issues that were assigned to your team.'
+                'The new, regressed, and escalating issues that were assigned to your team.'
               )}
             >
               <TeamIssuesBreakdown
@@ -103,7 +108,7 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                statuses={['new', 'regressed', 'unignored']}
+                statuses={['new', 'regressed', 'escalating']}
               />
             </DescriptionCard>
 
@@ -121,7 +126,13 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                statuses={['resolved', 'ignored', 'deleted']}
+                statuses={[
+                  'resolved',
+                  'deleted',
+                  'archived_until_escalating',
+                  'archived_forever',
+                  'archived_until_condition_met',
+                ]}
               />
             </DescriptionCard>
 
@@ -145,7 +156,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
           </Layout.Main>

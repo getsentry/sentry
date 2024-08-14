@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.event_manager import generate_culprit
+from sentry.culprit import generate_culprit
 from sentry.grouping.utils import hash_from_values
 
 
@@ -66,7 +70,7 @@ def test_with_empty_stacktrace():
 
 
 def test_with_only_http_interface():
-    data = {"request": {"url": "http://example.com"}}
+    data: dict[str, Any] = {"request": {"url": "http://example.com"}}
     assert generate_culprit(data) == "http://example.com"
 
     data = {"request": {"url": None}}
@@ -84,7 +88,7 @@ def test_empty_data():
 
 
 def test_truncation():
-    data = {
+    data: dict[str, dict[str, Any]] = {
         "exception": {
             "values": [{"stacktrace": {"frames": [{"filename": "x" * (MAX_CULPRIT_LENGTH + 1)}]}}]
         }
@@ -101,3 +105,26 @@ def test_truncation():
 def test_hash_from_values():
     result = hash_from_values(["foo", "bar", "foô"])
     assert result == "6d81588029ed4190110b2779ba952a00"
+
+
+def test_nel_culprit():
+    data = {
+        "type": "nel",
+        "contexts": {
+            "nel": {"phase": "application", "error_type": "http.error"},
+            "response": {"status_code": 418},
+        },
+    }
+    assert (
+        generate_culprit(data)
+        == "The user agent successfully received a response, but it had a 418 status code"
+    )
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "connection", "error_type": "tcp.reset"}}}
+    assert generate_culprit(data) == "The TCP connection was reset"
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns", "error_type": "dns.weird"}}}
+    assert generate_culprit(data) == "dns.weird"
+
+    data = {"type": "nel", "contexts": {"nel": {"phase": "dns"}}}
+    assert generate_culprit(data) == "<missing>"

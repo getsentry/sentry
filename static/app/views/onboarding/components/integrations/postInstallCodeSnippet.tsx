@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {IntegrationProvider} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 
 type Props = {
   provider: IntegrationProvider;
@@ -22,7 +22,7 @@ export default function PostInstallCodeSnippet({
     <div>
       <p>
         {t(
-          "Congrats, you just installed the %s integration! Now that it's is installed, the next time you trigger an error it will go to your Sentry.",
+          "Congrats, you just installed the %s integration! Now that it's installed, the next time you trigger an error it will go to your Sentry.",
           provider.name
         )}
       </p>

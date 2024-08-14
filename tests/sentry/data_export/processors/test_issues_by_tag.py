@@ -1,10 +1,15 @@
+from datetime import timedelta
+
 import pytest
+from django.utils import timezone
 
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
-from sentry.models import EventUser, Group, Project
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.eventuser import EventUser
 
 
 class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
@@ -25,6 +30,8 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
         self.event = self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -34,7 +41,15 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.group = self.event.group
-        self.euser = EventUser.objects.get(email=self.user.email, project_id=self.project.id)
+        self.euser = EventUser(
+            project_id=self.project.id,
+            email=self.user.email,
+            username=None,
+            name=None,
+            ip_address=None,
+            user_ident=None,
+            id=None,
+        )
 
     def test_get_project(self):
         project = IssuesByTagProcessor.get_project(project_id=self.project.id)

@@ -2,13 +2,11 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Organization, Project, SelectValue} from 'sentry/types';
-import {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  TargetType,
-} from 'sentry/views/alerts/rules/metric/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Action, MetricActionTemplate} from 'sentry/views/alerts/rules/metric/types';
+import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {
@@ -17,8 +15,12 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       // no prefixes for msteams
       return 'username or channel';
+    case ActionType.DISCORD:
+      return 'Discord channel ID';
     case ActionType.PAGERDUTY:
       return 'service';
+    case ActionType.OPSGENIE:
+      return 'team';
     default:
       throw Error('Not implemented');
   }
@@ -66,7 +68,6 @@ export default function ActionTargetSelector(props: Props) {
         <SelectMembers
           disabled={disabled}
           key="member"
-          project={project}
           organization={organization}
           value={action.targetIdentifier}
           onChange={handleChangeTargetIdentifier}
@@ -86,6 +87,7 @@ export default function ActionTargetSelector(props: Props) {
           type="text"
           autoComplete="off"
           disabled={disabled}
+          required={action.type === 'discord'} // Only required for discord channel ID
           key={action.type}
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}

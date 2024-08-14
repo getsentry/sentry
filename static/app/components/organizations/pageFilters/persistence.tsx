@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -34,11 +34,14 @@ type StoredObject = {
  */
 export function setPageFiltersStorage(
   orgSlug: string,
-  updateFilters: Set<PinnedPageFilter>
+  updateFilters: Set<PinnedPageFilter>,
+  storageNamespace: string = ''
 ) {
   const {selection, pinnedFilters} = PageFiltersStore.getState();
 
-  const {state: currentStoredState} = getPageFilterStorage(orgSlug) ?? {state: null};
+  const {state: currentStoredState} = getPageFilterStorage(orgSlug, storageNamespace) ?? {
+    state: null,
+  };
 
   const projects = updateFilters.has('projects')
     ? selection.projects
@@ -84,7 +87,9 @@ export function setPageFiltersStorage(
     pinnedFilters: Array.from(pinnedFilters),
   };
 
-  const localStorageKey = makeLocalStorageKey(orgSlug);
+  const localStorageKey = makeLocalStorageKey(
+    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
+  );
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
@@ -96,8 +101,11 @@ export function setPageFiltersStorage(
 /**
  * Retrieves the page filters from local storage
  */
-export function getPageFilterStorage(orgSlug: string) {
-  const localStorageKey = makeLocalStorageKey(orgSlug);
+export function getPageFilterStorage(orgSlug: string, storageNamespace: string = '') {
+  const localStorageKey = makeLocalStorageKey(
+    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
+  );
+
   const value = localStorage.getItem(localStorageKey);
 
   if (!value) {

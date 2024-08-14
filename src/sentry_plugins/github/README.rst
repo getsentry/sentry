@@ -10,9 +10,6 @@ Ensure you've configured GitHub auth in Sentry::
     GITHUB_API_SECRET = 'GitHub Application Client Secret'
     GITHUB_EXTENDED_PERMISSIONS = ['repo']
 
-If the callback URL you've registered with GitHub uses HTTPS, you'll need this in your config::
-
-    SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 If your server is behind a reverse proxy, you'll need to enable the X-Forwarded-Proto
 and X-Forwarded-Host headers, and use this config::

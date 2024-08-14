@@ -9,21 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     name: React to product-owners.yml changes
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: getsentry/action-setup-venv@v1.0.5
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
           python-version: 3.11.3
-
-      - name: Get an auth token
-        id: token
-        uses: getsentry/action-github-app-token@v2.0.0
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: React to product-owners.yml changes
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          COMMITTER_NAME: getsentry-bot
+          COMMITTER_EMAIL: bot@sentry.io
         run: ./bin/react-to-product-owners-yml-changes.sh

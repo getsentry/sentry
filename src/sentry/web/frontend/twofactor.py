@@ -3,6 +3,8 @@ import time
 from base64 import b64encode
 
 from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.request import Request
 
@@ -10,10 +12,14 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models import Authenticator
+from sentry.silo.base import control_silo_function
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json
+from sentry.utils.email import MessageBuilder
+from sentry.utils.geo import geo_by_addr
+from sentry.utils.http import absolute_uri
 from sentry.web.forms.accounts import TwoFactorForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 COOKIE_NAME = "s2fai"
@@ -22,6 +28,7 @@ COOKIE_MAX_AGE = 60 * 60 * 24 * 31
 logger = logging.getLogger(__name__)
 
 
+@control_silo_view
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
@@ -33,7 +40,7 @@ class TwoFactorAuthView(BaseView):
             if not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
-                    str(interface.type).encode("utf-8"),
+                    str(interface.type),
                     max_age=COOKIE_MAX_AGE,
                     path="/",
                 )
@@ -105,6 +112,26 @@ class TwoFactorAuthView(BaseView):
             ):
                 return interface
 
+    def send_notification_email(self, email, ip_address):
+        context = {
+            "datetime": timezone.now(),
+            "email": email,
+            "geo": geo_by_addr(ip_address),
+            "ip_address": ip_address,
+            "url": absolute_uri(reverse("sentry-account-settings-security")),
+        }
+
+        subject = "Suspicious Activity Detected"
+        template = "mfa-too-many-attempts"
+        msg = MessageBuilder(
+            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
+            template=f"sentry/emails/{template}.txt",
+            html_template=f"sentry/emails/{template}.html",
+            type="user.mfa-too-many-attempts",
+            context=context,
+        )
+        msg.send_async([email])
+
     def handle(self, request: Request) -> HttpResponse:
         user = auth.get_pending_2fa_user(request)
         if user is None:
@@ -120,11 +147,21 @@ class TwoFactorAuthView(BaseView):
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 
-        if request.method == "POST" and ratelimiter.is_limited(
-            f"auth-2fa:user:{user.id}", limit=5, window=60
-        ):
-            # TODO: Maybe email the account owner or do something to notify someone
-            # This would probably be good for them to know.
+        is_rate_limited = ratelimiter.backend.is_limited(
+            f"auth-2fa:user:{user.id}", limit=5, window=20
+        ) or ratelimiter.backend.is_limited(
+            f"auth-2fa-long:user:{user.id}", limit=20, window=60 * 60
+        )
+
+        if request.method == "POST" and is_rate_limited:
+            # prevent spamming due to failed 2FA attempts
+            if not ratelimiter.backend.is_limited(
+                f"auth-2fa-failed-notification:user:{user.id}", limit=1, window=30 * 60
+            ):
+                self.send_notification_email(
+                    email=user.username, ip_address=request.META["REMOTE_ADDR"]
+                )
+
             return HttpResponse(
                 "You have made too many 2FA attempts. Please try again later.",
                 content_type="text/plain",
@@ -190,6 +227,7 @@ class TwoFactorAuthView(BaseView):
         )
 
 
+@control_silo_function
 def u2f_appid(request):
     facets = options.get("u2f.facets")
     if not facets:

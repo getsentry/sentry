@@ -14,7 +14,7 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:admin"))
+    org = (("org:read"), ("org:write"), ("org:integrations"), ("org:admin"))
 
     member = (("member:read"), ("member:write"), ("member:admin"))
 
@@ -65,6 +65,7 @@ class HasApiScopes(models.Model):
             "member:read": bool,
             "member:write": bool,
             "member:admin": bool,
+            "org:integrations": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())
@@ -73,10 +74,16 @@ class HasApiScopes(models.Model):
     # Human readable list of scopes
     scope_list = ArrayField(of=models.TextField)
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
+        """
+        Returns a list of the token's scopes in alphabetical order.
+        """
         if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+            return sorted(self.scope_list)
+        return sorted([k for k, v in self.scopes.items() if v])
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
+        """
+        Checks whether the token has the given scope
+        """
         return scope in self.get_scopes()

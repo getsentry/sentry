@@ -1,8 +1,11 @@
+from django.db import router
 from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import Actor, Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.types.actor import Actor
 
 
 class Creator(Mediator):
@@ -16,6 +19,7 @@ class Creator(Mediator):
     conditions = Param(list)
     frequency = Param(int)
     request = Param(Request, required=False)
+    using = router.db_for_write(Project)
 
     def call(self):
         self.rule = self._create_rule()
@@ -24,6 +28,7 @@ class Creator(Mediator):
     def _create_rule(self):
         kwargs = self._get_kwargs()
         rule = Rule.objects.create(**kwargs)
+
         return rule
 
     def _get_kwargs(self):
@@ -36,9 +41,9 @@ class Creator(Mediator):
         }
         _kwargs = {
             "label": self.name,
-            "owner": Actor.objects.get(id=self.owner) if self.owner else None,
             "environment_id": self.environment or None,
             "project": self.project,
             "data": data,
+            "owner": self.owner,
         }
         return _kwargs

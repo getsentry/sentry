@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import re
-from typing import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
+from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
@@ -14,7 +20,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
@@ -22,13 +28,16 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group, **kwargs):
-        params = kwargs.get("params", {})
+    def get_projects_and_default(self, group: Group, params: Mapping[str, Any], **kwargs):
         defaults = self.get_project_defaults(group.project_id)
-        kwargs["repo"] = params.get("project", defaults.get("project"))
 
-        # In GitLab Repositories are called Projects
-        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        # XXX: In GitLab repositories are called projects but get_repository_choices
+        # expects the param to be called 'repo', so we need to rename it here.
+        # Django QueryDicts are immutable, so we need to copy it first.
+        params = params.copy()
+        params["repo"] = params.get("project") or defaults.get("project")
+
+        default_project, project_choices = self.get_repository_choices(group, params, **kwargs)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):
@@ -40,10 +49,14 @@ class GitlabIssueBasic(IssueBasicMixin):
             return ("", "")
         return (project["id"], project["name_with_namespace"])
 
-    def get_create_issue_config(self, group, user, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+    @all_silo_function
+    def get_create_issue_config(
+        self, group: Group | None, user: User, **kwargs
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
+        params = kwargs.pop("params", {})
+        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -108,8 +121,9 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -138,7 +152,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),

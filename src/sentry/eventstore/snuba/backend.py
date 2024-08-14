@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import random
+from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.utils import timezone
@@ -21,7 +24,7 @@ from snuba_sdk import (
 )
 
 from sentry.eventstore.base import EventStorage
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -66,16 +69,16 @@ class SnubaEventStorage(EventStorage):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events_snql",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         cols = self.__get_columns(dataset)
 
         resolved_order_by = []
@@ -100,6 +103,18 @@ class SnubaEventStorage(EventStorage):
                     resolved_order_by.append(
                         OrderBy(
                             Function("coalesce", [Column(resolved_column_or_none), -1]),
+                            direction=direction,
+                        )
+                    )
+                elif order_field_alias in (
+                    Columns.PROFILE_ID.value.alias,
+                    Columns.REPLAY_ID.value.alias,
+                ):
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function(
+                                "if", [Function("isNull", [Column(resolved_column_or_none)]), 0, 1]
+                            ),
                             direction=direction,
                         )
                     )
@@ -152,9 +167,9 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Get events from Snuba, with node data loaded.
         """
@@ -177,9 +192,9 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Get events from Snuba, without node data loaded.
         """
@@ -202,9 +217,9 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
-        dataset=snuba.Dataset.Events,
+        dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         assert filter, "You must provide a filter"
         cols = self.__get_columns(dataset)
         orderby = orderby or DESC_ORDERING
@@ -284,14 +299,42 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
+    @overload
     def get_event_by_id(
         self,
-        project_id,
-        event_id,
-        group_id=None,
-        skip_transaction_groupevent=False,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
         tenant_ids=None,
-    ):
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: Literal[True],
+    ) -> Event | None:
+        ...
+
+    @overload
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
+        ...
+
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
@@ -316,6 +359,17 @@ class SnubaEventStorage(EventStorage):
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id
+        elif occurrence_id is not None and group_id is not None:
+            event.group_id = group_id
+
+            event._snuba_data = {
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project_id,
+                "timestamp": event.timestamp,
+                "occurrence_id": occurrence_id,
+            }
+
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
@@ -382,11 +436,11 @@ class SnubaEventStorage(EventStorage):
 
     def _get_dataset_for_event(self, event):
         if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
-            return snuba.Dataset.IssuePlatform
+            return Dataset.IssuePlatform
         elif event.get_event_type() == "transaction":
-            return snuba.Dataset.Transactions
+            return Dataset.Transactions
         else:
-            return snuba.Dataset.Discover
+            return Dataset.Discover
 
     def get_adjacent_event_ids(self, event, filter):
         """
@@ -401,7 +455,9 @@ class SnubaEventStorage(EventStorage):
         prev_filter = deepcopy(filter)
         prev_filter.conditions = prev_filter.conditions or []
         prev_filter.conditions.extend(get_before_event_condition(event))
-        prev_filter.start = datetime.utcfromtimestamp(0)
+
+        # We only store 90 days of data, add a few extra days just in case
+        prev_filter.start = event.datetime - timedelta(days=100)
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         prev_filter.end = event.datetime + timedelta(seconds=1)
@@ -424,9 +480,7 @@ class SnubaEventStorage(EventStorage):
     def __get_columns(self, dataset: Dataset):
         return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
-    def __get_event_ids_from_filters(
-        self, filters=(), dataset=snuba.Dataset.Discover, tenant_ids=None
-    ):
+    def __get_event_ids_from_filters(self, filters=(), dataset=Dataset.Discover, tenant_ids=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
@@ -485,7 +539,7 @@ class SnubaEventStorage(EventStorage):
         Get transactions from Snuba, without node data loaded.
         """
         assert filter, "You must provide a filter"
-        cols = self.__get_columns(snuba.Dataset.Transactions)
+        cols = self.__get_columns(Dataset.Transactions)
         orderby = orderby or DESC_ORDERING
 
         result = snuba.aliased_query(
@@ -498,7 +552,7 @@ class SnubaEventStorage(EventStorage):
             limit=limit,
             offset=offset,
             referrer=referrer,
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             tenant_ids=tenant_ids,
         )
 

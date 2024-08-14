@@ -10,4 +10,4 @@ You can now login using your email {{ email }}, however you'll first have to set
 {{ set_password_url }}
 {% endif %}
 
-SSO was disabled by {{ actor.email }}
+SSO was disabled by {{ actor_email }}

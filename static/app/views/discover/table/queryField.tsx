@@ -1,33 +1,34 @@
 import {Component, createRef} from 'react';
-import {components, SingleValueProps} from 'react-select';
+import type {SingleValueProps} from 'react-select';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
-import Input, {InputProps} from 'sentry/components/input';
-import Tag from 'sentry/components/tag';
+import Tag from 'sentry/components/badge/tag';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
-import {
+import type {SelectValue} from 'sentry/types/core';
+import type {
   AggregateParameter,
   AggregationKeyWithAlias,
-  AGGREGATIONS,
   Column,
   ColumnType,
-  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
+import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import ArithmeticInput from './arithmeticInput';
-import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
+import type {FieldValue, FieldValueColumns} from './types';
+import {FieldValueKind} from './types';
 
 export type FieldValueOption = SelectValue<FieldValue>;
 
@@ -357,7 +358,7 @@ class QueryField extends Component<Props> {
 
     if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
-      fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+      fieldOptions = appendFieldIfUnknown(fieldOptions, field);
     }
 
     let parameterDescriptions: ParameterDescription[] = [];
@@ -375,7 +376,7 @@ class QueryField extends Component<Props> {
               fieldValue.function[1],
               [fieldValue.function[0]]
             );
-            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+            fieldOptions = appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
               value: fieldParameter,
@@ -419,29 +420,6 @@ class QueryField extends Component<Props> {
       );
     }
     return {field, fieldOptions, parameterDescriptions};
-  }
-
-  appendFieldIfUnknown(
-    fieldOptions: FieldOptions,
-    field: FieldValue | null
-  ): FieldOptions {
-    if (!field) {
-      return fieldOptions;
-    }
-
-    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
-      // Clone the options so we don't mutate other rows.
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-    } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[`measurement:${field.meta.name}`] = {
-        label: field.meta.name,
-        value: field,
-      };
-    }
-
-    return fieldOptions;
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
@@ -593,7 +571,6 @@ class QueryField extends Component<Props> {
         tagType = 'success';
         break;
       case FieldValueKind.FIELD:
-      case FieldValueKind.METRICS:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
         tagType = 'highlight';
         break;
@@ -689,7 +666,7 @@ class QueryField extends Component<Props> {
         const operation =
           AGGREGATIONS[fieldValue.function[0]] ??
           SESSIONS_OPERATIONS[fieldValue.function[0]];
-        if (operation.parameters.length > 0) {
+        if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {
             gridColumnsQuantity = 2;
           } else {
@@ -843,3 +820,26 @@ const ArithmeticError = styled(Tooltip)`
 `;
 
 export {QueryField};
+
+export function appendFieldIfUnknown(
+  fieldOptions: FieldOptions,
+  field: FieldValue | null
+): FieldOptions {
+  if (!field) {
+    return fieldOptions;
+  }
+
+  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+    // Clone the options so we don't mutate other rows.
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[`measurement:${field.meta.name}`] = {
+      label: field.meta.name,
+      value: field,
+    };
+  }
+
+  return fieldOptions;
+}

@@ -1,42 +1,50 @@
 import logging
 import posixpath
 import re
+import uuid
+from collections.abc import Sequence
 
 import jsonschema
-from django.db import router
+import orjson
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
-from sentry.models import (
-    File,
-    FileBlobOwner,
-    OrganizationMember,
+from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.debug_files.upload import find_missing_chunks
+from sentry.models.debugfile import (
+    ProguardArtifactRelease,
     ProjectDebugFile,
-    Release,
-    ReleaseFile,
     create_files_from_dif_zip,
 )
-from sentry.models.release import get_artifact_counts
+from sentry.models.files.file import File
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release, get_artifact_counts
+from sentry.models.releasefile import ReleaseFile
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
@@ -81,8 +89,103 @@ def has_download_permission(request, project):
     return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
+def _has_delete_permission(access: Access, project: Project) -> bool:
+    if access.has_scope("project:write"):
+        return True
+    return access.has_project_scope(project, "project:write")
+
+
+@region_silo_endpoint
+class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (ProjectReleasePermission,)
+
+    def post(self, request: Request, project) -> Response:
+        release_name = request.data.get("release_name")
+        proguard_uuid = request.data.get("proguard_uuid")
+
+        missing_fields = []
+        if not release_name:
+            missing_fields.append("release_name")
+        if not proguard_uuid:
+            missing_fields.append("proguard_uuid")
+
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        assert release_name is not None and proguard_uuid is not None
+
+        try:
+            uuid.UUID(proguard_uuid)
+        except ValueError:
+            return Response(
+                data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        proguard_uuid = str(proguard_uuid)
+
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
+        if not difs:
+            return Response(
+                data={"error": "No matching proguard mapping file with this uuid found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ProguardArtifactRelease.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release_name=release_name,
+                project_debug_file=difs[proguard_uuid],
+                proguard_uuid=proguard_uuid,
+            )
+            return Response(status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                data={
+                    "error": "Proguard artifact release with this name in this project already exists."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    def get(self, request: Request, project) -> Response:
+        """
+        List a Project's Proguard Associated Releases
+        ````````````````````````````````````````
+
+        Retrieve a list of associated releases for a given Proguard File.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization the
+                                          file belongs to.
+        :pparam string project_id_or_slug: the id or slug of the project to list the
+                                     DIFs of.
+        :qparam string proguard_uuid: the uuid of the Proguard file.
+        :auth: required
+        """
+
+        proguard_uuid = request.GET.get("proguard_uuid")
+        releases = None
+        if proguard_uuid:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                proguard_uuid=proguard_uuid,
+            ).values_list("release_name", flat=True)
+        return Response({"releases": releases})
+
+
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -126,9 +229,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Retrieve a list of debug information files for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
         :qparam string query: If set, this parameter is used to locate DIFs with.
         :qparam string id: If set, the specified DIF will be sent in the response.
@@ -177,15 +280,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
-        file_format_q = Q()
-        for file_format in file_formats:
-            known_file_format = DIF_MIMETYPES.get(file_format)
-            if known_file_format:
-                file_format_q |= Q(file__headers__icontains=known_file_format)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
 
-        q &= file_format_q
+        q &= Q(project_id=project.id)
+        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
+        def on_results(difs: Sequence[ProjectDebugFile]):
+            # NOTE: we are only refreshing files if there is direct query for specific files
+            if debug_id and not query and not file_formats:
+                maybe_renew_debug_files(q, difs)
+
+            return serialize(difs, request.user)
 
         return self.paginate(
             request=request,
@@ -193,25 +304,24 @@ class DebugFilesEndpoint(ProjectEndpoint):
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
 
         Delete a debug information file for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      DIF.
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-
-        if request.GET.get("id") and (request.access.has_scope("project:write")):
+        if request.GET.get("id") and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
@@ -238,9 +348,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         contains the individual debug images.  Uploading through this endpoint
         will create different files for the contained images.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :param file file: the multipart encoded file.
         :auth: required
@@ -250,6 +360,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -260,6 +374,10 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -267,18 +385,12 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def find_missing_chunks(organization, chunks):
-    """Returns a list of chunks which are missing for an org."""
-    owned = set(
-        FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization_id=organization.id
-        ).values_list("blob__checksum", flat=True)
-    )
-    return list(set(chunks) - owned)
-
-
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -309,7 +421,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         }
 
         try:
-            files = json.loads(request.body)
+            files = orjson.loads(request.body)
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
@@ -366,7 +478,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 continue
 
             # Check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(project.organization, chunks)
+            missing_chunks = find_missing_chunks(project.organization.id, chunks)
             if missing_chunks:
                 file_response[checksum] = {
                     "state": ChunkFileState.NOT_FOUND,
@@ -397,6 +509,11 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -406,9 +523,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Retrieve a list of source map archives (releases, later bundles) for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           source map archive belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      source map archives of.
         :qparam string query: If set, this parameter is used to locate source map archives with.
         :auth: required
@@ -470,9 +587,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Delete all artifacts inside given archive.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                             archive belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
         :qparam string name: The name of the archive to delete.
         :auth: required
@@ -482,9 +599,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         if archive_name:
             with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, version=archive_name
-                )
+                try:
+                    release = Release.objects.get(
+                        organization_id=project.organization_id,
+                        projects=project,
+                        version=archive_name,
+                    )
+                except Release.DoesNotExist:
+                    raise ResourceDoesNotExist(detail="The provided release does not exist")
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from collections.abc import Sequence
+from typing import cast
 
+import sentry_sdk
+
+from sentry import features
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PagerDutyClient
-from sentry.models import PagerDutyService
+from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY, PagerdutySeverity
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -15,53 +18,93 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
     form_cls = PagerDutyNotifyServiceForm
-    label = "Send a notification to PagerDuty account {account} and service {service}"
+    old_label = "Send a notification to PagerDuty account {account} and service {service}"
+    new_label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = "pagerduty"
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.has_feature_flag = features.has(
+            "organizations:integrations-custom-alert-priorities", self.project.organization
+        )
         self.form_fields = {
             "account": {
                 "type": "choice",
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
             "service": {"type": "choice", "choices": self.get_services()},
+            "severity": {
+                "type": "choice",
+                "choices": [
+                    ("default", "default"),
+                    ("critical", "critical"),
+                    ("warning", "warning"),
+                    ("error", "error"),
+                    ("info", "info"),
+                ],
+            },
         }
+        self.__class__.label = self.new_label if self.has_feature_flag else self.old_label
 
     def _get_service(self):
-        return PagerDutyService.objects.get(id=self.get_option("service"))
+        oi = self.get_organization_integration()
+        if not oi:
+            return None
+        for pds in oi.config.get("pagerduty_services", []):
+            if str(pds["id"]) == str(self.get_option("service")):
+                return pds
+        return None
 
-    def after(self, event, state):
+    def after(self, event, notification_uuid: str | None = None):
         integration = self.get_integration()
+        log_context = {
+            "organization_id": self.project.organization_id,
+            "integration_id": self.get_option("account"),
+            "service": self.get_option("service"),
+        }
         if not integration:
-            logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
+            logger.info("pagerduty.org_integration_missing", extra=log_context)
             return
 
-        try:
-            service = self._get_service()
-        except PagerDutyService.DoesNotExist:
-            logger.exception("The PagerDuty does not exist anymore while integration does.")
+        service = self._get_service()
+        if not service:
+            logger.info("pagerduty.service_missing", extra=log_context)
             return
+
+        severity = cast(
+            PagerdutySeverity, self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
+        )
 
         def send_notification(event, futures):
-            client = PagerDutyClient(integration_key=service.integration_key)
+            installation = integration.get_installation(self.project.organization_id)
             try:
-                resp = client.send_trigger(event)
+                client = installation.get_keyring_client(self.get_option("service"))
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                return
+
+            try:
+                resp = client.send_trigger(
+                    event, notification_uuid=notification_uuid, severity=severity
+                )
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
                     extra={
                         "error": str(e),
-                        "service_name": service.service_name,
-                        "service_id": service.id,
+                        "service_name": service["service_name"],
+                        "service_id": service["id"],
                         "project_id": event.project_id,
                         "event_id": event.event_id,
                     },
                 )
-                raise e
+                raise
+            rules = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`
@@ -71,36 +114,38 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     "status_code": resp.status_code,
                     "project_id": event.project_id,
                     "event_id": event.event_id,
-                    "service_name": service.service_name,
-                    "service_id": service.id,
+                    "service_name": service["service_name"],
+                    "service_id": service["id"],
                 },
             )
 
-        key = f"pagerduty:{integration.id}:{service.id}"
+        key = f"pagerduty:{integration.id}:{service['id']}:{severity}"
         yield self.future(send_notification, key=key)
 
-    def get_services(self) -> Sequence[PagerDutyService]:
-        from sentry.services.hybrid_cloud.integration import integration_service
+    def get_services(self) -> Sequence[tuple[int, str]]:
+        from sentry.integrations.services.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(
             providers=[self.provider], organization_id=self.project.organization_id
         )
-        integration_ids = [oi.integration_id for oi in organization_integrations]
-
         return [
-            service
-            for service in PagerDutyService.objects.filter(
-                organization_id=self.project.organization_id, integration_id__in=integration_ids
-            ).values_list("id", "service_name")
+            (v["id"], v["service_name"])
+            for oi in organization_integrations
+            for v in oi.config.get("pagerduty_services", [])
         ]
 
     def render_label(self):
-        try:
-            service_name = self._get_service().service_name
-        except PagerDutyService.DoesNotExist:
+        s = self._get_service()
+        if s:
+            service_name = s["service_name"]
+        else:
             service_name = "[removed]"
 
-        return self.label.format(account=self.get_integration_name(), service=service_name)
+        severity = self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
+
+        return self.label.format(
+            account=self.get_integration_name(), service=service_name, severity=severity
+        )
 
     def get_form_instance(self):
         return self.form_cls(

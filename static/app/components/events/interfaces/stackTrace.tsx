@@ -1,10 +1,12 @@
-import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
+import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
-import {Group, PlatformType, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
-import {StackType, StackView} from 'sentry/types/stacktrace';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey, Project} from 'sentry/types/project';
+import {StackView} from 'sentry/types/stacktrace';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -36,7 +38,7 @@ export function StackTrace({
 
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
-  function getPlatform(): PlatformType {
+  function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
   }
@@ -47,15 +49,13 @@ export function StackTrace({
   return (
     <TraceEventDataSection
       type={EntryType.STACKTRACE}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       platform={platform}
       stackTraceNotFound={stackTraceNotFound}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
-      wrapTitle={false}
+      title={t('Stack Trace')}
       hasMinified={false}
       hasVerboseFunctionNames={
         !!data.frames?.some(
@@ -82,8 +82,8 @@ export function StackTrace({
               display.includes('raw-stack-trace')
                 ? StackView.RAW
                 : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
+                  ? StackView.FULL
+                  : StackView.APP
             }
             newestFirst={recentFirst}
             stacktrace={data}

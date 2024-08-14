@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -9,11 +9,13 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
-  MEPState,
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -48,7 +50,7 @@ type State = {
 function PerformanceContent({selection, location, demoMode, router}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const {projects, reloadProjects} = useProjects();
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
   const [state, setState] = useState<State>({error: undefined});
@@ -105,6 +107,16 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     show_onboarding: onboardingProject !== undefined,
     tab: getLandingDisplayFromParam(location)?.field,
   });
+
+  // Refetch the project metadata if the selected project does not have performance data, because
+  // we may have received performance data (and subsequently updated `Project.firstTransactionEvent`)
+  // after the initial project fetch.
+  useEffect(() => {
+    if (onboardingProject) {
+      reloadProjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboardingProject?.id]);
 
   useEffect(() => {
     if (!mounted.current) {

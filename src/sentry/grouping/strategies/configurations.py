@@ -2,11 +2,12 @@ from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
     RISK_LEVEL_LOW,
     RISK_LEVEL_MEDIUM,
+    StrategyConfiguration,
     create_strategy_configuration,
 )
 
 # The full mapping of all known configurations.
-CONFIGURATIONS = {}
+CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
@@ -33,9 +34,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # strategy to disable itself.  Recursion is detected by the outer
         # strategy.
         "is_recursion": False,
-        # This turns on the automatic message trimming by the message
-        # strategy.
-        "trim_message": False,
+        # This turns on the automatic message trimming and parameter substitution
+        # by the message strategy.
+        "normalize_message": False,
         # newstyle: enables the legacy function logic.  This is only used
         # by the newstyle:2019-04-05 strategy.  Once this is no longer used
         # this can go away entirely.
@@ -66,7 +67,7 @@ BASE_STRATEGY = create_strategy_configuration(
         "use_package_fallback": False,
         # Remove platform differences in native frames
         "native_fuzzing": False,
-        # Ignore exception types for native if they are platform specific error
+        # Ignore exception types for native if they are platform-specific error
         # codes. Normally SDKs are supposed to disable error-type grouping with
         # the `synthetic` flag in the event, but a lot of error types we can
         # also detect on the backend.
@@ -77,13 +78,13 @@ BASE_STRATEGY = create_strategy_configuration(
 )
 
 
-def register_strategy_config(id, **kwargs):
+def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     if kwargs.get("base") is not None:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
         kwargs["base"] = BASE_STRATEGY
     rv = create_strategy_configuration(id, **kwargs)
-    CONFIGURATIONS[rv.id] = rv
+    CONFIGURATIONS[id] = rv
     return rv
 
 
@@ -105,7 +106,7 @@ register_strategy_config(
         * Some known weaknesses with regards to grouping of native frames
     """,
     initial_context={
-        "trim_message": False,
+        "normalize_message": False,
     },
     enhancements_base="legacy:2019-03-12",
 )
@@ -135,7 +136,7 @@ register_strategy_config(
         "javascript_fuzzing": True,
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         "with_context_line_file_origin_bug": True,
-        "trim_message": True,
+        "normalize_message": True,
         "with_exception_value_fallback": True,
     },
     enhancements_base="common:2019-03-23",
@@ -194,43 +195,11 @@ register_strategy_config(
         * Added new language/platform specific stack trace grouping enhancements rules
           that should make the default grouping experience better.
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
+        * Added ChukloadErrors via new built-in fingerprinting support.
     """,
     initial_context={
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
-)
-
-
-# Deprecated strategies
-#
-# These should not be used.  They are experiments which should be phased out
-# once there are no projects on them.
-
-register_strategy_config(
-    id="newstyle:2019-04-05",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-    initial_context={
-        "legacy_function_logic": True,
-    },
-    enhancements_base="common:2019-03-23",
-)
-
-register_strategy_config(
-    id="newstyle:2019-04-17",
-    base="newstyle:2019-04-05",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-    initial_context={
-        "legacy_function_logic": False,
-        "trim_message": True,
-        "with_exception_value_fallback": True,
-    },
+    fingerprinting_bases=["javascript@2024-02-02"],
 )

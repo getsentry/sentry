@@ -3,13 +3,14 @@ from __future__ import annotations
 import contextlib
 from unittest.mock import MagicMock, patch
 
+import sentry_sdk.scope
 from django.conf import settings
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.models.organization import Organization
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
@@ -22,11 +23,16 @@ from sentry.utils.sdk import (
 
 
 @contextlib.contextmanager
-def patch_configure_scope_with_scope(mocked_function_name: str, scope: Scope):
-    with patch(mocked_function_name) as mock_configure_scope:
-        mock_configure_scope.return_value.__enter__.return_value = scope
+def patch_isolation_scope():
+    """
+    Generates and yields new Scope object, and patches sentry.utils.sdk.Scope.get_isolation_scope to return the same
+    scope within the context manager.
+    """
+    scope = Scope(ty=sentry_sdk.scope.ScopeType.ISOLATION)
+    with patch("sentry.utils.sdk.Scope.get_isolation_scope") as mock_get_isolation_scope:
+        mock_get_isolation_scope.return_value = scope
 
-        yield mock_configure_scope
+        yield scope
 
 
 class SDKUtilsTest(TestCase):
@@ -62,10 +68,8 @@ class SDKUtilsTest(TestCase):
 @patch("sentry.utils.sdk.logger.warning")
 class CheckTagForScopeBleedTest(TestCase):
     def test_no_existing_tag(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -74,10 +78,8 @@ class CheckTagForScopeBleedTest(TestCase):
         assert mock_logger_warning.call_count == 0
 
     def test_matching_existing_tag_single_org(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"org.slug": "squirrel_chasers"}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"org.slug": "squirrel_chasers"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -86,11 +88,10 @@ class CheckTagForScopeBleedTest(TestCase):
         assert mock_logger_warning.call_count == 0
 
     def test_matching_existing_tag_multiple_orgs(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"organization.slug": "[multiple orgs]"}
         # We don't bother to add the underlying slug list here, since right now it's not checked
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"organization.slug": "[multiple orgs]"}
             check_tag_for_scope_bleed("organization.slug", "[multiple orgs]")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -99,10 +100,8 @@ class CheckTagForScopeBleedTest(TestCase):
         assert mock_logger_warning.call_count == 0
 
     def test_different_existing_tag_single_org(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"org.slug": "good_dogs"}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"org.slug": "good_dogs"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
 
         extra = {
@@ -113,14 +112,12 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.org.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (org.slug).", extra=extra
+            "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
     def test_different_existing_tag_incoming_is_multiple_orgs(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"organization.slug": "good_dogs"}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"organization.slug": "good_dogs"}
             check_tag_for_scope_bleed("organization.slug", "[multiple orgs]")
 
         extra = {
@@ -131,17 +128,18 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.organization.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (organization.slug).", extra=extra
+            "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
     def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
         orgs = [self.create_organization() for _ in [None] * 3]
-        mock_scope = Scope()
-        mock_scope.set_tag("organization.slug", "[multiple orgs]")
-        mock_scope.set_tag("organization", "[multiple orgs]")
-        mock_scope.set_context("organization", {"multiple possible": [org.slug for org in orgs]})
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope.set_tag("organization.slug", "[multiple orgs]")
+            mock_scope.set_tag("organization", "[multiple orgs]")
+            mock_scope.set_context(
+                "organization", {"multiple possible": [org.slug for org in orgs]}
+            )
             check_tag_for_scope_bleed("organization.slug", orgs[1].slug)
 
         assert "possible_mistag" not in mock_scope._tags
@@ -153,12 +151,13 @@ class CheckTagForScopeBleedTest(TestCase):
         self, mock_logger_warning: MagicMock
     ):
         orgs = [self.create_organization() for _ in [None] * 3]
-        mock_scope = Scope()
-        mock_scope.set_tag("organization.slug", "[multiple orgs]")
-        mock_scope.set_tag("organization", "[multiple orgs]")
-        mock_scope.set_context("organization", {"multiple possible": [org.slug for org in orgs]})
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope.set_tag("organization.slug", "[multiple orgs]")
+            mock_scope.set_tag("organization", "[multiple orgs]")
+            mock_scope.set_context(
+                "organization", {"multiple possible": [org.slug for org in orgs]}
+            )
             check_tag_for_scope_bleed("organization.slug", "squirrel_chasers")
 
         extra = {
@@ -169,14 +168,12 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.organization.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (organization.slug).", extra=extra
+            "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
     def test_add_to_scope_being_false(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"org.slug": "good_dogs"}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"org.slug": "good_dogs"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers", add_to_scope=False)
 
         extra = {
@@ -189,14 +186,12 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.tag.org.slug" not in mock_scope._tags
         assert "scope_bleed" not in mock_scope._contexts
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (org.slug).", extra=extra
+            "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
     def test_string_vs_int(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"org.id": "12311121"}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"org.id": "12311121"}
             check_tag_for_scope_bleed("org.id", 12311121)
 
         assert "possible_mistag" not in mock_scope._tags
@@ -205,10 +200,8 @@ class CheckTagForScopeBleedTest(TestCase):
         assert mock_logger_warning.call_count == 0
 
     def test_int_vs_string(self, mock_logger_warning: MagicMock):
-        mock_scope = Scope()
-        mock_scope._tags = {"org.id": 12311121}
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._tags = {"org.id": 12311121}
             check_tag_for_scope_bleed("org.id", "12311121")
 
         assert "possible_mistag" not in mock_scope._tags
@@ -223,7 +216,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch is None
 
@@ -232,7 +225,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch == {
                 "scope_transaction": "/tricks/{trick_name}/",
@@ -241,11 +234,9 @@ class CheckScopeTransactionTest(TestCase):
 
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
     def test_custom_transaction_name(self, mock_resolve: MagicMock):
-        mock_scope = Scope()
-        mock_scope._transaction = "/tricks/{trick_name}/"
-        mock_scope._transaction_info["source"] = "custom"
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
+            mock_scope._transaction = "/tricks/{trick_name}/"
+            mock_scope._transaction_info["source"] = "custom"
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             # custom transaction names shouldn't be flagged even if they don't match
             assert mismatch is None
@@ -302,9 +293,13 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         capture_exception_with_scope_check(Exception())
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]
-        empty_scope = Scope()
+        empty_scope = Scope(client=passed_scope.client)
 
         for entry in empty_scope.__slots__:
+            # _propagation_context is generated on __init__ for tracing without performance
+            # so is different every time. Same with client in SDK >=2.0.
+            if entry in ("_propagation_context", "client"):
+                continue
             # No new scope data should be passed
             assert getattr(passed_scope, entry) == getattr(empty_scope, entry)
 
@@ -373,9 +368,7 @@ class BindOrganizationContextTest(TestCase):
         self.org = self.create_organization()
 
     def test_simple(self):
-        mock_scope = Scope()
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             bind_organization_context(self.org)
 
             assert mock_scope._tags == {
@@ -393,9 +386,8 @@ class BindOrganizationContextTest(TestCase):
         mock_context_helper = MagicMock(
             wraps=lambda scope, organization: scope.set_tag("organization.name", organization.name)
         )
-        mock_scope = Scope()
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             with patch.object(settings, "SENTRY_ORGANIZATION_CONTEXT_HELPER", mock_context_helper):
                 bind_organization_context(self.org)
 
@@ -408,9 +400,8 @@ class BindOrganizationContextTest(TestCase):
 
     def test_handles_context_helper_error(self):
         mock_context_helper = MagicMock(side_effect=Exception)
-        mock_scope = Scope()
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             with patch.object(settings, "SENTRY_ORGANIZATION_CONTEXT_HELPER", mock_context_helper):
                 bind_organization_context(self.org)
 
@@ -431,9 +422,8 @@ class BindAmbiguousOrgContextTest(TestCase):
 
     def test_simple(self):
         orgs = self.orgs[:3]
-        mock_scope = Scope()
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
 
             assert mock_scope._tags == {
@@ -460,9 +450,8 @@ class BindAmbiguousOrgContextTest(TestCase):
                 "slug": single_org.slug,
             }
         }
-        mock_scope = Scope()
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             # First add data from a single org in our list
             bind_organization_context(single_org)
 
@@ -480,9 +469,7 @@ class BindAmbiguousOrgContextTest(TestCase):
         other_org = self.create_organization()
         assert other_org.slug not in [org.slug for org in orgs]
 
-        mock_scope = Scope()
-
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             # First add data from a single org not in our list
             bind_organization_context(other_org)
 
@@ -513,9 +500,8 @@ class BindAmbiguousOrgContextTest(TestCase):
 
     def test_truncates_list_at_50_entries(self):
         orgs = self.orgs
-        mock_scope = Scope()
 
-        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+        with patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
 
             slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]

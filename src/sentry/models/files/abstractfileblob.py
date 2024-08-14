@@ -1,28 +1,47 @@
+from __future__ import annotations
+
+from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 from uuid import uuid4
 
-from django.db import IntegrityError, models, router
+import sentry_sdk
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
+from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
-from sentry.locks import locks
+from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
-    UPLOAD_RETRY_TIME,
-    _get_size_and_checksum,
+    get_and_optionally_update_blob,
+    get_size_and_checksum,
     get_storage,
-    locked_blob,
     nooplogger,
 )
 from sentry.utils import metrics
-from sentry.utils.db import atomic_transaction
-from sentry.utils.retries import TimedRetryPolicy
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
+BlobOwnerType = TypeVar("BlobOwnerType", bound=AbstractFileBlobOwner)
 
-class AbstractFileBlob(Model):
-    __include_in_export__ = False
+
+if TYPE_CHECKING:
+    # Django doesn't permit models to have parent classes that are Generic
+    # this kludge lets satisfy both mypy and django
+    class _Parent(Generic[BlobOwnerType]):
+        ...
+
+else:
+
+    class _Parent:
+        def __class_getitem__(cls, _):
+            return cls
+
+
+class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
+    __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -32,10 +51,21 @@ class AbstractFileBlob(Model):
     class Meta:
         abstract = True
 
-    FILE_BLOB_OWNER_MODEL = None
-    DELETE_FILE_TASK = None
+    @abstractmethod
+    def _create_blob_owner(self, organization_id: int) -> BlobOwnerType:
+        ...
+
+    @abstractmethod
+    def _delete_file_task(self) -> SentryTask:
+        ...
 
     @classmethod
+    @abstractmethod
+    def _storage_config(cls) -> dict[str, Any] | None:
+        raise NotImplementedError(cls)
+
+    @classmethod
+    @sentry_sdk.tracing.trace
     def from_files(cls, files, organization=None, logger=nooplogger):
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
@@ -54,12 +84,10 @@ class AbstractFileBlob(Model):
                 files_with_checksums.append((fileobj, None))
 
         checksums_seen = set()
-        blobs_created = []
         blobs_to_save = []
-        locks = set()
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
-        def _upload_and_pend_chunk(fileobj, size, checksum, lock):
+        def _upload_and_pend_chunk(fileobj, size, checksum):
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.start",
                 extra={"checksum": checksum, "size": size},
@@ -68,40 +96,52 @@ class AbstractFileBlob(Model):
             blob.path = cls.generate_unique_path()
             storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
-            blobs_to_save.append((blob, lock))
-            metrics.timing("filestore.blob-size", size, tags={"function": "from_files"})
+            blobs_to_save.append(blob)
+            metrics.distribution(
+                "filestore.blob-size", size, tags={"function": "from_files"}, unit="byte"
+            )
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.end",
                 extra={"checksum": checksum, "path": blob.path},
             )
 
-        def _ensure_blob_owned(blob):
+        def _ensure_blob_owned(blob: Self):
             if organization is None:
                 return
             try:
-                with atomic_transaction(using=router.db_for_write(cls.FILE_BLOB_OWNER_MODEL)):
-                    cls.FILE_BLOB_OWNER_MODEL.objects.create(
-                        organization_id=organization.id, blob=blob
-                    )
+                with transaction.atomic(using=router.db_for_write(cls)):
+                    blob._create_blob_owner(organization_id=organization.id)
             except IntegrityError:
                 pass
 
-        def _save_blob(blob):
+        def _save_blob(blob: Self):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
-            blob.save()
+            try:
+                blob.save()
+            except IntegrityError:
+                # this means that there was a race inserting a blob
+                # with this checksum. we will fetch the other blob that was
+                # saved, and delete our backing storage to not leave orphaned
+                # chunks behind.
+                # we also won't have to worry about concurrent deletes, as deletions
+                # are only happening for blobs older than 24h.
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=blob.checksum)
+                storage = get_storage(cls._storage_config())
+                storage.delete(saved_path)
+
             _ensure_blob_owned(blob)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
         def _flush_blobs():
             while True:
                 try:
-                    blob, lock = blobs_to_save.pop()
+                    blob = blobs_to_save.pop()
                 except IndexError:
                     break
 
                 _save_blob(blob)
-                lock.__exit__(None, None, None)
-                locks.discard(lock)
                 semaphore.release()
 
         try:
@@ -117,26 +157,19 @@ class AbstractFileBlob(Model):
                     # also deduplicates duplicates uploaded in the same request.
                     # This is necessary because we acquire multiple locks in one
                     # go which would let us deadlock otherwise.
-                    size, checksum = _get_size_and_checksum(fileobj)
+                    size, checksum = get_size_and_checksum(fileobj)
                     if reference_checksum is not None and checksum != reference_checksum:
                         raise OSError("Checksum mismatch")
                     if checksum in checksums_seen:
                         continue
                     checksums_seen.add(checksum)
 
-                    # Check if we need to lock the blob.  If we get a result back
+                    # Check if we need to upload the blob.  If we get a result back
                     # here it means the blob already exists.
-                    lock = locked_blob(cls, checksum, logger=logger)
-                    existing = lock.__enter__()
+                    existing = get_and_optionally_update_blob(cls, checksum)
                     if existing is not None:
-                        lock.__exit__(None, None, None)
-                        blobs_created.append(existing)
                         _ensure_blob_owned(existing)
                         continue
-
-                    # Remember the lock to force unlock all at the end if we
-                    # encounter any difficulties.
-                    locks.add(lock)
 
                     # Otherwise we leave the blob locked and submit the task.
                     # We use the semaphore to ensure we never schedule too
@@ -145,40 +178,41 @@ class AbstractFileBlob(Model):
                     # `_flush_blobs` call will take all those uploaded
                     # blobs and associate them with the database.
                     semaphore.acquire()
-                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
+                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum))
                     logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
 
             _flush_blobs()
         finally:
-            for lock in locks:
-                try:
-                    lock.__exit__(None, None, None)
-                except Exception:
-                    pass
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    def from_file(cls, fileobj, logger=nooplogger):
+    @sentry_sdk.tracing.trace
+    def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
         """
         logger.debug("FileBlob.from_file.start")
 
-        size, checksum = _get_size_and_checksum(fileobj)
+        size, checksum = get_size_and_checksum(fileobj)
 
-        # TODO(dcramer): the database here is safe, but if this lock expires
-        # and duplicate files are uploaded then we need to prune one
-        with locked_blob(cls, checksum, logger=logger) as existing:
-            if existing is not None:
-                return existing
+        existing = get_and_optionally_update_blob(cls, checksum)
+        if existing is not None:
+            return existing
 
-            blob = cls(size=size, checksum=checksum)
-            blob.path = cls.generate_unique_path()
-            storage = get_storage(cls._storage_config())
-            storage.save(blob.path, fileobj)
+        blob = cls(size=size, checksum=checksum)
+        blob.path = cls.generate_unique_path()
+        storage = get_storage(cls._storage_config())
+        storage.save(blob.path, fileobj)
+        try:
             blob.save()
+        except IntegrityError:
+            # see `_save_blob` above
+            metrics.incr("filestore.upload_race", sample_rate=1.0)
+            saved_path = blob.path
+            blob = cls.objects.get(checksum=checksum)
+            storage.delete(saved_path)
 
-        metrics.timing("filestore.blob-size", size)
+        metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
 
@@ -190,34 +224,17 @@ class AbstractFileBlob(Model):
         pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return "/".join(pieces)
 
+    @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         if self.path:
-            self.deletefile(commit=False)
-        lock = locks.get(
-            f"fileblob:upload:{self.checksum}",
-            duration=UPLOAD_RETRY_TIME,
-            name="fileblob_upload_delete",
-        )
-        with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
-            lock.acquire
-        ):
-            super().delete(*args, **kwargs)
-
-    def deletefile(self, commit=False):
-        assert self.path
-
-        # Defer this by 1 minute just to make sure
-        # we avoid any transaction isolation where the
-        # FileBlob row might still be visible by the
-        # task before transaction is committed.
-        self.DELETE_FILE_TASK.apply_async(
-            kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
-        )
-
-        self.path = None
-
-        if commit:
-            self.save()
+            # Defer this by 1 minute just to make sure
+            # we avoid any transaction isolation where the
+            # FileBlob row might still be visible by the
+            # task before transaction is committed.
+            self._delete_file_task().apply_async(
+                kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
+            )
+        super().delete(*args, **kwargs)
 
     def getfile(self):
         """

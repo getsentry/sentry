@@ -1,13 +1,17 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationonboardingtask import (
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.utils import json
 
 
-class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
+class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
     Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
@@ -35,7 +39,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
         )
         if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationOption)):
                     OrganizationOption.objects.create(
                         organization_id=organization_id,
                         key="onboarding:complete",

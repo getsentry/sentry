@@ -1,8 +1,10 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
-import {StackView} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 const frames = [
   {
@@ -12,7 +14,6 @@ const frames = [
     symbol: null,
     module: '<unknown module>',
     lineNo: null,
-    errors: null,
     package: null,
     absPath: 'https://sentry.io/hiventy/kraken-prod/issues/438681831/?referrer=slack#',
     inApp: false,
@@ -28,7 +29,6 @@ const frames = [
     absPath: 'foo/baz.c',
     colNo: null,
     context: [],
-    errors: null,
     filename: 'foo/baz.c',
     function: null,
     inApp: false,
@@ -58,8 +58,8 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   expandFirstFrame: true,
   newestFirst: true,
   chainedException: false,
-  event: {
-    ...TestStubs.Event(),
+  stackType: StackType.ORIGINAL,
+  event: EventFixture({
     entries: [],
     crashFile: {
       sha1: 'sha1',
@@ -82,7 +82,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
     projectID: '123',
     tags: [{value: 'production', key: 'production'}],
     title: 'TestException',
-  },
+  }),
   data: stacktrace,
   stacktrace,
   hasHierarchicalGrouping: false,
@@ -92,9 +92,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
 
 describe('ExceptionStacktraceContent', function () {
   it('default behaviour', function () {
-    const {container} = render(<ExceptionStacktraceContent {...props} />);
-
-    expect(container).toSnapshot();
+    render(<ExceptionStacktraceContent {...props} />);
   });
 
   it('should return an emptyRender', function () {

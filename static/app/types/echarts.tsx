@@ -1,4 +1,9 @@
-import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
+import type {
+  AxisPointerComponentOption,
+  ECharts,
+  LineSeriesOption,
+  PatternObject,
+} from 'echarts';
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
@@ -15,7 +20,7 @@ export type Series = {
   data: SeriesDataUnit[];
   seriesName: string;
   areaStyle?: {
-    color: string;
+    color: string | PatternObject;
     opacity: number;
   };
   color?: string;
@@ -25,6 +30,8 @@ export type Series = {
   markLine?: LineSeriesOption['markLine'];
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
+  symbol?: LineSeriesOption['symbol'];
+  symbolSize?: LineSeriesOption['symbolSize'];
   z?: number;
 };
 
@@ -111,3 +118,25 @@ export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 export type EChartFinishedHandler = EChartEventHandler<{}>;
 
 export type EChartRenderedHandler = EChartEventHandler<{}>;
+
+type EchartBrushAreas = {
+  coordRange: number[][];
+  range: number[][];
+}[];
+
+export type EChartBrushStartHandler = EChartEventHandler<{
+  areas: EchartBrushAreas;
+  brushId: string;
+  type: 'brush';
+}>;
+
+export type EChartBrushEndHandler = EChartEventHandler<{
+  areas: EchartBrushAreas;
+  brushId: string;
+  type: 'brushend';
+}>;
+
+export type EChartBrushSelectedHandler = EChartEventHandler<{
+  brushId: string;
+  type: 'brushselected';
+}>;

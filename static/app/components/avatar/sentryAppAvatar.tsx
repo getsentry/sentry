@@ -1,12 +1,12 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import {IconGeneric} from 'sentry/icons';
-import {AvatarSentryApp} from 'sentry/types';
+import type {AvatarSentryApp} from 'sentry/types/integrations';
 
-type Props = {
+interface Props extends BaseAvatarProps {
   isColor?: boolean;
   isDefault?: boolean;
   sentryApp?: AvatarSentryApp;
-} & BaseAvatar['props'];
+}
 
 function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
@@ -25,8 +25,7 @@ function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props
     <BaseAvatar
       {...props}
       type="upload"
-      uploadPath="sentry-app-avatar"
-      uploadId={avatarDetails?.avatarUuid}
+      uploadUrl={avatarDetails?.avatarUrl}
       title={sentryApp?.name}
       backupAvatar={defaultSentryAppAvatar}
     />

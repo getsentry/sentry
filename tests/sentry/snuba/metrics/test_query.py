@@ -1,29 +1,29 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Optional, Sequence
 
 import pytest
-from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.receivers import create_default_projects
 from sentry.snuba.metrics import (
     OPERATIONS,
+    DeprecatingMetricsQuery,
     DerivedMetricParseException,
     Groupable,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
-    parse_query,
+    parse_conditions,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 class MetricsQueryBuilder:
@@ -34,18 +34,18 @@ class MetricsQueryBuilder:
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
-        self.start: Optional[datetime] = now - timedelta(hours=1)
-        self.end: Optional[datetime] = now
+        self.start: datetime | None = now - timedelta(hours=1)
+        self.end: datetime | None = now
         self.granularity: Granularity = Granularity(3600)
-        self.orderby: Optional[ConditionGroup] = None
-        self.where: Optional[Sequence[Groupable]] = None
-        self.having: Optional[ConditionGroup] = None
-        self.groupby: Optional[Sequence[MetricGroupByField]] = None
-        self.limit: Optional[Limit] = None
-        self.offset: Optional[Offset] = None
+        self.orderby: ConditionGroup | None = None
+        self.where: Sequence[Groupable] | None = None
+        self.having: ConditionGroup | None = None
+        self.groupby: Sequence[MetricGroupByField] | None = None
+        self.limit: Limit | None = None
+        self.offset: Offset | None = None
         self.include_series: bool = True
         self.include_totals: bool = True
-        self.interval: Optional[int] = None
+        self.interval: int | None = None
         self.is_alerts_query: bool = False
 
     def with_select(self, select: Sequence[MetricField]) -> MetricsQueryBuilder:
@@ -144,13 +144,13 @@ def test_metric_field_equality_with_different_mris():
 
 def test_validate_select():
     with pytest.raises(InvalidParams, match='Request is missing a "field"'):
-        MetricsQuery(**MetricsQueryBuilder().with_select([]).to_metrics_query_dict())
+        DeprecatingMetricsQuery(**MetricsQueryBuilder().with_select([]).to_metrics_query_dict())
 
     with pytest.raises(
         InvalidParams,
         match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])  # type: ignore[arg-type]
             .to_metrics_query_dict()
@@ -165,7 +165,7 @@ def test_validate_select():
             )
         ),
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_select([MetricField(op="sum", metric_mri=SessionMRI.CRASH_FREE_RATE.value)])
             .to_metrics_query_dict()
@@ -176,7 +176,7 @@ def test_validate_select_invalid_use_case_ids():
     with pytest.raises(InvalidParams, match="All select fields should have the same use_case_id"):
         metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
         metric_field_2 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_select([metric_field_1, metric_field_2])
             .to_metrics_query_dict()
@@ -188,7 +188,7 @@ def test_validate_order_by():
         InvalidParams,
         match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_orderby(
                 [
@@ -210,7 +210,7 @@ def test_validate_order_by():
             )
         ),
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_orderby(
                 [
@@ -237,7 +237,7 @@ def test_validate_order_by_field_in_select():
     # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
     # that is not present in the select
     with pytest.raises(InvalidParams, match="'orderBy' must be one of the provided 'fields'"):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
     # Validate no exception is raised when orderBy is in the select
     metrics_query_dict = (
@@ -245,7 +245,7 @@ def test_validate_order_by_field_in_select():
         .with_select([MetricsQueryBuilder.AVG_DURATION_METRIC, metric_field_2])
         .to_metrics_query_dict()
     )
-    MetricsQuery(**metrics_query_dict)
+    DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @django_db_all
@@ -263,7 +263,7 @@ def test_validate_order_by_field_in_select_with_different_alias():
             .with_orderby([MetricOrderByField(field=ap_dex_with_alias_2, direction=Direction.ASC)])
             .to_metrics_query_dict()
         )
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
     except InvalidParams:
         raise pytest.fail(
             "the validation of orderby field in select with different alias is throwing an error but it "
@@ -291,7 +291,7 @@ def test_validate_multiple_orderby_columns_not_specified_in_select():
     # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
     # that is not present in the select
     with pytest.raises(InvalidParams, match="'orderBy' must be one of the provided 'fields'"):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @django_db_all
@@ -321,7 +321,7 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
     with pytest.raises(
         InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
     ):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @django_db_all
@@ -350,7 +350,7 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     with pytest.raises(
         InvalidParams, match="Selected 'orderBy' columns must belongs to the same entity"
     ):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @django_db_all
@@ -373,7 +373,7 @@ def test_validate_many_order_by_fields_are_in_select():
         )
         .to_metrics_query_dict()
     )
-    MetricsQuery(**metrics_query_dict)
+    DeprecatingMetricsQuery(**metrics_query_dict)
 
     # orderby should be subset of select
     metrics_query_dict = (
@@ -386,12 +386,12 @@ def test_validate_many_order_by_fields_are_in_select():
         )
         .to_metrics_query_dict()
     )
-    MetricsQuery(**metrics_query_dict)
+    DeprecatingMetricsQuery(**metrics_query_dict)
 
     # This example should pass because both session crash free rate
     # and sum(session) both go to the entity counters
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.SESSION.value)
+    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.RAW_SESSION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -404,7 +404,7 @@ def test_validate_many_order_by_fields_are_in_select():
         .to_metrics_query_dict()
     )
 
-    MetricsQuery(**metrics_query_dict)
+    DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 def test_validate_functions_from_multiple_entities_in_orderby():
@@ -434,7 +434,7 @@ def test_validate_functions_from_multiple_entities_in_orderby():
         InvalidParams,
         match="Selected 'orderBy' columns must belongs to the same entity",
     ):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 def test_validate_distribution_functions_in_orderby():
@@ -453,23 +453,23 @@ def test_validate_distribution_functions_in_orderby():
         )
         .to_metrics_query_dict()
     )
-    MetricsQuery(**metrics_query_dict)
+    DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @django_db_all
 def test_validate_where():
     query = "session.status:crashed"
-    where = parse_query(query, [])
+    where = parse_conditions(query, [], [])
 
     with pytest.raises(InvalidParams, match="Tag name session.status is not a valid query filter"):
-        MetricsQuery(**MetricsQueryBuilder().with_where(where).to_metrics_query_dict())
+        DeprecatingMetricsQuery(**MetricsQueryBuilder().with_where(where).to_metrics_query_dict())
 
 
 def test_validate_groupby():
     with pytest.raises(
         InvalidParams, match="Tag name session.status cannot be used in groupBy query"
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_groupby([MetricGroupByField("session.status")])
             .to_metrics_query_dict()
@@ -480,13 +480,13 @@ def test_validate_limit():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Requested interval of timedelta of 0:01:00 with statsPeriod "
+            r"Requested intervals \(61\) of timedelta of 0:01:00 with statsPeriod "
             "timedelta of 1:00:00 is too granular for a per_page of 200 "
             "elements. Increase your interval, decrease your statsPeriod, or decrease your per_page "
             "parameter."
         ),
     ):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_granularity(Granularity(60))
             .with_limit(Limit(200))
@@ -496,7 +496,7 @@ def test_validate_limit():
 
 def test_validate_end():
     with pytest.raises(InvalidParams, match="start must be before end"):
-        MetricsQuery(
+        DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_start(datetime.now())
             .with_end(datetime.now() - timedelta(hours=1))
@@ -512,7 +512,7 @@ def test_series_and_totals_validation():
         .to_metrics_query_dict()
     )
     with pytest.raises(InvalidParams, match="Cannot omit both series and totals"):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 @pytest.mark.parametrize(
@@ -559,7 +559,7 @@ def test_granularity_validation(stats_period, interval, error_message):
     # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
     # that is not present in the select
     with pytest.raises(InvalidParams, match=error_message):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 def test_validate_metric_field_mri():
@@ -568,27 +568,6 @@ def test_validate_metric_field_mri():
             op="avg",
             metric_mri="transaction-metric-duration",
         )
-
-
-@pytest.mark.parametrize(
-    "alias",
-    [
-        pytest.param(
-            None,
-            id="No alias provided",
-        ),
-        pytest.param(
-            "ahmed_alias",
-            id="alias is provided",
-        ),
-    ],
-)
-def test_validate_metric_field_mri_is_public(alias):
-    with pytest.raises(
-        InvalidParams,
-        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
-    ):
-        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
 
 
 @pytest.mark.parametrize(
@@ -625,7 +604,7 @@ def test_validate_interval(select, interval, series):
     with pytest.raises(
         InvalidParams, match="Interval is only supported for timeseries performance queries"
     ):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 def test_validate_is_alerts_query():
@@ -638,7 +617,7 @@ def test_validate_is_alerts_query():
         InvalidParams,
         match="start and env fields can only be None if the query is needed by alerts",
     ):
-        MetricsQuery(**metrics_query_dict)
+        DeprecatingMetricsQuery(**metrics_query_dict)
 
 
 def test_ensure_interval_set_to_granularity_in_performance_queries():
@@ -648,7 +627,7 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
         .with_include_series(True)
     )
     metrics_query_dict = metrics_query.to_metrics_query_dict()
-    mq = MetricsQuery(**metrics_query_dict)
+    mq = DeprecatingMetricsQuery(**metrics_query_dict)
     assert mq.interval == mq.granularity.granularity
 
 
@@ -695,5 +674,5 @@ def test_start_end_interval_greater_than_interval_is_successful(
     metrics_query.start = metrics_query.end - start_time_delta
 
     metrics_query_dict = metrics_query.to_metrics_query_dict()
-    mq = MetricsQuery(**metrics_query_dict)
+    mq = DeprecatingMetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity

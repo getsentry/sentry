@@ -1,4 +1,4 @@
-import {Component, createRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -35,7 +35,7 @@ const subItemAnimation = {
 const Header = styled(motion.h2)`
   display: flex;
   align-items: center;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
@@ -73,7 +73,7 @@ type PositioningStrategyOpts = {
   wrapperRect: DOMRect;
 };
 
-type Props = {
+interface PageOverlayProps extends React.ComponentProps<'div'> {
   /**
    * When a background with an anchorRef is provided, you can customize the
    * positioning strategy for the wrapper by passing in a custom function here
@@ -103,9 +103,7 @@ type Props = {
    * anchor
    */
   customWrapper?: React.ComponentType;
-};
-
-type DefaultProps = Pick<Props, 'positioningStrategy'>;
+}
 
 /**
  * When a background with a anchor is used and no positioningStrategy is
@@ -129,109 +127,97 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * wrapper to a safe space in the background to aid in alignment of the wrapper
  * to a safe space in the background.
  */
-class PageOverlay extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    positioningStrategy: defaultPositioning,
-  };
+function PageOverlay({
+  positioningStrategy = defaultPositioning,
+  text,
+  animateDelay,
+  background: BackgroundComponent,
+  customWrapper,
+  children,
+  ...props
+}: PageOverlayProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<SVGForeignObjectElement>(null);
 
-  componentDidMount() {
-    if (this.contentRef.current === null || this.anchorRef.current === null) {
-      return;
+  useEffect(() => {
+    if (contentRef.current === null || anchorRef.current === null) {
+      return () => {};
     }
 
-    this.anchorWrapper();
+    /**
+     * Align the wrapper component to the anchor by computing x/y values using
+     * the passed function. By default if no function is specified it will align
+     * to the top left of the anchor.
+     */
+    function anchorWrapper() {
+      if (
+        contentRef.current === null ||
+        wrapperRef.current === null ||
+        anchorRef.current === null
+      ) {
+        return;
+      }
+
+      // Absolute position the container, this avoids the browser having to reflow
+      // the component
+      wrapperRef.current.style.position = 'absolute';
+      wrapperRef.current.style.left = `0px`;
+      wrapperRef.current.style.top = `0px`;
+
+      const mainRect = contentRef.current.getBoundingClientRect();
+      const anchorRect = anchorRef.current.getBoundingClientRect();
+      const wrapperRect = wrapperRef.current.getBoundingClientRect();
+
+      // Compute the position of the wrapper
+      const {x, y} = positioningStrategy({mainRect, anchorRect, wrapperRect});
+
+      const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      wrapperRef.current.style.transform = transform;
+    }
+
+    anchorWrapper();
+
+    /**
+     * Used to re-anchor the text wrapper to the anchor point in the background when
+     * the size of the page changes.
+     */
+    let bgResizeObserver: ResizeObserver | null = null;
 
     // Observe changes to the upsell container to reanchor if available
     if (window.ResizeObserver) {
-      this.bgResizeObserver = new ResizeObserver(this.anchorWrapper);
-      this.bgResizeObserver.observe(this.contentRef.current);
-    }
-  }
-
-  componentWillUnmount() {
-    this.bgResizeObserver?.disconnect();
-  }
-
-  /**
-   * Used to re-anchor the text wrapper to the anchor point in the background when
-   * the size of the page changes.
-   */
-  bgResizeObserver: ResizeObserver | null = null;
-
-  contentRef = createRef<HTMLDivElement>();
-  wrapperRef = createRef<HTMLDivElement>();
-  anchorRef = createRef<SVGForeignObjectElement>();
-
-  /**
-   * Align the wrapper component to the anchor by computing x/y values using
-   * the passed function. By default if no function is specified it will align
-   * to the top left of the anchor.
-   */
-  anchorWrapper = () => {
-    if (
-      this.contentRef.current === null ||
-      this.wrapperRef.current === null ||
-      this.anchorRef.current === null
-    ) {
-      return;
+      bgResizeObserver = new ResizeObserver(anchorWrapper);
+      bgResizeObserver.observe(contentRef.current);
     }
 
-    // Absolute position the container, this avoids the browser having to reflow
-    // the component
-    this.wrapperRef.current.style.position = 'absolute';
-    this.wrapperRef.current.style.left = `0px`;
-    this.wrapperRef.current.style.top = `0px`;
+    return () => bgResizeObserver?.disconnect();
+  }, [positioningStrategy]);
 
-    const mainRect = this.contentRef.current.getBoundingClientRect();
-    const anchorRect = this.anchorRef.current.getBoundingClientRect();
-    const wrapperRect = this.wrapperRef.current.getBoundingClientRect();
+  const Wrapper = customWrapper ?? DefaultWrapper;
 
-    // Compute the position of the wrapper
-    const {x, y} = this.props.positioningStrategy({mainRect, anchorRect, wrapperRect});
+  const transition = testableTransition({
+    delay: 1,
+    duration: 1.2,
+    ease: 'easeInOut',
+    delayChildren: animateDelay ?? (BackgroundComponent ? 0.5 : 1.5),
+    staggerChildren: 0.15,
+  });
 
-    const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-    this.wrapperRef.current.style.transform = transform;
-  };
-
-  render() {
-    const {
-      text,
-      children,
-      animateDelay,
-      background: BackgroundComponent,
-      customWrapper,
-      ...props
-    } = this.props;
-    const Wrapper = customWrapper ?? DefaultWrapper;
-
-    const transition = testableTransition({
-      delay: 1,
-      duration: 1.2,
-      ease: 'easeInOut',
-      delayChildren: animateDelay ?? (BackgroundComponent ? 0.5 : 1.5),
-      staggerChildren: 0.15,
-    });
-
-    return (
-      <MaskedContent {...props}>
-        {children}
-        <ContentWrapper
-          ref={this.contentRef}
-          transition={transition}
-          variants={{animate: {}}}
-        >
-          {BackgroundComponent && (
-            <Background>
-              <BackgroundComponent anchorRef={this.anchorRef} />
-            </Background>
-          )}
-          <Wrapper ref={this.wrapperRef}>
-            <Text>{text({Body, Header})}</Text>
-          </Wrapper>
-        </ContentWrapper>
-      </MaskedContent>
-    );
-  }
+  return (
+    <MaskedContent {...props}>
+      {children}
+      <ContentWrapper ref={contentRef} transition={transition} variants={{animate: {}}}>
+        {BackgroundComponent && (
+          <Background>
+            <BackgroundComponent anchorRef={anchorRef} />
+          </Background>
+        )}
+        <Wrapper ref={wrapperRef}>
+          <Text>{text({Body, Header})}</Text>
+        </Wrapper>
+      </ContentWrapper>
+    </MaskedContent>
+  );
 }
 
 const absoluteFull = css`

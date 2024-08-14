@@ -2,16 +2,7 @@ import re
 
 import pytest
 
-from sentry.snuba.metrics.naming_layer import create_name_mapping_layers
-from sentry.snuba.metrics.naming_layer.mapping import MRI_TO_NAME, is_private_mri
-from sentry.snuba.metrics.naming_layer.mri import (
-    MRI_SCHEMA_REGEX,
-    ParsedMRI,
-    SessionMRI,
-    TransactionMRI,
-    is_custom_measurement,
-    parse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, is_custom_measurement, parse_mri
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
 
@@ -50,51 +41,6 @@ def test_invalid_public_name_regex(name):
 
 
 @pytest.mark.parametrize(
-    "name",
-    [
-        "e:sessions/error.preaggr@none",
-        "e:sessions/crashed_abnormal@none",
-        "e:sessions/user.crashed_abnormal@none",
-        "e:sessions/healthy@",
-        "e:sessions/healthy.crashed@",
-        "e:sessions/healthy.crashed.crashed@",
-        "e:sessions/healthy_crashed.crashed@",
-        "e:sessions/healthy.crashed_crashed_sessions@",
-        "d:transactions/measurements.frames_slow_rate@ratio",
-        "c:sessions/session@none",
-        "s:sessions/error@none",
-        "g:sessions/error@none",
-        "g:alerts/error@none",
-        "g:custom/error@none",
-        "g:issues/error@none",
-        "c:errors/error@none",
-    ],
-)
-def test_valid_mri_schema_regex(name):
-    matches = MRI_SCHEMA_REGEX.match(name)
-    assert matches
-    assert matches[0] == name
-
-
-@pytest.mark.parametrize(
-    "name",
-    [
-        "e:sessions/healthy.@",
-        "e:sessions/healthy..@",
-        "e:sessions/healthy..crashed@",
-        "e:sessions/.healthy@",
-        "e:sessions/..healthy@",
-        "e:sessions/healthy..crashed.crashed@",
-        "t:sessions/error.preaggr@none",
-        "e:foo/error.preaggr@none" "foo.bar",
-        "e:sessions/error.098preaggr@none",
-    ],
-)
-def test_invalid_mri_schema_regex(name):
-    assert MRI_SCHEMA_REGEX.match(name) is None
-
-
-@pytest.mark.parametrize(
     "name, expected",
     [
         (
@@ -113,12 +59,45 @@ def test_invalid_mri_schema_regex(name):
             "s:sessions/error@none",
             ParsedMRI("s", "sessions", "error", "none"),
         ),
+        (
+            "dist:my_namespace/organizations/v1/my endpoint@{none}",
+            ParsedMRI("dist", "my_namespace", "organizations/v1/my endpoint", "{none}"),
+        ),
+        (
+            "d:transactions/measurements.disk_io@byte/second",
+            ParsedMRI("d", "transactions", "measurements.disk_io", "byte/second"),
+        ),
+        (
+            "c:custom/http.client.open_connections@{connection}",
+            ParsedMRI("c", "custom", "http.client.open_connections", "{connection}"),
+        ),
+        (
+            "c:custom/http.client.active_requests@{request}",
+            ParsedMRI("c", "custom", "http.client.active_requests", "{request}"),
+        ),
     ],
 )
-def test_parse_mri(name, expected):
+def test_parse_mri_with_valid_mri(name, expected):
     parsed_mri = parse_mri(name)
     assert parsed_mri == expected
     assert parsed_mri.mri_string == name
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "d@transactions/measurements.stall_longest_time",
+        "d:transactions/breakdowns.span_ops.ops.http",
+        "d/transactions@breakdowns.span_ops.ops.http:millisecond",
+        "d/transactions",
+        "transactions",
+        ":transactions/breakdowns.span_ops.ops.http@none",
+        ":/@",
+    ],
+)
+def test_parse_mri_with_invalid_mri(name):
+    parsed_mri = parse_mri(name)
+    assert parsed_mri is None
 
 
 @pytest.mark.parametrize(
@@ -144,12 +123,3 @@ def test_parse_mri(name, expected):
 )
 def test_is_custom_measurement(parsed_mri, expected):
     assert is_custom_measurement(parsed_mri) == expected
-
-
-@pytest.mark.parametrize("mri", (list(TransactionMRI) + list(SessionMRI)))
-def test_is_private_mri(mri):
-    create_name_mapping_layers()
-
-    public_mris = set(MRI_TO_NAME.keys())
-    expected_private = False if mri.value in public_mris else True
-    assert is_private_mri(mri) == expected_private

@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 
 import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
-import {Item, ItemsBeforeFilter} from './types';
+import type {Item, ItemsBeforeFilter} from './types';
 
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
@@ -22,7 +22,31 @@ export type MenuFooterChildProps = {
 
 type ListProps = React.ComponentProps<typeof List>;
 
-type Props = {
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function focusElement(targetRef: HTMLElement | null) {
+  if (!targetRef) {
+    return;
+  }
+
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => {
+      targetRef.focus();
+    });
+  } else {
+    setTimeout(() => {
+      targetRef.focus();
+    }, 1);
+  }
+}
+
+export interface MenuProps
+  extends Pick<
+    ListProps,
+    'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
+  > {
   children: (
     args: Pick<
       AutoCompleteChildrenArgs,
@@ -117,7 +141,7 @@ type Props = {
   /**
    * Props to pass to input/filter component
    */
-  inputProps?: {style: React.CSSProperties};
+  inputProps?: React.HTMLAttributes<HTMLInputElement>;
 
   /**
    * Used to control the input value (optional)
@@ -200,10 +224,7 @@ type Props = {
    * Optional element to be rendered on the right side of the dropdown menu
    */
   subPanel?: React.ReactNode;
-} & Pick<
-  ListProps,
-  'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
->;
+}
 
 function Menu({
   autoCompleteFilter = defaultAutoCompleteFilter,
@@ -245,7 +266,7 @@ function Menu({
   closeOnSelect,
   'data-test-id': dataTestId,
   ...props
-}: Props) {
+}: MenuProps) {
   // Can't search if there are no items
   const hasItems = !!items?.length;
 
@@ -342,13 +363,18 @@ function Menu({
               <StyledDropdownBubble
                 className={className}
                 {...getMenuProps(menuProps)}
-                {...{style, css, blendCorner, detached, alignMenu, minWidth}}
+                style={style}
+                css={css}
+                blendCorner={blendCorner}
+                detached={detached}
+                alignMenu={alignMenu}
+                minWidth={minWidth}
               >
                 <DropdownMainContent minWidth={minWidth}>
                   {showInput && (
                     <InputWrapper>
                       <StyledInput
-                        autoFocus
+                        ref={focusElement}
                         placeholder={searchPlaceholder}
                         {...getInputProps({...inputProps, onChange})}
                       />
@@ -382,17 +408,14 @@ function Menu({
                       {!busy && (
                         <List
                           items={autoCompleteResults}
-                          {...{
-                            maxHeight,
-                            highlightedIndex,
-                            inputValue,
-                            onScroll,
-                            getItemProps,
-                            registerVisibleItem,
-                            virtualizedLabelHeight,
-                            virtualizedHeight,
-                            itemSize,
-                          }}
+                          maxHeight={maxHeight}
+                          highlightedIndex={highlightedIndex}
+                          onScroll={onScroll}
+                          getItemProps={getItemProps}
+                          registerVisibleItem={registerVisibleItem}
+                          virtualizedLabelHeight={virtualizedLabelHeight}
+                          virtualizedHeight={virtualizedHeight}
+                          itemSize={itemSize}
                         />
                       )}
                     </ItemList>
@@ -427,7 +450,7 @@ const StyledInput = styled(Input)`
     box-shadow: none;
     font-size: 13px;
     padding: ${space(1)};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.gray300};
   }
 `;
@@ -493,7 +516,7 @@ const LabelWithPadding = styled('div')<{disableLabelPadding: boolean}>`
   padding: ${p => !p.disableLabelPadding && `${space(0.25)} ${space(1)}`};
 `;
 
-const ItemList = styled('div')<{maxHeight: NonNullable<Props['maxHeight']>}>`
+const ItemList = styled('div')<{maxHeight: NonNullable<MenuProps['maxHeight']>}>`
   max-height: ${p => `${p.maxHeight}px`};
   overflow-y: auto;
 `;

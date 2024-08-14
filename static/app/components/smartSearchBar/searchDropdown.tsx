@@ -1,24 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TagCollection} from 'sentry/types';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
-import {invalidTypes, ItemType, SearchGroup, SearchItem, Shortcut} from './types';
-import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
+import type {SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
@@ -30,16 +30,25 @@ type Props = {
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  booleanKeys?: Set<string>;
   className?: string;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
-  customPerformanceMetrics?: CustomMeasurementCollection;
+  dateKeys?: Set<string>;
+  disallowFreeText?: boolean;
   disallowWildcard?: boolean;
+  disallowedLogicalOperators?: Set<BooleanOperator>;
+  durationKeys?: Set<string>;
   invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
+  numericKeys?: Set<string>;
+  onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
+  percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
+  sizeKeys?: Set<string>;
   supportedTags?: TagCollection;
+  textOperatorKeys?: Set<string>;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -53,11 +62,20 @@ function SearchDropdown({
   onIconClick,
   searchSubstring = '',
   onClick = () => {},
-  customPerformanceMetrics,
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
+  booleanKeys,
+  dateKeys,
+  durationKeys,
+  numericKeys,
+  percentageKeys,
+  onDocsOpen,
+  sizeKeys,
+  textOperatorKeys,
+  disallowedLogicalOperators,
   disallowWildcard,
+  disallowFreeText,
   invalidMessages,
 }: Props) {
   return (
@@ -77,28 +95,33 @@ function SearchDropdown({
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
                 <Wrapper>
-                  {item.children &&
-                    item.children.map(child => (
-                      <DropdownItem
-                        key={getDropdownItemKey(child)}
-                        item={{
-                          ...child,
-                          ...mergeItemsWith?.[child.title!],
-                        }}
-                        searchSubstring={searchSubstring}
-                        onClick={onClick}
-                        onIconClick={onIconClick}
-                        additionalSearchConfig={{
-                          ...getSearchConfigFromCustomPerformanceMetrics(
-                            customPerformanceMetrics
-                          ),
-                          supportedTags,
-                          disallowWildcard,
-                          invalidMessages,
-                        }}
-                        customInvalidTagMessage={customInvalidTagMessage}
-                      />
-                    ))}
+                  {item.children?.map(child => (
+                    <DropdownItem
+                      key={getDropdownItemKey(child)}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
+                      searchSubstring={searchSubstring}
+                      onClick={onClick}
+                      onIconClick={onIconClick}
+                      additionalSearchConfig={{
+                        supportedTags,
+                        disallowWildcard,
+                        disallowedLogicalOperators,
+                        disallowFreeText,
+                        invalidMessages,
+                        booleanKeys,
+                        dateKeys,
+                        durationKeys,
+                        numericKeys,
+                        percentageKeys,
+                        sizeKeys,
+                        textOperatorKeys,
+                      }}
+                      customInvalidTagMessage={customInvalidTagMessage}
+                    />
+                  ))}
                 </Wrapper>
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>
@@ -127,13 +150,14 @@ function SearchDropdown({
               </Button>
             ))}
         </ButtonBar>
-        <Button
+        <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
+          onClick={() => onDocsOpen?.()}
         >
           {t('Read the docs')}
-        </Button>
+        </LinkButton>
       </DropdownFooter>
     </SearchDropdownOverlay>
   );
@@ -348,10 +372,7 @@ function DropdownItem({
   } else if (item.type === ItemType.RECOMMENDED) {
     children = (
       <RecommendedItem>
-        <div>{item.title}</div>
-        {item.desc && (
-          <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
-        )}
+        <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
       </RecommendedItem>
     );
   } else {
@@ -492,7 +513,7 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -559,7 +580,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
@@ -661,8 +682,6 @@ const RecommendedItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const RecommendedItemDescription = styled('div')`
+const RecommendedItemTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;

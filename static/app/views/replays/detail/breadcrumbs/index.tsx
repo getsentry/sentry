@@ -1,27 +1,24 @@
-import {memo, useMemo, useRef} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
-import styled from '@emotion/styled';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
+import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-import useVirtualizedInspector from '../useVirtualizedInspector';
-
-type Props = {
-  breadcrumbs: undefined | Crumb[];
-  startTimestampMs: number;
-};
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -30,37 +27,63 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
-  const listRef = useRef<ReactVirtualizedList>(null);
-  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
-  // by log row, so they they can be restored as the Console pane is scrolling.
-  // Due to virtualization, components can be unmounted as the user scrolls, so
-  // state needs to be remembered.
-  //
-  // Note that this is intentionally not in state because we do not want to
-  // re-render when items are expanded/collapsed, though it may work in state as well.
-  const expandPathsRef = useRef(new Map<number, Set<string>>());
+function Breadcrumbs() {
+  const {currentTime, replay} = useReplayContext();
+  const {onClickTimestamp} = useCrumbHandlers();
 
-  const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
+  const {data: frameToExtraction, isFetching: isFetchingExtractions} = useExtractDomNodes(
+    {replay}
+  );
+
+  const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
+  const frames = replay?.getChapterFrames();
+
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
+
+  const filterProps = useBreadcrumbFilters({frames: frames || []});
+  const {expandPathsRef, items, searchTerm, setSearchTerm} = filterProps;
+  const clearSearchTerm = () => setSearchTerm('');
+
+  const listRef = useRef<ReactVirtualizedList>(null);
+
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
     deps,
   });
-  const {handleDimensionChange} = useVirtualizedInspector({
+  const {handleDimensionChange: handleInspectorExpanded} = useVirtualizedInspector({
     cache,
     listRef,
     expandPathsRef,
   });
 
-  useScrollToCurrentItem({
-    breadcrumbs,
-    ref: listRef,
-    startTimestampMs,
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
+  useScrollToCurrentItem({
+    frames,
+    ref: listRef,
+  });
+
+  // Need to refresh the item dimensions as DOM data gets loaded
+  useEffect(() => {
+    if (!isFetchingExtractions) {
+      updateList();
+    }
+  }, [isFetchingExtractions, updateList]);
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (breadcrumbs || [])[index];
+    const item = (items || [])[index];
 
     return (
       <CellMeasurer
@@ -72,11 +95,15 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
       >
         <BreadcrumbRow
           index={index}
-          breadcrumb={item}
+          frame={item}
+          extraction={frameToExtraction?.get(item)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
-          onDimensionChange={handleDimensionChange}
+          onClick={() => {
+            onClickTimestamp(item);
+          }}
+          onInspectorExpanded={handleInspectorExpanded}
         />
       </CellMeasurer>
     );
@@ -84,23 +111,36 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <BreadcrumbContainer>
-        {breadcrumbs ? (
+      <FilterLoadingIndicator isLoading={isFetchingExtractions}>
+        <BreadcrumbFilters frames={frames} {...filterProps} />
+      </FilterLoadingIndicator>
+      <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
+        {frames ? (
           <AutoSizer onResize={updateList}>
             {({height, width}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
                 height={height}
                 noRowsRenderer={() => (
-                  <NoRowRenderer unfilteredItems={breadcrumbs} clearSearchTerm={() => {}}>
+                  <NoRowRenderer
+                    unfilteredItems={frames}
+                    clearSearchTerm={clearSearchTerm}
+                  >
                     {t('No breadcrumbs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
-                rowCount={breadcrumbs.length}
+                rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -108,57 +148,16 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
-      </BreadcrumbContainer>
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
+      </TabItemContainer>
     </FluidHeight>
   );
 }
 
-const BreadcrumbContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-
-  .beforeHoverTime + .afterHoverTime:before {
-    background-color: ${p => p.theme.surface200};
-    border-top: 1px solid ${p => p.theme.purple200};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeHoverTime:last-child:before {
-    background-color: ${p => p.theme.surface200};
-    border-bottom: 1px solid ${p => p.theme.purple200};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime + .afterCurrentTime:before {
-    background-color: ${p => p.theme.purple100};
-    border-top: 1px solid ${p => p.theme.purple300};
-    content: '';
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 999999999%;
-  }
-
-  .beforeCurrentTime:last-child:before {
-    background-color: ${p => p.theme.purple100};
-    border-bottom: 1px solid ${p => p.theme.purple300};
-    content: '';
-    right: 0;
-    position: absolute;
-    bottom: 0;
-    width: 999999999%;
-  }
-`;
-
-export default memo(Breadcrumbs);
+export default Breadcrumbs;

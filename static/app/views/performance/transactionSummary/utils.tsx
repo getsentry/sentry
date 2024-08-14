@@ -1,16 +1,22 @@
-import {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor, Query} from 'history';
 
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import type {Organization} from 'sentry/types/organization';
+import {getDateFromTimestamp} from 'sentry/utils/dates';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRoute,
+} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -67,7 +73,7 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
-  unselectedSeries = 'p100()',
+  unselectedSeries = ['p100()', 'avg()'],
   display,
   trendFunction,
   trendColumn,
@@ -124,32 +130,42 @@ export function generateTraceLink(dateSelection) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query
+    location: Location
   ): LocationDescriptor => {
     const traceId = `${tableRow.trace}`;
     if (!traceId) {
       return {};
     }
 
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl({
+      organization,
+      traceSlug: traceId,
+      dateSelection,
+      timestamp: tableRow.timestamp,
+      location,
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+    });
   };
 }
 
-export function generateTransactionLink(transactionName: string) {
+export function generateTransactionIdLink(transactionName?: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    query: Query,
+    location: Location,
     spanId?: string
   ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(
-      organization.slug,
-      eventSlug,
+    return generateLinkToEventInTraceView({
+      eventId: tableRow.id,
+      timestamp: tableRow.timestamp,
+      traceSlug: tableRow.trace?.toString(),
+      projectSlug: tableRow['project.name']?.toString(),
+      location,
+      organization,
+      spanId,
       transactionName,
-      query,
-      spanId
-    );
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+    });
   };
 }
 
@@ -157,17 +173,47 @@ export function generateProfileLink() {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query | undefined
+    _location: Location | undefined
   ) => {
+    const projectSlug = tableRow['project.name'];
+
     const profileId = tableRow['profile.id'];
-    if (!profileId) {
-      return {};
+    if (projectSlug && profileId) {
+      return generateProfileFlamechartRoute({
+        orgSlug: organization.slug,
+        projectSlug: String(tableRow['project.name']),
+        profileId: String(profileId),
+      });
     }
-    return generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
-      projectSlug: String(tableRow['project.name']),
-      profileId: String(profileId),
-    });
+
+    const profilerId = tableRow['profiler.id'];
+    const threadId = tableRow['thread.id'];
+    const start =
+      typeof tableRow['precise.start_ts'] === 'number'
+        ? getDateFromTimestamp(tableRow['precise.start_ts'] * 1000)
+        : null;
+    const finish =
+      typeof tableRow['precise.finish_ts'] === 'number'
+        ? getDateFromTimestamp(tableRow['precise.finish_ts'] * 1000)
+        : null;
+    if (projectSlug && profilerId && threadId && start && finish) {
+      const query: Record<string, string> = {tid: String(threadId)};
+      if (tableRow.id && tableRow.trace) {
+        query.eventId = String(tableRow.id);
+        query.traceId = String(tableRow.trace);
+      }
+
+      return generateContinuousProfileFlamechartRouteWithQuery({
+        orgSlug: organization.slug,
+        projectSlug: String(projectSlug),
+        profilerId: String(profilerId),
+        start: start.toISOString(),
+        end: finish.toISOString(),
+        query,
+      });
+    }
+
+    return {};
   };
 }
 
@@ -177,7 +223,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query | undefined
+    _location: Location | undefined
   ): LocationDescriptor => {
     const replayId = tableRow.replayId;
     if (!replayId) {
@@ -186,7 +232,9 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+        pathname: normalizeUrl(
+          `/organizations/${organization.slug}/replays/${replayId}/`
+        ),
         query: {
           referrer,
         },
@@ -199,7 +247,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
       query: {
         event_t: transactionStartTimestamp,
         referrer,

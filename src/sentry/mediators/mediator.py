@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import datetime
 import logging
 from contextlib import contextmanager
 
 from django.db import transaction
+from django.utils.functional import cached_property
 
 import sentry
-from sentry.utils.cache import memoize
-from sentry.utils.functional import compact
 
 from .param import Param
 
@@ -126,6 +127,8 @@ class Mediator:
     # class.
     _params_prepared = False
 
+    using: str | None = "default"
+
     @classmethod
     def _prepare_params(cls):
         if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
@@ -136,15 +139,21 @@ class Mediator:
 
     @classmethod
     def run(cls, *args, **kwargs):
-        with transaction.atomic():
+        def _inner():
             obj = cls(*args, **kwargs)
 
             with obj.log():
                 result = obj.call()
                 obj.audit()
                 obj.record_analytics()
-        obj.post_commit()
-        return result
+            obj.post_commit()
+            return result
+
+        if cls.using:
+            with transaction.atomic(cls.using):
+                return _inner()
+        else:
+            return _inner()
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
@@ -205,7 +214,7 @@ class Mediator:
         # that it matches the name we'll be invoking on the Mediator instance.
         return {k[1:]: v for k, v in self.__class__.__dict__.items() if isinstance(v, Param)}
 
-    @memoize
+    @cached_property
     def _logging_name(self):
         return ".".join([self.__class__.__module__, self.__class__.__name__])
 
@@ -222,13 +231,15 @@ class Mediator:
 
         request_params = env.request.resolver_match.kwargs
 
-        return compact(
-            {
+        return {
+            k: v
+            for k, v in {
                 "org": request_params.get("organization_slug"),
                 "team": request_params.get("team_slug"),
                 "project": request_params.get("project_slug"),
-            }
-        )
+            }.items()
+            if v is not None
+        }
 
     @property
     def _logging_context(self):
@@ -244,9 +255,9 @@ class Mediator:
 
         try:
             yield
-        except Exception as e:
+        except Exception:
             context.log(at="exception", elapsed=self._milliseconds_since(start))
-            raise e
+            raise
 
         context.log(at="finish", elapsed=self._milliseconds_since(start))
 

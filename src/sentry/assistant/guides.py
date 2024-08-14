@@ -27,6 +27,11 @@ GUIDES = {
     "create_conditional_rule": 28,
     "explain_archive_button_issue_details": 29,
     "explain_archive_tab_issue_stream": 30,
+    "explain_new_default_event_issue_detail": 31,
+    "new_project_filter": 32,
+    "explain_archive_button_issue_stream": 33,
+    "ddm_view": 34,
+    "metrics_onboarding": 37,
 }
 
 # demo mode has different guides

@@ -1,10 +1,12 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, OrganizationMember, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
+from sentry.users.models.user import User
 
 from .mail import render_preview_email_for_notification
 
@@ -12,8 +14,8 @@ from .mail import render_preview_email_for_notification
 class DebugOrganizationIntegrationRequestEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="default", name="Default")
-        requester = User(name="Rick Swan", actor_id=1)
-        recipient = User(name="James Bond", actor_id=2)
+        requester = User(name="Rick Swan")
+        recipient = User(name="James Bond")
         recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = IntegrationRequestNotification(

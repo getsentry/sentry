@@ -1,8 +1,6 @@
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationConfigIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-organization-config-integrations"
 
@@ -13,9 +11,9 @@ class OrganizationConfigIntegrationsTest(APITestCase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data["providers"]) > 0
-        provider = [r for r in response.data["providers"] if r["key"] == "example"]
-        assert len(provider) == 1
-        provider = provider[0]
+        providers = [r for r in response.data["providers"] if r["key"] == "example"]
+        assert len(providers) == 1
+        provider = providers[0]
         assert provider["name"] == "Example"
         assert provider["setupDialog"]["url"]
 

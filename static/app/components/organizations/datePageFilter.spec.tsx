@@ -6,7 +6,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, router} = initializeOrg({
   router: {
     location: {
       query: {},
@@ -38,7 +38,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can change period', async function () {
-    render(<DatePageFilter />, {context: routerContext, organization});
+    render(<DatePageFilter />, {router, organization});
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -72,7 +72,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can change absolute range', async function () {
-    render(<DatePageFilter />, {context: routerContext, organization});
+    render(<DatePageFilter />, {router, organization});
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -80,16 +80,16 @@ describe('DatePageFilter', function () {
     // Click 30 day period
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
 
-    const fromDateInput = screen.getByTestId('date-range-primary-from');
+    const fromDateInput = await screen.findByTestId('date-range-primary-from');
     const toDateInput = screen.getByTestId('date-range-primary-to');
     fireEvent.change(fromDateInput, {target: {value: '2017-10-03'}});
     fireEvent.change(toDateInput, {target: {value: '2017-10-04'}});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Apply'}));
 
     // Confirm selection changed visible text and query params
     expect(
-      screen.getByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
+      await screen.findByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
     ).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,11 +124,7 @@ describe('DatePageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       router: {
         location: {
           // the datetime parameters need to be non-null for desync detection to work
@@ -142,6 +138,7 @@ describe('DatePageFilter', function () {
     PageFiltersStore.reset();
     initializeUrlState({
       memberProjects: [],
+      nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {statsPeriod: '14d'},
       router: desyncRouter,
@@ -149,7 +146,7 @@ describe('DatePageFilter', function () {
     });
 
     render(<DatePageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 

@@ -1,20 +1,23 @@
 import itertools
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import (
     Status,
     UserIdentityConfig,
     supports_login,
 )
-from sentry.models import AuthIdentity, Identity, User
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
+from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
 
 
@@ -76,6 +79,12 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
 @control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    permission_classes = (UserAndStaffPermission,)
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
@@ -91,8 +100,15 @@ class UserIdentityConfigEndpoint(UserEndpoint):
 
 @control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    permission_classes = (UserAndStaffPermission,)
+
     @staticmethod
-    def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
+    def _get_identity(user, category, identity_id) -> UserIdentityConfig | None:
         identity_id = int(identity_id)
 
         # This fetches and iterates over all the user's identities.

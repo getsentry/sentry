@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, serialize
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -13,7 +13,7 @@ class FooSerializer(Serializer):
 
 
 class VariadicSerializer(Serializer):
-    def serialize(self, obj, attrs, user, kw):
+    def serialize(self, obj, attrs, user, **kw):
         return {"kw": kw}
 
 
@@ -33,7 +33,7 @@ class ParentSerializer(Serializer):
         }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BaseSerializerTest(TestCase):
     def test_serialize(self):
         assert serialize([]) == []
@@ -70,7 +70,7 @@ class BaseSerializerTest(TestCase):
         foo = Foo()
         user = self.create_user()
         result = serialize(foo, user, VariadicSerializer(), kw="keyword")
-        assert result["kw"] == "keyword"
+        assert result["kw"] == {"kw": "keyword"}
 
     def test_child_serializer_failure(self):
         foo = Foo()

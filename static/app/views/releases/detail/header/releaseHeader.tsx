@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Badge from 'sentry/components/badge/badge';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,7 +16,8 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import ReleaseActions from './releaseActions';

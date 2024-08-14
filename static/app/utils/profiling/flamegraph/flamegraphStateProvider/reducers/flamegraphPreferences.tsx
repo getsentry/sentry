@@ -1,4 +1,4 @@
-import {Flamegraph} from '../../../flamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 
 export type FlamegraphColorCodings = [
   'by system vs application frame',
@@ -7,7 +7,7 @@ export type FlamegraphColorCodings = [
   'by symbol name',
   'by library',
   'by recursion',
-  'by frequency'
+  'by frequency',
 ];
 
 export type FlamegraphSorting = Flamegraph['sort'];
@@ -18,6 +18,9 @@ export interface FlamegraphPreferences {
   layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting;
   timelines: {
+    battery_chart: boolean;
+    cpu_chart: boolean;
+    memory_chart: boolean;
     minimap: boolean;
     transaction_spans: boolean;
     ui_frames: boolean;

@@ -3,18 +3,20 @@ from unittest import mock
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import Status, UserIdentityConfig
-from sentry.models import AuthIdentity, AuthProvider, Identity, IdentityProvider
-from sentry.testutils import TestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.identity import Identity
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserIdentityConfigSerializerTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
 
-        self.idp = IdentityProvider.objects.create(type="github", external_id="c3r1zyq9", config={})
+        self.idp = self.create_identity_provider(type="github", external_id="c3r1zyq9")
 
     def test_user_social_auth(self):
         identity = UserSocialAuth.objects.create(user=self.user, provider="github", uid="uf4romdj")
@@ -110,9 +112,7 @@ class UserIdentityConfigSerializerTest(TestCase):
         }
 
     def test_global_identity_with_integration_provider(self):
-        integration_provider = IdentityProvider.objects.create(
-            type="msteams", external_id="ao645i51", config={}
-        )
+        integration_provider = self.create_identity_provider(type="msteams", external_id="ao645i51")
         identity = Identity.objects.create(
             idp=integration_provider, user=self.user, external_id="5ppj2dip"
         )

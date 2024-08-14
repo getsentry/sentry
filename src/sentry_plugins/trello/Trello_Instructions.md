@@ -1,5 +1,4 @@
-How to Set Up Trello
-===========================
+# How to Set Up Trello
 
 1. Go to https://trello.com/app-key
 2. Copy Key at top to "Trello API Key" field in settings form

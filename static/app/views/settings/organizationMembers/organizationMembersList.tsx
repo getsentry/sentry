@@ -1,55 +1,66 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
+import type {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
+import type {OrganizationAuthProvider} from 'sentry/types/auth';
+import type {
+  BaseRole,
+  Member,
+  MissingMember,
+  Organization,
+} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
-import {
-  RenderSearch,
-  SearchWrapper,
-} from 'sentry/views/settings/components/defaultSearchBar';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
+import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
+import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncView['state'] & {
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
-  member: (Member & {roles: MemberRole[]}) | null;
+  member: (Member & {roles: BaseRole[]}) | null;
   members: Member[];
-};
+  missingMembers: {integration: string; users: MissingMember[]}[];
+}
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
-class OrganizationMembersList extends AsyncView<Props, State> {
+class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
       members: [],
+      missingMembers: [],
       invited: {},
     };
   }
@@ -64,7 +75,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
 
     return [
@@ -83,6 +94,12 @@ class OrganizationMembersList extends AsyncView<Props, State> {
       ],
 
       ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
+      // [
+      //   'missingMembers',
+      //   `/organizations/${organization.slug}/missing-members/`,
+      //   {},
+      //   {allowError: error => error.status === 403},
+      // ],
     ];
   }
 
@@ -152,6 +169,23 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     }
 
     this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
+  };
+
+  fetchMembersList = async () => {
+    const {organization} = this.props;
+
+    try {
+      const data = await this.api.requestPromise(
+        `/organizations/${organization.slug}/members/`,
+        {
+          method: 'GET',
+          data: {paginate: true},
+        }
+      );
+      this.setState({members: data});
+    } catch {
+      addErrorMessage(t('Error fetching members'));
+    }
   };
 
   updateInviteRequest = (id: string, data: Partial<Member>) =>
@@ -256,7 +290,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
         <MembersFilter
@@ -270,6 +303,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     return (
       <Fragment>
+        <InviteBanner
+          onSendInvite={this.fetchMembersList}
+          onModalClose={this.fetchData}
+          allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
+        />
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({
@@ -316,7 +354,13 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 organization={organization}
                 member={member}
                 status={this.state.invited[member.id]}
-                memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
+                memberCanLeave={
+                  !(
+                    isOnlyOwner ||
+                    member.flags['idp:provisioned'] ||
+                    member.flags['partnership:restricted']
+                  )
+                }
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}
                 canAddMembers={canAddMembers}

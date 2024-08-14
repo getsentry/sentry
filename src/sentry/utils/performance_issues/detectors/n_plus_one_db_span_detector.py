@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Optional
+from typing import Any
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 from ..base import (
-    PARAMETERIZED_SQL_QUERY_REGEX,
     DetectorType,
     PerformanceDetector,
     get_notification_attachment_body,
@@ -59,20 +59,22 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.potential_parents = {}
-        self.n_hash = None
-        self.n_spans = []
-        self.source_span = None
+        self.n_hash: str | None = None
+        self.n_spans: list[Span] = []
+        self.source_span: Span | None = None
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return True  # This detector is fully rolled out
 
-    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
@@ -119,14 +121,17 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def _is_db_op(self, op: str) -> bool:
         return op.startswith("db") and not op.startswith("db.redis")
 
-    def _maybe_use_as_source(self, span: Span):
+    def _maybe_use_as_source(self, span: Span) -> None:
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
             return
 
         self.source_span = span
 
-    def _continues_n_plus_1(self, span: Span):
+    def _continues_n_plus_1(self, span: Span) -> bool:
+        if self.source_span is None:
+            return False
+
         expected_parent_id = self.source_span.get("parent_span_id", None)
         parent_id = span.get("parent_span_id", None)
         if not parent_id or parent_id != expected_parent_id:
@@ -146,7 +151,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         return span_hash == self.n_hash
 
-    def _maybe_store_problem(self):
+    def _maybe_store_problem(self) -> None:
         if not self.source_span or not self.n_spans:
             return
 
@@ -229,10 +234,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return total_span_time(self.n_spans) >= duration_threshold
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
+        # Make sure we at least have a space, to exclude e.g. MongoDB and
+        # Prisma's `rawQuery`.
         query = span.get("description", None)
-        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
+        return bool(query) and " " in query
 
-    def _metrics_for_extra_matching_spans(self):
+    def _metrics_for_extra_matching_spans(self) -> None:
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
         # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
         n_count = len(self.n_spans)
@@ -245,12 +252,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if n_count > 0 and n_count != all_count:
             metrics.incr("performance.performance_issue.np1_db.extra_spans")
 
-    def _reset_detection(self):
+    def _reset_detection(self) -> None:
         self.source_span = None
         self.n_hash = None
         self.n_spans = []
 
-    def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+    def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
         # XXX: this has to be a hardcoded string otherwise grouping will break
         problem_class = "GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES"
         full_fingerprint = hashlib.sha1(
@@ -265,7 +272,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
     - Extend N+1 DB Detector to make it compatible with more frameworks.
     """
 
-    type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
+    type = DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED
 
     __slots__ = (
         "stored_problems",
@@ -275,24 +282,16 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_spans",
     )
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         # Only collecting metrics.
         return False
 
-    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         # Only collecting metrics.
         return False
 
-    def _contains_valid_repeating_query(self, span: Span) -> bool:
-        # Remove the regular expression check for parameterization, relying on
-        # the parameterization in span hashing to handle it.  Make sure we at
-        # least have a space though, to exclude e.g. MongoDB and Prisma's
-        # `rawQuery`.
-        query = span.get("description", None)
-        return bool(query) and " " in query
 
-
-def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
+def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
     query = span.get("description", None)
     if is_source and query:

@@ -21,9 +21,7 @@
       }
     ]
   },
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "logger": "",
   "threads": {
     "values": [

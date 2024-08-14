@@ -1,46 +1,94 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
-const process = require('process');
-
-const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
-const isCi = !!process.env.CI;
-
-// Strict ruleset that runs on pre-commit and in local environments
-const ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR =
-  '(useEffectAfterFirstRender|useMemoWithPrevious)';
-
-const strictRulesNotCi = {
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
-  ],
-};
+const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
 
 module.exports = {
-  extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
+  root: true,
+  extends: detectDeprecations
+    ? ['sentry-app/strict', 'plugin:deprecation/recommended']
+    : ['sentry-app/strict'],
+
+  parserOptions: detectDeprecations
+    ? {
+        project: './tsconfig.json',
+      }
+    : {},
+
   globals: {
     require: false,
     expect: false,
-    sinon: false,
     MockApiClient: true,
-    TestStubs: true,
     tick: true,
     jest: true,
   },
-
   rules: {
     'react-hooks/exhaustive-deps': [
-      'warn',
-      {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
+      'error',
+      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
     ],
-    ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
-  },
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['sentry/components/devtoolbar/*'],
+            message: 'Do not depend on toolbar internals',
+          },
+        ],
+      },
+    ],
 
+    // TODO(@anonrig): Remove this from eslint-sentry-config
+    'space-infix-ops': 'off',
+    'object-shorthand': 'off',
+    'object-curly-spacing': 'off',
+    'import/no-amd': 'off',
+    'no-danger-with-children': 'off',
+    'no-fallthrough': 'off',
+    'no-obj-calls': 'off',
+    'array-bracket-spacing': 'off',
+    'computed-property-spacing': 'off',
+    'react/no-danger-with-children': 'off',
+    'jest/no-disabled-tests': 'off',
+  },
+  // JSON file formatting is handled by Biome. ESLint should not be linting
+  // and formatting these files.
+  ignorePatterns: ['*.json'],
   overrides: [
     {
-      files: ['*.ts', '*.tsx'],
-      rules: {},
+      files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'sentry/utils/queryClient',
+                message:
+                  'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+      extends: ['plugin:testing-library/react', 'sentry-app/strict'],
+      rules: {
+        // TODO(@anonrig): Remove this from eslint-sentry-config
+        'space-infix-ops': 'off',
+        'object-shorthand': 'off',
+        'object-curly-spacing': 'off',
+        'import/no-amd': 'off',
+        'no-danger-with-children': 'off',
+        'no-fallthrough': 'off',
+        'no-obj-calls': 'off',
+        'array-bracket-spacing': 'off',
+        'computed-property-spacing': 'off',
+        'react/no-danger-with-children': 'off',
+        'jest/no-disabled-tests': 'off',
+      },
     },
     {
       // We specify rules explicitly for the sdk-loader here so we do not have

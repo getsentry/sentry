@@ -1,11 +1,14 @@
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
 from unittest import mock
 
 import pytest
+from google.cloud.bigtable import table
 from google.rpc.status_pb2 import Status
 
-from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
+from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
 class MockedBigtableKVStorage(BigtableKVStorage):
@@ -36,21 +39,30 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         def cells(self):
             return {"x": dict(self.table._rows.get(self.row_key) or ())}
 
-    class Table:
+    class Table(table.Table):
         def __init__(self):
             self._rows = {}
 
         def direct_row(self, key):
             return MockedBigtableKVStorage.Row(self, key)
 
-        def read_row(self, key):
-            return MockedBigtableKVStorage.Row(self, key)
+        def read_row(self, row_key, filter_=None):
+            return MockedBigtableKVStorage.Row(self, row_key)
 
-        def read_rows(self, row_set):
+        def read_rows(
+            self,
+            start_key=None,
+            end_key=None,
+            limit=None,
+            filter_=None,
+            end_inclusive=False,
+            row_set=None,
+            retry=None,
+        ):
             assert not row_set.row_ranges, "unsupported"
             return [self.read_row(key) for key in row_set.row_keys]
 
-        def mutate_rows(self, rows):
+        def mutate_rows(self, rows, retry=None, timeout=None):
             # commits not implemented, changes are applied immediately
             return [Status(code=0) for row in rows]
 
@@ -62,7 +74,7 @@ class MockedBigtableKVStorage(BigtableKVStorage):
 
         return table
 
-    def bootstrap(self, automatic_expiry):
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass
 
 
@@ -71,10 +83,10 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 
 
 @contextmanager
-def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
+def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage, None, None]:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
-            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
         )
 
     ns = BigtableNodeStorage(project="test")
@@ -95,6 +107,7 @@ def ns(request):
         yield MockedBigtableNodeStorage(project="test")
 
 
+@pytest.mark.django_db
 def test_cache(ns):
     node_1 = ("a" * 32, {"foo": "a"})
     node_2 = ("b" * 32, {"foo": "b"})
@@ -152,3 +165,12 @@ def test_cache(ns):
         ns.get("node_4")
         ns.get("node_4")
         assert mock_read_row.call_count == 2
+
+
+def test_compression() -> None:
+    ns = BigtableNodeStorage(compression="zstd")
+    assert ns.store.compression == "zstd"
+    ns = BigtableNodeStorage(compression=True)
+    assert ns.store.compression == "zlib"
+    ns = BigtableNodeStorage(compression=False)
+    assert ns.store.compression is None

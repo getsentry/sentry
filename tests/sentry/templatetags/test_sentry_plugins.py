@@ -3,14 +3,14 @@ from unittest.mock import MagicMock
 from django.template import engines
 
 from sentry.plugins.base.v2 import Plugin2
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 
 
 class SamplePlugin(Plugin2):
-    def get_actions(self, request, group):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         return [("Example Action", f"http://example.com?id={group.id}")]
 
-    def get_annotations(self, group):
+    def get_annotations(self, group) -> list[dict[str, str]]:
         return [
             {"label": "Example Tag", "url": f"http://example.com?id={group.id}"},
             {"label": "Example Two"},

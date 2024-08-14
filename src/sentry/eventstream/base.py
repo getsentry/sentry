@@ -1,24 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Literal,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.post_process_forwarder import PostProcessForwarderType
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -72,7 +60,6 @@ class EventStream(Service):
         "replace_group_unsafe",
         "exclude_groups",
         "requires_post_process_forwarder",
-        "run_post_process_forwarder",
         "_get_event_type",
     )
 
@@ -80,15 +67,15 @@ class EventStream(Service):
         self,
         event_id: str,
         project_id: int,
-        group_id: Optional[int],
+        group_id: int | None,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         queue: str,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
-        occurrence_id: Optional[str] = None,
+        group_states: GroupStates | None = None,
+        occurrence_id: str | None = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -134,10 +121,10 @@ class EventStream(Service):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
-        received_timestamp: float,
+        primary_hash: str | None,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
@@ -153,32 +140,30 @@ class EventStream(Service):
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )
 
-    def start_delete_groups(
-        self, project_id: int, group_ids: Sequence[int]
-    ) -> Optional[Mapping[str, Any]]:
-        pass
+    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
+        raise NotImplementedError
 
     def end_delete_groups(self, state: Mapping[str, Any]) -> None:
         pass
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Optional[Mapping[str, Any]]:
-        pass
+    ) -> dict[str, Any]:
+        raise NotImplementedError
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         pass
 
     def start_unmerge(
         self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         pass
 
     def end_unmerge(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Optional[Mapping[str, Any]]:
-        pass
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
+        raise NotImplementedError
 
     def end_delete_tag(self, state: Mapping[str, Any]) -> None:
         pass
@@ -187,14 +172,19 @@ class EventStream(Service):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Optional[str] = None,
-        from_timestamp: Optional[datetime] = None,
-        to_timestamp: Optional[datetime] = None,
+        old_primary_hash: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
     ) -> None:
         pass
 
     def replace_group_unsafe(
-        self, project_id: int, event_ids: Sequence[str], new_group_id: int
+        self,
+        project_id: int,
+        event_ids: Sequence[str],
+        new_group_id: int,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
     ) -> None:
         pass
 
@@ -203,20 +193,6 @@ class EventStream(Service):
 
     def requires_post_process_forwarder(self) -> bool:
         return False
-
-    def run_post_process_forwarder(
-        self,
-        entity: PostProcessForwarderType,
-        consumer_group: str,
-        topic: Optional[str],
-        commit_log_topic: str,
-        synchronize_commit_group: str,
-        concurrency: int,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-        strict_offset_reset: bool,
-    ) -> None:
-        assert not self.requires_post_process_forwarder()
-        raise ForwarderNotRequired
 
     @staticmethod
     def _get_event_type(event: Event | GroupEvent) -> EventStreamEventType:

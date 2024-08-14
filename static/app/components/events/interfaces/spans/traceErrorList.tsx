@@ -1,29 +1,27 @@
-import {memo} from 'react';
-import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
+import {Fragment, memo} from 'react';
 import groupBy from 'lodash/groupBy';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {tct, tn} from 'sentry/locale';
-import {
+import type {
   TraceError,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 
-import {ParsedTraceType, SpanType} from './types';
+import type {ParsedTraceType, SpanType} from './types';
 
 interface TraceErrorListProps {
-  errors: (TraceError | TracePerformanceIssue)[];
-  onClickSpan: (event: React.MouseEvent, spanId: SpanType['span_id']) => void;
+  errors: TraceError[];
   trace: ParsedTraceType;
+  performanceIssues?: TracePerformanceIssue[];
 }
 
-function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
+function TraceErrorList({trace, errors, performanceIssues}: TraceErrorListProps) {
   return (
     <List symbol="bullet" data-test-id="trace-error-list">
-      {flatten(
-        Object.entries(groupBy(errors, 'span')).map(([spanId, spanErrors]) => {
+      <Fragment>
+        {Object.entries(groupBy(errors, 'span')).flatMap(([spanId, spanErrors]) => {
           return Object.entries(groupBy(spanErrors, 'level')).map(
             ([level, spanLevelErrors]) => (
               <ListItem key={`${spanId}-${level}`}>
@@ -34,27 +32,30 @@ function TraceErrorList({trace, errors, onClickSpan}: TraceErrorListProps) {
                     spanLevelErrors.length,
                     level === 'error' ? '' : level // Prevents awkward "error errors" copy if the level is "error"
                   ),
-                  link: (
-                    <ErrorLink onClick={event => onClickSpan(event, spanId)}>
-                      {findSpanById(trace, spanId).op}
-                    </ErrorLink>
-                  ),
+                  link: findSpanById(trace, spanId).op,
                 })}
               </ListItem>
             )
           );
-        })
-      )}
+        })}
+        {Object.entries(groupBy(performanceIssues, 'span')).flatMap(
+          ([spanId, spanErrors]) => (
+            <ListItem key={`${spanId}`}>
+              {tct('[errors] [link]', {
+                errors: tn(
+                  '%s performance issue in ',
+                  '%s performance issues in ',
+                  spanErrors.length
+                ),
+                link: findSpanById(trace, spanId).op,
+              })}
+            </ListItem>
+          )
+        )}
+      </Fragment>
     </List>
   );
 }
-
-const ErrorLink = styled('a')`
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 // Given a span ID, find the associated span. It might be the trace itself
 // (which is technically a type of span) or a specific span associated with

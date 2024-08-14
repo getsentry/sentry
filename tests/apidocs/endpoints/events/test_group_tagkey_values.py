@@ -1,10 +1,8 @@
 from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
         key, value = "foo", "bar"
@@ -12,7 +10,7 @@ class GroupTagKeyValuesDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-        self.url = f"/api/0/issues/{event.group_id}/tags/{key}/values/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/tags/{key}/values/"
 
     def test_get(self):
         response = self.client.get(self.url)

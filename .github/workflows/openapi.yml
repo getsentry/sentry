@@ -10,24 +10,20 @@ env:
 
 jobs:
   build_and_deref_json:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
       - name: Getsentry Token
         id: getsentry
-        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for python file changes
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
@@ -36,19 +32,21 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.api_docs == 'true'
-        id: setup
 
       - name: Checkout getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         if: steps.changes.outputs.api_docs == 'true'
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
@@ -58,10 +56,17 @@ jobs:
         run: |
           yarn add ts-node && make build-api-docs
 
-      - name: Copy artifact into getsentry/sentry-api-schema
+      - name: Build RPC method schema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          sentry rpcschema > rpc_method_schema.json
+
+      - name: Copy artifacts into getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'
         run: |
           cp tests/apidocs/openapi-derefed.json sentry-api-schema
+          cp src/sentry/apidocs/api_ownership_stats_dont_modify.json sentry-api-schema
+          cp rpc_method_schema.json sentry-api-schema
 
       - name: Git Commit & Push
         uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3

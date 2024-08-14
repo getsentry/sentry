@@ -1,25 +1,27 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
+import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -28,7 +30,7 @@ import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
 type Props = {
   currentTab: Tab;
@@ -77,6 +79,10 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
+  const hasAggregateWaterfall = organization.features.includes(
+    'insights-initial-modules'
+  );
+
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
       switch (hasWebVitals) {
@@ -86,7 +92,7 @@ function TransactionHeader({
           // frontend projects should always show the web vitals tab
           if (
             getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
+            LandingDisplayField.FRONTEND_OTHER
           ) {
             return true;
           }
@@ -106,10 +112,10 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const replaysCount = useReplaysCount({
-    transactionNames: transactionName,
-    organization,
-  })[transactionName];
+  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+    statsPeriod: '90d',
+  });
+  const replaysCount = getReplayCountForTransaction(transactionName);
 
   return (
     <Layout.Header>
@@ -139,7 +145,7 @@ function TransactionHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Feature organization={organization} features={['incidents']}>
+          <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature && !metricsCardinality?.isLoading ? (
                 <CreateAlertFromViewButton
@@ -171,6 +177,7 @@ function TransactionHeader({
               onChangeThreshold={onChangeThreshold}
             />
           </GuideAnchor>
+          <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>
       <HasMeasurementsQuery
@@ -191,7 +198,7 @@ function TransactionHeader({
               }}
             >
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.EVENTS}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
               <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
@@ -223,11 +230,13 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiles')}
-                {organization.features.includes('profiling-ga') ? (
-                  <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-                ) : (
-                  <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
-                )}
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.AGGREGATE_WATERFALL}
+                textValue={t('Aggregate Spans')}
+                hidden={!hasAggregateWaterfall}
+              >
+                {t('Aggregate Spans')}
               </TabList.Item>
             </TabList>
           );

@@ -4,7 +4,8 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
@@ -14,12 +15,13 @@ type Props = {
   onInstall: (data: IntegrationWithConfig) => void;
   organization: Organization;
   provider: IntegrationProvider;
-  account?: string; // for analytics
+  account?: string | null; // for analytics
   analyticsParams?: {
     already_installed: boolean;
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
+      | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
   };
@@ -48,14 +50,14 @@ export default class AddIntegration extends Component<Props> {
     const innerWidth = window.innerWidth
       ? window.innerWidth
       : document.documentElement.clientWidth
-      ? document.documentElement.clientWidth
-      : screen.width;
+        ? document.documentElement.clientWidth
+        : screen.width;
 
     const innerHeight = window.innerHeight
       ? window.innerHeight
       : document.documentElement.clientHeight
-      ? document.documentElement.clientHeight
-      : screen.height;
+        ? document.documentElement.clientHeight
+        : screen.height;
 
     const left = innerWidth / 2 - width / 2 + screenLeft;
     const top = innerHeight / 2 - height / 2 + screenTop;
@@ -90,7 +92,7 @@ export default class AddIntegration extends Component<Props> {
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);
-    this.dialog && this.dialog.focus();
+    this.dialog?.focus();
   };
 
   didReceiveMessage = (message: MessageEvent) => {

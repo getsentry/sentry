@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import IntervalSelector from 'sentry/components/charts/intervalSelector';
@@ -5,13 +7,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 
 describe('IntervalSelector', function () {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',
     version: 2,
     fields: ['transaction', 'count()'],
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
   });
   it('resets small interval', function () {
     let interval: string | undefined = '1s';

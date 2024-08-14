@@ -1,12 +1,14 @@
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, TypedDict
+from datetime import UTC, datetime, timedelta
+from typing import TypedDict
 
 from sentry_sdk.crons.decorator import monitor
 
 from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -14,11 +16,11 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 
 class GroupCount(TypedDict):
-    intervals: List[str]
-    data: List[int]
+    intervals: list[str]
+    data: list[int]
 
 
-ParsedGroupsCount = Dict[int, GroupCount]
+ParsedGroupsCount = dict[int, GroupCount]
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,8 @@ ITERATOR_CHUNK = 10_000
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     queue="weekly_escalating_forecast",
-    max_retries=0,  # TODO: Increase this when the task is changed to run weekly
+    max_retries=0,
+    silo_mode=SiloMode.REGION,
 )
 @monitor(monitor_slug="escalating-issue-forecast-job-monitor")
 def run_escalating_forecast() -> None:
@@ -53,16 +56,17 @@ def run_escalating_forecast() -> None:
     queue="weekly_escalating_forecast",
     max_retries=3,
     default_retry_delay=60,
+    silo_mode=SiloMode.REGION,
 )
 @retry
-def generate_forecasts_for_projects(project_ids: List[int]) -> None:
+def generate_forecasts_for_projects(project_ids: list[int]) -> None:
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.IGNORED,
                 substatus=GroupSubStatus.UNTIL_ESCALATING,
                 project_id__in=project_ids,
-                last_seen__gte=datetime.now() - timedelta(days=7),
+                last_seen__gte=datetime.now(UTC) - timedelta(days=7),
             ),
             step=ITERATOR_CHUNK,
         ),

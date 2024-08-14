@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 @dataclass
 class Column:
-    group_name: Optional[str]
-    event_name: Optional[str]
-    transaction_name: Optional[str]
-    discover_name: Optional[str]
-    alias: Optional[str]
-    issue_platform_name: Optional[str] = None
+    group_name: str | None
+    event_name: str | None
+    transaction_name: str | None
+    discover_name: str | None
+    alias: str
+    issue_platform_name: str | None = None
+    spans_name: str | None = None
 
 
 class Columns(Enum):
@@ -36,6 +36,14 @@ class Columns(Enum):
         discover_name="group_id",
         issue_platform_name="group_id",
         alias="issue.id",
+    )
+    ISSUE_STATUS = Column(
+        group_name="status",
+        event_name="status",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="status",
+        alias="status",
     )
     # This is needed to query transactions by group id
     # in the Issue Details page. This will not be
@@ -592,6 +600,22 @@ class Columns(Enum):
         issue_platform_name="contexts[app.in_foreground]",
         alias="app.in_foreground",
     )
+    OS_DISTRIBUTION_NAME = Column(
+        group_name="events.contexts[os.distribution.name]",
+        event_name="contexts[os.distribution.name]",
+        transaction_name="contexts[os.distribution.name]",
+        discover_name="contexts[os.distribution.name]",
+        issue_platform_name="contexts[os.distribution.name]",
+        alias="os.distribution.name",
+    )
+    OS_DISTRIBUTION_VERSION = Column(
+        group_name="events.contexts[os.distribution.version]",
+        event_name="contexts[os.distribution.version]",
+        transaction_name="contexts[os.distribution.version]",
+        discover_name="contexts[os.distribution.version]",
+        issue_platform_name="contexts[os.distribution.version]",
+        alias="os.distribution.version",
+    )
     # Transactions specific columns
     TRANSACTION_OP = Column(
         group_name=None,
@@ -627,6 +651,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.key",
         discover_name="measurements.key",
+        spans_name="measurements.key",
         alias="measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
@@ -634,6 +659,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.value",
         discover_name="measurements.value",
+        spans_name="measurements.value",
         alias="measurements_value",
     )
     SPAN_OP_BREAKDOWNS_KEYS = Column(
@@ -694,6 +720,14 @@ class Columns(Enum):
         discover_name="contexts[trace.parent_span_id]",
         alias="trace.parent_span",
     )
+    TRACE_CLIENT_SAMPLE_RATE = Column(
+        group_name="events.contexts[trace.client_sample_rate]",
+        event_name="contexts[trace.client_sample_rate]",
+        transaction_name="contexts[trace.client_sample_rate]",
+        discover_name="contexts[trace.client_sample_rate]",
+        issue_platform_name="contexts[trace.client_sample_rate]",
+        alias="trace.client_sample_rate",
+    )
 
     # Reprocessing context
     REPROCESSING_ORIGINAL_GROUP_ID = Column(
@@ -702,14 +736,6 @@ class Columns(Enum):
         transaction_name="contexts[reprocessing.original_issue_id]",
         discover_name="contexts[reprocessing.original_issue_id]",
         alias="reprocessing.original_issue_id",
-    )
-    TRACE_SAMPLE_RATE = Column(
-        group_name="events.contexts[trace.client_sample_rate]",
-        event_name="contexts[trace.client_sample_rate]",
-        transaction_name="contexts[trace.client_sample_rate]",
-        discover_name="contexts[trace.client_sample_rate]",
-        issue_platform_name="contexts[trace.client_sample_rate]",
-        alias="trace.client_sample_rate",
     )
 
     APP_START_TYPE = Column(
@@ -720,6 +746,7 @@ class Columns(Enum):
         alias="app_start_type",
     )
 
+    # For transaction profiles
     PROFILE_ID = Column(
         group_name=None,
         event_name=None,
@@ -729,11 +756,41 @@ class Columns(Enum):
         alias="profile.id",
     )
 
+    # For continuous profiles
+    PROFILER_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="profiler_id",
+        discover_name="profiler_id",
+        issue_platform_name=None,  # TODO: This doesn't exist yet
+        alias="profiler.id",
+    )
+    THREAD_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="contexts[trace.thread_id]",
+        discover_name="contexts[trace.thread_id]",
+        issue_platform_name=None,
+        alias="thread.id",
+    )
+
     REPLAY_ID = Column(
         group_name=None,
         event_name="replay_id",
-        transaction_name=None,
-        discover_name=None,
+        transaction_name="replay_id",
+        discover_name="replay_id",
+        issue_platform_name="replay_id",
+        alias="replay.id",
+    )
+    # We used to set the replay_id as a tag on error events as
+    # replayId. We allow this query for backwards compatibility,
+    # but in the future shouldn't be displayed in the UI anywhere
+    # as a suggested column.
+    REPLAY_ID_DEPRECATED = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name="replay_id",
+        discover_name="replay_id",
         issue_platform_name="replay_id",
         alias="replayId",
     )

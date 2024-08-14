@@ -1,7 +1,8 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {SavedSearch} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
 
@@ -9,6 +10,7 @@ type InjectedSavedSearchesProps = {
   savedSearch: SavedSearch | null;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
+  selectedSearchId: string | null;
 } & RouteComponentProps<{searchId?: string}, {}>;
 
 /**
@@ -25,6 +27,7 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
     const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg({
       orgSlug: organization.slug,
     });
+    const params = useParams();
     const selectedSavedSearch = useSelectedSavedSearch();
 
     return (
@@ -33,6 +36,7 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
         savedSearches={props.savedSearches ?? savedSearches}
         savedSearchLoading={props.savedSearchLoading ?? isLoading}
         savedSearch={props.savedSearch ?? selectedSavedSearch}
+        selectedSearchId={params.searchId ?? null}
       />
     );
   };

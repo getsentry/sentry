@@ -9,8 +9,8 @@ on:
       - '.python-version'
       - '.envrc'
       - 'Brewfile'
-      - 'scripts/*'
-      - 'tools/*'
+      - 'scripts/**'
+      - 'tools/**'
       - 'src/sentry/runner/commands/devserver.py'
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
@@ -26,114 +26,37 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
-  # This workflow is optimized to test the dev env with dev services as fast as possible
-  # The bootstrap workflow (see last workflow) tests the experience of first time engineers
-  docker-setup:
-    name: Docker set up
-    runs-on: macos-12
-    timeout-minutes: 40
-    env:
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
-      - name: Set up
-        id: info
-        run: |
-          echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
-
-      # Trick for unattended Docker installations
-      # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
-      # NOTE: This can sometimes take up to 10 minutes
-      - name: Install Docker
-        run: |
-          # d4m 4.11+ never starts: https://github.com/docker/for-mac/issues/6450
-          curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
-          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a /Applications/Docker.app --args --unattended --accept-license
-
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
-
-      # This handles Python's cache
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
-        with:
-          python-version: 3.8.16
-          cache-dependency-path: requirements-dev-frozen.txt
-
-      # This tests starting up the dev services, loading mocks and pre-commit installation
-      # This can take over 15 minutes
-      - name: make bootstrap
-        # GHA pythons are miscompiled and report macos 10.16
-        env:
-          SYSTEM_VERSION_COMPAT: 0
-        run: make bootstrap
-
-  # The pyenv set up takes long, thus, separating it into its own
-  pyenv-setup:
-    name: pyenv set up
-    runs-on: macos-11
-    timeout-minutes: 25
-    env:
-      # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
-      - name: Install pyenv
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install pyenv
-
-      # Only after we source ~/.zprofile that the right Python will be selected
-      - name: Set up pyenv
-        run: |
-          make setup-pyenv
-          [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
-          source ~/.zprofile
-          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
-          python -m venv .venv
-          source .venv/bin/activate
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
-
-  tools-tests:
-    runs-on: ubuntu-20.04
+  test:
+    runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
-          python-version: 3.8.16
+          python-version: 3.11.8
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-      - name: run tests
+          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+      - name: test-tools
         run: make test-tools
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  # We don't yet test the bootstrap step
-  # https://github.com/getsentry/bootstrap-sentry/blob/7af557be84920dd587e48613dbc308c937bc0e08/bootstrap.sh#L618-L619
-  bootstrap-script:
-    runs-on: macos-11
-    timeout-minutes: 40
-    env:
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
-
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+  devenv:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
     steps:
-      - name: Run bootstrap code
-        env:
-          STRAP_DEBUG: 1
-          # This ensures that the bootstrap code will test against this branch
-          CI_CHECKOUT_BRANCH: ${{ github.head_ref || github.sha }}
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+        with:
+          python-version: 3.11.8
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+      - name: devenv sync
         run: |
-          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
+          devenv --nocoderoot sync

@@ -1,46 +1,51 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
-import {duration} from 'moment';
+import {type Duration, duration} from 'moment-timezone';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
+import clamp from 'sentry/utils/number/clamp';
+import extractHtml from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
+  clipEndFrame,
   recordingEndFrame,
-  recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import {
-  breadcrumbFactory,
-  replayTimestamps,
-  spansFactory,
-} from 'sentry/utils/replays/replayDataUtils';
-import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
+import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
+import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type {
   BreadcrumbFrame,
+  ClipWindow,
   ErrorFrame,
+  fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
+  serializedNodeWithId,
+  SlowClickFrame,
   SpanFrame,
+  VideoEvent,
 } from 'sentry/utils/replays/types';
-import {BreadcrumbCategories} from 'sentry/utils/replays/types';
-import type {
-  MemorySpan,
-  NetworkSpan,
-  RecordingEvent,
-  ReplayCrumb,
-  ReplayError,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+import {
+  BreadcrumbCategories,
+  EventType,
+  getNodeId,
+  IncrementalSource,
+  isDeadClick,
+  isDeadRageClick,
+  isPaintFrame,
+  isWebVitalFrame,
+} from 'sentry/utils/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -63,6 +68,16 @@ interface ReplayReaderParams {
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
+
+  /**
+   * If provided, the replay will be clipped to this window.
+   */
+  clipWindow?: ClipWindow;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -71,14 +86,129 @@ type RequiredNotNull<T> = {
 
 const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
 
+function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
+  const slowClickFrames = frames.filter(
+    frame => frame.category === 'ui.slowClickDetected'
+  );
+
+  const clickFrames = frames.filter(frame => frame.category === 'ui.click');
+
+  const otherFrames = frames.filter(
+    frame => !(slowClickFrames.includes(frame) || clickFrames.includes(frame))
+  );
+
+  const uniqueClickFrames: BreadcrumbFrame[] = clickFrames.filter(clickFrame => {
+    return !slowClickFrames.some(
+      slowClickFrame =>
+        slowClickFrame.data &&
+        'nodeId' in slowClickFrame.data &&
+        clickFrame.data &&
+        'nodeId' in clickFrame.data &&
+        slowClickFrame.data.nodeId === clickFrame.data.nodeId &&
+        slowClickFrame.timestampMs === clickFrame.timestampMs
+    );
+  });
+
+  return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
+}
+
+// If a `navigation` crumb and `navigation.*` span happen within this timeframe,
+// we'll consider them duplicates.
+const DUPLICATE_NAV_THRESHOLD_MS = 2;
+
+/**
+ * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
+ * there is a matching navigation.* span to replace it.
+ *
+ * SpanFrame is preferred because they render with more specific titles.
+ */
+function removeDuplicateNavCrumbs(
+  crumbFrames: BreadcrumbFrame[],
+  spanFrames: SpanFrame[]
+) {
+  const navCrumbs = crumbFrames.filter(crumb => crumb.category === 'navigation');
+  const otherBreadcrumbFrames = crumbFrames.filter(
+    crumb => crumb.category !== 'navigation'
+  );
+
+  const navSpans = spanFrames.filter(span => span.op.startsWith('navigation.'));
+
+  const uniqueNavCrumbs = navCrumbs.filter(
+    crumb =>
+      !navSpans.some(
+        span => Math.abs(crumb.offsetMs - span.offsetMs) <= DUPLICATE_NAV_THRESHOLD_MS
+      )
+  );
+  return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
+}
+
+const extractDomNodes = {
+  shouldVisitFrame: frame => {
+    const nodeId = getNodeId(frame);
+    return nodeId !== undefined && nodeId !== -1;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const mirror = replayer.getMirror();
+    const nodeId = getNodeId(frame);
+    const html = extractHtml(nodeId as number, mirror);
+    collection.set(frame as ReplayFrame, {
+      frame,
+      html,
+      timestamp: frame.timestampMs,
+    });
+  },
+};
+
+const countDomNodes = function (frames: eventWithTime[]) {
+  let frameCount = 0;
+  const length = frames?.length ?? 0;
+  const frameStep = Math.max(Math.round(length * 0.007), 1);
+
+  let prevIds: number[] = [];
+
+  return {
+    shouldVisitFrame() {
+      frameCount++;
+      return frameCount % frameStep === 0;
+    },
+    onVisitFrame(frame, collection, replayer) {
+      const ids = replayer.getMirror().getIds(); // gets list of DOM nodes present
+      const count = ids.length;
+      const added = ids.filter(id => !prevIds.includes(id)).length;
+      const removed = prevIds.filter(id => !ids.includes(id)).length;
+      collection.set(frame as RecordingFrame, {
+        count,
+        added,
+        removed,
+        timestampMs: frame.timestamp,
+        startTimestampMs: frame.timestamp,
+        endTimestampMs: frame.timestamp,
+      });
+      prevIds = ids;
+    },
+  };
+};
+
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    clipWindow,
+    featureFlags,
+  }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({
+        attachments,
+        errors,
+        replayRecord,
+        featureFlags,
+        clipWindow,
+      });
     } catch (err) {
       Sentry.captureException(err);
 
@@ -89,7 +219,9 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        featureFlags,
         replayRecord,
+        clipWindow,
       });
     }
   }
@@ -97,11 +229,26 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    featureFlags,
     replayRecord,
+    clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
 
-    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
+    if (replayRecord.is_archived) {
+      this._replayRecord = replayRecord;
+      const archivedReader = new Proxy(this, {
+        get(_target, prop, _receiver) {
+          if (prop === 'getReplay') {
+            return () => replayRecord;
+          }
+          return () => {};
+        },
+      });
+      return archivedReader;
+    }
+
+    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames} =
       hydrateFrames(attachments);
 
     if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
@@ -127,97 +274,271 @@ export default class ReplayReader {
     }
 
     // Hydrate the data we were given
-    this.replayRecord = replayRecord;
+    this._replayRecord = replayRecord;
+    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
-    this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
+    const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
+    this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
+    this._videoEvents = videoFrames;
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
-    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
-      replayRecord,
-      breadcrumbFrames
-    ).sort(sortFrames);
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames)
+      .concat(feedbackFrames)
+      .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
     this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
-    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    // e.g. we have buffered events from browser that happen *before* replay
+    // recording is started these can show up in the timeline (navigation) and
+    // in Network table
+    //
+    // We fake the start time so that the timelines of these UI components and
+    // the replay recording all match up
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
+    const startTimestampMs = replayRecord.started_at.getTime();
+    const firstMeta = rrwebFrames.find(frame => frame.type === EventType.Meta);
+    const firstSnapshot = rrwebFrames.find(
+      frame => frame.type === EventType.FullSnapshot
+    );
+    if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
+      this._sortedRRWebEvents.unshift({
+        ...firstSnapshot,
+        timestamp: startTimestampMs,
+      });
+      this._sortedRRWebEvents.unshift({
+        ...firstMeta,
+        timestamp: startTimestampMs,
+      });
+    }
+
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
-    /*********************/
-    /** OLD STUFF BELOW **/
-    /*********************/
-    const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
-      splitAttachmentsByType(attachments);
+    this._duration = replayRecord.duration;
 
-    const spans = [...rawMemorySpans, ...rawNetworkSpans] as ReplaySpan[];
-
-    // TODO(replays): We should get correct timestamps from the backend instead
-    // of having to fix them up here.
-    const {startTimestampMs, endTimestampMs} = replayTimestamps(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[],
-      rawBreadcrumbs as ReplayCrumb[],
-      spans
-    );
-    replayRecord.started_at = new Date(startTimestampMs);
-    replayRecord.finished_at = new Date(endTimestampMs);
-    replayRecord.duration = duration(
-      replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
-    );
-
-    this.rawErrors = errors;
-
-    this.sortedSpans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(
-      replayRecord,
-      errors,
-      rawBreadcrumbs as ReplayCrumb[],
-      this.sortedSpans
-    );
-
-    this.replayRecord = replayRecord;
+    if (clipWindow) {
+      this._applyClipWindow(clipWindow);
+    }
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
   private _cacheKey: string;
-  private _errors: ErrorFrame[];
+  private _duration: Duration = duration(0);
+  private _errors: ErrorFrame[] = [];
+  private _featureFlags: string[] | undefined = [];
   private _optionFrame: undefined | OptionFrame;
-  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
-  private _sortedRRWebEvents: RecordingFrame[];
-  private _sortedSpanFrames: SpanFrame[];
+  private _replayRecord: ReplayRecord;
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
+  private _sortedRRWebEvents: RecordingFrame[] = [];
+  private _sortedSpanFrames: SpanFrame[] = [];
+  private _startOffsetMs = 0;
+  private _videoEvents: VideoEvent[] = [];
+  private _clipWindow: ClipWindow | undefined = undefined;
 
-  private rawErrors: ReplayError[];
-  private sortedSpans: ReplaySpan[];
-  private replayRecord: ReplayRecord;
-  private breadcrumbs: Crumb[];
+  private _applyClipWindow = (clipWindow: ClipWindow) => {
+    const clipStartTimestampMs = clamp(
+      clipWindow.startTimestampMs,
+      this._replayRecord.started_at.getTime(),
+      this._replayRecord.finished_at.getTime()
+    );
+    const clipEndTimestampMs = clamp(
+      clipWindow.endTimestampMs,
+      clipStartTimestampMs,
+      this._replayRecord.finished_at.getTime()
+    );
+
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+
+    // For video replays, we need to bypass setting the global offset (_startOffsetMs)
+    // because it messes with the playback time by causing it
+    // to become negative sometimes. Instead we pass a clip window directly into
+    // the video player, which runs on an external timer
+    if (this.isVideoReplay()) {
+      this._clipWindow = {
+        startTimestampMs: clipStartTimestampMs,
+        endTimestampMs: clipEndTimestampMs,
+      };
+
+      // Trim error frames and update offsets so they show inside the clip window
+      // Do this in here since we bypass setting the global offset
+      // Eventually when we have video breadcrumbs we'll probably need to trim them here too
+
+      const updateVideoFrameOffsets = <T extends {offsetMs: number}>(
+        frames: Array<T>
+      ) => {
+        const offset = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+
+        return frames.map(frame => ({
+          ...frame,
+          offsetMs: frame.offsetMs - offset,
+        }));
+      };
+
+      this._errors = updateVideoFrameOffsets(
+        this._trimFramesToClipWindow(
+          this._errors,
+          clipStartTimestampMs,
+          clipEndTimestampMs
+        )
+      );
+
+      return;
+    }
+
+    // For RRWeb frames we only trim from the end because playback will
+    // not work otherwise. The start offset is used to begin playback at
+    // the correct time.
+    this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
+      frame => frame.timestamp <= clipEndTimestampMs
+    );
+    this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
+
+    this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+
+    // We also only trim from the back for breadcrumbs/spans to keep
+    // historical information about the replay, such as the current URL.
+    this._sortedBreadcrumbFrames = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(
+        this._sortedBreadcrumbFrames,
+        this._replayRecord.started_at.getTime(),
+        clipEndTimestampMs
+      )
+    );
+    this._sortedSpanFrames = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(
+        this._sortedSpanFrames,
+        this._replayRecord.started_at.getTime(),
+        clipEndTimestampMs
+      )
+    );
+
+    this._errors = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(this._errors, clipStartTimestampMs, clipEndTimestampMs)
+    );
+  };
+
+  /**
+   * Filters out frames that are outside of the supplied window
+   */
+  _trimFramesToClipWindow = <T extends {timestampMs: number}>(
+    frames: Array<T>,
+    startTimestampMs: number,
+    endTimestampMs: number
+  ) => {
+    return frames.filter(
+      frame =>
+        frame.timestampMs >= startTimestampMs && frame.timestampMs <= endTimestampMs
+    );
+  };
+
+  /**
+   * Updates the offsetMs of all frames to be relative to the start of the clip window
+   */
+  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: Array<T>) => {
+    return frames.map(frame => ({
+      ...frame,
+      offsetMs: frame.offsetMs - this.getStartOffsetMs(),
+    }));
+  };
 
   toJSON = () => this._cacheKey;
+
+  processingErrors = memoize(() => {
+    return [
+      this.getRRWebFrames().length < 2
+        ? `Replay has ${this.getRRWebFrames().length} frames`
+        : null,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? 'Missing Meta Frame'
+        : null,
+    ].filter(defined);
+  });
+  hasProcessingErrors = () => {
+    return this.processingErrors().length;
+  };
+
+  getCountDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = countDomNodes(this.getRRWebMutations());
+
+    const results = await replayerStepper({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
+  getExtractDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+    const results = await replayerStepper({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
+  getClipWindow = () => this._clipWindow;
 
   /**
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this.replayRecord.duration.asMilliseconds();
+    return this._duration.asMilliseconds();
+  };
+
+  getStartOffsetMs = () => this._startOffsetMs;
+
+  getStartTimestampMs = () => {
+    // For video replays we bypass setting the global _startOffsetMs
+    // because it messes with the player time by causing it to
+    // be negative in some cases, but we still need that calculated value here
+    const start =
+      this.isVideoReplay() && this._clipWindow
+        ? this._clipWindow?.startTimestampMs - this._replayRecord.started_at.getTime()
+        : this._startOffsetMs;
+
+    return this._replayRecord.started_at.getTime() + start;
   };
 
   getReplay = () => {
-    return this.replayRecord;
+    return this._replayRecord;
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
+
+  getRRWebMutations = () =>
+    this._sortedRRWebEvents.filter(
+      event =>
+        [EventType.IncrementalSnapshot].includes(event.type) &&
+        [IncrementalSource.Mutation].includes(
+          (event as incrementalSnapshotEvent).data.source
+        ) // filter only for mutation events
+    );
+
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(
+      frame =>
+        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
+    )
   );
 
   getNavigationFrames = memoize(() =>
@@ -227,23 +548,36 @@ export default class ReplayReader {
     ].sort(sortFrames)
   );
 
+  getMobileNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'navigation'].includes(frame.category)
+      ),
+    ].sort(sortFrames)
+  );
+
   getNetworkFrames = memoize(() =>
     this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
     )
   );
 
-  getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-  ]);
-
-  getDomNodes = memoize(() =>
-    extractDomNodes({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this.replayRecord.finished_at,
-    })
+  getDOMFrames = memoize(() =>
+    [
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames
+          .filter(frame => 'nodeId' in (frame.data ?? {}))
+          .filter(
+            frame =>
+              !(
+                (frame.category === 'ui.slowClickDetected' &&
+                  !isDeadClick(frame as SlowClickFrame)) ||
+                frame.category === 'ui.multiClick'
+              )
+          )
+      ),
+      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ].sort(sortFrames)
   );
 
   getMemoryFrames = memoize(() =>
@@ -251,38 +585,69 @@ export default class ReplayReader {
   );
 
   getChapterFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(
-        frame =>
+    this._trimFramesToClipWindow(
+      [
+        ...this.getPerfFrames(),
+        ...this.getWebVitalFrames(),
+        ...this._sortedBreadcrumbFrames.filter(frame =>
           [
+            'replay.hydrate-error',
             'replay.init',
-            'ui.click',
             'replay.mutations',
-            'ui.slowClickDetected',
-          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
-          frame.op
-        )
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
+            'feedback',
+            'device.battery',
+            'device.connectivity',
+            'device.orientation',
+            'app.foreground',
+            'app.background',
+          ].includes(frame.category)
+        ),
+        ...this._errors,
+      ].sort(sortFrames),
+      this.getStartTimestampMs(),
+      this.getStartTimestampMs() + this.getDurationMs()
+    )
   );
 
-  getTimelineFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'ui.click'].includes(frame.category)
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
-  );
+  getPerfFrames = memoize(() => {
+    const crumbs = removeDuplicateClicks(
+      this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+      )
+    );
+    const spans = this._sortedSpanFrames.filter(frame =>
+      frame.op.startsWith('navigation.')
+    );
+    const uniqueCrumbs = removeDuplicateNavCrumbs(crumbs, spans);
+    return [...uniqueCrumbs, ...spans].sort(sortFrames);
+  });
+
+  getWebVitalFrames = memoize(() => {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
+      return this._sortedSpanFrames.filter(isWebVitalFrame);
+    }
+    return [];
+  });
+
+  getVideoEvents = () => this._videoEvents;
+
+  getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
+
+  /**
+   * Checks the replay to see if user has any canvas elements in their
+   * application. Needed to inform them that we now support canvas in replays.
+   */
+  hasCanvasElementInReplay = memoize(() => {
+    return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
+  });
+
+  isVideoReplay = memoize(() => this.getVideoEvents().length > 0);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();
@@ -302,56 +667,42 @@ export default class ReplayReader {
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
-
-  /*********************/
-  /** OLD STUFF BELOW **/
-  /*********************/
-  getCrumbsWithRRWebNodes = memoize(() =>
-    this.breadcrumbs.filter(
-      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
-    )
-  );
-
-  getUserActionCrumbs = memoize(() => {
-    const USER_ACTIONS = [
-      BreadcrumbType.ERROR,
-      BreadcrumbType.INIT,
-      BreadcrumbType.NAVIGATION,
-      BreadcrumbType.UI,
-      BreadcrumbType.USER,
-    ];
-    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-  });
-
-  getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
-  getRawErrors = memoize(() => this.rawErrors);
-
-  getIssueCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'issue')
-  );
-
-  getNonConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category !== 'console')
-  );
-
-  getNavCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb =>
-      [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
-    )
-  );
-
-  getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
-
-  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
 }
 
-const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
-  return span.op === 'memory';
-};
+function findCanvas(event: RecordingFrame) {
+  if (event.type === EventType.FullSnapshot) {
+    return findCanvasInSnapshot(event);
+  }
 
-const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
-  return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');
-};
+  if (event.type === EventType.IncrementalSnapshot) {
+    return findCanvasInMutation(event);
+  }
+
+  return false;
+}
+
+function findCanvasInMutation(event: incrementalSnapshotEvent) {
+  if (event.data.source !== IncrementalSource.Mutation) {
+    return false;
+  }
+
+  return event.data.adds.find(
+    add => add.node && add.node.type === 2 && add.node.tagName === 'canvas'
+  );
+}
+
+function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
+  return nodes.find(
+    node =>
+      node.type === 2 &&
+      (node.tagName === 'canvas' || findCanvasInChildNodes(node.childNodes || []))
+  );
+}
+
+function findCanvasInSnapshot(event: fullSnapshotEvent) {
+  if (event.data.node.type !== 0) {
+    return false;
+  }
+
+  return findCanvasInChildNodes(event.data.node.childNodes);
+}

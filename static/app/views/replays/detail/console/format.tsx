@@ -20,15 +20,12 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
-import isObject from 'lodash/isObject';
 
-import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
+import ObjectInspector from 'sentry/components/objectInspector';
 
-const formatRegExp = /%[sdj%]/g;
+const formatRegExp = /%[csdj%]/g;
 
-function isNull(arg: unknown) {
-  return arg === null;
-}
 interface FormatProps {
   args: any[];
   expandPaths?: string[];
@@ -61,10 +58,10 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   }
 
   let i = 1;
+  let styling: string | undefined;
   const len = args.length;
   const pieces: any[] = [];
 
-  // @ts-expect-error ts does not like that this can return an integer (e.g. for `%d`)
   const str = String(f).replace(formatRegExp, function (x) {
     if (x === '%%') {
       return '%';
@@ -73,8 +70,16 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       return x;
     }
     switch (x) {
+      case '%c':
+        styling = args[i++];
+        return '';
       case '%s':
-        return String(args[i++]);
+        const val = args[i++];
+        try {
+          return String(val);
+        } catch {
+          return 'toString' in val ? val.toString : JSON.stringify(val);
+        }
       case '%d':
         return Number(args[i++]);
       case '%j':
@@ -88,9 +93,45 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     }
   });
 
-  pieces.push(str);
+  if (styling && typeof styling === 'string') {
+    const tempEl = document.createElement('div');
+    tempEl.setAttribute('style', styling);
+
+    // Only allow certain CSS attributes, be careful of css properties that
+    // accept `url()`
+    //
+    // See the section above https://developer.mozilla.org/en-US/docs/Web/API/console#using_groups_in_the_console
+    // for the properties that Firefox supports.
+    const styleObj = Object.fromEntries(
+      [
+        ['background-color', 'backgroundColor'],
+        ['border-radius', 'borderRadius'],
+        ['color', 'color'],
+        ['font-size', 'fontSize'],
+        ['font-style', 'fontStyle'],
+        ['font-weight', 'fontWeight'],
+        ['margin', 'margin'],
+        ['padding', 'padding'],
+        ['text-transform', 'textTransform'],
+        ['writing-mode', 'writingMode'],
+      ]
+        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
+        .filter(([, val]) => !!val)
+    );
+
+    styleObj.display = 'inline-block';
+
+    pieces.push(
+      <span key={`%c-${i - 1}`} style={styleObj}>
+        {str}
+      </span>
+    );
+  } else {
+    pieces.push(str);
+  }
+
   for (let x = args[i]; i < len; x = args[++i]) {
-    if (isNull(x) || !isObject(x)) {
+    if (x === null || typeof x !== 'object') {
       pieces.push(' ' + x);
     } else {
       pieces.push(' ');
@@ -99,5 +140,6 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       );
     }
   }
+
   return <Fragment>{pieces}</Fragment>;
 }

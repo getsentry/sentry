@@ -1,13 +1,8 @@
 import re
 
 from sentry.constants import TAG_LABELS
-from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
-)
-from sentry.utils.services import Service, raises
+from sentry.snuba.dataset import Dataset
+from sentry.utils.services import Service
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -118,7 +113,6 @@ class TagStorage(Service):
 
         return label
 
-    @raises([TagKeyNotFound])
     def get_tag_key(
         self, project_id, environment_id, key, status=TagKeyStatus.ACTIVE, tenant_ids=None
     ):
@@ -141,14 +135,21 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.ACTIVE, tenant_ids=None
+        self,
+        projects,
+        environments,
+        start,
+        end,
+        dataset: Dataset = Dataset.Events,
+        status=TagKeyStatus.ACTIVE,
+        use_cache: bool = False,
+        tenant_ids=None,
     ):
         """
         >>> get_tag_key([1], [2])
         """
         raise NotImplementedError
 
-    @raises([TagValueNotFound])
     def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
         """
         >>> get_tag_value(1, 2, "key1", "value1")
@@ -161,7 +162,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    @raises([GroupTagKeyNotFound])
     def get_group_tag_key(self, group, environment_id, key, tenant_ids=None):
         """
         >>> get_group_tag_key(group, 3, "key1")
@@ -174,7 +174,6 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    @raises([GroupTagValueNotFound])
     def get_group_tag_value(
         self, project_id, group_id, environment_id, key, value, tenant_ids=None
     ):
@@ -211,7 +210,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen", tenant_ids=None
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        tenant_ids=None,
     ):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
@@ -223,10 +230,14 @@ class TagStorage(Service):
         projects,
         environments,
         key,
-        start,
-        end,
+        start=None,
+        end=None,
+        dataset: Dataset | None = None,
         query=None,
         order_by="-last_seen",
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         """
@@ -237,7 +248,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), offset=0, tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key,
+        callbacks=(),
+        orderby="-first_seen",
+        limit: int = 1000,
+        offset: int = 0,
+        tenant_ids=None,
     ):
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
@@ -259,7 +278,14 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer=None,
     ):
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])

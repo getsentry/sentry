@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {motion, Variants} from 'framer-motion';
+import type {Variants} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -9,7 +10,8 @@ import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
+import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';

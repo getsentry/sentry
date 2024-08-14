@@ -2,31 +2,43 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.receivers.rules import has_high_priority_issue_alerts
 from sentry.rules import rules
 
 
 @region_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
         """
-
         action_list = []
         condition_list = []
         filter_list = []
+
+        available_ticket_actions = set()
 
         project_has_filters = features.has("projects:alert-filters", project)
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
+        has_latest_adopted_release = features.has(
+            "organizations:latest-adopted-release-filter", project.organization
+        )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
-            node = rule_cls(project)
+            node = rule_cls(project=project)
             # skip over conditions if they are not in the migrated set for a project with alert-filters
             if project_has_filters and node.id in MIGRATED_CONDITIONS:
                 continue
@@ -51,6 +63,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 context["actionType"] = "ticket"
                 context["ticketType"] = node.ticket_type
                 context["link"] = node.link
+                available_ticket_actions.add(node.id)
 
             # It is possible for a project to have no services. In that scenario we do
             # not want the front end to render the action as the action does not have
@@ -62,12 +75,28 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
+                if not has_high_priority_issue_alerts(project=project) and context["id"] in (
+                    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+                    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
+                ):
+                    continue
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
+                if (
+                    context["id"]
+                    == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
+                    and not has_latest_adopted_release
+                ):
+                    continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
+
+        if can_create_tickets and request.GET.get("includeAllTickets") is not None:
+            # Add disabled ticket integrations to response
+            disabled_actions = TICKET_ACTIONS - available_ticket_actions
+            context["disabledTicketActions"] = sorted(list(disabled_actions))
 
         return Response(context)

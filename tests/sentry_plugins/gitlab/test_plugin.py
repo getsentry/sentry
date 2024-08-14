@@ -1,11 +1,11 @@
 from functools import cached_property
 
+import orjson
 import responses
 from django.test import RequestFactory
 from django.urls import reverse
 
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.gitlab.plugin import GitLabPlugin
 
 
@@ -38,13 +38,13 @@ class GitLabPluginTest(PluginTestCase):
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_url", "https://gitlab.com", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_repo", "getsentry/sentry", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -67,7 +67,7 @@ class GitLabPluginTest(PluginTestCase):
 
         assert self.plugin.create_issue(request, group, form_data) == 1
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {
             "title": "Hello",
             "description": "Fix this.",
@@ -101,7 +101,7 @@ class GitLabPluginTest(PluginTestCase):
 
         assert self.plugin.link_issue(request, group, form_data) == {"title": "Hello world"}
         request = responses.calls[-1].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "Hello"}
 
     def test_no_secrets(self):
@@ -117,7 +117,7 @@ class GitLabPluginTest(PluginTestCase):
             "sentry-api-0-project-plugin-details", args=[self.org.slug, self.project.slug, "gitlab"]
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         token_config = [item for item in config if item["name"] == "gitlab_token"][0]
         assert token_config.get("type") == "secret"
         assert token_config.get("value") is None

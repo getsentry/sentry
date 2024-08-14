@@ -1,19 +1,19 @@
-import {createRoutes, RouteComponent} from 'react-router';
+import type {RouteComponent} from 'react-router';
+import {createRoutes} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
-
-import {normalizeUrl} from './utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
-// usingCustomerDomain with a getter.
+// USING_CUSTOMER_DOMAIN with a getter.
 jest.mock('sentry/constants', () => {
   const originalModule = jest.requireActual('sentry/constants');
 
   return {
     __esModule: true,
     ...originalModule,
-    get usingCustomerDomain() {
+    get USING_CUSTOMER_DOMAIN() {
       return false;
     },
   };
@@ -74,11 +74,11 @@ function extractRoutes(rootRoute: any): Record<string, RouteComponent> {
 }
 
 describe('buildRoutes()', function () {
-  // Until customer-domains is mainlined and path
+  // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
   test('orgId routes also have domain routes', function () {
-    const spy = jest.spyOn(constants, 'usingCustomerDomain', 'get');
+    const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);

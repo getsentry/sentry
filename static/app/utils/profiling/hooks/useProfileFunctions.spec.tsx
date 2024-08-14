@@ -1,19 +1,18 @@
-import {ReactElement, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-function TestContext({children}: {children: ReactElement}) {
+function TestContext({children}: {children: React.ReactNode}) {
   const {organization} = useMemo(() => initializeOrg(), []);
-  // ensure client is rebuilt on each render otherwise caching will interfere with subsequent tests
-  const client = useMemo(() => new QueryClient(), []);
 
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
@@ -32,7 +31,7 @@ describe('useProfileFunctions', function () {
       body: {data: []},
     });
 
-    const hook = reactHooks.renderHook(
+    const hook = renderHook(
       () =>
         useProfileFunctions({
           fields: ['count()'],
@@ -57,7 +56,7 @@ describe('useProfileFunctions', function () {
       body: {data: []},
     });
 
-    const hook = reactHooks.renderHook(
+    const hook = renderHook(
       () =>
         useProfileFunctions({
           fields: ['count()'],
@@ -71,15 +70,16 @@ describe('useProfileFunctions', function () {
     );
     expect(hook.result.current.isLoading).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
-    await hook.waitForNextUpdate();
-    expect(hook.result.current).toMatchObject(
-      expect.objectContaining({
-        isLoading: false,
-        isFetched: true,
-        data: expect.objectContaining({
-          data: expect.any(Array),
-        }),
-      })
+    await waitFor(() =>
+      expect(hook.result.current).toMatchObject(
+        expect.objectContaining({
+          isLoading: false,
+          isFetched: true,
+          data: expect.objectContaining({
+            data: expect.any(Array),
+          }),
+        })
+      )
     );
   });
 });

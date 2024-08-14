@@ -1,4 +1,6 @@
-import {browserHistory} from 'react-router';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,9 +13,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 jest.mock('sentry/utils/analytics');
@@ -21,6 +26,7 @@ jest.mock('sentry/utils/analytics');
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
   const {organization, router} = initializeOrg();
+  let configState: Config;
 
   const defaultProps = {
     organization,
@@ -33,6 +39,7 @@ describe('OrganizationGeneralSettings', function () {
   };
 
   beforeEach(function () {
+    configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -41,7 +48,13 @@ describe('OrganizationGeneralSettings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
+    });
+  });
+
+  afterEach(function () {
+    act(function () {
+      ConfigStore.loadInitialData(configState);
     });
   });
 
@@ -65,9 +78,13 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    defaultProps.organization.features.push('codecov-integration');
-    organization.codecovAccess = false;
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    const organizationWithCodecovFeature = OrganizationFixture({
+      features: ['codecov-integration'],
+      codecovAccess: false,
+    });
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: organizationWithCodecovFeature,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -114,14 +131,16 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = TestStubs.Organization({features: ['customer-domains']});
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
+    const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={org} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -146,9 +165,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
       organization: readOnlyOrg,
     });
 
@@ -170,14 +189,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button without org:admin permission', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({
-          access: ['org:write'],
-        })}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({
+        access: ['org:write'],
+      }),
+    });
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})
@@ -185,14 +201,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({access: ['org:admin']})}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({access: ['org:admin']}),
+    });
     renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({

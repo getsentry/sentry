@@ -1,0 +1,24 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Claim Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+    <h3>{% trans "Claim Account" %}</h3>
+
+    <p>{% trans "You have been invited to join the following migrated Sentry organizations as" %}</p>
+    <form method="POST" action="">
+        {% csrf_token %}
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+        	{{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Claim Account" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

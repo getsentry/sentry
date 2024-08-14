@@ -75,7 +75,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_sessions');
   });
@@ -84,7 +84,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_users');
   });
@@ -98,26 +98,42 @@ describe('Wizard utils', function () {
     ).toBe('crash_free_users');
   });
 
+  it('extracts custom metric alert from custom mri aggregate', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'count(d:custom/my_metric@seconds)',
+        dataset: Dataset.GENERIC_METRICS,
+      })
+    ).toBe('custom_metrics');
+  });
+
   it('defaults to custom', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'count_unique(tags[sentry:user])',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom');
+    ).toEqual('custom_transactions');
 
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(measurements.fp)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom');
+    ).toEqual('custom_transactions');
 
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: 'p95(measurements.ttfb)',
         dataset: Dataset.TRANSACTIONS,
       })
-    ).toEqual('custom');
+    ).toEqual('custom_transactions');
+
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'count(d:transaction/measurement@seconds)',
+        dataset: Dataset.GENERIC_METRICS,
+      })
+    ).toBe('custom_transactions');
   });
 });

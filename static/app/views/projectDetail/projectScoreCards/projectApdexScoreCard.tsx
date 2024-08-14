@@ -1,23 +1,24 @@
 import {Fragment} from 'react';
 import round from 'lodash/round';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
@@ -25,12 +26,12 @@ type Props = AsyncComponent['props'] & {
   query?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
 };
 
-class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
+class ProjectApdexScoreCard extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState() {
@@ -57,7 +58,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       field: ['apdex()'],
       query: ['event.type:transaction count():>0', query].join(' ').trim(),
     };
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'currentApdex',
         `/organizations/${organization.slug}/events/`,

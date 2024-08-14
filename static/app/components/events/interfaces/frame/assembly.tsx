@@ -58,7 +58,7 @@ const AssemblyInfo = styled('div')`
 
 const Caption = styled('span')`
   margin-right: 5px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export {Assembly};

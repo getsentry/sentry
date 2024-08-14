@@ -9,14 +9,8 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {
-  EventId,
-  KeysOfUnion,
-  MethodType,
-  Rule,
-  RuleType,
-  SourceSuggestion,
-} from '../../types';
+import type {EventId, KeysOfUnion, Rule, SourceSuggestion} from '../../types';
+import {MethodType, RuleType} from '../../types';
 import {getMethodLabel, getRuleLabel} from '../../utils';
 
 import EventIdField from './eventIdField';
@@ -222,7 +216,7 @@ const ToggleWrapper = styled('div')`
 `;
 
 const Toggle = styled(Button)`
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   &:hover,
   &:focus {

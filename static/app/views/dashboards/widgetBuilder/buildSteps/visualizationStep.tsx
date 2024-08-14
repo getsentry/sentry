@@ -1,20 +1,24 @@
-import {CSSProperties, useCallback, useEffect, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
@@ -33,6 +37,8 @@ interface Props {
   dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
+  onDataFetched?: (results: TableDataWithTitle[]) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
 
 export function VisualizationStep({
@@ -42,10 +48,12 @@ export function VisualizationStep({
   error,
   onChange,
   widget,
+  onDataFetched,
   noDashboardsMEPProvider,
   dashboardFilters,
   location,
   isWidgetInvalid,
+  onWidgetSplitDecision,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -83,7 +91,7 @@ export function VisualizationStep({
   }));
 
   return (
-    <BuildStep
+    <StyledBuildStep
       title={t('Choose your visualization')}
       description={t(
         'This is a preview of how your widget will appear in the dashboard.'
@@ -111,7 +119,7 @@ export function VisualizationStep({
           selection={pageFilters}
           widget={debouncedWidget}
           dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
-          isEditing={false}
+          isEditingDashboard={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
             typeof errorMessage === 'string' && (
@@ -122,11 +130,25 @@ export function VisualizationStep({
           showStoredAlert
           noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
+          onDataFetched={onDataFetched}
+          onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
         />
       </VisualizationWrapper>
-    </BuildStep>
+    </StyledBuildStep>
   );
 }
+
+const StyledBuildStep = styled(BuildStep)`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: ${p => p.theme.background};
+
+  &::before {
+    margin-top: 1px;
+  }
+`;
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};

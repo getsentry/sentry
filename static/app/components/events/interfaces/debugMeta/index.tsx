@@ -1,29 +1,31 @@
-import {createRef, Fragment, PureComponent} from 'react';
-import {WithRouterProps} from 'react-router';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-  ListRowProps,
-} from 'react-virtualized';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {
+  DebugImageDetails,
+  modalCss,
+} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
-import {Image, ImageStatus} from 'sentry/types/debugImage';
-import {Event} from 'sentry/types/event';
+import type {Image} from 'sentry/types/debugImage';
+import {ImageStatus} from 'sentry/types/debugImage';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import useOrganization from 'sentry/utils/useOrganization';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -40,256 +42,107 @@ import {
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
 
-type DefaultProps = {
+type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
+
+interface DebugMetaProps {
   data: {
     images: Array<Image | null>;
   };
-};
+  event: Event;
+  projectSlug: Project['slug'];
+  groupId?: Group['id'];
+}
 
-type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
-
-type Props = DefaultProps &
-  WithRouterProps & {
-    event: Event;
-    organization: Organization;
-    projectSlug: Project['slug'];
-    groupId?: Group['id'];
-  };
-
-type State = {
+interface FilterState {
+  allImages: Images;
   filterOptions: SelectSection<string>[];
   filterSelections: SelectOption<string>[];
-  filteredImages: Images;
-  filteredImagesByFilter: Images;
-  filteredImagesBySearch: Images;
-  isOpen: boolean;
-  scrollbarWidth: number;
-  searchTerm: string;
-  panelTableHeight?: number;
-};
+}
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
   defaultHeight: 81,
 });
 
-class DebugMetaWithRouter extends PureComponent<Props, State> {
-  static defaultProps: DefaultProps = {
-    data: {images: []},
-  };
+function applyImageFilters(
+  images: Images,
+  filterSelections: SelectOption<string>[],
+  searchTerm: string
+) {
+  const selections = new Set(filterSelections.map(option => option.value));
 
-  state: State = {
-    searchTerm: '',
-    scrollbarWidth: 0,
-    isOpen: false,
+  let filteredImages = images;
+
+  if (selections.size > 0) {
+    filteredImages = filteredImages.filter(image => selections.has(image.status));
+  }
+
+  if (searchTerm !== '') {
+    filteredImages = filteredImages.filter(image => {
+      const term = searchTerm.toLowerCase();
+      // When searching for an address, check for the address range of the image
+      // instead of an exact match.  Note that images cannot be found by index
+      // if they are at 0x0.  For those relative addressing has to be used.
+      if (term.indexOf('0x') === 0) {
+        const needle = parseAddress(term);
+        if (needle > 0 && image.image_addr !== '0x0') {
+          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
+          return needle >= startAddress && needle < endAddress;
+        }
+      }
+
+      // the searchTerm ending at "!" is the end of the ID search.
+      const relMatch = term.match(/^\s*(.*?)!/); // debug_id!address
+      const idSearchTerm = normalizeId(relMatch?.[1] || term);
+
+      return (
+        // Prefix match for identifiers
+        normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
+        normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
+        // Any match for file paths
+        (image.code_file?.toLowerCase() || '').includes(term) ||
+        (image.debug_file?.toLowerCase() || '').includes(term)
+      );
+    });
+  }
+
+  return filteredImages;
+}
+
+export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const organization = useOrganization();
+  const listRef = useRef<List>(null);
+  const panelTableRef = useRef<HTMLDivElement>(null);
+  const [filterState, setFilterState] = useState<FilterState>({
     filterOptions: [],
     filterSelections: [],
-    filteredImages: [],
-    filteredImagesByFilter: [],
-    filteredImagesBySearch: [],
-  };
+    allImages: [],
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  componentDidMount() {
-    this.unsubscribeFromDebugMetaStore = DebugMetaStore.listen(
-      this.onDebugMetaStoreChange,
-      undefined
-    );
-
-    cache.clearAll();
-    this.getRelevantImages();
-    this.openImageDetailsModal();
-  }
-
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (
-      this.state.isOpen ||
-      (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0)
-    ) {
-      this.getPanelBodyHeight();
-    }
-
-    this.openImageDetailsModal();
-  }
-
-  componentWillUnmount() {
-    if (this.unsubscribeFromDebugMetaStore) {
-      this.unsubscribeFromDebugMetaStore();
-    }
-  }
-
-  unsubscribeFromDebugMetaStore: any;
-
-  panelTableRef = createRef<HTMLDivElement>();
-  listRef: List | null = null;
-
-  onDebugMetaStoreChange = (store: {filter: string}) => {
-    const {searchTerm} = this.state;
-
-    if (store.filter !== searchTerm) {
-      this.setState(
-        {searchTerm: store.filter, isOpen: true},
-        this.filterImagesBySearchTerm
-      );
-    }
-  };
-
-  getScrollbarWidth() {
-    const panelTableWidth = this.panelTableRef?.current?.clientWidth ?? 0;
-
-    const gridInnerWidth =
-      this.panelTableRef?.current?.querySelector(
-        '.ReactVirtualized__Grid__innerScrollContainer'
-      )?.clientWidth ?? 0;
-
-    const scrollbarWidth = panelTableWidth - gridInnerWidth;
-
-    if (scrollbarWidth !== this.state.scrollbarWidth) {
-      this.setState({scrollbarWidth});
-    }
-  }
-
-  updateGrid = () => {
-    if (this.listRef) {
-      cache.clearAll();
-      this.listRef.forceUpdateGrid();
-      this.getScrollbarWidth();
-    }
-  };
-
-  isValidImage(image: Image | null) {
-    // in particular proguard images do not have a code file, skip them
-    if (image === null || image.code_file === null || image.type === 'proguard') {
-      return false;
-    }
-
-    if (getFileName(image.code_file) === 'dyld_sim') {
-      // this is only for simulator builds
-      return false;
-    }
-
-    return true;
-  }
-
-  filterImage(image: Image, searchTerm: string) {
-    // When searching for an address, check for the address range of the image
-    // instead of an exact match.  Note that images cannot be found by index
-    // if they are at 0x0.  For those relative addressing has to be used.
-    if (searchTerm.indexOf('0x') === 0) {
-      const needle = parseAddress(searchTerm);
-      if (needle > 0 && image.image_addr !== '0x0') {
-        const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-        return needle >= startAddress && needle < endAddress;
-      }
-    }
-
-    // the searchTerm ending at "!" is the end of the ID search.
-    const relMatch = searchTerm.match(/^\s*(.*?)!/); // debug_id!address
-    const idSearchTerm = normalizeId(relMatch?.[1] || searchTerm);
-
-    return (
-      // Prefix match for identifiers
-      normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
-      normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
-      // Any match for file paths
-      (image.code_file?.toLowerCase() || '').includes(searchTerm) ||
-      (image.debug_file?.toLowerCase() || '').includes(searchTerm)
-    );
-  }
-
-  filterImagesBySearchTerm() {
-    const {filteredImages, filterSelections, searchTerm} = this.state;
-    const filteredImagesBySearch = filteredImages.filter(image =>
-      this.filterImage(image, searchTerm.toLowerCase())
-    );
-
-    const filteredImagesByFilter = this.getFilteredImagesByFilter(
-      filteredImagesBySearch,
-      filterSelections
-    );
-
-    this.setState(
-      {
-        filteredImagesBySearch,
-        filteredImagesByFilter,
-      },
-      this.updateGrid
-    );
-  }
-
-  openImageDetailsModal = async () => {
-    const {filteredImages} = this.state;
-
-    if (!filteredImages.length) {
-      return;
-    }
-
-    const {location, organization, projectSlug, groupId, event} = this.props;
-    const {query} = location;
-
-    const {imageCodeId, imageDebugId} = query;
-
-    if (!imageCodeId && !imageDebugId) {
-      return;
-    }
-
-    const image =
-      imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-        ? filteredImages.find(
-            ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
-          )
-        : undefined;
-
-    const mod = await import(
-      'sentry/components/events/interfaces/debugMeta/debugImageDetails'
-    );
-
-    const {DebugImageDetails, modalCss} = mod;
-
-    openModal(
-      deps => (
-        <DebugImageDetails
-          {...deps}
-          image={image}
-          organization={organization}
-          projSlug={projectSlug}
-          event={event}
-          onReprocessEvent={
-            defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
-          }
-        />
-      ),
-      {
-        modalCss,
-        onClose: this.handleCloseImageDetailsModal,
-      }
-    );
-  };
-
-  toggleImagesLoaded = () => {
-    this.setState(state => ({
-      isOpen: !state.isOpen,
-    }));
-  };
-
-  getPanelBodyHeight() {
-    const panelTableHeight = this.panelTableRef?.current?.offsetHeight;
-
-    if (!panelTableHeight) {
-      return;
-    }
-
-    this.setState({panelTableHeight});
-  }
-
-  getRelevantImages() {
-    const {data} = this.props;
+  const getRelevantImages = useCallback(() => {
     const {images} = data;
 
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
 
-    const relevantImages = images.filter(this.isValidImage);
+    const relevantImages = images.filter(image => {
+      // in particular proguard images do not have a code file, skip them
+      if (image === null || image.code_file === null || image.type === 'proguard') {
+        return false;
+      }
+
+      if (getFileName(image.code_file) === 'dyld_sim') {
+        // this is only for simulator builds
+        return false;
+      }
+
+      return true;
+    });
 
     if (!relevantImages.length) {
       return;
@@ -320,114 +173,159 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return true;
     }) as Images;
 
-    const filteredImages = [...usedImages, ...unusedImages];
+    const allImages = [...usedImages, ...unusedImages];
 
-    const filterOptions = this.getFilterOptions(filteredImages);
-    const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
-    ).filter(opt => opt.value !== ImageStatus.UNUSED);
-
-    this.setState({
-      filteredImages,
-      filterOptions,
-      filterSelections: defaultFilterSelections,
-      filteredImagesByFilter: this.getFilteredImagesByFilter(
-        filteredImages,
-        defaultFilterSelections
-      ),
-      filteredImagesBySearch: filteredImages,
-    });
-  }
-
-  getFilterOptions(images: Images): SelectSection<string>[] {
-    return [
+    const filterOptions = [
       {
         label: t('Status'),
-        options: [...new Set(images.map(image => image.status))].map(status => ({
+        options: [...new Set(allImages.map(image => image.status))].map(status => ({
           value: status,
           textValue: status,
           label: <Status status={status} />,
         })),
       },
     ];
-  }
 
-  getFilteredImagesByFilter(
-    filteredImages: Images,
-    filterOptions: SelectOption<string>[]
-  ) {
-    const checkedOptions = new Set(filterOptions.map(option => option.value));
+    const defaultFilterSelections = (
+      'options' in filterOptions[0] ? filterOptions[0].options : []
+    ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
-    if (![...checkedOptions].length) {
-      return filteredImages;
+    setFilterState({
+      allImages,
+      filterOptions,
+      filterSelections: defaultFilterSelections,
+    });
+  }, [data]);
+
+  const handleReprocessEvent = useCallback(
+    (id: Group['id']) => {
+      openReprocessEventModal({
+        organization,
+        groupId: id,
+      });
+    },
+    [organization]
+  );
+
+  const getScrollbarWidth = useCallback(() => {
+    const panelTableWidth = panelTableRef?.current?.clientWidth ?? 0;
+
+    const gridInnerWidth =
+      panelTableRef?.current?.querySelector(
+        '.ReactVirtualized__Grid__innerScrollContainer'
+      )?.clientWidth ?? 0;
+
+    setScrollbarWidth(panelTableWidth - gridInnerWidth);
+  }, [panelTableRef]);
+
+  const updateGrid = useCallback(() => {
+    if (listRef.current) {
+      cache.clearAll();
+      listRef.current.forceUpdateGrid();
+      getScrollbarWidth();
     }
+  }, [listRef, getScrollbarWidth]);
 
-    return filteredImages.filter(image => checkedOptions.has(image.status));
-  }
+  const getEmptyMessage = useCallback(
+    images => {
+      const {filterSelections} = filterState;
 
-  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
-    const {filteredImagesBySearch} = this.state;
-    const filteredImagesByFilter = this.getFilteredImagesByFilter(
-      filteredImagesBySearch,
-      filterSelections
-    );
+      if (images.length) {
+        return {};
+      }
 
-    this.setState({filterSelections, filteredImagesByFilter}, this.updateGrid);
-  };
+      if (searchTerm && !images.length) {
+        const hasActiveFilter = filterSelections.length > 0;
 
-  handleChangeSearchTerm = (searchTerm = '') => {
-    DebugMetaStore.updateFilter(searchTerm);
-  };
+        return {
+          emptyMessage: t('Sorry, no images match your search query'),
+          emptyAction: hasActiveFilter ? (
+            <Button
+              onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
+              priority="primary"
+            >
+              {t('Reset filter')}
+            </Button>
+          ) : (
+            <Button onClick={() => setSearchTerm('')} priority="primary">
+              {t('Clear search bar')}
+            </Button>
+          ),
+        };
+      }
 
-  handleResetFilter = () => {
-    this.setState({filterSelections: []}, this.filterImagesBySearchTerm);
-  };
+      return {
+        emptyMessage: t('There are no images to be displayed'),
+      };
+    },
+    [filterState, searchTerm]
+  );
 
-  handleResetSearchBar = () => {
-    this.setState(prevState => ({
-      searchTerm: '',
-      filteredImagesByFilter: prevState.filteredImages,
-      filteredImagesBySearch: prevState.filteredImages,
-    }));
-  };
+  const handleOpenImageDetailsModal = useCallback(
+    (imageCodeId: Image['code_id'], imageDebugId: Image['debug_id']) => {
+      const {allImages} = filterState;
+      if (!imageCodeId && !imageDebugId) {
+        return;
+      }
 
-  handleOpenImageDetailsModal = (
-    code_id: Image['code_id'],
-    debug_id: Image['debug_id']
-  ) => {
-    const {location, router} = this.props;
+      const image =
+        imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
+          ? allImages.find(
+              ({code_id, debug_id}) =>
+                code_id === imageCodeId || debug_id === imageDebugId
+            )
+          : undefined;
 
-    router.push({
-      ...location,
-      query: {
-        ...location.query,
-        imageCodeId: code_id ?? IMAGE_INFO_UNAVAILABLE,
-        imageDebugId: debug_id ?? IMAGE_INFO_UNAVAILABLE,
-      },
-    });
-  };
+      openModal(
+        deps => (
+          <DebugImageDetails
+            {...deps}
+            image={image}
+            organization={organization}
+            projSlug={projectSlug}
+            event={event}
+            onReprocessEvent={
+              defined(groupId) ? () => handleReprocessEvent(groupId) : undefined
+            }
+          />
+        ),
+        {modalCss}
+      );
+    },
+    [filterState, event, groupId, handleReprocessEvent, organization, projectSlug]
+  );
 
-  handleCloseImageDetailsModal = () => {
-    const {location, router} = this.props;
+  // This hook replaces the componentDidMount/WillUnmount calls from its class component
+  useEffect(() => {
+    const removeListener = DebugMetaStore.listen((store: {filter: string}) => {
+      setSearchTerm(store.filter);
+      setIsOpen(true);
+    }, undefined);
+    cache.clearAll();
+    getRelevantImages();
+    return () => {
+      removeListener();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    router.push({
-      ...location,
-      query: {...location.query, imageCodeId: undefined, imageDebugId: undefined},
-    });
-  };
+  useEffect(() => {
+    //  componentDidUpdate
+    getRelevantImages();
+    updateGrid();
+  }, [event, getRelevantImages, updateGrid]);
 
-  handleReprocessEvent = (groupId: Group['id']) => () => {
-    const {organization} = this.props;
-    openReprocessEventModal({
-      organization,
-      groupId,
-      onClose: this.openImageDetailsModal,
-    });
-  };
+  useEffect(() => {
+    updateGrid();
+  }, [filterState, updateGrid]);
 
-  renderRow = ({index, key, parent, style}: ListRowProps) => {
-    const {filteredImagesByFilter: images} = this.state;
-
+  function renderRow({
+    index,
+    key,
+    parent,
+    style,
+    images,
+  }: ListRowProps & {images: Images}) {
     return (
       <CellMeasurer
         cache={cache}
@@ -439,38 +337,24 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
         <DebugImage
           style={style}
           image={images[index]}
-          onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
+          onOpenImageDetailsModal={handleOpenImageDetailsModal}
         />
       </CellMeasurer>
     );
-  };
+  }
 
-  renderList() {
-    const {filteredImagesByFilter: images, panelTableHeight} = this.state;
-
-    if (!panelTableHeight) {
-      return images.map((image, index) => (
-        <DebugImage
-          key={index}
-          image={image}
-          onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
-        />
-      ));
-    }
-
+  function renderList(images: Images) {
     return (
-      <AutoSizer disableHeight onResize={this.updateGrid}>
+      <AutoSizer disableHeight onResize={updateGrid}>
         {({width}) => (
           <StyledList
-            ref={(el: List | null) => {
-              this.listRef = el;
-            }}
+            ref={listRef}
             deferredMeasurementCache={cache}
             height={IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT}
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={this.renderRow}
+            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />
@@ -479,97 +363,67 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     );
   }
 
-  getEmptyMessage() {
-    const {searchTerm, filteredImagesByFilter: images, filterSelections} = this.state;
+  const {allImages, filterOptions, filterSelections} = filterState;
 
-    if (images.length) {
-      return {};
-    }
+  const filteredImages = applyImageFilters(allImages, filterSelections, searchTerm);
 
-    if (searchTerm && !images.length) {
-      const hasActiveFilter = filterSelections.length > 0;
+  const {images} = data;
 
-      return {
-        emptyMessage: t('Sorry, no images match your search query'),
-        emptyAction: hasActiveFilter ? (
-          <Button onClick={this.handleResetFilter} priority="primary">
-            {t('Reset filter')}
-          </Button>
-        ) : (
-          <Button onClick={this.handleResetSearchBar} priority="primary">
-            {t('Clear search bar')}
-          </Button>
-        ),
-      };
-    }
-
-    return {
-      emptyMessage: t('There are no images to be displayed'),
-    };
+  if (shouldSkipSection(filteredImages, images)) {
+    return null;
   }
 
-  render() {
-    const {
-      searchTerm,
-      filterOptions,
-      scrollbarWidth,
-      isOpen,
-      filterSelections,
-      filteredImagesByFilter: filteredImages,
-    } = this.state;
-    const {data} = this.props;
-    const {images} = data;
+  const showFilters = filterOptions.some(
+    section => 'options' in section && section.options.length > 1
+  );
 
-    if (shouldSkipSection(filteredImages, images)) {
-      return null;
-    }
+  const actions = hasStreamlinedUI ? null : (
+    <SectionToggleButton
+      isExpanded={isOpen}
+      onExpandChange={() => {
+        setIsOpen(open => !open);
+      }}
+    />
+  );
 
-    const showFilters = filterOptions.some(
-      section => 'options' in section && section.options.length > 1
-    );
-
-    const actions = (
-      <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
-        {isOpen ? t('Hide Details') : t('Show Details')}
-      </ToggleButton>
-    );
-
-    return (
-      <EventDataSection
-        type="images-loaded"
-        guideTarget="images-loaded"
-        title={t('Images Loaded')}
-        help={t(
-          'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
-        )}
-        actions={actions}
-      >
-        {isOpen && (
-          <Fragment>
-            <StyledSearchBarAction
-              placeholder={t('Search images loaded')}
-              onChange={value => this.handleChangeSearchTerm(value)}
-              query={searchTerm}
-              filterOptions={showFilters ? filterOptions : undefined}
-              onFilterChange={this.handleChangeFilter}
-              filterSelections={filterSelections}
-            />
-            <StyledPanelTable
-              isEmpty={!filteredImages.length}
-              scrollbarWidth={scrollbarWidth}
-              headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-              {...this.getEmptyMessage()}
-            >
-              <div ref={this.panelTableRef}>{this.renderList()}</div>
-            </StyledPanelTable>
-          </Fragment>
-        )}
-      </EventDataSection>
-    );
-  }
+  return (
+    <InterimSection
+      type={FoldSectionKey.DEBUGMETA}
+      guideTarget="images-loaded"
+      title={t('Images Loaded')}
+      help={t(
+        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+      )}
+      actions={actions}
+    >
+      {isOpen || hasStreamlinedUI ? (
+        <Fragment>
+          <StyledSearchBarAction
+            placeholder={t('Search images loaded')}
+            onChange={value => DebugMetaStore.updateFilter(value)}
+            query={searchTerm}
+            filterOptions={showFilters ? filterOptions : undefined}
+            onFilterChange={selections => {
+              setFilterState(fs => ({
+                ...fs,
+                filterSelections: selections,
+              }));
+            }}
+            filterSelections={filterSelections}
+          />
+          <StyledPanelTable
+            isEmpty={!filteredImages.length}
+            scrollbarWidth={scrollbarWidth}
+            headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
+            {...getEmptyMessage(filteredImages)}
+          >
+            <div ref={panelTableRef}>{renderList(filteredImages)}</div>
+          </StyledPanelTable>
+        </Fragment>
+      ) : null}
+    </InterimSection>
+  );
 }
-
-export const DebugMeta = withSentryRouter(DebugMetaWithRouter);
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
@@ -608,13 +462,4 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 1;
   margin-bottom: ${space(1)};
-`;
-
-const ToggleButton = styled(Button)`
-  font-weight: 700;
-  color: ${p => p.theme.subText};
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;

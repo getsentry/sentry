@@ -2,6 +2,7 @@ import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -10,22 +11,26 @@ import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {Hovercard} from 'sentry/components/hovercard';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import ScoreBar from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
   issue: Group;
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   aggregate?: {
     exception: number;
     message: number;
+    shouldBeGrouped?: string;
   };
   score?: Record<string, any>;
   scoresByInterface?: {
@@ -57,10 +62,23 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, aggregate, location} = this.props;
     const {id: targetIssueId} = issue;
 
-    openDiffModal({baseIssueId, targetIssueId, project, orgId});
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
+    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
+      ? aggregate?.shouldBeGrouped
+      : '';
+    openDiffModal({
+      baseIssueId,
+      targetIssueId,
+      project,
+      orgId,
+      shouldBeGrouped,
+      location,
+    });
     event.stopPropagation();
   };
 
@@ -94,9 +112,14 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue} = this.props;
+    const {aggregate, scoresByInterface, issue, project, location} = this.props;
     const {visible, busy} = this.state;
-    const similarInterfaces = ['exception', 'message'];
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
+    const similarInterfaces = hasSimilarityEmbeddingsFeature
+      ? ['exception', 'message', 'shouldBeGrouped']
+      : ['exception', 'message'];
 
     if (!visible) {
       return null;
@@ -121,7 +144,7 @@ class Item extends Component<Props, State> {
             onChange={this.handleCheckClick}
           />
           <EventDetails>
-            <EventOrGroupHeader data={issue} size="normal" source="similar-issues" />
+            <EventOrGroupHeader data={issue} source="similar-issues" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
 
@@ -134,21 +157,34 @@ class Item extends Component<Props, State> {
 
         <Columns>
           <StyledCount value={issue.count} />
-
           {similarInterfaces.map(interfaceName => {
             const avgScore = aggregate?.[interfaceName];
             const scoreList = scoresByInterface?.[interfaceName] || [];
-            // Check for valid number (and not NaN)
-            const scoreValue =
-              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
 
+            // If hasSimilarityEmbeddingsFeature is on, avgScore can be a string
+            let scoreValue = avgScore;
+            if (
+              (typeof avgScore !== 'string' && hasSimilarityEmbeddingsFeature) ||
+              !hasSimilarityEmbeddingsFeature
+            ) {
+              // Check for valid number (and not NaN)
+              scoreValue =
+                typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            }
             return (
               <Column key={interfaceName}>
-                <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
-                >
-                  <ScoreBar vertical score={Math.round(scoreValue * 5)} />
-                </Hovercard>
+                {!hasSimilarityEmbeddingsFeature && (
+                  <Hovercard
+                    body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                  >
+                    <ScoreBar vertical score={Math.round(scoreValue * 5)} />
+                  </Hovercard>
+                )}
+                {hasSimilarityEmbeddingsFeature && (
+                  <div>
+                    {typeof scoreValue === 'number' ? scoreValue.toFixed(4) : scoreValue}
+                  </div>
+                )}
               </Column>
             );
           })}
@@ -162,6 +198,7 @@ const Details = styled('div')`
   ${p => p.theme.overflowEllipsis};
 
   display: grid;
+  align-items: start;
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
@@ -175,8 +212,8 @@ const Columns = styled('div')`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  min-width: 300px;
-  width: 300px;
+  min-width: 350px;
+  width: 350px;
 `;
 
 const columnStyle = css`
@@ -197,6 +234,7 @@ const StyledCount = styled(Count)`
 `;
 
 const Diff = styled('div')`
+  height: 100%;
   display: flex;
   align-items: center;
   margin-right: ${space(0.25)};

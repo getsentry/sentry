@@ -5,19 +5,23 @@ from django.core.files.base import ContentFile
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
-from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.models.apitoken import ApiToken
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.project = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-artifactbundle-assemble",
@@ -137,6 +141,86 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data["error"] == "One or more projects are invalid"
 
+    def test_assemble_with_valid_project_slugs(self):
+        # Test with all valid project slugs
+        valid_project = self.create_project()
+        another_valid_project = self.create_project()
+
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "projects": [valid_project.slug, another_valid_project.slug],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_assemble_with_valid_project_ids(self):
+        # Test with all valid project IDs
+        valid_project = self.create_project()
+        another_valid_project = self.create_project()
+
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "projects": [str(valid_project.id), str(another_valid_project.id)],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_assemble_with_mix_of_slugs_and_ids(self):
+        # Test with a mix of valid project slugs and IDs
+        valid_project = self.create_project()
+        another_valid_project = self.create_project()
+        third_valid_project = self.create_project()
+
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "projects": [
+                    valid_project.slug,
+                    str(another_valid_project.id),
+                    str(third_valid_project.id),
+                ],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle_zip(
@@ -250,49 +334,48 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     def test_assemble_with_missing_chunks(self):
-        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
-            dist = "android"
-            bundle_file = self.create_artifact_bundle_zip(
-                org=self.organization.slug, release=self.release.version
-            )
-            total_checksum = sha1(bundle_file).hexdigest()
+        dist = "android"
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
 
-            # We try to upload with all the checksums missing.
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [total_checksum],
-                    "projects": [self.project.slug],
-                    "version": self.release.version,
-                    "dist": dist,
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
+        # We try to upload with all the checksums missing.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [total_checksum],
+                "projects": [self.project.slug],
+                "version": self.release.version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
 
-            assert response.status_code == 200, response.content
-            assert response.data["state"] == ChunkFileState.NOT_FOUND
-            assert set(response.data["missingChunks"]) == {total_checksum}
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.NOT_FOUND
+        assert set(response.data["missingChunks"]) == {total_checksum}
 
-            # We store the blobs into the database.
-            blob1 = FileBlob.from_file(ContentFile(bundle_file))
-            FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+        # We store the blobs into the database.
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
-            # We make the request again after the file have been uploaded.
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [total_checksum],
-                    "projects": [self.project.slug],
-                    "version": self.release.version,
-                    "dist": dist,
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
+        # We make the request again after the file have been uploaded.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [total_checksum],
+                "projects": [self.project.slug],
+                "version": self.release.version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
 
-            assert response.status_code == 200, response.content
-            assert response.data["state"] == ChunkFileState.CREATED
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_response(self):
         bundle_file = self.create_artifact_bundle_zip(
@@ -342,15 +425,16 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
         # right org, wrong permission level
-        bad_token_str = generate_token(self.organization.slug, "")
-        OrgAuthToken.objects.create(
-            organization_id=self.organization.id,
-            name="token 1",
-            token_hashed=hash_token(bad_token_str),
-            token_last_characters="ABCD",
-            scope_list=[],
-            date_last_used=None,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(bad_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
         response = self.client.post(
             self.url,
             data={
@@ -363,15 +447,16 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 403
 
         # wrong org, right permission level
-        bad_org_token_str = generate_token(self.organization.slug, "")
-        OrgAuthToken.objects.create(
-            organization_id=org2.id,
-            name="token 1",
-            token_hashed=hash_token(bad_org_token_str),
-            token_last_characters="ABCD",
-            scope_list=[],
-            date_last_used=None,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_org_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org2.id,
+                name="token 1",
+                token_hashed=hash_token(bad_org_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
         response = self.client.post(
             self.url,
             data={
@@ -384,22 +469,31 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 403
 
         # right org, right permission level
-        good_token_str = generate_token(self.organization.slug, "")
-        OrgAuthToken.objects.create(
-            organization_id=self.organization.id,
-            name="token 1",
-            token_hashed=hash_token(good_token_str),
-            token_last_characters="ABCD",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
-        response = self.client.post(
-            self.url,
-            data={
-                "checksum": total_checksum,
-                "chunks": [blob1.checksum],
-                "projects": [self.project.slug],
-            },
-            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            good_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [blob1.checksum],
+                    "projects": [self.project.slug],
+                },
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
         assert response.status_code == 200
+
+        # Make sure org token usage was updated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == self.project.id

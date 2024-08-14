@@ -1,4 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
@@ -26,7 +28,7 @@ describe('Hook', function () {
 
     render(
       <div>
-        <Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />
+        <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
       </div>
     );
 
@@ -43,18 +45,20 @@ describe('Hook', function () {
     ));
 
     const {rerender} = render(
-      <Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
     );
 
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        New Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          New Hook
+        </HookWrapper>
+      ))
+    );
 
-    rerender(<Hook name="sidebar:help-menu" organization={TestStubs.Organization()} />);
+    rerender(<Hook name="sidebar:help-menu" organization={OrganizationFixture()} />);
 
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
@@ -64,7 +68,7 @@ describe('Hook', function () {
   it('can use children as a render prop', function () {
     let idx = 0;
     render(
-      <Hook name="sidebar:help-menu" organization={TestStubs.Organization()}>
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()}>
         {({hooks}) =>
           hooks.map((hook, i) => (
             <HookWrapper key={i}>
@@ -75,17 +79,21 @@ describe('Hook', function () {
       </Hook>
     );
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        First Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          First Hook
+        </HookWrapper>
+      ))
+    );
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        Second Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          Second Hook
+        </HookWrapper>
+      ))
+    );
 
     for (let i = 0; i < idx; i++) {
       expect(screen.getByText(`hook: ${idx}`)).toBeInTheDocument();

@@ -1,3 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
+import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -6,11 +12,11 @@ import ProjectPluginDetailsContainer, {
 } from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const router = TestStubs.router();
-  const plugins = TestStubs.Plugins();
-  const plugin = TestStubs.Plugin();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+  const plugins = PluginsFixture();
+  const plugin = PluginFixture();
+  const routerProps = RouteComponentPropsFixture();
 
   beforeAll(function () {
     jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -44,25 +50,19 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', function () {
-    const {container} = render(
+  it('renders', async function () {
+    render(
       <ProjectPluginDetailsContainer
+        {...routerProps}
         organization={organization}
         project={project}
         params={{
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        plugins={{plugins: []}}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
-
-    expect(container).toSnapshot();
+    expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
   it('resets plugin', async function () {
@@ -70,6 +70,7 @@ describe('ProjectPluginDetails', function () {
 
     render(
       <ProjectPluginDetails
+        {...routerProps}
         organization={organization}
         project={project}
         plugins={{plugins}}
@@ -77,11 +78,6 @@ describe('ProjectPluginDetails', function () {
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
 
@@ -97,18 +93,13 @@ describe('ProjectPluginDetails', function () {
 
     render(
       <ProjectPluginDetailsContainer
+        {...routerProps}
         organization={organization}
         project={project}
-        plugins={{plugins}}
         params={{
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
 

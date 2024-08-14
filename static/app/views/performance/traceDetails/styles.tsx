@@ -1,15 +1,22 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {defined, generateQueryWithTag} from 'sentry/utils';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
+import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -77,48 +84,76 @@ const StyledPills = styled(Pills)`
 export function Tags({
   location,
   organization,
-  transaction,
+  enableHiding,
+  event,
+  tags,
 }: {
+  event: TraceFullDetailed | TraceError;
   location: Location;
   organization: Organization;
-  transaction: TraceFullDetailed;
+  tags: EventTag[];
+  enableHiding?: boolean;
 }) {
-  const {tags} = transaction;
+  const [showingAll, setShowingAll] = useState(enableHiding ? false : true);
 
   if (!tags || tags.length <= 0) {
     return null;
   }
 
   const orgSlug = organization.slug;
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
     <tr>
       <td className="key">Tags</td>
       <td className="value">
         <StyledPills>
-          {tags.map((tag, index) => {
-            const {pathname: streamPath, query} = transactionSummaryRouteWithQuery({
-              orgSlug,
-              transaction: transaction.transaction,
-              projectID: String(transaction.project_id),
-              query: {
-                ...location.query,
-                query: appendTagCondition(location.query.query, tag.key, tag.value),
-              },
-            });
+          {tags.slice(0, showingAll ? tags.length : 5).map((tag, index) => {
+            let streamPath = '';
+            let query = {};
+
+            if (isTraceTransaction(event)) {
+              const route = transactionSummaryRouteWithQuery({
+                orgSlug,
+                transaction: event.transaction,
+                projectID: String(event.project_id),
+                query: {
+                  ...location.query,
+                  query: appendTagCondition(location.query.query, tag.key, tag.value),
+                },
+              });
+              streamPath = route.pathname;
+              query = route.query;
+            } else {
+              streamPath = `/organizations/${organization.slug}/issues/`;
+              query = generateQueryWithTag(
+                {...location.query, referrer: 'event-tags'},
+                tag
+              );
+            }
 
             return (
               <EventTagsPill
                 key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
                 tag={tag}
-                projectSlug={transaction.project_slug}
-                projectId={transaction.project_id.toString()}
+                projectSlug={event.project_slug}
+                projectId={event.project_id.toString()}
                 organization={organization}
                 query={query}
                 streamPath={streamPath}
               />
             );
           })}
+          {tags.length > 5 && enableHiding && (
+            <div style={{position: 'relative', height: '20px'}}>
+              <a
+                style={{position: 'absolute', bottom: '0px', whiteSpace: 'nowrap'}}
+                onClick={() => setShowingAll(prev => !prev)}
+              >
+                {renderText}
+              </a>
+            </div>
+          )}
         </StyledPills>
       </td>
     </tr>

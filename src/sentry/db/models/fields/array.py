@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import ast
 
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 
 from sentry.db.models.utils import Creator
+from sentry.db.postgres.lookups.array_element_contains import ArrayElementContainsLookup
 from sentry.utils import json
 
 
@@ -23,12 +27,12 @@ class ArrayField(models.Field):
 
         super().__init__(**kwargs)
 
-    def contribute_to_class(self, cls, name):
+    def contribute_to_class(self, cls: type[models.Model], name: str, private_only: bool = False):
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super().contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
     def db_type(self, connection):
@@ -58,5 +62,15 @@ class ArrayField(models.Field):
             except json.JSONDecodeError:
                 # This is to accommodate the erroneous exports pre 21.4.0
                 # See getsentry/sentry#23843 for more details
-                value = ast.literal_eval(value)
+                try:
+                    value = ast.literal_eval(value)
+                except ValueError:
+                    # this handles old database values using postgresql array format
+                    # see https://sentry.sentry.io/issues/4524783782/
+                    assert value[0] == "{" and value[-1] == "}", "Unexpected ArrayField format"
+                    assert "\\" not in value, "Unexpected ArrayField format"
+                    value = value[1:-1].split(",")
         return [self.of.to_python(x) for x in value]
+
+
+DjangoArrayField.register_lookup(ArrayElementContainsLookup)

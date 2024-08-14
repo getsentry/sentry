@@ -4,28 +4,18 @@ import logging
 import tempfile
 from hashlib import sha1
 
-import celery
 import sentry_sdk
-
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
-
+from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry.models import (
-    DEFAULT_BLOB_SIZE,
-    MAX_FILE_SIZE,
-    AssembleChecksumMismatch,
-    File,
-    FileBlob,
-    FileBlobIndex,
-)
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -53,6 +43,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     max_retries=3,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_download(
     data_export_id,
@@ -80,16 +71,10 @@ def assemble_download(
         except ExportedData.DoesNotExist as error:
             if first_page:
                 metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-            logger.exception(error)
+            logger.exception(str(error))
             return
 
-        with sentry_sdk.configure_scope() as scope:
-            if data_export.user_id:
-                user = dict(id=data_export.user_id)
-                scope.user = user
-            scope.set_tag("organization.slug", data_export.organization.slug)
-            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-            scope.set_extra("export.query", data_export.query_info)
+        _set_data_on_scope(data_export)
 
         base_bytes_written = bytes_written
 
@@ -111,7 +96,9 @@ def assemble_download(
                 # file handle to a stream writer that will encode to utf8.
                 tfw = codecs.getwriter("utf-8")(tf)
 
-                writer = csv.DictWriter(tfw, processor.header_fields, extrasaction="ignore")
+                writer = csv.DictWriter(
+                    tfw, processor.header_fields, escapechar="\\", extrasaction="ignore"
+                )
                 if first_page:
                     writer.writeheader()
 
@@ -166,7 +153,7 @@ def assemble_download(
                 return data_export.email_failure(message=str(error))
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-            logger.error(
+            logger.exception(
                 "dataexport.error: %s",
                 str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},
@@ -202,8 +189,10 @@ def assemble_download(
                     countdown=3,
                 )
             else:
-                metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
-                metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
+                metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
+                metrics.distribution(
+                    "dataexport.file_size", bytes_written, sample_rate=1.0, unit="byte"
+                )
                 merge_export_blobs.delay(data_export_id)
 
 
@@ -211,7 +200,7 @@ def get_processor(data_export, environment_id):
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
-            processor = IssuesByTagProcessor(
+            return IssuesByTagProcessor(
                 project_id=payload["project"][0],
                 group_id=payload["group"],
                 key=payload["key"],
@@ -219,17 +208,16 @@ def get_processor(data_export, environment_id):
                 tenant_ids={"organization_id": data_export.organization_id},
             )
         elif data_export.query_type == ExportQueryType.DISCOVER:
-            processor = DiscoverProcessor(
+            return DiscoverProcessor(
                 discover_query=data_export.query_info,
                 organization_id=data_export.organization_id,
             )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
-        return processor
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {error_str}")
+        logger.info("dataexport.error: %s", error_str)
         capture_exception(error)
         raise
 
@@ -246,7 +234,7 @@ def process_rows(processor, data_export, batch_size, offset):
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {error_str}")
+        logger.info("dataexport.error: %s", error_str)
         capture_exception(error)
         raise
 
@@ -298,22 +286,21 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
+@instrumented_task(
+    name="sentry.data_export.tasks.merge_blobs",
+    queue="data_export",
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist as error:
-            logger.exception(error)
+            logger.exception(str(error))
             return
 
-        with sentry_sdk.configure_scope() as scope:
-            if data_export.user_id:
-                user = dict(id=data_export.user_id)
-                scope.user = user
-            scope.set_tag("organization.slug", data_export.organization.slug)
-            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-            scope.set_extra("export.query", data_export.query_info)
+        _set_data_on_scope(data_export)
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
@@ -353,7 +340,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
                 # This is in a separate atomic transaction because in prod, files exist
                 # outside of the primary database which means that the transaction to
-                # the primary database is idle the entire time the writes the the files
+                # the primary database is idle the entire time the writes the files
                 # database is happening. In the event the writes to the files database
                 # takes longer than the idle timeout, the connection to the primary
                 # database can timeout causing a failure.
@@ -371,7 +358,7 @@ def merge_export_blobs(data_export_id, **kwargs):
                 tags={"success": False, "error": str(error)},
                 sample_rate=1.0,
             )
-            logger.error(
+            logger.exception(
                 "dataexport.error: %s",
                 str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},
@@ -382,3 +369,13 @@ def merge_export_blobs(data_export_id, **kwargs):
             else:
                 message = "Internal processing failure."
             return data_export.email_failure(message=message)
+
+
+def _set_data_on_scope(data_export):
+    scope = sentry_sdk.Scope.get_isolation_scope()
+    if data_export.user_id:
+        user = dict(id=data_export.user_id)
+        scope.set_user(user)
+    scope.set_tag("organization.slug", data_export.organization.slug)
+    scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    scope.set_extra("export.query", data_export.query_info)

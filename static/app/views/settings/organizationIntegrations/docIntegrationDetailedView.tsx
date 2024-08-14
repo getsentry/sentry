@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import {Button} from 'sentry/components/button';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DocIntegration} from 'sentry/types';
+import type {DocIntegration} from 'sentry/types/integrations';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -24,7 +24,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 > {
   tabs: Tab[] = ['overview'];
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       params: {integrationSlug},
     } = this.props;
@@ -89,7 +89,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
           size="sm"
           priority="primary"
           style={{marginLeft: space(1)}}
-          icon={<StyledIconOpen size="xs" />}
+          icon={<StyledIconOpen />}
         >
           {t('Learn More')}
         </LearnMoreButton>

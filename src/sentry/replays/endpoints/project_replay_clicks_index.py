@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Union
+from typing import TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk import (
-    And,
     Column,
     Condition,
     Entity,
@@ -21,33 +21,70 @@ from snuba_sdk import (
     Query,
     Request,
 )
-from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.replays.lib.query import (
-    Field,
-    ListField,
-    QueryConfig,
-    String,
-    attempt_compressed_condition,
-    filter_to_condition,
-)
-from sentry.replays.lib.selector.parse import QueryType, parse_selector
+from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
+from sentry.replays.lib.new_query.fields import ColumnField
+from sentry.replays.lib.query import attempt_compressed_condition
+from sentry.replays.usecases.query import search_filter_to_condition
+from sentry.replays.usecases.query.configs.scalar import click_search_config
+from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
 
 
+class ReplayClickResponseData(TypedDict):
+    node_id: int
+    timestamp: datetime.datetime
+
+
+class ReplayClickResponse(TypedDict):
+    data: list[ReplayClickResponseData]
+
+
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
+    owner = ApiOwner.REPLAY
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="List Clicked Nodes",
+        parameters=[
+            CursorQueryParam,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            ReplayParams.REPLAY_ID,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListReplayClicks", ReplayClickResponse),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReplayExamples.GET_REPLAY_CLICKS,
+    )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
+        """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
@@ -121,10 +158,7 @@ def query_replay_clicks(
     our implementation?  Because aggregation precludes the ability to paginate.  There is no other
     reason.
     """
-    conditions = generate_pregrouped_conditions(
-        search_filters,
-        query_config=ReplayClicksQueryConfig(),
-    )
+    conditions = handle_search_filters(click_search_config, search_filters)
     if len(conditions) > 1:
         conditions = [Or(conditions)]
 
@@ -142,11 +176,7 @@ def query_replay_clicks(
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("replay_id"), Op.EQ, replay_id),
-                # This is a hueristic to only evaluate valid rows. All click events will have
-                # a tag associated.  This condition allows the endpoint to return all valid click
-                # events if the query parameter was not provided.
                 Condition(Column("click_tag"), Op.NEQ, ""),
-                # Allow for click lookups using a subset of the index query configuration.
                 *conditions,
             ],
             orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
@@ -159,97 +189,44 @@ def query_replay_clicks(
     return raw_snql_query(snuba_request, REFERRER)
 
 
-class Selector(Field):
-    _operators = [Op.EQ, Op.NEQ]
-    _python_type = str
-
-    def as_condition(
-        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
-    ) -> Condition:
-        if operator == Op.NEQ:
-            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
-
-        # This list of queries implies an `OR` operation between each item in the set. To `AND`
-        # selector queries apply them separately.
-        queries: list[QueryType] = parse_selector(value)
-
-        # A valid selector will always return at least one query condition. If this did not occur
-        # then the selector was not well-formed. We return an empty resultset.
-        if len(queries) == 0:
-            return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
-
-        # Conditions are pre-made and intended for application in the HAVING clause.
-        conditions: list[Condition] = []
-
-        for query in queries:
-            if query.alt:
-                conditions.append(Condition(Column("click_alt"), operator, query.alt))
-            if query.aria_label:
-                conditions.append(Condition(Column("click_aria_label"), operator, query.aria_label))
-            if query.classes:
-                conditions.append(
-                    Condition(
-                        Function("hasAll", parameters=[Column("click_class"), query.classes]),
-                        Op.EQ,
-                        1,
-                    )
-                )
-            if query.id:
-                conditions.append(Condition(Column("click_id"), operator, query.id))
-            if query.role:
-                conditions.append(Condition(Column("click_role"), operator, query.role))
-            if query.tag:
-                conditions.append(Condition(Column("click_tag"), operator, query.tag))
-            if query.testid:
-                conditions.append(Condition(Column("click_testid"), operator, query.testid))
-            if query.title:
-                conditions.append(Condition(Column("click_title"), operator, query.title))
-
-        if len(conditions) == 1:
-            return conditions[0]
-        else:
-            return And(conditions)
-
-
-class ReplayClicksQueryConfig(QueryConfig):
-    click_alt = String(field_alias="click.alt")
-    click_class = ListField(field_alias="click.class")
-    click_id = String(field_alias="click.id")
-    click_aria_label = String(field_alias="click.label")
-    click_role = String(field_alias="click.role")
-    click_tag = String(field_alias="click.tag")
-    click_testid = String(field_alias="click.testid")
-    click_text = String(field_alias="click.textContent")
-    click_title = String(field_alias="click.title")
-    click_selector = Selector(field_alias="click.selector")
-
-
-def generate_pregrouped_conditions(
-    query: list[Union[SearchFilter, ParenExpression, str]],
-    query_config: QueryConfig,
-) -> list[Expression]:
-    """Convert search filters to snuba conditions.
-
-    AND conditions are coerced to OR conditions.  This is because we're operating over a
-    multi-row set but each filter was written under the assumption we were analyzing a single
-    row.  AND conditions are still possible using the selector syntax.
-    """
-    result: list[Expression] = []
+# TODO: Can this be abstracted in someway so the override does not need to redefine the whole
+# function?
+#
+# Identitical to the original handle_search_filters function except `And` operations are
+# transformed into `Or` operations.
+def handle_search_filters(
+    search_config: dict[str, ColumnField | ComputedField | TagField],
+    search_filters: list[SearchFilter | str | ParenExpression],
+) -> list[Condition]:
+    """Convert search filters to snuba conditions."""
+    result: list[Condition] = []
     look_back = None
-    for search_filter in query:
-        # SearchFilters are appended to the result set.  If they are top level filters they are
-        # implicitly And'ed in the WHERE/HAVING clause.
+    for search_filter in search_filters:
+        # SearchFilters are transformed into Conditions and appended to the result set.  If they
+        # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
+        # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
-            condition = filter_to_condition(search_filter, query_config)
-            if look_back == "OR" or look_back == "AND":
+            try:
+                condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
+            except OperatorNotSupported:
+                raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+            except CouldNotParseValue:
+                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+
+            if look_back == "AND":
+                look_back = None
+                attempt_compressed_condition(result, condition, Or)
+            elif look_back == "OR":
                 look_back = None
                 attempt_compressed_condition(result, condition, Or)
             else:
                 result.append(condition)
         # ParenExpressions are recursively computed.  If more than one condition is returned then
-        # those conditions are And'ed.
+        # those conditions are AND'ed.
         elif isinstance(search_filter, ParenExpression):
-            conditions = generate_pregrouped_conditions(search_filter.children, query_config)
+            conditions = handle_search_filters(search_config, search_filter.children)
             if len(conditions) < 2:
                 result.extend(conditions)
             else:

@@ -1,6 +1,7 @@
-import {User} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
+import type {User} from 'sentry/types/user';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 type Data = [number, {count: number}[]][];
 
@@ -29,6 +30,7 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
+  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 
@@ -51,7 +53,7 @@ export type ActivityTypeDraft = {
 
 export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
-  value: string | null;
+  value: string | null; // determines IncidentStatus of the activity (CRITICAL/WARNING/etc.)
   eventStats?: {data: Data};
 };
 
@@ -70,6 +72,11 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
+export enum ActivationStatus {
+  WAITING = 0,
+  MONITORING = 1,
+}
+
 export enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
@@ -85,9 +92,22 @@ export enum AlertRuleStatus {
 export enum CombinedAlertType {
   METRIC = 'alert_rule',
   ISSUE = 'rule',
+  UPTIME = 'uptime',
 }
 
-export type CombinedMetricIssueAlerts = (IssueAlertRule | MetricRule) & {
-  type: CombinedAlertType;
+export interface IssueAlert extends IssueAlertRule {
+  type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
-};
+}
+
+export interface MetricAlert extends MetricRule {
+  type: CombinedAlertType.METRIC;
+}
+
+export interface UptimeAlert extends UptimeRule {
+  type: CombinedAlertType.UPTIME;
+}
+
+export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
+
+export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;

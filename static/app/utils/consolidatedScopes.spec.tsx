@@ -17,6 +17,17 @@ describe('ConsolidatedScopes', () => {
     );
   });
 
+  it('removes org:integrations scopes', () => {
+    scopes.push('org:integrations');
+    expect(toResourcePermissions(scopes)).toEqual(
+      expect.objectContaining({
+        Event: 'admin',
+        Release: 'admin',
+        Organization: 'read',
+      })
+    );
+  });
+
   it('exposes scopes, grouped by access level', () => {
     expect(toPermissions(scopes)).toEqual({
       admin: expect.arrayContaining(['Event', 'Release']),

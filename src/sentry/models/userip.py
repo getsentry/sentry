@@ -1,20 +1,37 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
-from sentry.models import User
-from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.audit_log.services.log import UserIpEvent, log_service
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.geo import geo_by_addr
 
 
-@control_silo_only_model
+@control_silo_model
 class UserIP(Model):
-    __include_in_export__ = True
+    # There is an absolutely massive number of `UserIP` models in any sufficiently long-lived
+    # install of Sentry. So while it would probably make semantic sense to have this be
+    # `RelocationScope.User`, only someone interested in backing up every bit of data could want
+    # this (we certainly don't need it on prod for relocation). Thus, this gets moved into the
+    # `Global` scope instead.
+    __relocation_scope__ = RelocationScope.Global
+    __relocation_custom_ordinal__ = ["user", "ip_address"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     ip_address = models.GenericIPAddressField()
@@ -38,6 +55,72 @@ class UserIP(Model):
         if not cache.get(cache_key):
             _perform_log(user, ip_address)
             cache.set(cache_key, 1, 300)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        from sentry.users.models.user import User
+
+        old_user_id = self.user_id
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported IP and use the existing user's IP instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            return None
+
+        # We'll recalculate the country codes from the IP when we call `log()` in
+        # `write_relocation_import()`.
+        self.country_code = None
+        self.region_code = None
+
+        # Only preserve the submitted timing data in the backup/restore scope.
+        if scope != ImportScope.Global:
+            self.first_seen = self.last_seen = timezone.now()
+
+        return old_pk
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        # Ensures that the IP address is valid. Exclude the codes, as they should be `None` until we
+        # `log()` them below.
+        self.full_clean(exclude=["country_code", "region_code", "user"])
+
+        # Update country/region codes as necessary by using the `log()` method.
+        (userip, _) = self.__class__.objects.get_or_create(
+            user=self.user, ip_address=self.ip_address
+        )
+
+        # Calling the `.log()` method makes a separate "update" call to the database, so we need to
+        # refresh this local version of the model immediately after.
+        self.__class__.log(self.user, self.ip_address)
+        userip.refresh_from_db()
+
+        userip.first_seen = self.first_seen
+        userip.last_seen = self.last_seen
+        userip.save()
+
+        self.country_code = userip.country_code
+        self.region_code = userip.region_code
+
+        # If we've entered this method at all, we can be sure that the `UserIP` was created as part
+        # of the import, since this is a new `User` (the "existing" `User` due to
+        # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
+        # above).
+        return (userip.pk, ImportKind.Inserted)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        # Always use British Columbia for fake IP geo data, cause why not.
+        sanitizer.set_string(json, SanitizableField(model_name, "country_code"), lambda _: "CA")
+        sanitizer.set_string(json, SanitizableField(model_name, "region_code"), lambda _: "BC")
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):

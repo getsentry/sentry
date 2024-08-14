@@ -8,16 +8,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -72,7 +72,8 @@ metadata = IntegrationMetadata(
 
 
 class MsTeamsIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> MsTeamsClient:
+        return MsTeamsClient(self.model)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

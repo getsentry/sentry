@@ -1,4 +1,4 @@
-minVersion: "0.23.1"
+minVersion: '0.23.1'
 releaseBranchPrefix: releases
 changelog: CHANGES
 changelogPolicy: auto
@@ -6,22 +6,17 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted-builder (sentryio)'
+      - 'self-hosted'
 artifactProvider:
-  name: gcs
-  config:
-    bucket: sentryio-cloudbuild-opensource
-requireNames:
-  - /^sentry-.+-py3\d?-none-any.whl$/
+  name: none
 targets:
   - id: release
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
   - id: latest
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-  - name: pypi
   - name: github

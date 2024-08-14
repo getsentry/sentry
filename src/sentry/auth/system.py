@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import secrets
 from typing import Any
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
+from django.utils.functional import cached_property
 
 from sentry import options
-from sentry.utils.cache import memoize
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
@@ -28,8 +28,8 @@ def is_internal_ip(request: HttpRequest) -> bool:
 def get_system_token() -> str:
     token = options.get("sentry:system-token")
     if not token:
-        token = uuid4().hex
-        options.set("sentry:system-token", token)
+        token = secrets.token_hex()
+        options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
     return token
 
 
@@ -76,7 +76,7 @@ class SystemToken:
     def is_expired(self) -> bool:
         return False
 
-    @memoize
+    @cached_property
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
         user.is_active = True
@@ -100,7 +100,7 @@ class SystemToken:
 
 def is_system_auth(auth: object) -> bool:
     """:returns True when Sentry itself is hitting the API."""
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "system"

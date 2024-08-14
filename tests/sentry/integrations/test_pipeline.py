@@ -1,24 +1,23 @@
 from unittest.mock import patch
 
-from sentry.api.utils import generate_organization_url
-from sentry.db.postgres.roles import in_test_psql_role_override
+from django.db import router
+
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    Integration,
-    OrganizationIntegration,
-    Repository,
-)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.identity import Identity
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
-from sentry.testutils import IntegrationTestCase
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -32,11 +31,11 @@ def naive_build_integration(data):
     return data
 
 
+@control_silo_test
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -55,10 +54,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
         ]
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        with receivers_raise_on_send(), outbox_runner(), in_test_psql_role_override("postgres"):
+        with (
+            receivers_raise_on_send(),
+            outbox_runner(),
+            unguarded_write(using=router.db_for_write(OrganizationMapping)),
+        ):
             for org in na_orgs:
                 integration.add_organization(org)
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
@@ -86,7 +89,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_customer_domain(self, *args):
-        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+        with self.feature({"system:multi-region": True}):
             data = {
                 "external_id": self.external_id,
                 "name": "Name",
@@ -139,7 +142,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # Installing organization is from the same region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping.update(region_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
@@ -156,7 +159,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # Installing organization is from a different region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
@@ -189,7 +192,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_expect_exists(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key, external_id=self.external_id, name="Tester"
         )
         self.pipeline.state.data = {"expect_exists": True, "external_id": self.external_id}
@@ -205,7 +208,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_expect_exists_does_not_update(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             name="Tester",
@@ -264,12 +267,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
     def test_default_identity_does_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.organization.id,
             integration=integration,
             default_auth_id=old_identity_id,
@@ -305,12 +308,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # and integration records. Ensure that the new organizationintegration gets
         # a default_auth_id set.
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -344,12 +347,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # we need to make sure any other org_integrations have the same
         # identity that we use for the new one
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -383,12 +386,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     def test_different_user_same_external_id_no_default_needed(self, *args):
         new_user = self.create_user()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(
@@ -413,7 +416,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",
@@ -433,11 +436,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert call.called
 
 
+@control_silo_test
 @patch(
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 
@@ -451,12 +454,12 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     def test_different_user_same_external_id(self, *args):
         new_user = self.create_user()
         self.setUp()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(
@@ -475,4 +478,4 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         }
         resp = self.pipeline.finish_pipeline()
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
-        assert "account is linked to a different Sentry user" in str(resp.content)
+        assert "account is linked to a different Sentry user" in resp.content.decode()

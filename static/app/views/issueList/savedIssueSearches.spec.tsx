@@ -1,4 +1,7 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {
   render,
@@ -10,15 +13,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModalContainer from 'sentry/components/globalModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
 
-  const recommendedSearch = TestStubs.Search({
+  const recommendedSearch = SearchFixture({
     id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
@@ -26,7 +29,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const userSearch = TestStubs.Search({
+  const userSearch = SearchFixture({
     id: 'user-search',
     isGlobal: false,
     name: 'Just Firefox',
@@ -34,15 +37,16 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.OWNER,
   });
 
-  const orgSearch = TestStubs.Search({
+  const orgSearch = SearchFixture({
     id: 'org-search',
     isGlobal: false,
     name: 'Last 4 Hours',
     query: 'age:-4h',
     visibility: SavedSearchVisibility.ORGANIZATION,
+    sort: 'date',
   });
 
-  const pinnedSearch = TestStubs.Search({
+  const pinnedSearch = SearchFixture({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
@@ -60,7 +64,11 @@ describe('SavedIssueSearches', function () {
   beforeEach(() => {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {
@@ -69,13 +77,11 @@ describe('SavedIssueSearches', function () {
       body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
     });
 
-    const {container} = render(<SavedIssueSearches {...defaultProps} />);
+    render(<SavedIssueSearches {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-
-    expect(container).toSnapshot();
   });
 
   it('hides saves searches by default past first 4', async function () {

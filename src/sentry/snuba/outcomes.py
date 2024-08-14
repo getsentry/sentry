@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, Generic, TypeVar
 
 from django.http import QueryDict
 from snuba_sdk import Request
@@ -53,18 +54,20 @@ by these fields
 - `key_id`
 """
 
-ResultSet = List[Dict[str, Any]]
-QueryCondition = Tuple[str, str, List[Any]]
+ResultSet = list[dict[str, Any]]
+QueryCondition = tuple[str, str, list[Any]]
+
+T = TypeVar("T")
 
 
 class Field(ABC):
     @abstractmethod
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         raise NotImplementedError()
 
     @abstractmethod
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         raise NotImplementedError()
 
@@ -74,11 +77,11 @@ class Field(ABC):
 
 
 class QuantityField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         return ["quantity"]
 
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         if row is None:
             return 0
@@ -89,11 +92,11 @@ class QuantityField(Field):
 
 
 class TimesSeenField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> List[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         return ["times_seen"]
 
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         if row is None:
             return 0
@@ -104,12 +107,12 @@ class TimesSeenField(Field):
             return Function("sum", [Column("times_seen")], "times_seen")
         else:
             # RawOutcomes doesnt have times_seen, do a count instead
-            return Function("count()", [Column("times_seen")], "times_seen")
+            return Function("count", [], "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):
+class Dimension(SimpleGroupBy, ABC, Generic[T]):
     @abstractmethod
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> list[T]:
         """
         Based on the input filter, map it back to the clickhouse representation
         """
@@ -123,14 +126,14 @@ class Dimension(SimpleGroupBy, ABC):
         raise NotImplementedError()
 
 
-class CategoryDimension(Dimension):
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
+class CategoryDimension(Dimension[DataCategory]):
+    def resolve_filter(self, raw_filter: Sequence[str]) -> list[DataCategory]:
         resolved_categories = set()
         for category in raw_filter:
             # combine DEFAULT, ERROR, and SECURITY as errors.
             # see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
             parsed_category = DataCategory.parse(category)
-            if parsed_category is None:
+            if parsed_category is None and parsed_category != "metrics":
                 raise InvalidField(f'Invalid category: "{category}"')
             elif parsed_category == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
@@ -150,8 +153,8 @@ class CategoryDimension(Dimension):
             row["category"] = category.api_name()
 
 
-class OutcomeDimension(Dimension):
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
+class OutcomeDimension(Dimension[Outcome]):
+    def resolve_filter(self, raw_filter: Sequence[str]) -> list[Outcome]:
         def _parse_outcome(outcome: str) -> Outcome:
             try:
                 return Outcome.parse(outcome)
@@ -165,8 +168,8 @@ class OutcomeDimension(Dimension):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
-class KeyDimension(Dimension):
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[int]:
+class KeyDimension(Dimension[int]):
+    def resolve_filter(self, raw_filter: Sequence[str]) -> list[int]:
         def _parse_value(key_id: str) -> int:
             try:
                 return int(key_id)
@@ -181,7 +184,7 @@ class KeyDimension(Dimension):
 
 
 class ReasonDimension(Dimension):
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[str]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> list[str]:
         return [
             "smart_rate_limit" if reason == "spike_protection" else reason for reason in raw_filter
         ]
@@ -229,7 +232,7 @@ class QueryDefinition:
         cls,
         query: QueryDict,
         params: Mapping[Any, Any],
-        allow_minute_resolution: Optional[bool] = True,
+        allow_minute_resolution: bool | None = True,
     ) -> QueryDefinition:
         """
         Create a QueryDefinition from a Django request QueryDict
@@ -254,19 +257,19 @@ class QueryDefinition:
 
     def __init__(
         self,
-        fields: List[str],
-        start: Optional[str] = None,
-        end: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        key_id: Optional[str | int] = None,
-        interval: Optional[str] = None,
-        outcome: Optional[List[str]] = None,
-        group_by: Optional[List[str]] = None,
-        category: Optional[List[str]] = None,
-        reason: Optional[str] = None,
-        allow_minute_resolution: Optional[bool] = True,
+        fields: list[str],
+        start: str | None = None,
+        end: str | None = None,
+        stats_period: str | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+        key_id: str | int | None = None,
+        interval: str | None = None,
+        outcome: list[str] | None = None,
+        group_by: list[str] | None = None,
+        category: list[str] | None = None,
+        reason: str | None = None,
+        allow_minute_resolution: bool | None = True,
     ):
         params: MutableMapping[str, Any] = {"organization_id": organization_id}
         if project_ids is not None:
@@ -275,7 +278,7 @@ class QueryDefinition:
         if len(fields) == 0:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
-        self.query: List[Any] = []  # not used but needed for compat with sessions logic
+        self.query: list[Any] = []  # not used but needed for compat with sessions logic
         allowed_resolution = (
             AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
         )
@@ -332,7 +335,7 @@ class QueryDefinition:
         }
         self.conditions = self.get_conditions(condition_data, params)
 
-    def get_conditions(self, query: Mapping[str, Any], params: Mapping[Any, Any]) -> List[Any]:
+    def get_conditions(self, query: Mapping[str, Any], params: Mapping[Any, Any]) -> list[Any]:
         query_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
@@ -358,7 +361,7 @@ class QueryDefinition:
 def run_outcomes_query_totals(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -379,7 +382,7 @@ def run_outcomes_query_totals(
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
     referrer: str = "outcomes.timeseries",
 ) -> ResultSet:
     """
@@ -404,9 +407,9 @@ def run_outcomes_query_timeseries(
 
 
 def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
-    category_grouping: Dict[str, Any] = {}
+    category_grouping: dict[str, Any] = {}
 
-    def _group_row(row: Dict[str, Any]) -> None:
+    def _group_row(row: dict[str, Any]) -> None:
         # Combine rows with the same group key into one.
         # Needed to combine "ERROR", "DEFAULT" and "SECURITY" rows and sum aggregations.
         if TS_COL in row:
@@ -429,12 +432,12 @@ def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
     return list(category_grouping.values())
 
 
-def _rename_row_fields(row: Dict[str, Any]) -> None:
+def _rename_row_fields(row: dict[str, Any]) -> None:
     for dimension in DIMENSION_MAP:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int) -> Tuple[Dataset, str]:
+def _outcomes_dataset(rollup: int) -> tuple[Dataset, str]:
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
         dataset = Dataset.Outcomes
@@ -448,9 +451,9 @@ def _outcomes_dataset(rollup: int) -> Tuple[Dataset, str]:
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
-    result_timeseries: Optional[ResultSet],
-) -> Dict[str, List[Any]]:
-    result: Dict[str, List[Any]] = massage_sessions_result(
+    result_timeseries: ResultSet | None,
+) -> dict[str, list[Any]]:
+    result: dict[str, list[Any]] = massage_sessions_result(
         query, result_totals, result_timeseries, ts_col=TS_COL
     )
     if result_timeseries is None:

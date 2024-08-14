@@ -3,13 +3,15 @@ import re
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
-from sentry.models import AuthProvider, OrganizationMember
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class IDPMigrationTests(TestCase):
     def setUp(self):
         super().setUp()
@@ -22,7 +24,7 @@ class IDPMigrationTests(TestCase):
     IDENTITY_ID = "drgUQCLzOyfHxmTyVs0G"
 
     def test_send_one_time_account_confirm_link(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID

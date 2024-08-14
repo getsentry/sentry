@@ -1,16 +1,21 @@
+from typing import Any
+from uuid import UUID, uuid4
+
+import orjson
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
-from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.rules import rules
-from sentry.utils import json
 
 ValidationError = serializers.ValidationError
 
 
+@extend_schema_field(field=OpenApiTypes.OBJECT)
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
         super().__init__()
@@ -22,7 +27,7 @@ class RuleNodeField(serializers.Field):
     def to_internal_value(self, data):
         if isinstance(data, str):
             try:
-                data = json.loads(data.replace("'", '"'))
+                data = orjson.loads(data.replace("'", '"'))
             except Exception:
                 raise ValidationError("Failed trying to parse dict from string")
         elif not isinstance(data, dict):
@@ -32,12 +37,16 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
+        for key, value in list(data.items()):
+            if not value:
+                del data[key]
+
         cls = rules.get(data["id"], self.type_name)
         if cls is None:
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
-        node = cls(self.context["project"], data)
+        node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:
@@ -71,8 +80,8 @@ class RuleNodeField(serializers.Field):
 
 
 class RuleSetSerializer(serializers.Serializer):
-    conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
-    filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
+    conditions = serializers.ListField(child=RuleNodeField(type="condition/event"), required=False)
+    filters = serializers.ListField(child=RuleNodeField(type="filter/event"), required=False)
     actionMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none"))
     )
@@ -124,16 +133,16 @@ class RulePreviewSerializer(RuleSetSerializer):
 
 
 class RuleActionSerializer(serializers.Serializer):
-    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
+    actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
 
     def validate(self, attrs):
         return validate_actions(attrs)
 
 
 class RuleSerializer(RuleSetSerializer):
-    name = serializers.CharField(max_length=64)
+    name = serializers.CharField(max_length=256)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
-    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
+    actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
     owner = ActorField(required=False, allow_null=True)
 
     def validate_environment(self, environment):
@@ -148,6 +157,13 @@ class RuleSerializer(RuleSetSerializer):
             raise serializers.ValidationError("This environment has not been created.")
 
         return environment
+
+    def validate_conditions(self, conditions):
+        for condition in conditions:
+            if condition.get("name"):
+                del condition["name"]
+
+        return conditions
 
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
@@ -170,9 +186,38 @@ class RuleSerializer(RuleSetSerializer):
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
-            rule.owner = self.validated_data["owner"].resolve_to_actor()
+            actor = self.validated_data["owner"].resolve_to_actor()
+            rule.owner_id = actor.id
+            rule.owner_user_id = actor.user_id
+            rule.owner_team_id = actor.team_id
         rule.save()
         return rule
+
+
+ACTION_UUID_KEY = "uuid"
+
+
+def ensure_action_uuid(action: dict[Any, Any]) -> None:
+    """
+    Ensure that each action is uniquely identifiable.
+    The function will check that a UUID key and value exists in the action.
+    If the key does not exist, or it's not a valid UUID, it will create a new one and assign it to the action.
+
+    Does not add an uuid to the action if it is empty.
+    """
+    if not action:
+        return
+
+    if ACTION_UUID_KEY in action:
+        existing_uuid = action[ACTION_UUID_KEY]
+        try:
+            UUID(existing_uuid)
+        except (ValueError, TypeError):
+            pass
+        else:
+            return
+
+    action[ACTION_UUID_KEY] = str(uuid4())
 
 
 def validate_actions(attrs):
@@ -182,6 +227,10 @@ def validate_actions(attrs):
     # project_rule(_details) endpoints by setting it on attrs
     actions = attrs.get("actions", tuple())
     for action in actions:
+        ensure_action_uuid(action)
+
+        if action.get("name"):
+            del action["name"]
         # XXX(colleen): For ticket rules we need to ensure the user has
         # at least done minimal configuration
         if action["id"] in TICKET_ACTIONS:

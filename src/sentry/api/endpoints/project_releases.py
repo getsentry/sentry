@@ -1,27 +1,35 @@
 from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
-from sentry.models import Activity, Environment, Release, ReleaseStatus
-from sentry.models.apitoken import is_api_token_auth
+from sentry.api.utils import get_auth_api_token_type
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
 from sentry.types.activity import ActivityType
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 
 @region_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -34,9 +42,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Retrieve a list of releases for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      releases of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
@@ -61,11 +69,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         if query:
             queryset = queryset.filter(version__icontains=query)
 
-        queryset = queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
-
         return self.paginate(
             request=request,
-            queryset=queryset,
+            queryset=queryset.extra(select={"sort": "COALESCE(date_released, date_added)"}),
             order_by="-sort",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
@@ -89,9 +95,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to create a
+        :pparam string project_id_or_slug: the id or slug of the project to create a
                                      release for.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -110,89 +116,97 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             data=request.data, context={"organization": project.organization}
         )
 
-        with configure_scope() as scope:
-            if serializer.is_valid():
-                result = serializer.validated_data
-                scope.set_tag("version", result["version"])
+        scope = Scope.get_isolation_scope()
 
-                new_status = result.get("status")
+        if serializer.is_valid():
+            result = serializer.validated_data
+            scope.set_tag("version", result["version"])
 
-                # release creation is idempotent to simplify user
-                # experiences
-                owner_id: int | None = None
-                if owner := result.get("owner"):
-                    owner_id = owner.id
+            new_status = result.get("status")
 
-                try:
-                    with transaction.atomic():
-                        release, created = (
-                            Release.objects.create(
-                                organization_id=project.organization_id,
-                                version=result["version"],
-                                ref=result.get("ref"),
-                                url=result.get("url"),
-                                owner_id=owner_id,
-                                date_released=result.get("dateReleased"),
-                                status=new_status or ReleaseStatus.OPEN,
-                                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                            ),
-                            True,
-                        )
-                    was_released = False
-                except IntegrityError:
+            # release creation is idempotent to simplify user
+            # experiences
+            owner_id: int | None = None
+            if owner := result.get("owner"):
+                owner_id = owner.id
+
+            try:
+                with transaction.atomic(router.db_for_write(Release)):
                     release, created = (
-                        Release.objects.get(
-                            organization_id=project.organization_id, version=result["version"]
+                        Release.objects.create(
+                            organization_id=project.organization_id,
+                            version=result["version"],
+                            ref=result.get("ref"),
+                            url=result.get("url"),
+                            owner_id=owner_id,
+                            date_released=result.get("dateReleased"),
+                            status=new_status or ReleaseStatus.OPEN,
+                            user_agent=request.META.get("HTTP_USER_AGENT", ""),
                         ),
-                        False,
+                        True,
                     )
-                    was_released = bool(release.date_released)
-                else:
-                    release_created.send_robust(release=release, sender=self.__class__)
-
-                if not created and new_status is not None and new_status != release.status:
-                    release.status = new_status
-                    release.save()
-
-                created = release.add_project(project)
-
-                commit_list = result.get("commits")
-                if commit_list:
-                    hook = ReleaseHook(project)
-                    # TODO(dcramer): handle errors with release payloads
-                    hook.set_commits(release.version, commit_list)
-
-                if not was_released and release.date_released:
-                    Activity.objects.create(
-                        type=ActivityType.RELEASE.value,
-                        project=project,
-                        ident=Activity.get_version_ident(result["version"]),
-                        data={"version": result["version"]},
-                        datetime=release.date_released,
-                    )
-
-                if not created:
-                    # This is the closest status code that makes sense, and we want
-                    # a unique 2xx response code so people can understand when
-                    # behavior differs.
-                    #   208 Already Reported (WebDAV; RFC 5842)
-                    status = 208
-                else:
-                    status = 201
-
-                analytics.record(
-                    "release.created",
-                    user_id=request.user.id if request.user and request.user.id else None,
-                    organization_id=project.organization_id,
-                    project_ids=[project.id],
-                    user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
-                    created_status=status,
-                    auth_type="api_token" if is_api_token_auth(request.auth) else None,
+                was_released = False
+            except IntegrityError:
+                release, created = (
+                    Release.objects.get(
+                        organization_id=project.organization_id, version=result["version"]
+                    ),
+                    False,
                 )
-                scope.set_tag("success_status", status)
+                was_released = bool(release.date_released)
+            else:
+                release_created.send_robust(release=release, sender=self.__class__)
 
-                # Disable snuba here as it often causes 429s when overloaded and
-                # a freshly created release won't have health data anyways.
-                return Response(serialize(release, request.user, no_snuba=True), status=status)
-            scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            if not created and new_status is not None and new_status != release.status:
+                release.status = new_status
+                release.save()
+
+            _, releaseproject_created = release.add_project(project)
+
+            commit_list = result.get("commits")
+            if commit_list:
+                hook = ReleaseHook(project)
+                # TODO(dcramer): handle errors with release payloads
+                hook.set_commits(release.version, commit_list)
+
+            if not was_released and release.date_released:
+                Activity.objects.create(
+                    type=ActivityType.RELEASE.value,
+                    project=project,
+                    ident=Activity.get_version_ident(result["version"]),
+                    data={"version": result["version"]},
+                    datetime=release.date_released,
+                )
+
+            if not releaseproject_created:
+                # This is the closest status code that makes sense, and we want
+                # a unique 2xx response code so people can understand when
+                # behavior differs.
+                #   208 Already Reported (WebDAV; RFC 5842)
+                status = 208
+            else:
+                status = 201
+
+            analytics.record(
+                "release.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_ids=[project.id],
+                user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
+                created_status=status,
+                auth_type=get_auth_api_token_type(request.auth),
+            )
+
+            if is_org_auth_token_auth(request.auth):
+                update_org_auth_token_last_used(request.auth, [project.id])
+
+            scope.set_tag("success_status", status)
+
+            # Disable snuba here as it often causes 429s when overloaded and
+            # a freshly created release won't have health data anyways.
+            return Response(
+                serialize(release, request.user, no_snuba_for_release_creation=True),
+                status=status,
+            )
+        scope.set_tag("failure_reason", "serializer_error")
+        return Response(serializer.errors, status=400)

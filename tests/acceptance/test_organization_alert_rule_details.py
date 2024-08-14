@@ -2,24 +2,23 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.rule = Rule.objects.filter(project=self.project).first()
+        self.rule = Rule.objects.get(project=self.project)
         self.path = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rule.id}/details/"
 
     def test_empty_alert_rule_details(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("alert rule details - empty state")
 
     def test_alert_rule_with_issues(self):
         group = self.create_group()
@@ -32,4 +31,3 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("alert rule details - issues")

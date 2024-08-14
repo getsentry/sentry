@@ -1,27 +1,22 @@
 import re
 import uuid
-from contextlib import contextmanager
+from unittest import mock
 
+import orjson
 from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
+from sentry.auth import system
 from sentry.models.relay import Relay
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json, safe
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.utils import safe
 
 
 # Note this is duplicated in test_relay_publickeys (maybe put in a common utils)
-@contextmanager
 def disable_internal_networks():
-    from sentry.auth import system
-
-    old_internal_networks = system.INTERNAL_NETWORKS
-    system.INTERNAL_NETWORKS = ()
-    yield
-    # restore INTERNAL NETWORKS
-    system.INTERNAL_NETWORKS = old_internal_networks
+    return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
 def _get_all_keys(config):
@@ -32,7 +27,6 @@ def _get_all_keys(config):
                 yield key
 
 
-@region_silo_test
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -78,13 +72,13 @@ class RelayProjectIdsEndpointTest(APITestCase):
                     HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
                 )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     def _call_endpoint_static_relay(self, internal):
         raw_json, signature = self.private_key.pack({"publicKeys": [str(self.public_key)]})
 
         static_auth = {self.relay_id: {"internal": internal, "public_key": str(self.public_key)}}
-        with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+        with override_options({"relay.static_auth": static_auth}):
             resp = self.client.post(
                 self.path,
                 data=raw_json,
@@ -92,7 +86,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
                 HTTP_X_SENTRY_RELAY_ID=self.relay_id,
                 HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
             )
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     def test_internal_relay(self):
         self._setup_relay(add_org_key=True)

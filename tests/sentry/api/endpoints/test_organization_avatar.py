@@ -1,8 +1,7 @@
 from base64 import b64encode
 
-from sentry.models import OrganizationAvatar
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.testutils.cases import APITestCase
 
 
 class OrganizationAvatarTestBase(APITestCase):
@@ -13,16 +12,15 @@ class OrganizationAvatarTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
 class OrganizationAvatarTest(OrganizationAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.organization.slug)
         assert response.data["id"] == str(self.organization.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
+        assert response.data["avatar"]["avatarUrl"] is None
 
 
-@region_silo_test(stable=True)
 class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
     method = "put"
 

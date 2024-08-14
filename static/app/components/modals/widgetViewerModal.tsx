@@ -5,43 +5,47 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SelectValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
-  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {
+  createOnDemandFilterWarning,
+  shouldDisplayOnDemandWidgetWarning,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -51,35 +55,31 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {
-  DashboardFilters,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetMetricsUrl,
   getWidgetReleasesUrl,
+  hasDatasetSelector,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import WidgetCardChart, {
-  AugmentedEChartDataZoomHandler,
-  SLIDER_HEIGHT,
-} from 'sentry/views/dashboards/widgetCard/chart';
+import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
+import WidgetCardChart, {SLIDER_HEIGHT} from 'sentry/views/dashboards/widgetCard/chart';
 import {
-  DashboardsMEPConsumer,
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -101,6 +101,7 @@ export interface WidgetViewerModalOptions {
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
+  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
@@ -115,7 +116,6 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
-const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
@@ -323,14 +323,6 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // World Map view should always have geo.country in the table chart
-  if (
-    widget.displayType === DisplayType.WORLD_MAP &&
-    !columns.includes(GEO_COUNTRY_CODE)
-  ) {
-    fields.unshift(GEO_COUNTRY_CODE);
-    columns.unshift(GEO_COUNTRY_CODE);
-  }
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
@@ -385,8 +377,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
-    modalTableSelection,
-    tableWidget.displayType
+    modalTableSelection
   );
 
   let columnOrder = decodeColumnOrder(
@@ -400,14 +391,30 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
+  const queryOptions = sortedQueries.map((query, index) => {
+    const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: shouldDisplayOnDemandWidgetWarning(
+                query,
+                widget.widgetType ?? WidgetType.DISCOVER,
+                organization
+              )
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (
@@ -515,7 +522,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -580,7 +586,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -657,7 +662,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (
@@ -952,15 +956,15 @@ function WidgetViewerModal(props: Props) {
                             label: highlightedQuery,
                           }
                         : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
+                          ? containerProps
+                          : {
+                              ...containerProps,
+                              label: (
+                                <EmptyQueryContainer>
+                                  {EMPTY_QUERY_NAME}
+                                </EmptyQueryContainer>
+                              ),
+                            })}
                     />
                   );
                 },
@@ -1000,35 +1004,25 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                      </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
-                      <DashboardsMEPConsumer>
-                        {({}) => {
-                          // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-                          // if (
-                          //   widgetContentLoadingStatus === false &&
-                          //   widget.widgetType === WidgetType.DISCOVER &&
-                          //   isMetricsData === false
-                          // ) {
-                          //   return (
-                          //     <Tooltip
-                          //       containerDisplayMode="inline-flex"
-                          //       title={t(
-                          //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                          //       )}
-                          //     >
-                          //       <IconWarning color="warningText" size="md" />
-                          //     </Tooltip>
-                          //   );
-                          // }
-
-                          return null;
-                        }}
-                      </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1097,6 +1091,10 @@ function OpenButton({
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in Metrics');
+      path = getWidgetMetricsUrl(widget, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1110,20 +1108,31 @@ function OpenButton({
       break;
   }
 
+  const buttonDisabled =
+    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
+
   return (
-    <Button
-      to={path}
-      priority="primary"
-      onClick={() => {
-        trackAnalytics('dashboards_views.widget_viewer.open_source', {
-          organization,
-          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-          display_type: widget.displayType,
-        });
-      }}
+    <Tooltip
+      title={t(
+        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+      )}
+      disabled={!buttonDisabled}
     >
-      {openLabel}
-    </Button>
+      <Button
+        to={path}
+        priority="primary"
+        disabled={buttonDisabled}
+        onClick={() => {
+          trackAnalytics('dashboards_views.widget_viewer.open_source', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+          });
+        }}
+      >
+        {openLabel}
+      </Button>
+    </Tooltip>
   );
 }
 
@@ -1144,7 +1153,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}
@@ -1203,10 +1212,16 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

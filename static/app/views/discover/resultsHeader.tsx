@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import {stringify} from 'query-string';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,9 +14,10 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
@@ -78,7 +79,14 @@ class ResultsHeader extends Component<Props, State> {
     if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({savedQuery, loading: false});
+        this.setState({
+          savedQuery: organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
+            : savedQuery,
+          loading: false,
+        });
       });
     }
   }
@@ -87,7 +95,14 @@ class ResultsHeader extends Component<Props, State> {
     const {api, organization} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
-      this.setState({homepageQuery, loading: false});
+      this.setState({
+        homepageQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
+          : homepageQuery,
+        loading: false,
+      });
     });
   }
 
@@ -158,7 +173,7 @@ class ResultsHeader extends Component<Props, State> {
             </GuideAnchor>
           ) : (
             <Fragment>
-              <Feature features={['organizations:discover-query']}>
+              <Feature features="organizations:discover-query">
                 <DiscoverBreadcrumb
                   eventView={eventView}
                   organization={organization}
@@ -190,7 +205,13 @@ class ResultsHeader extends Component<Props, State> {
             router={router}
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
-              this.setState({homepageQuery: updatedHomepageQuery});
+              this.setState({
+                homepageQuery: organization.features.includes(
+                  'performance-discover-dataset-selector'
+                )
+                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
+                  : updatedHomepageQuery,
+              });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }
@@ -206,7 +227,7 @@ class ResultsHeader extends Component<Props, State> {
 
 const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   margin: ${space(0.5)} 0 0 0;
 `;

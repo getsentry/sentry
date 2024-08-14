@@ -97,26 +97,21 @@
     "baseUrl": "../",
     "paths": {
       "sentry/*": ["static/app/*"],
+      "sentry-fixture/*": ["tests/js/fixtures/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
-      "sentry-fonts/*": ["static/fonts/*"],
-      // Use the stub file for type checking. Webpack resolver will use the real files
-      // based on configuration.
-      "integration-docs-platforms": [
-        "fixtures/integration-docs/_platforms.json",
-        "src/sentry/integration-docs/_platforms.json"
-      ]
+      "sentry-fonts/*": ["static/fonts/*"]
     },
 
     "plugins": [
       // The styled plugin provides language server autocompletion for styled
       // component template strings
-      {"name": "@styled/typescript-styled-plugin"}
+      { "name": "@styled/typescript-styled-plugin" }
     ]
   },
-  "include": ["../static/app", "../tests/js", "../fixtures/js-stubs"],
+  "include": ["../static/app", "../tests/js"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true

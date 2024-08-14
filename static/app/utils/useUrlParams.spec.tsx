@@ -1,38 +1,33 @@
-import {browserHistory} from 'react-router';
-import type {Location} from 'history';
+import * as qs from 'query-string';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useUrlParams from './useUrlParams';
 
 jest.mock('react-router');
-jest.mock('sentry/utils/useLocation');
-
-const mockGetCurrentLocation = browserHistory.getCurrentLocation as jest.MockedFunction<
-  typeof browserHistory.getCurrentLocation
->;
-
-type Query = {limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    mockGetCurrentLocation.mockReturnValue({
-      query: {
-        page: '3',
-        limit: '50',
-      },
-    } as Location<Query>);
+    window.location.search = qs.stringify({
+      page: '3',
+      limit: '50',
+      array: ['first', 'second'],
+    });
   });
 
   it('should read query values from the url', () => {
-    const {result} = reactHooks.renderHook(useUrlParams);
+    const {result} = renderHook(useUrlParams);
 
     expect(result.current.getParamValue('page')).toBe('3');
     expect(result.current.getParamValue('limit')).toBe('50');
+    expect(result.current.getParamValue('array')).toBe('first');
+    expect(result.current.getParamValue('foo')).toBeUndefined();
   });
 
   it('should read a specific query value if the defaultKey is passed along', () => {
-    const {result} = reactHooks.renderHook((args: [string]) => useUrlParams(args[0]), {
+    const {result} = renderHook((args: [string]) => useUrlParams(args[0]), {
       initialProps: ['page'],
     });
 
@@ -40,7 +35,7 @@ describe('useUrlParams', () => {
   });
 
   it('should read the default value for the defaultKey', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: [string, string]) => useUrlParams(args[0], args[1]),
       {
         initialProps: ['foo', 'bar'],
@@ -51,12 +46,14 @@ describe('useUrlParams', () => {
   });
 
   it('should update browser history with new values', () => {
-    const {result} = reactHooks.renderHook(useUrlParams);
+    const {result} = renderHook(useUrlParams);
 
     result.current.setParamValue('page', '4');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/',
       query: {
+        array: ['first', 'second'],
         page: '4',
         limit: '50',
       },
@@ -64,14 +61,16 @@ describe('useUrlParams', () => {
   });
 
   it('should update browser history with new values for the defaultKey', () => {
-    const {result} = reactHooks.renderHook((args: [string]) => useUrlParams(args[0]), {
+    const {result} = renderHook((args: [string]) => useUrlParams(args[0]), {
       initialProps: ['page'],
     });
 
     result.current.setParamValue('4');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/',
       query: {
+        array: ['first', 'second'],
         page: '4',
         limit: '50',
       },
@@ -79,7 +78,7 @@ describe('useUrlParams', () => {
   });
 
   it('uses the same function reference after each render', () => {
-    const {result, rerender} = reactHooks.renderHook(useUrlParams);
+    const {result, rerender} = renderHook(useUrlParams);
 
     const firstResult = result.current;
     rerender();

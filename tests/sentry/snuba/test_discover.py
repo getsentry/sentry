@@ -4,8 +4,8 @@ from unittest.mock import patch
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
@@ -13,9 +13,10 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
 )
+from sentry.search.events.types import EventsResponse, HistogramParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import get_array_column_alias
 
@@ -1987,18 +1988,20 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_empty(self):
         for array_column in ARRAY_COLUMNS:
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [],
             }
             normalized_results = discover.normalize_histogram_results(
                 [f"{array_column}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2012,18 +2015,20 @@ class QueryTransformTest(TestCase):
 
     def test_normalize_histogram_results_empty_multiple(self):
         for array_column in ARRAY_COLUMNS:
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [],
             }
             normalized_results = discover.normalize_histogram_results(
                 [f"{array_column}.bar", f"{array_column}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2043,11 +2048,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_full(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2070,7 +2077,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2085,11 +2092,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_full_multiple(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2127,7 +2136,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2147,11 +2156,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_partial(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2164,7 +2175,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2179,11 +2190,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_partial_multiple(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2201,7 +2214,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2221,11 +2234,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_ignore_unexpected_rows(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_1_0_1": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_1_0_1": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2255,7 +2270,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.bar", f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(3, 1, 0, 1),
+                HistogramParams(3, 1, 0, 1),
                 results,
                 array_column,
             )
@@ -2275,11 +2290,13 @@ class QueryTransformTest(TestCase):
     def test_normalize_histogram_results_adjust_for_precision(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
-            results = {
+            results: EventsResponse = {
                 "meta": {
-                    f"array_join_{array_column}_key": "string",
-                    f"histogram_{array_column}_value_25_0_100": "number",
-                    "count": "integer",
+                    "fields": {
+                        f"array_join_{array_column}_key": "string",
+                        f"histogram_{array_column}_value_25_0_100": "number",
+                        "count": "integer",
+                    }
                 },
                 "data": [
                     {
@@ -2307,7 +2324,7 @@ class QueryTransformTest(TestCase):
             normalized_results = discover.normalize_histogram_results(
                 [f"{alias}.foo"],
                 f"array_join({array_column}_key)",
-                discover.HistogramParams(4, 25, 0, 100),
+                HistogramParams(4, 25, 0, 100),
                 results,
                 array_column,
             )
@@ -2447,8 +2464,8 @@ class QueryTransformTest(TestCase):
                 {"project_id": [self.project.id]},
                 3,
                 1,
-                0.5,
-                2,
+                min_value=0.5,
+                max_value=2,
             )
             assert results == {
                 f"{alias}.bar": [
@@ -2466,10 +2483,10 @@ class QueryTransformTest(TestCase):
 
 def test_zerofill():
     results = discover.zerofill(
-        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"
+        [], datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, ["time"]
     )
     results_desc = discover.zerofill(
-        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "-time"
+        [], datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, ["-time"]
     )
 
     assert results == list(reversed(results_desc))

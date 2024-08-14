@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
-from sentry.models import File
-from sentry.testutils import TestCase
+from sentry.models.files.file import File
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -36,14 +36,17 @@ class ExportedDataTest(TestCase):
         )
 
     def test_status_property(self):
-        assert self.data_export.status == ExportStatus.Early
+        def _assert_status(status: ExportStatus) -> None:
+            assert self.data_export.status == status
+
+        _assert_status(ExportStatus.Early)
         self.data_export.update(
             date_expired=timezone.now() + timedelta(weeks=2),
             date_finished=timezone.now() - timedelta(weeks=2),
         )
-        assert self.data_export.status == ExportStatus.Valid
+        _assert_status(ExportStatus.Valid)
         self.data_export.update(date_expired=timezone.now() - timedelta(weeks=1))
-        assert self.data_export.status == ExportStatus.Expired
+        _assert_status(ExportStatus.Expired)
 
     def test_payload_property(self):
         assert isinstance(self.data_export.payload, dict)
@@ -117,7 +120,7 @@ class ExportedDataTest(TestCase):
             self.data_export.email_success()
         assert len(mail.outbox) == 1
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_email_success_customer_domains(self):
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():
@@ -154,19 +157,19 @@ class ExportedDataTest(TestCase):
 
     def test_email_failure(self):
         with self.tasks():
-            self.data_export.email_failure(self.TEST_STRING)
+            self.data_export.email_failure("failed to export data!")
         assert len(mail.outbox) == 1
         assert not ExportedData.objects.filter(id=self.data_export.id).exists()
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_email_failure_content(self, builder):
         with self.tasks():
-            self.data_export.email_failure(self.TEST_STRING)
+            self.data_export.email_failure("failed to export data!")
         expected_email_args = {
             "subject": "We couldn't export your data.",
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
-                "error_message": self.TEST_STRING,
+                "error_message": "failed to export data!",
                 "payload": json.dumps(self.data_export.payload),
             },
             "type": "organization.export-data",

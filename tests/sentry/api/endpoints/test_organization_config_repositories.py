@@ -1,10 +1,8 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationConfigRepositoriesTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

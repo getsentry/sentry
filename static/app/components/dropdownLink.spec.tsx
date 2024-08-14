@@ -1,4 +1,5 @@
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -27,25 +28,21 @@ describe('DropdownLink', function () {
 
   describe('renders', function () {
     it('and anchors to left by default', function () {
-      const {container} = render(
+      render(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
           <div>2</div>
         </DropdownLink>
       );
-
-      expect(container).toSnapshot();
     });
 
     it('and anchors to right', function () {
-      const {container} = render(
+      render(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
           <div>2</div>
         </DropdownLink>
       );
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -241,23 +238,23 @@ describe('DropdownLink', function () {
       await userEvent.unhover(screen.getByText('nested'), {delay: null});
 
       // Nested menus have close delay
-      jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
+      act(() => jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
 
       // Re-entering nested menu will cancel close
       await userEvent.hover(screen.getByText('nested'), {delay: null});
-      jest.advanceTimersByTime(2);
+      act(() => jest.advanceTimersByTime(2));
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Re-entering an actor will also cancel close
-      jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
+      act(() => jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1));
 
-      jest.advanceTimersByTime(2);
+      act(() => jest.advanceTimersByTime(2));
       await userEvent.hover(screen.getByText('parent'), {delay: null});
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Leave menu
       await userEvent.unhover(screen.getByText('nested'), {delay: null});
-      jest.runAllTimers();
+      act(jest.runAllTimers);
       expect(screen.queryByText('nested #2')).not.toBeInTheDocument();
     });
 

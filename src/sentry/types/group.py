@@ -1,4 +1,5 @@
-from typing import Mapping
+from collections.abc import Mapping
+from enum import IntEnum
 
 
 class GroupSubStatus:
@@ -39,12 +40,6 @@ SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
     "ongoing": GroupSubStatus.ONGOING,
     "regressed": GroupSubStatus.REGRESSED,
     "new": GroupSubStatus.NEW,
-    # Deprecated
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
-    # Deprecated
-    "until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
-    # Deprecated
-    "forever": GroupSubStatus.FOREVER,
 }
 
 SUBSTATUS_TO_STR: Mapping[int, str] = {
@@ -65,3 +60,23 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
     GroupSubStatus.FOREVER: "archived_forever",
     GroupSubStatus.UNTIL_CONDITION_MET: "archived_until_condition_met",
 }
+
+
+class PriorityLevel(IntEnum):
+    LOW = 25
+    MEDIUM = 50
+    HIGH = 75
+
+    def to_str(self) -> str:
+        """
+        Return the string representation of the priority level.
+        """
+        return self.name.lower()
+
+    @classmethod
+    def from_str(self, name: str) -> "PriorityLevel | None":
+        """
+        Return the priority level from a string representation.
+        """
+        name = name.upper()
+        return self[name] if name in self.__members__ else None

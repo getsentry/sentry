@@ -1,12 +1,11 @@
 from rest_framework import status
 
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
     endpoint = "sentry-api-0-organization-codeowners-associations"
@@ -132,11 +131,9 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         assert len(response.data.keys()) == 2
 
         # Create a codeowners under the "life" provider, and check the query parameter again
-        integration = Integration.objects.create(provider="life", name="Life")
-        integration.add_organization(self.organization, self.user)
-        organization_integration = OrganizationIntegration.objects.get(
-            integration_id=integration.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="life", name="Life")
+            organization_integration = integration.add_organization(self.organization, self.user)
         project_3 = self.create_project(
             organization=self.organization, teams=[self.team_1, self.team_2]
         )

@@ -3,7 +3,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -58,7 +60,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />, {context: TestStubs.routerContext()});
+    render(<CommitRow commit={commit} />);
     expect(
       screen.getByText(
         textWithMarkupMatcher(
@@ -108,6 +110,7 @@ describe('commitRow', () => {
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',
           externalSlug: 'org-slug',
+          externalId: '1',
         },
       },
     };

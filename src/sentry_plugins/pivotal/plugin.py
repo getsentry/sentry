@@ -6,9 +6,10 @@ from django.utils.encoding import force_str
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2, PluginError
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -56,7 +57,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("token", "project"))
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
@@ -79,7 +80,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def handle_api_error(self, error):
+    def handle_api_error(self, error: Exception) -> Response:
         msg = "Error communicating with Pivotal Tracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)
@@ -89,8 +90,9 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:
             return Response({"issue_id": []})
-        query = query.encode("utf-8")
-        _url = "{}?{}".format(self.build_api_url(group, "search"), urlencode({"query": query}))
+        _url = "{}?{}".format(
+            self.build_api_url(group, "search"), urlencode({"query": query.encode()})
+        )
         try:
             req = self.make_api_request(group.project, _url)
             body = safe_urlread(req)
@@ -144,7 +146,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         }
         return safe_urlopen(_url, json=json_data, headers=req_headers, allow_redirects=True)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         json_data = {
             "story_type": "bug",
             "name": force_str(form_data["title"], encoding="utf-8", errors="replace"),
@@ -171,10 +173,10 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
         return json_resp["id"]
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "#%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         return "https://www.pivotaltracker.com/story/show/%s" % issue_id
 
     def get_issue_title_by_id(self, request: Request, group, issue_id):
@@ -185,7 +187,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         json_resp = json.loads(body)
         return json_resp["name"]
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = (
             "Enter your API Token (found on "

@@ -1,54 +1,55 @@
-import {useCallback} from 'react';
+import {lazy, useEffect} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
-type Props = {
+interface Props {
   event: Event;
-  organization: Organization;
   projectSlug: string;
-  replayId: undefined | string;
-};
+  group?: Group;
+}
 
-export default function EventReplay({replayId, organization, projectSlug, event}: Props) {
-  const hasReplaysFeature = organization.features.includes('session-replay');
-  const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
+const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
 
-  const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
-  const replayPreview = useCallback(() => import('./replayPreview'), []);
+export default function EventReplay({event, group, projectSlug}: Props) {
+  const replayId = getReplayIdFromEvent(event);
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
+  const {canShowUpsell, upsellPlatform, upsellProjectId} = useEventCanShowReplayUpsell({
+    event,
+    group,
+    projectSlug,
+  });
 
-  const project = useProjectFromSlug({organization, projectSlug});
-  const isReplayRelated = projectCanLinkToReplay(project);
+  const {setParamValue: setProjectId} = useUrlParams('project');
 
-  if (!hasReplaysFeature || fetching || !isReplayRelated) {
-    return null;
+  useEffect(() => {
+    if (canShowUpsell) {
+      setProjectId(upsellProjectId);
+    }
+  }, [upsellProjectId, setProjectId, canShowUpsell]);
+
+  if (replayId) {
+    return <ReplayClipSection event={event} replayId={replayId} group={group} />;
   }
 
-  if (!hasOrgSentReplays) {
+  if (canShowUpsell && !hasSentOneReplay) {
     return (
       <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanel} />
+        <LazyLoad
+          LazyComponent={ReplayOnboardingPanel}
+          platform={upsellPlatform}
+          projectId={upsellProjectId}
+        />
       </ErrorBoundary>
     );
   }
 
-  if (!replayId) {
-    return null;
-  }
-
-  return (
-    <ErrorBoundary mini>
-      <LazyLoad
-        component={replayPreview}
-        replaySlug={`${projectSlug}:${replayId}`}
-        orgSlug={organization.slug}
-        event={event}
-      />
-    </ErrorBoundary>
-  );
+  return null;
 }

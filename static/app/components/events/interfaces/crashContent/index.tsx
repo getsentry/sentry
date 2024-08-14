@@ -1,4 +1,5 @@
-import {ExceptionType, ExceptionValue, PlatformType} from 'sentry/types';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
+import type {ExceptionType, ExceptionValue} from 'sentry/types/event';
 
 import {ExceptionContent} from './exception';
 import {StackTraceContent} from './stackTrace';
@@ -29,8 +30,6 @@ export function CrashContent({
   exception,
   stacktrace,
 }: Props) {
-  const platform = (event.platform ?? 'other') as PlatformType;
-
   if (exception) {
     return (
       <ExceptionContent
@@ -39,7 +38,6 @@ export function CrashContent({
         projectSlug={projectSlug}
         newestFirst={newestFirst}
         event={event}
-        platform={platform}
         values={exception.values}
         groupingCurrentLevel={groupingCurrentLevel}
         hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -48,6 +46,8 @@ export function CrashContent({
   }
 
   if (stacktrace) {
+    const platform = getStacktracePlatform(event, stacktrace);
+
     return (
       <StackTraceContent
         stacktrace={stacktrace}

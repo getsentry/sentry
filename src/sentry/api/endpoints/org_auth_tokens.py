@@ -1,34 +1,55 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.core.exceptions import ValidationError
 from django.db.models import Value
 from django.db.models.functions import Coalesce
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, roles
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
-from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.user import User
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.security.utils import capture_security_activity
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.users.models.user import User
+from sentry.utils.security.orgauthtoken_token import (
+    SystemUrlPrefixMissingException,
+    generate_token,
+    hash_token,
+)
 
 
 @control_silo_endpoint
-class OrgAuthTokensEndpoint(OrganizationEndpoint):
+class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)
 
-    @never_cache
-    def get(self, request: Request, organization: Organization) -> Response:
+    @method_decorator(never_cache)
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         # We want to sort by date_last_used, but sort NULLs last
-        the_past = datetime.min
+        the_past = datetime.min.replace(tzinfo=UTC)
 
         token_list = list(
             OrgAuthToken.objects.filter(
@@ -40,15 +61,40 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
 
         return Response(serialize(token_list, request.user, token=None))
 
-    def post(self, request: Request, organization: Organization) -> Response:
-        token_str = generate_token(organization.slug, generate_region_url())
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
+        try:
+            org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+            token_str = generate_token(
+                organization.slug, generate_region_url(region_name=org_mapping.region_name)
+            )
+        except SystemUrlPrefixMissingException:
+            return Response(
+                {
+                    "detail": {
+                        "message": "system.url-prefix is not set. You need to set this to generate a token.",
+                        "code": "missing_system_url_prefix",
+                    }
+                },
+                status=400,
+            )
+
         token_hashed = hash_token(token_str)
 
         name = request.data.get("name")
 
         # Main validation cases with specific error messages
         if not name:
-            return Response({"detail": ["The name cannot be blank."]}, status=400)
+            return Response({"detail": "The name cannot be blank."}, status=400)
+
+        if len(name) > MAX_NAME_LENGTH:
+            return Response(
+                {"detail": "The name cannot be longer than 255 characters."}, status=400
+            )
 
         token = OrgAuthToken.objects.create(
             name=name,

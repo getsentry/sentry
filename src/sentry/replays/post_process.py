@@ -1,24 +1,96 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, Generator, Iterable, Iterator, MutableMapping
+from typing import Any, TypedDict
+
+from drf_spectacular.utils import extend_schema_serializer
+
+from sentry.replays.validators import VALID_FIELD_SET
 
 
-def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
+class DeviceResponseType(TypedDict, total=False):
+    name: str | None
+    brand: str | None
+    model: str | None
+    family: str | None
+
+
+class SDKResponseType(TypedDict, total=False):
+    name: str | None
+    version: str | None
+
+
+class OSResponseType(TypedDict, total=False):
+    name: str | None
+    version: str | None
+
+
+class BrowserResponseType(TypedDict, total=False):
+    name: str | None
+    version: str | None
+
+
+class UserResponseType(TypedDict, total=False):
+    id: str | None
+    username: str | None
+    email: str | None
+    ip: str | None
+    display_name: str | None
+
+
+@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
+class ReplayDetailsResponse(TypedDict, total=False):
+    id: str
+    project_id: str
+    trace_ids: list[str]
+    error_ids: list[str]
+    environment: str | None
+    tags: dict[str, list[str]] | list
+    user: UserResponseType
+    sdk: SDKResponseType
+    os: OSResponseType
+    browser: BrowserResponseType
+    device: DeviceResponseType
+    is_archived: bool | None
+    urls: list[str] | None
+    clicks: list[dict[str, Any]]
+    count_dead_clicks: int | None
+    count_rage_clicks: int | None
+    count_errors: int | None
+    duration: int | None
+    finished_at: str | None
+    started_at: str | None
+    activity: int | None
+    count_urls: int | None
+    replay_type: str
+    count_segments: int | None
+    platform: str | None
+    releases: list[str]
+    dist: str | None
+    warning_ids: list[str] | None
+    info_ids: list[str] | None
+    count_warnings: int | None
+    count_infos: int | None
+    has_viewed: bool
+
+
+def process_raw_response(
+    response: list[dict[str, Any]], fields: list[str]
+) -> list[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
-    fields: list[str] | None,
-    response: Generator[dict[str, Any], None, None],
-) -> Iterator[dict[str, Any]]:
-
+    fields: list[str],
+    response: Generator[ReplayDetailsResponse],
+) -> Iterator[ReplayDetailsResponse]:
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
-            yield {field: item[field] for field in fields}
+            yield {field: item[field] for field in fields}  # type: ignore[literal-required, misc]
     else:
         yield from response
 
@@ -29,51 +101,50 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def generate_normalized_output(
-    response: list[dict[str, Any]]
-) -> Generator[dict[str, Any], None, None]:
+def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[ReplayDetailsResponse]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
+        ret_item: ReplayDetailsResponse = {}
         if item["isArchived"]:
-            yield _archived_row(item["replay_id"], item["project_id"])
+            yield _archived_row(item["replay_id"], item["agg_project_id"])  # type: ignore[misc]
             continue
 
-        item["id"] = _strip_dashes(item.pop("replay_id", None))
-        item["project_id"] = str(item["project_id"])
-        item["trace_ids"] = item.pop("traceIds", [])
-        item["error_ids"] = item.pop("errorIds", [])
-        item["environment"] = item.pop("agg_environment", None)
-        item["tags"] = dict_unique_list(
+        ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
+        ret_item["project_id"] = str(item["agg_project_id"])
+        ret_item["trace_ids"] = item.pop("traceIds", [])
+        ret_item["error_ids"] = item.pop("errorIds", [])
+        ret_item["environment"] = item.pop("agg_environment", None)
+        ret_item["tags"] = dict_unique_list(
             zip(
                 item.pop("tk", None) or [],
                 item.pop("tv", None) or [],
             )
         )
-        item["user"] = {
+        ret_item["user"] = {
             "id": item.pop("user_id", None),
             "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
-        item["user"]["display_name"] = (
-            item["user"]["username"]
-            or item["user"]["email"]
-            or item["user"]["id"]
-            or item["user"]["ip"]
+        ret_item["user"]["display_name"] = (
+            ret_item["user"]["username"]
+            or ret_item["user"]["email"]
+            or ret_item["user"]["id"]
+            or ret_item["user"]["ip"]
         )
-        item["sdk"] = {
+        ret_item["sdk"] = {
             "name": item.pop("sdk_name", None),
             "version": item.pop("sdk_version", None),
         }
-        item["os"] = {
+        ret_item["os"] = {
             "name": item.pop("os_name", None),
             "version": item.pop("os_version", None),
         }
-        item["browser"] = {
+        ret_item["browser"] = {
             "name": item.pop("browser_name", None),
             "version": item.pop("browser_version", None),
         }
-        item["device"] = {
+        ret_item["device"] = {
             "name": item.pop("device_name", None),
             "brand": item.pop("device_brand", None),
             "model": item.pop("device_model", None),
@@ -81,18 +152,37 @@ def generate_normalized_output(
         }
 
         item.pop("agg_urls", None)
-        item["urls"] = item.pop("urls_sorted", None)
+        ret_item["urls"] = item.pop("urls_sorted", None)
 
-        item["is_archived"] = bool(item.pop("isArchived", 0))
+        ret_item["is_archived"] = bool(item.pop("isArchived", 0))
 
         item.pop("clickClass", None)
         item.pop("click_selector", None)
+        ret_item["activity"] = item.pop("activity", None)
         # don't need clickClass or click_selector
         #  for the click field, as they are only used for searching.
         # (click.classes contains the full list of classes for a click)
-        item["clicks"] = extract_click_fields(item)
+        ret_item["clicks"] = extract_click_fields(item)
+        ret_item["count_dead_clicks"] = item.pop("count_dead_clicks", None)
+        ret_item["count_errors"] = item.pop("count_errors", None)
+        ret_item["count_rage_clicks"] = item.pop("count_rage_clicks", None)
+        ret_item["count_segments"] = item.pop("count_segments", None)
+        ret_item["count_urls"] = item.pop("count_urls", None)
+        ret_item["dist"] = item.pop("dist", None)
+        ret_item["duration"] = item.pop("duration", None)
+        ret_item["finished_at"] = item.pop("finished_at", None)
+        ret_item["platform"] = item.pop("platform", None)
+        ret_item["releases"] = list(filter(bool, item.pop("releases", [])))
+        ret_item["replay_type"] = item.pop("replay_type", "session")
+        ret_item["started_at"] = item.pop("started_at", None)
 
-        yield item
+        ret_item["warning_ids"] = item.pop("warning_ids", None)
+        ret_item["info_ids"] = item.pop("info_ids", None)
+        ret_item["count_infos"] = item.pop("count_infos", None)
+        ret_item["count_warnings"] = item.pop("count_warnings", None)
+        # Returns a UInt8 of either 0 or 1. We coerce to a bool.
+        ret_item["has_viewed"] = bool(item.get("has_viewed", 0))
+        yield ret_item
 
 
 def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[str]:
@@ -116,7 +206,7 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
 
 
 def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
-    return {
+    archived_replay_response = {
         "id": _strip_dashes(replay_id),
         "project_id": str(project_id),
         "trace_ids": [],
@@ -130,18 +220,32 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "device": {"name": None, "brand": None, "model": None, "family": None},
         "urls": None,
         "activity": None,
+        "count_dead_clicks": None,
+        "count_rage_clicks": None,
         "count_errors": None,
         "duration": None,
         "finished_at": None,
         "started_at": None,
         "is_archived": True,
+        "count_segments": None,
+        "count_urls": None,
+        "dist": None,
+        "platform": None,
+        "releases": None,
+        "clicks": None,
     }
+    for field in VALID_FIELD_SET:
+        if field not in archived_replay_response:
+            archived_replay_response[field] = None
+
+    return archived_replay_response
 
 
 CLICK_FIELD_MAP = {
     "click_alt": "click.alt",
     "click_aria_label": "click.label",
     "click_classes": "click.classes",
+    "click_component_name": "click.component_name",
     "click_id": "click.id",
     "click_role": "click.role",
     "click_tag": "click.tag",
@@ -151,7 +255,9 @@ CLICK_FIELD_MAP = {
 }
 
 
-def extract_click_fields(item: MutableMapping[str, Any]) -> list[dict[str, Any]]:
+def extract_click_fields(
+    item: MutableMapping[str, Any],
+) -> list[dict[str, Any]]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """

@@ -1,53 +1,71 @@
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import Table from '../../table';
 import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
+  const {setPageError} = usePageAlert();
+  const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
+  const organization = useOrganization();
 
-  const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
+  let allowedCharts = [
+    PerformanceWidgetSetting.USER_MISERY_AREA,
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    PerformanceWidgetSetting.APDEX_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+  ];
+
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
+  if (hasTransactionSummaryCleanupFlag) {
+    allowedCharts = [
+      PerformanceWidgetSetting.TPM_AREA,
+      PerformanceWidgetSetting.FAILURE_RATE_AREA,
+      PerformanceWidgetSetting.P50_DURATION_AREA,
+      PerformanceWidgetSetting.P75_DURATION_AREA,
+      PerformanceWidgetSetting.P95_DURATION_AREA,
+      PerformanceWidgetSetting.P99_DURATION_AREA,
+    ];
+  }
 
   if (
     props.organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)
   ) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+    if (props.organization.features.includes('insights-initial-modules')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE);
+    } else {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+    }
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
-  }
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
   }
 
   return (
     <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div data-test-id="all-transactions-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
-        <TripleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.USER_MISERY_AREA,
-            PerformanceWidgetSetting.TPM_AREA,
-            PerformanceWidgetSetting.FAILURE_RATE_AREA,
-            PerformanceWidgetSetting.APDEX_AREA,
-            PerformanceWidgetSetting.P50_DURATION_AREA,
-            PerformanceWidgetSetting.P75_DURATION_AREA,
-            PerformanceWidgetSetting.P95_DURATION_AREA,
-            PerformanceWidgetSetting.P99_DURATION_AREA,
-          ]}
-        />
-        <Table {...props} setError={usePageError().setPageError} />
+        <TripleChartRow {...props} allowedCharts={allowedCharts} />
+        <Table {...props} setError={setPageError} />
       </div>
     </PerformanceDisplayProvider>
   );

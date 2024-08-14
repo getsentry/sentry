@@ -1,17 +1,18 @@
 import {cloneElement, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = {
@@ -19,21 +20,21 @@ type Props = {
   children?: any;
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   inviteRequests: Member[];
 };
 
 const InviteMembersButtonHook = HookOrDefault({
   hookName: 'member-invite-button:customization',
-  defaultComponent: ({children, organization, onTriggerModal}) =>
-    children({
-      disabled: !organization.features.includes('invite-members'),
-      onTriggerModal,
-    }),
+  defaultComponent: ({children, organization, onTriggerModal}) => {
+    const isSsoRequired = organization.requiresSso;
+    const disabled = isSsoRequired || !organization.features.includes('invite-members');
+    return children({disabled, isSsoRequired, onTriggerModal});
+  },
 });
 
-class OrganizationMembersWrapper extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
 
     return [
@@ -142,10 +143,12 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
 
 function renderInviteMembersButton({
   disabled,
+  isSsoRequired,
   onTriggerModal,
 }: {
   onTriggerModal: () => void;
   disabled?: boolean;
+  isSsoRequired?: boolean;
 }) {
   const action = (
     <Button
@@ -161,17 +164,28 @@ function renderInviteMembersButton({
   );
 
   return disabled ? (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          featureName={t('Invite Members')}
-          features={['organizations:invite-members']}
-          hideHelpToggle
-        />
-      }
-    >
-      {action}
-    </Hovercard>
+    isSsoRequired ? (
+      <Tooltip
+        skipWrapper
+        title={t(
+          `Your organization must use its single sign-on provider to register new members.`
+        )}
+      >
+        {action}
+      </Tooltip>
+    ) : (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            featureName={t('Invite Members')}
+            features="organizations:invite-members"
+            hideHelpToggle
+          />
+        }
+      >
+        {action}
+      </Hovercard>
+    )
   ) : (
     action
   );

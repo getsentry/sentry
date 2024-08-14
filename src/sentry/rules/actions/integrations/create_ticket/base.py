@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Generator, Mapping
+from collections.abc import Generator, Mapping
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.models.rule import Rule
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
-from sentry.rules.base import CallbackFuture, EventState
-from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.rules.base import CallbackFuture
 
 
 class TicketEventAction(IntegrationEventAction, abc.ABC):
@@ -16,6 +18,8 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
 
     form_cls = IntegrationNotifyServiceForm
     integration_key = "integration"
+    link: str | None
+    rule: Rule
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
@@ -24,7 +28,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
         ]
 
         if not self.get_integration_id() and integration_choices:
-            self.data[self.integration_key] = integration_choices[0][0]
+            self.data = {**self.data, self.integration_key: integration_choices[0][0]}
 
         self.form_fields = {
             self.integration_key: {
@@ -80,7 +84,9 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     def generate_footer(self, rule_url: str) -> str:
         pass
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
         yield self.future(

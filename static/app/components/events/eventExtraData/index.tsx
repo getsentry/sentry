@@ -1,16 +1,18 @@
 import {memo, useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {getKnownData} from '../contexts/utils';
+import {getKnownData, getKnownStructuredData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
+import type {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
 
 type Props = {
   event: Event;
@@ -20,13 +22,26 @@ export const EventExtraData = memo(
   ({event}: Props) => {
     const [raw, setRaw] = useState(false);
 
-    if (objectIsEmpty(event.context)) {
+    if (isEmptyObject(event.context)) {
       return null;
+    }
+    let contextBlock: React.ReactNode = null;
+    if (defined(event.context)) {
+      const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
+        data: event.context,
+        knownDataTypes: Object.keys(event.context),
+        meta: event._meta?.context,
+        onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
+      });
+      const formattedKnownData = raw
+        ? knownData
+        : getKnownStructuredData(knownData, event._meta?.context);
+      contextBlock = <ContextBlock data={formattedKnownData} raw={raw} />;
     }
 
     return (
-      <EventDataSection
-        type="extra"
+      <InterimSection
+        type={FoldSectionKey.EXTRA}
         title={t('Additional Data')}
         actions={
           <SegmentedControl
@@ -42,19 +57,8 @@ export const EventExtraData = memo(
           </SegmentedControl>
         }
       >
-        {!defined(event.context) ? null : (
-          <ContextBlock
-            data={getKnownData<TEventExtraData, EventExtraDataType>({
-              data: event.context,
-              knownDataTypes: Object.keys(event.context),
-              meta: event._meta?.context,
-              raw,
-              onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
-            })}
-            raw={raw}
-          />
-        )}
-      </EventDataSection>
+        {contextBlock}
+      </InterimSection>
     );
   },
   (prevProps: Props, nextProps: Props) => prevProps.event.id === nextProps.event.id

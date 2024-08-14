@@ -9,8 +9,8 @@ import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/hi
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import {PerformanceWidgetProps, WidgetDataResult} from '../types';
-import {getMEPQueryParams} from '../utils';
+import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
+import {getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
@@ -28,6 +28,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
         fields: props.fields,
         component: provided => (
           <HistogramQuery
+            limit={QUERY_LIMIT_PARAM}
             {...provided}
             eventView={provided.eventView}
             location={location}

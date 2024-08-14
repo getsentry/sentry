@@ -18,7 +18,7 @@ from sentry.integrations.aws_lambda.utils import (
     parse_arn,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ParseArnTest(TestCase):
@@ -137,7 +137,7 @@ class GetOptionValueTest(TestCase):
             "account_number": "943013980633",
             "layer_name": "SentryNodeServerlessSDK",
             "repo_url": "https://github.com/getsentry/sentry-javascript",
-            "main_docs_url": "https://docs.sentry.io/platforms/node/guides/aws-lambda",
+            "main_docs_url": "https://docs.sentry.io/platforms/javascript/guides/aws-lambda",
             "regions": [
                 {"region": "us-east-2", "version": "19"},
                 {"region": "us-west-1", "version": "17"},

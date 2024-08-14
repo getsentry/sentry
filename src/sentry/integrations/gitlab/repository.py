@@ -1,3 +1,4 @@
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -29,7 +30,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider):
         )
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
 
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()

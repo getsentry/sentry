@@ -1,4 +1,5 @@
-import {ComponentProps, CSSProperties, forwardRef, useMemo} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
@@ -6,34 +7,33 @@ import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
 import {
   AvatarWrapper,
+  ButtonWrapper,
   Cell,
-  StyledTimestampButton,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
-type Props = {
+interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: ErrorFrame;
-  onClickTimestamp: (frame: ErrorFrame) => void;
-  onMouseEnter: (frame: ErrorFrame) => void;
-  onMouseLeave: (frame: ErrorFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
-};
+}
 
 const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
   (
@@ -42,9 +42,9 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       currentHoverTime,
       currentTime,
       frame,
-      onClickTimestamp,
       onMouseEnter,
       onMouseLeave,
+      onClickTimestamp,
       sortConfig,
       startTimestampMs,
       style,
@@ -126,23 +126,45 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Text>
-            <ClassNames>
-              {({css}) => (
-                <QuickContextHovercard
-                  dataRow={{
-                    id: eventId,
-                    'project.name': projectSlug,
-                  }}
-                  contextType={ContextType.EVENT}
-                  organization={organization}
-                  containerClassName={css`
-                    display: inline;
-                  `}
-                >
-                  {title ?? EMPTY_CELL}
-                </QuickContextHovercard>
-              )}
-            </ClassNames>
+            {eventUrl ? (
+              <Link to={eventUrl}>
+                <ClassNames>
+                  {({css}) => (
+                    <QuickContextHovercard
+                      dataRow={{
+                        id: eventId,
+                        'project.name': projectSlug,
+                      }}
+                      contextType={ContextType.EVENT}
+                      organization={organization}
+                      containerClassName={css`
+                        display: inline;
+                      `}
+                    >
+                      {title ?? EMPTY_CELL}
+                    </QuickContextHovercard>
+                  )}
+                </ClassNames>
+              </Link>
+            ) : (
+              <ClassNames>
+                {({css}) => (
+                  <QuickContextHovercard
+                    dataRow={{
+                      id: eventId,
+                      'project.name': projectSlug,
+                    }}
+                    contextType={ContextType.EVENT}
+                    organization={organization}
+                    containerClassName={css`
+                      display: inline;
+                    `}
+                  >
+                    {title ?? EMPTY_CELL}
+                  </QuickContextHovercard>
+                )}
+              </ClassNames>
+            )}
           </Text>
         </Cell>
       ),
@@ -152,29 +174,47 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             <AvatarWrapper>
               <Avatar project={project} size={16} />
             </AvatarWrapper>
-            <QuickContextHovercard
-              dataRow={{
-                'issue.id': groupId,
-                issue: groupShortId,
-              }}
-              contextType={ContextType.ISSUE}
-              organization={organization}
-            >
-              <span>{groupShortId}</span>
-            </QuickContextHovercard>
+            {eventUrl ? (
+              <Link to={eventUrl}>
+                <QuickContextHovercard
+                  dataRow={{
+                    'issue.id': groupId,
+                    issue: groupShortId,
+                  }}
+                  contextType={ContextType.ISSUE}
+                  organization={organization}
+                >
+                  <span>{groupShortId}</span>
+                </QuickContextHovercard>
+              </Link>
+            ) : (
+              <QuickContextHovercard
+                dataRow={{
+                  'issue.id': groupId,
+                  issue: groupShortId,
+                }}
+                contextType={ContextType.ISSUE}
+                organization={organization}
+              >
+                <span>{groupShortId}</span>
+              </QuickContextHovercard>
+            )}
           </Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <StyledTimestampButton
-            format="mm:ss.SSS"
-            onClick={() => {
-              onClickTimestamp(frame);
-            }}
-            startTimestampMs={startTimestampMs}
-            timestampMs={frame.timestampMs}
-          />
+          <ButtonWrapper>
+            <TimestampButton
+              format="mm:ss"
+              onClick={event => {
+                event.stopPropagation();
+                onClickTimestamp(frame);
+              }}
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ButtonWrapper>
         </Cell>
       ),
     ];

@@ -1,41 +1,41 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
@@ -73,6 +73,7 @@ const getIssueAlertDetailsQueryKey = ({
 function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const api = useApi();
   const {projects, fetching: projectIsLoading} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
@@ -164,6 +165,56 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     );
   }
 
+  async function handleKeepAlertAlive() {
+    try {
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/`,
+        {
+          method: 'PUT',
+          data: {
+            ...rule,
+            optOutExplicit: true,
+          },
+        }
+      );
+
+      // Update alert rule to remove disableDate
+      setApiQueryData<IssueAlertRule>(
+        queryClient,
+        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+        alertRule => ({...alertRule, disableDate: undefined})
+      );
+
+      addSuccessMessage(t('Successfully updated'));
+    } catch (err) {
+      addErrorMessage(t('Unable to update alert rule'));
+    }
+  }
+
+  async function handleReEnable() {
+    try {
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/enable/`,
+        {method: 'PUT'}
+      );
+
+      // Update alert rule to remove disableDate
+      setApiQueryData<IssueAlertRule>(
+        queryClient,
+        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
+      );
+
+      addSuccessMessage(t('Successfully re-enabled'));
+    } catch (err) {
+      addErrorMessage(
+        typeof err.responseJSON?.detail === 'string'
+          ? err.responseJSON.detail
+          : t('Unable to update alert rule')
+      );
+    }
+  }
+
   function handleUpdateDatetime(datetime: ChangeData) {
     const {start, end, relative, utc} = datetime;
 
@@ -248,6 +299,65 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     return null;
   }
 
+  function renderDisabledAlertBanner() {
+    // Rule has been disabled and has a disabled date indicating it was disabled due to lack of activity
+    if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
+      return (
+        <Alert type="warning" showIcon>
+          {tct(
+            'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
+            {
+              keepAlive: (
+                <BoldButton priority="link" size="sm" onClick={handleReEnable}>
+                  {t('click here')}
+                </BoldButton>
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+
+    // Generic rule disabled banner
+    if (rule?.status === 'disabled') {
+      return (
+        <Alert type="warning" showIcon>
+          {rule.actions?.length === 0
+            ? t(
+                'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+              )
+            : t(
+                'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+              )}
+        </Alert>
+      );
+    }
+
+    // Rule to be disabled soon
+    if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
+      return (
+        <Alert type="warning" showIcon>
+          {tct(
+            'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
+            {
+              date: <TimeSince date={rule.disableDate} />,
+              keepAlive: (
+                <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
+                  {t('click here')}
+                </BoldButton>
+              ),
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/#disabled-alerts" />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+
+    return null;
+  }
+
   const {period, start, end, utc} = getDataDatetime();
   const {cursor} = location.query;
   return (
@@ -299,12 +409,18 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
                   type="issue"
+                  disabled={rule.status === 'disabled'}
                 />
               )}
             </Access>
-            <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
+            <LinkButton
+              size="sm"
+              icon={<IconCopy />}
+              to={duplicateLink}
+              disabled={rule.status === 'disabled'}
+            >
               {t('Duplicate')}
-            </Button>
+            </LinkButton>
             <Button
               size="sm"
               icon={<IconEdit />}
@@ -316,7 +432,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                 })
               }
             >
-              {t('Edit Rule')}
+              {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
             </Button>
           </ButtonBar>
         </Layout.HeaderActions>
@@ -324,6 +440,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
+          {renderDisabledAlertBanner()}
           {isSnoozed && (
             <Alert showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
@@ -340,13 +457,12 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
-            organization={organization}
+          <StyledTimeRangeSelector
             relative={period ?? ''}
             start={start ?? null}
             end={end ?? null}
             utc={utc ?? null}
-            onUpdate={handleUpdateDatetime}
+            onChange={handleUpdateDatetime}
           />
           <ErrorBoundary>
             <IssueAlertDetailsChart
@@ -359,7 +475,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             />
           </ErrorBoundary>
           <AlertRuleIssuesList
-            organization={organization}
             project={project}
             rule={rule}
             period={period ?? ''}
@@ -379,10 +494,14 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
 
 export default AlertRuleDetails;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
+`;
+
+const BoldButton = styled(Button)`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

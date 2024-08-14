@@ -25,6 +25,8 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import annotations
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
@@ -50,8 +52,7 @@ class JSONField(models.TextField):
     surpresses this behavior.
     """
 
-    # https://github.com/typeddjango/django-stubs/pull/1538
-    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}  # type: ignore[dict-item]
+    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
     no_creator_hook = False
 
@@ -61,12 +62,14 @@ class JSONField(models.TextField):
         super().__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
 
-    def contribute_to_class(self, cls, name):
+    def contribute_to_class(
+        self, cls: type[models.Model], name: str, private_only: bool = False
+    ) -> None:
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super().contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name, private_only=private_only)
         if not self.no_creator_hook:
             setattr(cls, name, Creator(self))
 

@@ -4,17 +4,24 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models import GroupHash
+from sentry.models.grouphash import GroupHash
 from sentry.tasks.unmerge import unmerge
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
 
 
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         List an Issue's Hashes
@@ -48,21 +55,38 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
+    # TODO: Shouldn't this be a PUT rather than a DELETE?
     def delete(self, request: Request, group) -> Response:
-        id_list = request.GET.getlist("id")
-        if id_list is None:
+        """
+        Perform an unmerge by reassigning events with hash values corresponding to the given
+        grouphash ids from being part of the given group to being part of a new group.
+
+        Note that if multiple grouphash ids are given, all their corresponding events will end up in
+        a single new group together, rather than each hash's events ending in their own new group.
+        """
+        grouphash_ids = request.GET.getlist("id")
+        if not grouphash_ids:
             return Response()
 
-        hash_list = list(
-            GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
+        grouphashes = list(
+            GroupHash.objects.filter(
+                project_id=group.project_id, group=group.id, hash__in=grouphash_ids
+            )
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)
         )
-        if not hash_list:
-            return Response()
+        if not grouphashes:
+            return Response({"detail": "Already being unmerged"}, status=409)
+
+        metrics.incr(
+            "grouping.unmerge_issues",
+            sample_rate=1.0,
+            # We assume that if someone's merged groups, they were all from the same platform
+            tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
+        )
 
         unmerge.delay(
-            group.project_id, group.id, None, hash_list, request.user.id if request.user else None
+            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 
         return Response(status=202)

@@ -1,44 +1,45 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Mapping, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from django import forms
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
-from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.eventstore.models import GroupEvent
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import SentryApp
+from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
-from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
+from sentry.utils import json, metrics
+from sentry.utils.forms import set_field_choices
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
-PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
+PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 
 
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
-) -> Mapping[str, str]:
+    metric_value: float | None = None,
+    notification_uuid: str | None = None,
+) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -53,8 +54,9 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
-) -> None:
+    metric_value: float | None = None,
+    notification_uuid: str | None = None,
+) -> bool:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -64,17 +66,20 @@ def send_incident_alert_notification(
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)
-    incident_attachment = build_incident_attachment(incident, new_status, metric_value)
+    incident_attachment = build_incident_attachment(
+        incident, new_status, metric_value, notification_uuid
+    )
 
-    integration_service.send_incident_alert_notification(
+    success = integration_service.send_incident_alert_notification(
         sentry_app_id=action.sentry_app_id,
         action_id=action.id,
         incident_id=incident.id,
-        organization=organization,
+        organization_id=organization.id,
         new_status=new_status.value,
-        incident_attachment=incident_attachment,
+        incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,
     )
+    return success
 
 
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
@@ -107,8 +112,7 @@ class NotifyEventServiceForm(forms.Form):
 
         super().__init__(*args, **kwargs)
 
-        self.fields["service"].choices = service_choices
-        self.fields["service"].widget.choices = self.fields["service"].choices
+        set_field_choices(self.fields["service"], service_choices)
 
 
 class NotifyEventServiceAction(EventAction):
@@ -133,25 +137,22 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         service = self.get_option("service")
 
-        extra = {"event_id": event.event_id}
+        extra: dict[str, object] = {"event_id": event.event_id}
         if not service:
             self.logger.info("rules.fail.is_configured", extra=extra)
             return
 
         plugin = None
-        app = None
-        try:
-            app = SentryApp.objects.get(slug=service)
-        except SentryApp.DoesNotExist:
-            pass
+        app = app_service.get_sentry_app_by_slug(slug=service)
 
         if app:
-            kwargs = {"sentry_app": app}
             metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
-            yield self.future(notify_sentry_app, **kwargs)
+            yield self.future(notify_sentry_app, sentry_app=app)
 
         try:
             plugin = plugins.get(service)
@@ -190,10 +191,6 @@ class NotifyEventServiceAction(EventAction):
             if not isinstance(plugin, NotificationPlugin):
                 continue
             results.append(PluginService(plugin))
-
-        for plugin in plugins.for_project(self.project, version=2):
-            for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
-                results.append(PluginService(notifier))
 
         return results
 

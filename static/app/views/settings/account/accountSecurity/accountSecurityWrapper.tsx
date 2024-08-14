@@ -1,10 +1,13 @@
 import {cloneElement} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {Authenticator, OrganizationSummary, UserEmail} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {UserEmail} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -12,21 +15,45 @@ const ENDPOINT = '/users/me/authenticators/';
 type Props = {
   children: React.ReactElement;
 } & RouteComponentProps<{authId: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   emails: UserEmail[];
+  loadingOrganizations: boolean;
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class AccountSecurityWrapper extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
+  async fetchOrganizations() {
+    try {
+      this.setState({loadingOrganizations: true});
+      const organizations = await fetchOrganizations(this.api);
+      this.setState({organizations, loadingOrganizations: false});
+    } catch (e) {
+      this.setState({error: true, loadingOrganizations: false});
+    }
+  }
+
+  get shouldRenderLoading() {
+    return super.shouldRenderLoading || this.state.loadingOrganizations === true;
+  }
+
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
       ['authenticators', ENDPOINT],
-      ['organizations', '/organizations/'],
       ['emails', '/users/me/emails/'],
     ];
+  }
+
+  componentDidMount() {
+    super.componentDidMount();
+    this.fetchOrganizations();
+  }
+
+  reloadData() {
+    this.fetchOrganizations();
+    super.reloadData();
   }
 
   handleDisable = async (auth: Authenticator) => {
@@ -38,7 +65,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
-      this.remountComponent();
+      this.reloadData();
     } catch (_err) {
       this.setState({loading: false});
       addErrorMessage(t('Error disabling %s', auth.name));
@@ -52,7 +79,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       await this.api.requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
         method: 'PUT',
       });
-      this.remountComponent();
+      this.reloadData();
     } catch (_err) {
       this.setState({loading: false});
       addErrorMessage(t('Error regenerating backup codes'));
@@ -60,7 +87,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
   };
 
   handleRefresh = () => {
-    this.fetchData();
+    this.reloadData();
   };
 
   renderBody() {

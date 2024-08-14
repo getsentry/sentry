@@ -1,9 +1,0 @@
----
-source: tests/sentry/grouping/test_variants.py
----
-default:
-  hash: "4a0a375b4876203928159c841d799b43"
-  component:
-    default*
-      message*
-        "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d..."

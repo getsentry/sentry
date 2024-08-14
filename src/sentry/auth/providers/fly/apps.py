@@ -1,5 +1,7 @@
 from django.apps import AppConfig
 
+from sentry.auth.partnership_configs import ChannelName
+
 
 class Config(AppConfig):
     name = "sentry.auth.providers.fly"
@@ -7,15 +9,16 @@ class Config(AppConfig):
     def ready(self):
         from sentry import auth, options
 
-        from .provider import FlyOAuth2Provider
+        from .provider import FlyOAuth2Provider, NonPartnerFlyOAuth2Provider
 
-        auth.register("fly", FlyOAuth2Provider)
+        auth.register(ChannelName.FLY_IO.value, FlyOAuth2Provider)
+        auth.register(ChannelName.FLY_NON_PARTNER.value, NonPartnerFlyOAuth2Provider)
 
         options.register(
             "auth-fly.client-id",
-            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
         )
         options.register(
             "auth-fly.client-secret",
-            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
         )

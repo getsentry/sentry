@@ -6,17 +6,18 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
+    from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 
-@control_silo_only_model
+@control_silo_model
 class LostPasswordHash(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
@@ -37,10 +38,21 @@ class LostPasswordHash(Model):
         self.hash = get_secure_token()
 
     def is_valid(self) -> bool:
-        return self.date_added > timezone.now() - timedelta(hours=48)
+        return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
-    def send_email(cls, user, hash, request, mode="recover") -> None:
+    def send_recover_password_email(cls, user, hash, ip_address) -> None:
+        extra = {
+            "ip_address": ip_address,
+        }
+        cls._send_email("recover_password", user, hash, extra)
+
+    @classmethod
+    def send_relocate_account_email(cls, user, hash, orgs) -> None:
+        cls._send_email("relocate_account", user, hash, {"orgs": orgs})
+
+    @classmethod
+    def _send_email(cls, mode, user, hash, extra) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -50,13 +62,19 @@ class LostPasswordHash(Model):
             "domain": get_server_hostname(),
             "url": cls.get_lostpassword_url(user.id, hash, mode),
             "datetime": timezone.now(),
-            "ip_address": request.META["REMOTE_ADDR"],
+            **extra,
         }
 
-        template = "set_password" if mode == "set_password" else "recover_account"
+        subject = "Password Recovery"
+        template = "recover_account"
+        if mode == "set_password":
+            template = "set_password"
+        elif mode == "relocate_account":
+            template = "relocate_account"
+            subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
-            subject="{}Password Recovery".format(options.get("mail.subject-prefix")),
+            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",
@@ -73,12 +91,14 @@ class LostPasswordHash(Model):
         url_key = "sentry-account-recover-confirm"
         if mode == "set_password":
             url_key = "sentry-account-set-password-confirm"
+        elif mode == "relocate_account":
+            url_key = "sentry-account-relocate-confirm"
 
         return absolute_uri(reverse(url_key, args=[user_id, hash]))
 
     @classmethod
     def for_user(cls, user) -> "RpcLostPasswordHash":
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
 
         password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
         return password_hash

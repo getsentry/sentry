@@ -1,11 +1,14 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import NotRequired, TypedDict
 
-from typing_extensions import TypedDict
+from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.api.serializers.models.external_actor import ExternalActorResponse
-from sentry.api.serializers.models.role import RoleSerializerResponse
+from sentry.api.serializers.models.role import (
+    OrganizationRoleSerializerResponse,
+    TeamRoleSerializerResponse,
+)
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
 
 
 class SCIMName(TypedDict):
@@ -29,6 +32,21 @@ class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
     active: bool
 
 
+class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
+    """
+    Conforming to the SCIM RFC, this represents a Sentry Org Member
+    as a SCIM user object.
+    """
+
+    schemas: list[str]
+    id: str
+    userName: str
+    name: SCIMName
+    emails: list[SCIMEmail]
+    meta: SCIMMeta
+    sentryOrgRole: str
+
+
 # We must use alternative TypedDict syntax because of dashes/colons in names.
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -38,6 +56,7 @@ _OrganizationMemberFlags = TypedDict(
         "sso:linked": bool,
         "sso:invalid": bool,
         "member-limit:restricted": bool,
+        "partnership:restricted": bool,
     },
 )
 
@@ -47,54 +66,38 @@ class _TeamRole(TypedDict):
     role: str
 
 
-class OrganizationMemberResponseOptional(TypedDict, total=False):
-    externalUsers: List[ExternalActorResponse]
-
-
-class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
-    """
-    Conforming to the SCIM RFC, this represents a Sentry Org Member
-    as a SCIM user object.
-    """
-
-    schemas: List[str]
-    id: str
-    userName: str
-    name: SCIMName
-    emails: List[SCIMEmail]
-    meta: SCIMMeta
-    sentryOrgRole: str
-
-
-class OrganizationMemberResponse(OrganizationMemberResponseOptional):
+@extend_schema_serializer(exclude_fields=["role", "roleName"])
+class OrganizationMemberResponse(TypedDict):
+    externalUsers: NotRequired[list[ExternalActorResponse]]
+    role: NotRequired[str]  # Deprecated: use orgRole
+    roleName: NotRequired[str]  # Deprecated
     id: str
     email: str
     name: str
-    user: UserSerializerResponse
-    role: str  # Deprecated: use orgRole
-    roleName: str  # Deprecated
+    # User may be optional b/c invites don't have users yet
+    user: NotRequired[UserSerializerResponse]
     orgRole: str
-    groupOrgRoles: List[RoleSerializerResponse]
     pending: bool
-    expired: str
+    expired: bool
     flags: _OrganizationMemberFlags
     dateCreated: datetime
     inviteStatus: str
-    inviterName: Optional[str]
+    inviterName: str | None
 
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
-    teams: List[str]
-    teamRoles: List[_TeamRole]
+    teams: list[str]
+    teamRoles: list[_TeamRole]
 
 
 class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
-    projects: List[str]
+    projects: list[str]
 
 
+@extend_schema_serializer(exclude_fields=["roles"])
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
-    invite_link: Optional[str]
+    roles: NotRequired[list[OrganizationRoleSerializerResponse]]  # Deprecated: use orgRoleList
+    invite_link: str | None
     isOnlyOwner: bool
-    roles: List[RoleSerializerResponse]  # Deprecated: use orgRoleList
-    orgRoleList: List[RoleSerializerResponse]
-    teamRoleList: List[RoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]

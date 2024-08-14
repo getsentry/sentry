@@ -1,16 +1,13 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
-import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import {Event} from '@sentry/types';
+import type {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {HTTPTimingIntegration} from 'sentry/utils/performanceForSentry/integrations';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -26,6 +23,12 @@ const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
   'sentry.dev',
 ];
 
+let lastEventId: string | undefined;
+
+export function getLastEventId(): string | undefined {
+  return lastEventId;
+}
+
 // We don't care about recording breadcrumbs for these hosts. These typically
 // pollute our breadcrumbs since they may occur a LOT.
 //
@@ -38,7 +41,7 @@ const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'reload.getsentry.net'];
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
+const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -47,27 +50,20 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  */
 function getSentryIntegrations(routes?: Function) {
   const integrations = [
-    new ExtraErrorData({
+    Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new BrowserTracing({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              browserHistory as any,
-              createRoutes(routes()),
-              match
-            ),
-          }
-        : {}),
+    Sentry.reactRouterV3BrowserTracingIntegration({
+      history: browserHistory as any,
+      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
+      match,
+      enableLongAnimationFrame: true,
       _experiments: {
-        enableInteractions: true,
-        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
+        enableInteractions: false,
       },
     }),
-    new Sentry.BrowserProfilingIntegration(),
-    new HTTPTimingIntegration(),
+    Sentry.browserProfilingIntegration(),
   ];
 
   return integrations;
@@ -102,11 +98,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
-    // @ts-expect-error not part of browser SDK types yet
-    profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
+    profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
-      if (context.transactionContext.op?.startsWith('ui.action')) {
+      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
+      if (op.startsWith('ui.action')) {
         return tracesSampleRate / 100;
       }
       return tracesSampleRate;
@@ -120,6 +116,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (event.spans) {
+        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
@@ -138,11 +141,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
       'AbortError: Fetch is aborted',
-      /**
-       * Thrown when firefox prevents an add-on from refrencing a DOM element
-       * that has been removed.
-       */
-      "TypeError: can't access dead object",
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
@@ -165,7 +163,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return crumb;
     },
 
-    beforeSend(event, _hint) {
+    beforeSend(event, hint) {
       if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
@@ -173,9 +171,19 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
 
+      lastEventId = event.event_id || hint.event_id;
+
       return event;
     },
   });
+
+  if (process.env.NODE_ENV !== 'production') {
+    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
+      import('@spotlightjs/spotlight').then(Spotlight => {
+        /* #__PURE__ */ Spotlight.init();
+      });
+    }
+  }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
   // files the error touched. (files inside the stacktrace)
@@ -207,10 +215,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   };
   debugIdPolyfillEventProcessor.id = 'debugIdPolyfillEventProcessor';
 
-  Sentry.addGlobalEventProcessor(debugIdPolyfillEventProcessor);
+  Sentry.addEventProcessor(debugIdPolyfillEventProcessor);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
-  Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
+  Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;

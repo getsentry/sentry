@@ -6,15 +6,22 @@ import pytest
 import responses
 from django.test import override_settings
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient
-from sentry.models import Integration
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
+from sentry.silo.util import (
+    PROXY_BASE_PATH,
+    PROXY_BASE_URL_HEADER,
+    PROXY_OI_HEADER,
+    PROXY_PATH,
+    PROXY_SIGNATURE_HEADER,
+)
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -23,8 +30,11 @@ class MsTeamsClientTest(TestCase):
 
     def setUp(self):
         self.expires_at = 1594768808
-        self.integration = Integration.objects.create(
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="msteams",
+            external_id="foobar",
             name="my_team",
             metadata={
                 "access_token": "my_token",
@@ -47,14 +57,14 @@ class MsTeamsClientTest(TestCase):
             json=access_json,
         )
 
-        self.client = MsTeamsClient(self.integration)
+        self.msteams_client = MsTeamsClient(self.integration)
 
     @responses.activate
     def test_token_refreshes(self):
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at
             # accessing the property should refresh the token
-            self.client.access_token
+            self.msteams_client.access_token
             body = responses.calls[0].request.body
             assert body == urlencode(
                 {
@@ -77,7 +87,7 @@ class MsTeamsClientTest(TestCase):
         with patch("time.time") as mock_time:
             mock_time.return_value = self.expires_at - 100
             # accessing the property should refresh the token
-            self.client.access_token
+            self.msteams_client.access_token
             assert not responses.calls
 
             integration = Integration.objects.get(provider="msteams")
@@ -89,7 +99,7 @@ class MsTeamsClientTest(TestCase):
 
     @responses.activate
     def test_simple(self):
-        self.client.get_team_info("foobar")
+        self.msteams_client.get_team_info("foobar")
         assert len(responses.calls) == 2
         token_request = responses.calls[0].request
 
@@ -102,7 +112,43 @@ class MsTeamsClientTest(TestCase):
         # API request to service url
         request = responses.calls[1].request
         assert "https://smba.trafficmanager.net/amer/v3/teams/foobar" == request.url
-        assert self.client.base_url in request.url
+        assert self.msteams_client.base_url in request.url
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
+
+    @responses.activate
+    def test_api_client_from_integration_installation(self):
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        client = installation.get_client()
+        assert isinstance(client, MsTeamsClient)
+
+        client.get_team_info("foobar")
+        assert len(responses.calls) == 2
+        token_request = responses.calls[0].request
+
+        # Token request
+        assert (
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
+            == token_request.url
+        )
+
+        # API request to service url
+        request = responses.calls[1].request
+        assert "https://smba.trafficmanager.net/amer/v3/teams/foobar" == request.url
+        assert self.msteams_client.base_url in request.url
 
         # Check if metrics is generated properly
         calls = [
@@ -136,8 +182,11 @@ def assert_proxy_request(request, is_proxy=True):
 class MsTeamsProxyApiClientTest(TestCase):
     def setUp(self):
         self.expires_at = 1594768808
-        self.integration = Integration.objects.create(
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="msteams",
+            external_id="foobar",
             name="my_team",
             metadata={
                 "access_token": "my_token",
@@ -157,9 +206,9 @@ class MsTeamsProxyApiClientTest(TestCase):
             "https://smba.trafficmanager.net/amer/v3/teams/foobar",
             json={},
         )
-        responses.add(
-            responses.GET,
-            "http://controlserver/api/0/internal/integration-proxy/v3/teams/foobar",
+        self.control_proxy_response = add_control_silo_proxy_response(
+            method=responses.GET,
+            path="v3/teams/foobar",
             json={},
         )
 
@@ -213,9 +262,8 @@ class MsTeamsProxyApiClientTest(TestCase):
 
             # API request to service url
             request = responses.calls[0].request
-            assert (
-                "http://controlserver/api/0/internal/integration-proxy/v3/teams/foobar"
-                == request.url
-            )
+            assert self.control_proxy_response.call_count == 1
+            assert request.headers[PROXY_PATH] == "v3/teams/foobar"
+            assert request.headers[PROXY_BASE_URL_HEADER] == "https://smba.trafficmanager.net/amer"
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)

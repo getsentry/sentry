@@ -1,12 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
     def setUp(self):
         self.foo = self.create_user("foo@example.com")
@@ -14,11 +12,11 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         self.team = self.create_team(organization=self.org)
         self.url = reverse(
             "sentry-api-0-organization-sent-first-event",
-            kwargs={"organization_slug": self.org.slug},
+            kwargs={"organization_id_or_slug": self.org.slug},
         )
 
     def test_simple_sent_first_event(self):
-        self.create_project(teams=[self.team], first_event=datetime.now())
+        self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo, teams=[self.team])
 
         self.login_as(user=self.foo)
@@ -40,7 +38,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         assert not response.data["sentFirstEvent"]
 
     def test_first_event_in_org(self):
-        self.create_project(teams=[self.team], first_event=datetime.now())
+        self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 
         self.login_as(user=self.foo)
@@ -51,7 +49,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         assert response.data["sentFirstEvent"]
 
     def test_no_first_event_in_member_projects(self):
-        self.create_project(teams=[self.team], first_event=datetime.now())
+        self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 
         self.login_as(user=self.foo)
@@ -62,7 +60,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         assert not response.data["sentFirstEvent"]
 
     def test_first_event_from_project_ids(self):
-        project = self.create_project(teams=[self.team], first_event=datetime.now())
+        project = self.create_project(teams=[self.team], first_event=datetime.now(UTC))
         self.create_member(organization=self.org, user=self.foo)
 
         self.login_as(user=self.foo)

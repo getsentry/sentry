@@ -133,7 +133,7 @@ describe('Grouping Store', function () {
 
       expect(trigger).toHaveBeenCalled();
       const calls = trigger.mock.calls;
-      const arg = calls[calls.length - 1][0];
+      const arg: any = calls[calls.length - 1][0];
 
       expect(arg.filteredSimilarItems).toHaveLength(1);
       expect(arg.similarItems).toHaveLength(3);
@@ -207,7 +207,7 @@ describe('Grouping Store', function () {
 
       expect(trigger).toHaveBeenCalled();
       const calls = trigger.mock.calls;
-      const arg = calls[calls.length - 1][0];
+      const arg: any = calls[calls.length - 1][0];
 
       const item = arg.similarItems.find(({issue}) => issue.id === '217');
       expect(item.aggregate.exception).toBe(0.25);
@@ -269,21 +269,17 @@ describe('Grouping Store', function () {
   });
 
   describe('Similar Issues list (to be merged)', function () {
-    let mergeList;
-    let mergeState;
+    let mergeList: (typeof GroupingStore)['state']['mergeList'];
+    let mergeState: (typeof GroupingStore)['state']['mergeState'];
 
     beforeEach(function () {
       GroupingStore.init();
       mergeList = [];
       mergeState = new Map();
-      return GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
-      ]);
+      GroupingStore.onFetch([{dataKey: 'similar', endpoint: '/issues/groupId/similar/'}]);
     });
 
     describe('onToggleMerge (checkbox state)', function () {
-      beforeEach(() => GroupingStore.init());
-
       // Attempt to check first item but its "locked" so should not be able to do anything
       it('can check and uncheck item', function () {
         GroupingStore.onToggleMerge('1');
@@ -337,11 +333,13 @@ describe('Grouping Store', function () {
         mergeList = ['1'];
         mergeState.set('1', {checked: true});
 
-        expect(trigger).toHaveBeenLastCalledWith({
-          mergeDisabled: false,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            mergeDisabled: false,
+            mergeList,
+            mergeState,
+          })
+        );
 
         trigger.mockReset();
 
@@ -356,11 +354,13 @@ describe('Grouping Store', function () {
 
         mergeState.set('1', {checked: true, busy: true});
 
-        expect(trigger).toHaveBeenCalledWith({
-          mergeDisabled: true,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mergeDisabled: true,
+            mergeList,
+            mergeState,
+          })
+        );
 
         await promise;
 
@@ -382,11 +382,13 @@ describe('Grouping Store', function () {
         // Should be removed from mergeList after merged
         mergeList = mergeList.filter(item => item !== '1');
         mergeState.set('1', {checked: false, busy: true});
-        expect(trigger).toHaveBeenLastCalledWith({
-          mergeDisabled: false,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            mergeDisabled: false,
+            mergeList,
+            mergeState,
+          })
+        );
       });
 
       it('keeps rows in "busy" state and unchecks after successfully adding to merge queue', async function () {
@@ -395,11 +397,13 @@ describe('Grouping Store', function () {
         mergeState.set('1', {checked: true});
 
         // Expect checked
-        expect(trigger).toHaveBeenCalledWith({
-          mergeDisabled: false,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mergeDisabled: false,
+            mergeList,
+            mergeState,
+          })
+        );
 
         trigger.mockReset();
 
@@ -415,22 +419,26 @@ describe('Grouping Store', function () {
         mergeState.set('1', {checked: true, busy: true});
 
         // Expect checked to remain the same, but is now busy
-        expect(trigger).toHaveBeenCalledWith({
-          mergeDisabled: true,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mergeDisabled: true,
+            mergeList,
+            mergeState,
+          })
+        );
 
         await promise;
 
         mergeState.set('1', {checked: false, busy: true});
 
         // After promise, reset checked to false, but keep busy
-        expect(trigger).toHaveBeenLastCalledWith({
-          mergeDisabled: false,
-          mergeList: [],
-          mergeState,
-        });
+        expect(trigger).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            mergeDisabled: false,
+            mergeList: [],
+            mergeState,
+          })
+        );
       });
 
       it('resets busy state and has same items checked after error when trying to merge', async function () {
@@ -455,28 +463,32 @@ describe('Grouping Store', function () {
         });
 
         mergeState.set('1', {checked: true, busy: true});
-        expect(trigger).toHaveBeenCalledWith({
-          mergeDisabled: true,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mergeDisabled: true,
+            mergeList,
+            mergeState,
+          })
+        );
 
         await promise;
 
         // Error state
         mergeState.set('1', {checked: true, busy: false});
-        expect(trigger).toHaveBeenLastCalledWith({
-          mergeDisabled: false,
-          mergeList,
-          mergeState,
-        });
+        expect(trigger).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            mergeDisabled: false,
+            mergeList,
+            mergeState,
+          })
+        );
       });
     });
   });
 
   describe('Hashes list (to be unmerged)', function () {
-    let unmergeList;
-    let unmergeState;
+    let unmergeList: (typeof GroupingStore)['state']['unmergeList'];
+    let unmergeState: (typeof GroupingStore)['state']['unmergeState'];
 
     beforeEach(async function () {
       GroupingStore.init();
@@ -528,13 +540,15 @@ describe('Grouping Store', function () {
         expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
         expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);
 
-        expect(trigger).toHaveBeenLastCalledWith({
-          enableFingerprintCompare: false,
-          unmergeLastCollapsed: false,
-          unmergeDisabled: false,
-          unmergeList,
-          unmergeState,
-        });
+        expect(trigger).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            enableFingerprintCompare: false,
+            unmergeLastCollapsed: false,
+            unmergeDisabled: false,
+            unmergeList,
+            unmergeState,
+          })
+        );
       });
 
       it('should have Compare button enabled only when two fingerprints are checked', function () {
@@ -590,7 +604,7 @@ describe('Grouping Store', function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/',
+          url: '/organizations/org-slug/issues/groupId/hashes/',
         });
       });
 
@@ -603,6 +617,7 @@ describe('Grouping Store', function () {
         expect(trigger).not.toHaveBeenCalled();
 
         GroupingStore.onUnmerge({
+          orgSlug: 'org-slug',
           groupId: 'groupId',
         });
 
@@ -630,6 +645,7 @@ describe('Grouping Store', function () {
         });
 
         const promise = GroupingStore.onUnmerge({
+          orgSlug: 'org-slug',
           groupId: 'groupId',
         });
 
@@ -663,6 +679,7 @@ describe('Grouping Store', function () {
 
         const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
+          orgSlug: 'org-slug',
         });
 
         unmergeState.set('2', {checked: false, busy: true});
@@ -689,7 +706,7 @@ describe('Grouping Store', function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/',
+          url: '/organizations/org-slug/issues/groupId/hashes/',
           statusCode: 500,
           body: {},
         });
@@ -699,16 +716,19 @@ describe('Grouping Store', function () {
 
         const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
+          orgSlug: 'org-slug',
         });
 
         unmergeState.set('2', {checked: false, busy: true});
-        expect(trigger).toHaveBeenCalledWith({
-          enableFingerprintCompare: false,
-          unmergeLastCollapsed: false,
-          unmergeDisabled: true,
-          unmergeList,
-          unmergeState,
-        });
+        expect(trigger).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enableFingerprintCompare: false,
+            unmergeLastCollapsed: false,
+            unmergeDisabled: true,
+            unmergeList,
+            unmergeState,
+          })
+        );
 
         await promise;
 

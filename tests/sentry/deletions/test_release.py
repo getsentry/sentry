@@ -1,21 +1,21 @@
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    ScheduledDeletion,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import TransactionTestCase
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-class DeleteReleaseTest(TransactionTestCase):
+class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -23,11 +23,10 @@ class DeleteReleaseTest(TransactionTestCase):
         release = self.create_release(project=project, environments=[env])
         file = self.create_release_file(release_id=release.id)
 
-        deletion = ScheduledDeletion.schedule(release, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=release, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Release.objects.filter(id=release.id).exists()
         assert not ReleaseCommit.objects.filter(release=release).exists()
@@ -38,6 +37,7 @@ class DeleteReleaseTest(TransactionTestCase):
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascade_from_user(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -50,7 +50,7 @@ class DeleteReleaseTest(TransactionTestCase):
         assert release1.owner_id
         assert release2.owner_id
 
-        with exempt_from_silo_limits(), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.delete()
 
         with TaskRunner():

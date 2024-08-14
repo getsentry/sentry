@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import OriginField
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DummySerializer(serializers.Serializer):
@@ -10,14 +10,13 @@ class DummySerializer(serializers.Serializer):
 
 class OriginFieldTest(TestCase):
     def test_valid_origin(self):
-        urls = ["https://www.foo.com", "*"]
-
+        urls = ["https://www.foo.com", "*", "*.domain.com", "*:80", "localhost:8080"]
         for url in urls:
             serializer = DummySerializer(data={"origin_field": url})
             assert serializer.is_valid()
 
     def test_invalid_origin(self):
-        url = "https://www.foo.com:88"
-        serializer = DummySerializer(data={"origin_field": url})
-
-        assert serializer.is_valid() is False
+        urls = ["https://www.foo.com:*", "localhost:*"]
+        for url in urls:
+            serializer = DummySerializer(data={"origin_field": url})
+            assert serializer.is_valid() is False

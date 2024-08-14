@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import {connect} from 'echarts';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
@@ -12,42 +11,64 @@ import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
 import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import type {Fidelity} from 'sentry/components/charts/utils';
 import {
-  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {getUtcDateString} from 'sentry/utils/dates';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
   isMeasurement,
+  RATE_UNIT_MULTIPLIERS,
+  RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList} from 'sentry/utils/queryString';
 import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
+import {parseField} from 'sentry/utils/metrics/mri';
+import type {MetricsWidget} from 'sentry/utils/metrics/types';
+import {decodeList} from 'sentry/utils/queryString';
+import theme from 'sentry/utils/theme';
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -64,23 +85,14 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: PageFilters,
-  widgetDisplayType?: DisplayType
+  selection: PageFilters
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
-  const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.columns.includes('geo.country_code')
-      ? ['geo.country_code', ...query.columns, ...query.aggregates]
-      : [...query.columns, ...query.aggregates];
-  const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.conditions.includes('has:geo.country_code')
-      ? `${query.conditions} has:geo.country_code`.trim()
-      : query.conditions;
+  const fields = [...query.columns, ...query.aggregates];
+  const conditions = query.conditions;
 
   const {orderby} = query;
   // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
@@ -100,6 +112,86 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
+}
+
+export function getThresholdUnitSelectOptions(
+  dataType: string
+): {label: string; value: string}[] {
+  if (dataType === 'duration') {
+    return Object.keys(DURATION_UNITS)
+      .map(unit => ({label: unit, value: unit}))
+      .slice(2);
+  }
+
+  if (dataType === 'rate') {
+    return Object.values(RateUnit).map(unit => ({
+      label: `/${unit.split('/')[1]}`,
+      value: unit,
+    }));
+  }
+
+  return [];
+}
+
+export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
+  return Object.keys(thresholdsConfig.max_values).length > 0;
+}
+
+function normalizeUnit(value: number, unit: string, dataType: string): number {
+  const multiplier =
+    dataType === 'rate'
+      ? RATE_UNIT_MULTIPLIERS[unit]
+      : dataType === 'duration'
+        ? DURATION_UNITS[unit]
+        : 1;
+  return value * multiplier;
+}
+
+export function getColoredWidgetIndicator(
+  thresholds: ThresholdsConfig,
+  tableData: TableDataWithTitle[]
+): React.ReactNode {
+  const tableMeta = {...tableData[0].meta};
+  const fields = Object.keys(tableMeta);
+  const field = fields[0];
+  const dataType = tableMeta[field];
+  const dataUnit = tableMeta.units?.[field];
+  const dataRow = tableData[0].data[0];
+
+  if (!dataRow) {
+    return null;
+  }
+
+  const data = Number(dataRow[field]);
+  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
+
+  const {max_values} = thresholds;
+
+  let color = theme.red300;
+
+  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
+  const normalizedYellowMax =
+    thresholds.unit && yellowMax
+      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
+      : yellowMax;
+  if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
+    color = theme.yellow300;
+  }
+
+  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
+  const normalizedGreenMax =
+    thresholds.unit && greenMax
+      ? normalizeUnit(greenMax, thresholds.unit, dataType)
+      : greenMax;
+  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
+    color = theme.green300;
+  }
+
+  return (
+    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
+      <CircleIndicator color={color} size={12} />
+    </ThresholdsHoverWrapper>
+  );
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
@@ -157,8 +249,6 @@ export function miniWidget(displayType: DisplayType): string {
       return WidgetBigNumber;
     case DisplayType.TABLE:
       return WidgetTable;
-    case DisplayType.WORLD_MAP:
-      return WidgetWorldMap;
     case DisplayType.LINE:
     default:
       return WidgetLine;
@@ -224,13 +314,14 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[index],
-    selection,
-    widget.displayType
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
   );
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -242,9 +333,6 @@ export function getWidgetDiscoverUrl(
 
   // Visualization specific transforms
   switch (widget.displayType) {
-    case DisplayType.WORLD_MAP:
-      discoverLocation.query.display = DisplayModes.WORLDMAP;
-      break;
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
@@ -322,6 +410,40 @@ export function getWidgetReleasesUrl(
     environment: selection.environments,
   })}`;
   return releasesLocation;
+}
+
+export function getWidgetMetricsUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+
+  // ensures that My Projects selection is properly handled
+  const project = selection.projects.length ? selection.projects : [0];
+
+  const metricsLocation = getMetricsUrl(organization.slug, {
+    ...datetime,
+    project,
+    environment: selection.environments,
+    widgets: _widget.queries.map(query => {
+      const parsed = parseField(query.aggregates[0]);
+
+      return {
+        mri: parsed?.mri,
+        aggregation: parsed?.aggregation,
+        groupBy: query.columns,
+        query: query.conditions ?? '',
+        displayType: getMetricDisplayType(_widget.displayType),
+      } satisfies Partial<MetricsWidget>;
+    }),
+  });
+
+  return metricsLocation;
 }
 
 export function flattenErrors(
@@ -422,7 +544,8 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.projects) &&
+    dashboard.projects &&
+    dashboard.projects.length === 0 &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -517,8 +640,8 @@ export function getCurrentPageFilters(
       project === undefined || project === null
         ? []
         : typeof project === 'string'
-        ? [Number(project)]
-        : project.map(Number),
+          ? [Number(project)]
+          : project.map(Number),
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,
@@ -535,7 +658,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
   });
-  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
+  return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
 export function dashboardFiltersToString(
@@ -545,11 +668,31 @@ export function dashboardFiltersToString(
   if (dashboardFilters) {
     for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
       if (activeFilters.length === 1) {
-        dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+        dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
-        dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
+        dashboardFilterConditions += `${key}:[${activeFilters
+          .map(f => `"${f}"`)
+          .join(',')}] `;
       }
     }
   }
   return dashboardFilterConditions;
+}
+
+export function connectDashboardCharts(groupName: string) {
+  connect?.(groupName);
+}
+
+export function hasDatasetSelector(organization: Organization): boolean {
+  return organization.features.includes('performance-discover-dataset-selector');
+}
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset?: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization) && queryDataset) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
 }

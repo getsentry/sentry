@@ -3,6 +3,8 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
@@ -24,6 +26,11 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.UNOWNED
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationRecentSearchPermission,)
 
     def get(self, request: Request, organization) -> Response:

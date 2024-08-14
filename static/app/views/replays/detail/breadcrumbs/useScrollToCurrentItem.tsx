@@ -1,42 +1,33 @@
-import {RefObject, useEffect, useMemo} from 'react';
+import type {RefObject} from 'react';
+import {useEffect, useMemo} from 'react';
 import type {List as ReactVirtualizedList} from 'react-virtualized';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {getPrevReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-type Opts = {
-  breadcrumbs: undefined | Crumb[];
+interface Opts {
+  frames: undefined | ReplayFrame[];
   ref: RefObject<ReactVirtualizedList>;
-  startTimestampMs: number;
-};
-function useScrollToCurrentItem({breadcrumbs, ref, startTimestampMs}: Opts) {
-  const {currentTime} = useReplayContext();
-  const itemLookup = useMemo(
-    () =>
-      breadcrumbs &&
-      breadcrumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [breadcrumbs]
-  );
+}
 
-  const current = useMemo(
+function useScrollToCurrentItem({frames, ref}: Opts) {
+  const {currentTime} = useReplayContext();
+  const currentItem = useMemo(
     () =>
-      getPrevReplayEvent({
-        itemLookup,
-        items: breadcrumbs || [],
-        targetTimestampMs: startTimestampMs + currentTime,
+      getPrevReplayFrame({
+        frames: frames || [],
+        targetOffsetMs: currentTime,
       }),
-    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+    [frames, currentTime]
   );
 
   useEffect(() => {
-    if (ref.current && current) {
-      const index = breadcrumbs?.findIndex(crumb => crumb.id === current.id);
+    if (ref.current && currentItem) {
+      const index = frames?.findIndex(frame => frame === currentItem);
       ref.current?.scrollToRow(index ? index + 1 : undefined);
     }
-  }, [breadcrumbs, current, ref]);
+  }, [frames, currentItem, ref]);
 }
 
 export default useScrollToCurrentItem;

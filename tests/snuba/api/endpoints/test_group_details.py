@@ -2,22 +2,20 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import (
-    GROUP_OWNER_TYPE,
-    Environment,
-    GroupInboxReason,
-    GroupOwner,
-    GroupOwnerType,
-    Release,
-)
-from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import Feature
+from sentry import tsdb
+from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.group import GroupStatus
+from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.release import Release
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 
 
-@region_silo_test(stable=True)
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()
@@ -28,10 +26,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        from sentry.api.endpoints.group_details import tsdb
-
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
+            "sentry.api.endpoints.group_details.tsdb.backend.get_range",
+            side_effect=tsdb.backend.get_range,
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"
@@ -64,13 +61,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
-        event = None
-        for timestamp in last_release.values():
-            event = self.store_event(
+        event = [
+            self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},
                 project_id=self.project.id,
             )
-
+            for timestamp in last_release.values()
+        ][-1]
         group = event.group
 
         url = f"/api/0/issues/{group.id}/"
@@ -103,9 +100,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tagstore.get_release_tags"
-        ) as get_release_tags:
+        with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
             response = self.client.get(url, format="json")
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
@@ -194,20 +189,64 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
 
     def test_group_expand_forecasts(self):
-        with Feature("organizations:escalating-issues"):
-            self.login_as(user=self.user)
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-                project_id=self.project.id,
-            )
-            group = event.group
-            url = f"/api/0/issues/{group.id}/?expand=forecast"
+        self.login_as(user=self.user)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+        generate_and_save_forecasts([group])
 
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200, response.content
-            assert response.data["forecast"] is not None
-            assert response.data["forecast"]["data"] is not None
-            assert response.data["forecast"]["date_added"] is not None
+        url = f"/api/0/issues/{group.id}/?expand=forecast"
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["forecast"] is not None
+        assert response.data["forecast"]["data"] is not None
+        assert response.data["forecast"]["date_added"] is not None
+
+    def test_group_get_priority(self):
+        self.login_as(user=self.user)
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.IGNORED,
+            priority=PriorityLevel.LOW,
+        )
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["priority"] == "low"
+        assert response.data["priorityLockedAt"] is None
+
+    def test_group_post_priority(self):
+        self.login_as(user=self.user)
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.IGNORED,
+            priority=PriorityLevel.LOW,
+        )
+        url = f"/api/0/issues/{group.id}/"
+
+        get_response_before = self.client.get(url, format="json")
+        assert get_response_before.status_code == 200, get_response_before.content
+        assert get_response_before.data["priority"] == "low"
+
+        response = self.client.put(url, {"priority": "high"}, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["priority"] == "high"
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        assert len(act_for_group) == 2
+        assert act_for_group[0].type == ActivityType.SET_PRIORITY.value
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+        assert act_for_group[0].user_id == self.user.id
+        assert act_for_group[0].data["priority"] == "high"
+
+        get_response_after = self.client.get(url, format="json")
+        assert get_response_after.status_code == 200, get_response_after.content
+        assert get_response_after.data["priority"] == "high"
+        assert get_response_after.data["priorityLockedAt"] is not None
 
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)

@@ -1,20 +1,22 @@
 """ Write transactions into redis sets """
 import logging
-import random
-from typing import Any, Iterator, Mapping, Optional
+from collections.abc import Iterator, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
+from rediscluster import RedisCluster
 
-from sentry import features, options
+from sentry import features
+from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 
@@ -29,7 +31,7 @@ SET_TTL = 24 * 60 * 60
 
 # TODO(iker): accept multiple values to add to the set. Right now, multiple
 # calls for each individual value are required, producing too many Redis calls.
-add_to_set = redis.load_script("utils/sadd_capped.lua")
+add_to_set = redis.load_redis_script("utils/sadd_capped.lua")
 logger = logging.getLogger(__name__)
 
 
@@ -44,10 +46,10 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
     return f"{prefix}:projects"
 
 
-def get_redis_client() -> Any:
+def get_redis_client() -> RedisCluster:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
@@ -75,7 +77,7 @@ def _record_sample(namespace: ClustererNamespace, project: Project, sample: str)
     with sentry_sdk.start_span(op="cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
-        created = add_to_set(client, [redis_key], [sample, MAX_SET_SIZE, SET_TTL])
+        created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)
         if created:
             projects_key = _get_projects_key(namespace)
             client.sadd(projects_key, project.id)
@@ -107,14 +109,12 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             ClustererNamespace.TRANSACTIONS,
             project,
             transaction_name,
-            _with_transaction=False,
         )
-        sample_rate = options.get("txnames.bump-lifetime-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
-            safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
+        if in_random_rollout("txnames.bump-lifetime-sample-rate"):
+            safe_execute(_bump_rule_lifetime, project, event_data)
 
 
-def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[str]:
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
     transaction_name = event_data.get("transaction")
@@ -189,35 +189,21 @@ def record_span_descriptions(
         description = _get_span_description_to_store(span)
         if not description:
             continue
-        url_path = _get_url_path_from_description(description)
-        if url_path:
-            safe_execute(_record_sample, ClustererNamespace.SPANS, project, url_path)
-
-        update_rule_rate = options.get("span_descs.bump-lifetime-sample-rate")
-        if update_rule_rate and random.random() < update_rule_rate:
-            safe_execute(
-                _update_span_description_rule_lifetime, project, event_data, _with_transaction=False
-            )
+        safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
 
 
-def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
-    if not span.get("op", "").startswith("http"):
+def _get_span_description_to_store(span: Mapping[str, Any]) -> str | None:
+    if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
         return None
-    data = span.get("data", {})
-    return data.get("description.scrubbed") or span.get("description")
 
+    if url := span.get("description"):
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return None
+        return f"{parsed.netloc}{parsed.path}"
 
-def _get_url_path_from_description(description: str) -> Optional[str]:
-    """Return the URL from the span description.
-
-    It's assumed the description is an HTTP span's description, with the
-    following format: `<http verb> <url>`.
-    """
-    tokens = description.split(" ")
-    if len(tokens) != 2:
-        return None
-    url = tokens[1]
-    return urlparse(url).path
+    return None
 
 
 def _update_span_description_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
@@ -225,13 +211,13 @@ def _update_span_description_rule_lifetime(project: Project, event_data: Mapping
 
     spans = event_data.get("_meta", {}).get("spans", {})
     for span in spans.values():
-        data = span.get("data", {})
-        applied_rule = data.get("description.scrubbed", {}).get("", {}).get("rem", [[]])[0]
+        sentry_tags = span.get("sentry_tags") or {}
+        applied_rule = sentry_tags.get("description", {}).get("", {}).get("rem", [[]])[0]
         if not applied_rule:
             continue
         if len(applied_rule) == 2:
             uncleaned_pattern = applied_rule[0]
             # uncleaned_pattern has the following format: `description.scrubbed:<rule>`
-            tokens = uncleaned_pattern.split("description.scrubbed:")
+            tokens = uncleaned_pattern.split("description:")
             pattern = tokens[1]
             clusterer_rules.bump_last_used(ClustererNamespace.SPANS, project, pattern)

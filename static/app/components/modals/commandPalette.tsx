@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Input from 'sentry/components/input';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
@@ -43,7 +43,7 @@ function CommandPalette({Body}: ModalRenderProps) {
                   autoFocus
                   {...getInputProps({
                     type: 'text',
-                    placeholder: t('Search for projects, teams, settings, etc...'),
+                    placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
                   })}
                 />
               </InputWrapper>

@@ -1,22 +1,38 @@
+from __future__ import annotations
+
 import base64
 import logging
-import sys
+import os
 from copy import deepcopy
+from datetime import datetime
+from typing import Any
 
 import jsonschema
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
+from rediscluster import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.utils import json, safe
+from sentry.models.project import Project
+from sentry.utils import metrics, redis, safe
+from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
+VALID_LAYOUTS = (
+    "native",
+    "symstore",
+    "symstore_index2",
+    "ssqp",
+    "unified",
+    "debuginfod",
+    "slashsymbols",
+)
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
@@ -108,12 +124,97 @@ GCS_SOURCE_SCHEMA = {
     "additionalProperties": False,
 }
 
+SOURCE_SCHEMA = {
+    "oneOf": [
+        HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
 SOURCES_SCHEMA = {
     "type": "array",
+    "items": SOURCE_SCHEMA,
+}
+
+SOURCES_WITHOUT_APPSTORE_CONNECT = {
+    "type": "array",
     "items": {
-        "oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA, APP_STORE_CONNECT_SCHEMA]
+        "oneOf": [
+            HTTP_SOURCE_SCHEMA,
+            S3_SOURCE_SCHEMA,
+            GCS_SOURCE_SCHEMA,
+        ]
     },
 }
+
+
+# Schemas for sources with redacted secrets
+HIDDEN_SECRET_SCHEMA = {
+    "type": "object",
+    "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
+}
+
+
+def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
+    """
+    Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
+    with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
+    """
+
+    def override_key(schema: dict, keys_to_redact: list[str]) -> None:
+        for key, value in schema.items():
+            if key in keys_to_redact:
+                schema[key] = HIDDEN_SECRET_SCHEMA
+            elif isinstance(value, dict):
+                override_key(value, keys_to_redact)
+
+    copy = deepcopy(schema)
+    override_key(copy, keys_to_redact)
+    return copy
+
+
+REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
+    APP_STORE_CONNECT_SCHEMA, ["appConnectPrivateKey"]
+)
+REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
+REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
+REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
+
+REDACTED_SOURCE_SCHEMA = {
+    "oneOf": [
+        REDACTED_HTTP_SOURCE_SCHEMA,
+        REDACTED_S3_SOURCE_SCHEMA,
+        REDACTED_GCS_SOURCE_SCHEMA,
+        REDACTED_APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+REDACTED_SOURCES_SCHEMA = {
+    "type": "array",
+    "items": REDACTED_SOURCE_SCHEMA,
+}
+
+LAST_UPLOAD_TTL = 24 * 3600
+
+
+def _get_cluster() -> RedisCluster:
+    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+
+
+def _last_upload_key(project_id: int) -> str:
+    return f"symbols:last_upload:{project_id}"
+
+
+def record_last_upload(project: Project):
+    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
+
+
+def get_last_upload(project_id: int):
+    return _get_cluster().get(_last_upload_key(project_id))
 
 
 class InvalidSourcesError(Exception):
@@ -128,16 +229,19 @@ def get_internal_url_prefix() -> str:
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
         internal_url_prefix = options.get("system.url-prefix")
-        if sys.platform == "darwin":
-            internal_url_prefix = internal_url_prefix.replace(
-                "localhost", "host.docker.internal"
-            ).replace("127.0.0.1", "host.docker.internal")
+
+        replacements = ["localhost", "127.0.0.1"]
+        if "DJANGO_LIVE_TEST_SERVER_ADDRESS" in os.environ:
+            replacements.append(os.environ["DJANGO_LIVE_TEST_SERVER_ADDRESS"])
+
+        for replacement in replacements:
+            internal_url_prefix = internal_url_prefix.replace(replacement, "host.docker.internal")
 
     assert internal_url_prefix
     return internal_url_prefix.rstrip("/")
 
 
-def get_internal_source(project):
+def get_internal_source(project: Project):
     """
     Returns the source configuration for a Sentry project.
     """
@@ -145,9 +249,19 @@ def get_internal_source(project):
         get_internal_url_prefix(),
         reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         ),
     )
+
+    if last_upload := get_last_upload(project.id):
+        # Adding a random query string parameter here makes sure that the
+        # Symbolicator-internal `list_files` cache that is querying this API
+        # is not being hit. This means that uploads will be immediately visible
+        # to Symbolicator, and not depending on its internal cache TTL.
+        sentry_source_url += f"?_last_upload={last_upload}"
 
     return {
         "type": "sentry",
@@ -157,7 +271,7 @@ def get_internal_source(project):
     }
 
 
-def get_internal_artifact_lookup_source_url(project):
+def get_internal_artifact_lookup_source_url(project: Project):
     """
     Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
@@ -166,14 +280,38 @@ def get_internal_artifact_lookup_source_url(project):
         reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         ),
     )
 
 
-def get_internal_artifact_lookup_source(project):
+def get_scraping_config(project: Project) -> dict[str, Any]:
+    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
+    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
+    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+    verify_ssl = project.get_option("sentry:verify_ssl", True)
+
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    return {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+        "verify_ssl": verify_ssl,
+    }
+
+
+def get_internal_artifact_lookup_source(project: Project):
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
@@ -185,7 +323,7 @@ def get_internal_artifact_lookup_source(project):
     }
 
 
-def is_internal_source_id(source_id):
+def is_internal_source_id(source_id: str):
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 
     This is trivial, but multiple functions in this file need to use the same definition.
@@ -228,27 +366,15 @@ def secret_fields(source_type):
     yield from []
 
 
-def parse_sources(config, filter_appconnect=True):
+def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
     """
-    Parses the given sources in the config string (from JSON).
+    Validates sources against the JSON schema and checks that
+    their IDs are ok.
     """
-
-    if not config:
-        return []
-
     try:
-        sources = json.loads(config)
-    except Exception as e:
-        raise InvalidSourcesError(f"{e}")
-
-    try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
-
-    # remove App Store Connect sources (we don't need them in Symbolicator)
-    if filter_appconnect:
-        filter(lambda src: src.get("type") != "appStoreConnect", sources)
+        jsonschema.validate(sources, schema)
+    except jsonschema.ValidationError:
+        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
     ids = set()
     for source in sources:
@@ -257,6 +383,26 @@ def parse_sources(config, filter_appconnect=True):
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
+
+
+def parse_sources(config, filter_appconnect):
+    """
+    Parses the given sources in the config string (from JSON).
+    """
+
+    if not config:
+        return []
+
+    try:
+        sources = orjson.loads(config)
+    except Exception as e:
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
+
+    # remove App Store Connect sources (we don't need them in Symbolicator)
+    if filter_appconnect:
+        sources = [src for src in sources if src.get("type") != "appStoreConnect"]
+
+    validate_sources(sources)
 
     return sources
 
@@ -271,46 +417,43 @@ def parse_backfill_sources(sources_json, original_sources):
         return []
 
     try:
-        sources = json.loads(sources_json)
+        sources = orjson.loads(sources_json)
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     orig_by_id = {src["id"]: src for src in original_sources}
 
-    ids = set()
     for source in sources:
-        if is_internal_source_id(source["id"]):
-            raise InvalidSourcesError('Source ids must not start with "sentry:"')
-        if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+        backfill_source(source, orig_by_id)
 
-        ids.add(source["id"])
-
-        for secret in secret_fields(source["type"]):
-            if secret in source and source[secret] == {"hidden-secret": True}:
-                secret_value = safe.get_path(orig_by_id, source["id"], secret)
-                if secret_value is None:
-                    with sentry_sdk.push_scope():
-                        sentry_sdk.set_tag("missing_secret", secret)
-                        sentry_sdk.set_tag("source_id", source["id"])
-                        sentry_sdk.capture_message(
-                            "Obfuscated symbol source secret does not have a corresponding saved value in project options"
-                        )
-                    raise InvalidSourcesError("Hidden symbol source secret is missing a value")
-                else:
-                    source[secret] = secret_value
-
-    try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError("Sources did not validate JSON-schema") from e
+    validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
 
-def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
+def backfill_source(source, original_sources_by_id):
     """
-    Returns a JSONData with all of the secrets redacted from every source.
+    Backfills redacted secrets in a source by
+    finding their previous values stored in original_sources_by_id.
+    """
+    for secret in secret_fields(source["type"]):
+        if secret in source and source[secret] == {"hidden-secret": True}:
+            secret_value = safe.get_path(original_sources_by_id, source["id"], secret)
+            if secret_value is None:
+                with sentry_sdk.isolation_scope():
+                    sentry_sdk.set_tag("missing_secret", secret)
+                    sentry_sdk.set_tag("source_id", source["id"])
+                    sentry_sdk.capture_message(
+                        "Obfuscated symbol source secret does not have a corresponding saved value in project options"
+                    )
+                raise InvalidSourcesError("Hidden symbol source secret is missing a value")
+            else:
+                source[secret] = secret_value
+
+
+def redact_source_secrets(config_sources: Any) -> Any:
+    """
+    Returns a json data with all of the secrets redacted from every source.
 
     The original value is not mutated in the process; A clone is created
     and returned by this function.
@@ -352,7 +495,7 @@ def get_sources_for_project(project):
 
     if sources_config:
         try:
-            custom_sources = parse_sources(sources_config)
+            custom_sources = parse_sources(sources_config, filter_appconnect=True)
             sources.extend(
                 normalize_user_source(source)
                 for source in custom_sources
@@ -362,7 +505,7 @@ def get_sources_for_project(project):
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
             # processing at this point.
-            logger.error("Invalid symbolicator source config", exc_info=True)
+            logger.exception("Invalid symbolicator source config")
 
     def resolve_alias(source):
         for key in source.get("sources") or ():
@@ -473,7 +616,6 @@ def redact_internal_sources_from_module(module):
     for candidate in module.get("candidates", []):
         source_id = candidate["source"]
         if is_internal_source_id(source_id):
-
             # Only keep location for sentry:project.
             if source_id != "sentry:project":
                 candidate.pop("location", None)
@@ -541,6 +683,10 @@ def sources_for_symbolication(project):
         sources, hide information about unknown sources and add names to sources rather then
         just have their IDs.
         """
+        try:
+            capture_apple_symbol_stats(json)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
                 # Reverse internal source aliases from the response.
@@ -557,3 +703,78 @@ def sources_for_symbolication(project):
         return json
 
     return (sources, _process_response)
+
+
+def capture_apple_symbol_stats(json):
+    eligible_symbols = 0
+    neither_has_symbol = 0
+    both_have_symbol = 0
+    old_has_symbol = 0
+    symx_has_symbol = 0
+
+    for module in json.get("modules") or ():
+        if (
+            module.get("debug_status", "unused") == "unused"
+            and module.get("unwind_status", "unused") == "unused"
+        ):
+            continue
+
+        if module["type"] != "macho":
+            continue
+
+        eligible_symbols += 1
+
+        old_has_this_symbol = False
+        symx_has_this_symbol = False
+        for candidate in module.get("candidates") or ():
+            if candidate["download"]["status"] == "ok":
+                source_id = candidate["source"]
+                if source_id.startswith("sentry:symx"):
+                    symx_has_this_symbol = True
+                elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
+                    old_has_this_symbol = True
+
+        if symx_has_this_symbol:
+            if old_has_this_symbol:
+                both_have_symbol += 1
+            else:
+                symx_has_symbol += 1
+        elif old_has_this_symbol:
+            old_has_symbol += 1
+        else:
+            neither_has_symbol += 1
+            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is
+            # supposed to be a system symbol, and maybe also log those cases specifically as internal messages. For
+            # now, we are only interested in rough numbers.
+
+    if eligible_symbols:
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=neither_has_symbol,
+            tags={"availability": "neither"},
+            sample_rate=1.0,
+        )
+
+        # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
+        # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
+        # that matched both.
+        if both_have_symbol:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=both_have_symbol,
+                tags={"availability": "both"},
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=old_has_symbol,
+                tags={"availability": "old"},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=symx_has_symbol,
+                tags={"availability": "symx"},
+                sample_rate=1.0,
+            )

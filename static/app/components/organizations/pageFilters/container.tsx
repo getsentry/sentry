@@ -1,40 +1,39 @@
-import {Fragment, useEffect, useRef} from 'react';
-import isEmpty from 'lodash/isEmpty';
+import {Fragment, useEffect, useLayoutEffect, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
 import {
   initializeUrlState,
-  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
-import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
-import {extractSelectionParameters} from './utils';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,
-  'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
+  | 'memberProjects'
+  | 'nonMemberProjects'
+  | 'queryParams'
+  | 'router'
+  | 'shouldEnforceSingleProject'
+  | 'organization'
 >;
 
-type Props = InitializeUrlStateProps & {
+interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
-  /**
-   * Custom alert message for the desynced filter state.
-   */
-  desyncedAlertMessage?: string;
   /**
    * When true, changes to page filters' value won't be saved to local storage, and will
    * be forgotten when the user navigates to a different page. This is useful for local
@@ -42,34 +41,38 @@ type Props = InitializeUrlStateProps & {
    */
   disablePersistence?: boolean;
   /**
-   * Whether to hide the revert button in the desynced filter alert.
-   */
-  hideDesyncRevertButton?: boolean;
-  /**
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
-};
+  /**
+   * If provided, will store page filters separately from the rest of Sentry
+   */
+  storageNamespace?: string;
+}
 
 /**
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function Container({skipLoadLastUsed, children, ...props}: Props) {
+function PageFiltersContainer({
+  skipLoadLastUsed,
+  skipLoadLastUsedEnvironment,
+  children,
+  ...props
+}: Props) {
   const {
     forceProject,
-    organization,
     defaultSelection,
     showAbsolute,
     shouldForceProject,
     specificProjectSlugs,
     skipInitializeUrlParams,
     disablePersistence,
-    desyncedAlertMessage,
-    hideDesyncRevertButton,
+    storageNamespace,
   } = props;
   const router = useRouter();
   const location = useLocation();
+  const organization = useOrganization();
 
   const {isReady} = usePageFilters();
 
@@ -81,18 +84,23 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
 
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const memberProjects = user.isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
+  const nonMemberProjects = user.isSuperuser
+    ? []
+    : specifiedProjects.filter(project => !project.isMember);
 
-  const doInitialization = () =>
+  const doInitialization = () => {
     initializeUrlState({
       organization,
       queryParams: location.query,
       router,
       skipLoadLastUsed,
+      skipLoadLastUsedEnvironment,
       memberProjects,
+      nonMemberProjects,
       defaultSelection,
       forceProject,
       shouldForceProject,
@@ -100,7 +108,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
+      storageNamespace,
     });
+  };
 
   // Initializes GlobalSelectionHeader
   //
@@ -108,16 +118,14 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   // pinned, otherwise populate with defaults.
   //
   // This happens when we mount the container.
-  useEffect(() => {
-    // We can initialize before ProjectsStore is fully loaded if we don't need to
-    // enforce single project.
-    if (!projectsLoaded && (shouldForceProject || enforceSingleProject)) {
+  useLayoutEffect(() => {
+    if (!projectsLoaded) {
       return;
     }
 
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectsLoaded, shouldForceProject, enforceSingleProject]);
+  }, [projectsLoaded]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
@@ -126,7 +134,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   // This happens e.g. using browser's navigation button, in which case
   // we need to update our store to reflect URL changes
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (location.query === lastQuery.current) {
       return;
     }
@@ -134,13 +142,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     // We may need to re-initialize the URL state if we completely clear
     // out the global selection URL state, for example by navigating with
     // the sidebar on the same view.
-    const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
-    const newSelectionQuery = extractSelectionParameters(location.query);
-
-    // XXX: This re-initialization is only required in new-page-filter
-    // land, since we have implicit pinning in the old land which will
-    // cause page filters to commonly reset.
-    if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
+    if (location.state?.source === SIDEBAR_NAVIGATION_SOURCE) {
       doInitialization();
       lastQuery.current = location.query;
       return;
@@ -184,24 +186,17 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children
+  // TODO: Not waiting for projects to be ready but initializing the correct page filters
+  // would speed up orgs with tons of projects
   if (!isReady) {
-    return <Layout.Page withPadding />;
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
+    );
   }
 
-  return (
-    <Fragment>
-      {!organization.features.includes('new-page-filter') && (
-        <DesyncedFilterAlert
-          router={router}
-          message={desyncedAlertMessage}
-          hideRevertButton={hideDesyncRevertButton}
-        />
-      )}
-      {children}
-    </Fragment>
-  );
+  return <Fragment>{children}</Fragment>;
 }
-
-const PageFiltersContainer = withOrganization(Container);
 
 export default PageFiltersContainer;

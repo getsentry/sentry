@@ -4,10 +4,13 @@ import {Item, Section} from '@react-stately/collections';
 import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
 
-import {Control, ControlProps} from './control';
-import {List, MultipleListProps, SingleListProps} from './list';
+import type {ControlProps} from './control';
+import {Control} from './control';
+import type {MultipleListProps, SingleListProps} from './list';
+import {List} from './list';
 import {EmptyMessage} from './styles';
 import type {
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
@@ -15,27 +18,27 @@ import type {
 } from './types';
 import {getItemsWithKeys} from './utils';
 
-export type {SelectOption, SelectOptionOrSection, SelectSection};
+export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends React.Key> extends ControlProps {
+interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: SelectOptionOrSection<Value>[];
 }
 
-export interface SingleSelectProps<Value extends React.Key>
+export interface SingleSelectProps<Value extends SelectKey>
   extends BaseSelectProps<Value>,
     Omit<
       SingleListProps<Value>,
       'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
     > {}
 
-export interface MultipleSelectProps<Value extends React.Key>
+export interface MultipleSelectProps<Value extends SelectKey>
   extends BaseSelectProps<Value>,
     Omit<
       MultipleListProps<Value>,
       'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
     > {}
 
-export type SelectProps<Value extends React.Key> =
+export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
   | MultipleSelectProps<Value>;
 
@@ -43,12 +46,12 @@ export type SelectProps<Value extends React.Key> =
 // option value types (number vs string), and selection mode (singular vs multiple)
 function CompactSelect<Value extends number>(props: SelectProps<Value>): JSX.Element;
 function CompactSelect<Value extends string>(props: SelectProps<Value>): JSX.Element;
-function CompactSelect<Value extends React.Key>(props: SelectProps<Value>): JSX.Element;
+function CompactSelect<Value extends SelectKey>(props: SelectProps<Value>): JSX.Element;
 
 /**
  * Flexible select component with a customizable trigger button
  */
-function CompactSelect<Value extends React.Key>({
+function CompactSelect<Value extends SelectKey>({
   // List props
   options,
   value,
@@ -66,6 +69,7 @@ function CompactSelect<Value extends React.Key>({
   disabled,
   emptyMessage,
   size = 'md',
+  shouldUseVirtualFocus = false,
   closeOnSelect,
   triggerProps,
   ...controlProps
@@ -76,10 +80,34 @@ function CompactSelect<Value extends React.Key>({
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
   const listProps = useMemo(() => {
     if (multiple) {
-      return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
+      return {
+        multiple,
+        value,
+        defaultValue,
+        onChange,
+        closeOnSelect,
+        grid,
+        shouldUseVirtualFocus,
+      };
     }
-    return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
-  }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
+    return {
+      multiple,
+      value,
+      defaultValue,
+      onChange,
+      closeOnSelect,
+      grid,
+      shouldUseVirtualFocus,
+    };
+  }, [
+    multiple,
+    value,
+    defaultValue,
+    onChange,
+    closeOnSelect,
+    grid,
+    shouldUseVirtualFocus,
+  ]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 

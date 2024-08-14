@@ -1,37 +1,29 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
-import path from 'path';
-
+import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
+import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import lightningcss from 'lightningcss';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import fs from 'node:fs';
+import path from 'node:path';
+import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {ProxyConfigArray, Static} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
-import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
-import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
+import packageJson from './package.json';
 
-// Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
-(async () => {
-  await extractIOSDeviceNames();
-})();
-
-/**
- * Merges the devServer config into the webpack config
- *
- * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
- */
-interface Configuration extends webpack.Configuration {
-  devServer?: DevServerConfig;
-}
+type MinimizerPluginOptions = {
+  targets: lightningcss.TransformAttributeOptions['targets'];
+};
 
 const {env} = process;
 
@@ -55,8 +47,14 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
+  ? 'production'
+  : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
+
+// Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
+// features in the Sentry UI.
+const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -76,7 +74,7 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
+const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -97,11 +95,14 @@ const SENTRY_EXPERIMENTAL_SPA =
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale file extraction build step
@@ -163,7 +164,7 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 type CacheGroups = Exclude<
-  NonNullable<Configuration['optimization']>['splitChunks'],
+  NonNullable<webpack.Configuration['optimization']>['splitChunks'],
   false | undefined
 >['cacheGroups'];
 
@@ -173,7 +174,7 @@ type CacheGroupTest = (
 ) => boolean;
 
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups: CacheGroups = {};
+const cacheGroups: CacheGroups = {};
 
 supportedLocales
   // No need to split the english locale out as it will be completely empty and
@@ -205,7 +206,7 @@ supportedLocales
     //
     // In the application code you will still need to import via their module
     // paths and not the chunk name
-    localeChunkGroups[group] = {
+    cacheGroups[group] = {
       chunks: 'async',
       name: group,
       test: groupTest,
@@ -222,7 +223,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig: Configuration = {
+const appConfig: webpack.Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -262,14 +263,14 @@ const appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
+            referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
           },
         },
       },
       {
-        test: /\.pegjs/,
-        use: {loader: 'pegjs-loader'},
+        test: /\.pegjs$/,
+        use: ['pegjs-loader?cache=false&optimize=speed'],
       },
       {
         test: /\.css/,
@@ -336,14 +337,13 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
-        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
-        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
-      },
+      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
     }),
 
     /**
@@ -359,17 +359,19 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
+              memoryLimit: 4096,
             },
             devServer: false,
           }),
         ]
       : []),
 
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+
     /**
-     * Restrict translation files that are pulled in through app/translations.jsx
-     * and through moment/locale/* to only those which we create bundles for via
-     * locale/catalogs.json.
+     * Restrict translation files that are pulled in through
+     * initializeLocale.tsx and through moment/locale/* to only those which we
+     * create bundles for via locale/catalogs.json.
      *
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
@@ -409,12 +411,15 @@ const appConfig: Configuration = {
           : []),
       ],
     }),
+
+    WebpackReactSourcemapsPlugin({
+      mode: IS_PRODUCTION ? 'strict' : undefined,
+      debug: false,
+    }),
   ],
 
   resolve: {
     alias: {
-      'react-dom$': 'react-dom/profiling',
-      'scheduler/tracing': 'scheduler/tracing-profiling',
       sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
@@ -437,15 +442,24 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
+    // Might be an issue if changing file extensions during development
+    cache: true,
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
+    symlinks: false,
   },
   output: {
+    crossOriginLoading: 'anonymous',
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
@@ -464,27 +478,35 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: {
-        ...localeChunkGroups,
-      },
+      cacheGroups,
     },
 
-    // This only runs in production mode
-    // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
-    minimizer: ['...', new CssMinimizerPlugin()],
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        minify: TerserPlugin.esbuildMinify,
+      }),
+      new CssMinimizerPlugin<MinimizerPluginOptions>({
+        parallel: true,
+        minify: CssMinimizerPlugin.lightningCssMinify,
+        minimizerOptions: {
+          targets: lightningcss.browserslistToTargets(
+            browserslist(packageJson.browserslist.production)
+          ),
+        },
+      }),
+    ],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
     __dirname,
-    'fixtures/integration-docs/_platforms.json'
+    'tests',
+    'js',
+    'fixtures'
   );
-} else {
-  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  appConfig.plugins?.push(plugin);
-  appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
 }
 
 if (IS_ACCEPTANCE_TEST) {
@@ -508,32 +530,22 @@ if (
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
-
-    if (SHOULD_LAZY_LOAD) {
-      appConfig.experiments = {
-        lazyCompilation: {
-          // enable lazy compilation for dynamic imports
-          imports: true,
-          // disable lazy compilation for entries
-          entries: false,
-        },
-      };
-    }
   }
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
-    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    // Cover the various environments we use (vercel, getsentry-dev, localhost, ngrok)
     allowedHosts: [
       '.sentry.dev',
       '.dev.getsentry.net',
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      '.ngrok.dev',
+      '.ngrok.io',
+      '.ngrok.app',
     ],
     static: {
       directory: './src/sentry/static/sentry',
@@ -558,43 +570,59 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy = {};
+    let controlSiloProxy: ProxyConfigArray = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
-      // list to select contro/region when making API requests in non-proxied
+      // list to select control/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
-      controlSiloProxy = {
-        '/api/0/users/**': controlSiloAddress,
-        '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
-        '/api/0/organizations/*/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/api-authorizations/**': controlSiloAddress,
-        '/api/0/api-applications/**': controlSiloAddress,
-        '/api/0/doc-integrations/**': controlSiloAddress,
-        '/api/0/assistant/**': controlSiloAddress,
-      };
+      controlSiloProxy = [
+        {
+          context: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+        },
+      ];
     }
 
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as object),
+        ...(appConfig.devServer.static as Static),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
-      proxy: {
+      proxy: [
         ...controlSiloProxy,
-        '/api/store/**': relayAddress,
-        '/api/{1..9}*({0..9})/**': relayAddress,
-        '/api/0/relays/outcomes/': relayAddress,
-        '!/_static/dist/sentry/**': backendAddress,
-      },
+        {
+          context: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+        },
+        {
+          context: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+        },
+      ],
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
@@ -647,6 +675,8 @@ if (IS_UI_DEV_ONLY) {
       options: httpsOptions,
     },
     headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     static: {
@@ -654,18 +684,48 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
-        context: ['/api/', '/avatar/', '/organization-avatar/'],
+        context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
         headers: {
           Referer: 'https://sentry.io/',
           'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         router: ({hostname}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        context: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionname = req.path.match(regionPathPattern);
+          if (regionname) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
         },
       },
     ],
@@ -709,20 +769,34 @@ const minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  //
-  // TODO(ts): The current @types/compression-webpack-plugin is still targeting
-  //           webpack@4, for now we just as any it.
   new CompressionPlugin({
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as any,
-  // NOTE: In production mode webpack will automatically minify javascript
-  // using the TerserWebpackPlugin.
+  }),
 ];
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
+}
+
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
+  const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  // defaulting to an empty string which in turn will fallback to env var or
+  // determine merge commit sha from git
+  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
+
+  appConfig.plugins?.push(
+    codecovWebpackPlugin({
+      enableBundleAnalysis: true,
+      bundleName: 'app-webpack-bundle',
+      uploadToken: CODECOV_TOKEN,
+      debug: true,
+      uploadOverrides: {
+        sha: GH_COMMIT_SHA,
+      },
+    })
+  );
 }
 
 // Cache webpack builds

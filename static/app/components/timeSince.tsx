@@ -1,17 +1,17 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
+import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function getDateObj(date: RelaxedDateType): Date {
-  return isString(date) || isNumber(date) ? new Date(date) : date;
+  return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
 }
 
 type RelaxedDateType = string | number | Date;
@@ -30,6 +30,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * that
    */
   disabledAbsoluteTooltip?: boolean;
+  /**
+   * Tooltip text to be hoverable when isTooltipHoverable is true
+   */
+  isTooltipHoverable?: boolean;
   /**
    * How often should the component live update the timestamp.
    *
@@ -60,6 +64,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * time is for
    */
   tooltipPrefix?: React.ReactNode;
+  /**
+   * Any other props for the <Tooltip>
+   */
+  tooltipProps?: Partial<TooltipProps>;
   /**
    * Include seconds in the tooltip
    */
@@ -104,6 +112,8 @@ function TimeSince({
   tooltipBody,
   tooltipSuffix,
   tooltipUnderlineColor,
+  tooltipProps,
+  isTooltipHoverable = false,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -127,8 +137,8 @@ function TimeSince({
       liveUpdateInterval === 'minute'
         ? 60 * 1000
         : liveUpdateInterval === 'second'
-        ? 1000
-        : liveUpdateInterval;
+          ? 1000
+          : liveUpdateInterval;
 
     // Start a ticker to update the relative time
     tickerRef.current = window.setInterval(
@@ -162,6 +172,7 @@ function TimeSince({
       disabled={disabledAbsoluteTooltip}
       underlineColor={tooltipUnderlineColor}
       showUnderline
+      isHoverable={isTooltipHoverable}
       title={
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
@@ -169,6 +180,7 @@ function TimeSince({
           {tooltipSuffix && <div>{tooltipSuffix}</div>}
         </Fragment>
       }
+      {...tooltipProps}
     >
       <time dateTime={dateObj?.toISOString()} {...props}>
         {relative}

@@ -1,17 +1,56 @@
 import {useLayoutEffect, useState} from 'react';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
+import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
+  FlamegraphRenderer,
+  FlamegraphRendererConstructor,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import type {
+  UIFramesRenderer,
+  UIFramesRendererConstructor,
+} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
-import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp} from '../colors/utils';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {SpanChartRenderer2D} from '../renderers/spansRenderer';
-import {SpanChartNode} from '../spanChart';
-import {Rect} from '../speedscope';
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[],
+  constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
+): FlamegraphRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: UIFramesRendererConstructor[],
+  constructorArgs: ConstructorParameters<UIFramesRendererConstructor>
+): UIFramesRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[] | UIFramesRendererConstructor[],
+  constructorArgs:
+    | ConstructorParameters<FlamegraphRendererConstructor>
+    | ConstructorParameters<UIFramesRendererConstructor>
+): FlamegraphRenderer | UIFramesRenderer | null {
+  for (const renderer of renderers) {
+    let r: FlamegraphRenderer | UIFramesRenderer | null = null;
+    try {
+      // @ts-expect-error ts complains that constructor args are not of tuple
+      // type, even though they are.
+      r = new renderer(...constructorArgs);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+
+    // A renderer should only fail if the rendering context was unavailable
+    if (r && r.ctx !== null) {
+      return r;
+    }
+  }
+
+  return null;
+}
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -237,9 +276,15 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
-function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
-function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
   const ctx =
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
@@ -250,10 +295,26 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exported separately as writing export function for each overload as
-// breaks the line width rules and makes it harder to read.
-export {getContext};
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: string
+): RenderingContext | null {
+  const ctx =
+    context === 'webgl'
+      ? canvas.getContext(context, {antialias: false})
+      : canvas.getContext(context);
+  return ctx;
+}
 
+export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
     return Rect.Empty();
@@ -281,6 +342,16 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
 export function upperBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
+): number;
+export function upperBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function upperBound<T extends {end: number; start: number} | {x: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T> | Record<any, any>,
+  getValue?: (value: T) => number
 ) {
   let low = 0;
   let high = values.length;
@@ -290,13 +361,20 @@ export function upperBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].start < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].start < target
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].start;
 
-    if (values[mid].start < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -316,7 +394,17 @@ export function upperBound<T extends {end: number; start: number}>(
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
-) {
+): number;
+export function lowerBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue?: (value: T) => number
+): number {
   let low = 0;
   let high = values.length;
 
@@ -325,13 +413,20 @@ export function lowerBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].end < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].end < target
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].end;
 
-    if (values[mid].end < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -347,23 +442,25 @@ export function formatColorForSpan(
 ): string {
   const color = renderer.getColorForFrame(frame);
   if (Array.isArray(color)) {
-    if (color.length === 4) {
-      return `rgba(${color
-        .slice(0, 3)
-        .map(n => n * 255)
-        .join(',')}, ${color[3]})`;
-    }
-
-    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return colorComponentsToRGBA(color);
   }
   return '';
 }
 
+export function formatColorForFrame(frame: FlamegraphFrame, color: ColorChannels): string;
 export function formatColorForFrame(
   frame: FlamegraphFrame,
-  renderer: FlamegraphRenderer
+  color: FlamegraphRenderer
+): string;
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  rendererOrColor: FlamegraphRenderer | ColorChannels
 ): string {
-  const color = renderer.getColorForFrame(frame);
+  if (Array.isArray(rendererOrColor)) {
+    return colorComponentsToRGBA(rendererOrColor);
+  }
+
+  const color = rendererOrColor.getColorForFrame(frame);
   if (color.length === 4) {
     return `rgba(${color
       .slice(0, 3)
@@ -374,7 +471,6 @@ export function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
-export const ELLIPSIS = '\u2026';
 export interface TrimTextCenter {
   end: number;
   length: number;
@@ -382,6 +478,14 @@ export interface TrimTextCenter {
   text: string;
 }
 
+export function hexToColorChannels(color: string, alpha: number): ColorChannels {
+  return [
+    parseInt(color.slice(1, 3), 16) / 255,
+    parseInt(color.slice(3, 5), 16) / 255,
+    parseInt(color.slice(5, 7), 16) / 255,
+    alpha,
+  ];
+}
 // Utility function to compute a clamped view. This is essentially a bounds check
 // to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(

@@ -1,23 +1,34 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import EventUser, GroupStatus, Release, Team, User
+from sentry.models.group import GroupStatus
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,
     InvalidQuery,
+    LatestReleaseOrders,
     convert_user_tag_to_query,
+    get_first_last_release_for_group,
     get_latest_release,
     get_numeric_field_value,
     parse_duration,
+    parse_numeric_value,
     parse_query,
+    parse_size,
     tokenize_query,
 )
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 
 
 def test_get_numeric_field_value():
@@ -42,59 +53,86 @@ def test_get_numeric_field_value():
     }
 
 
+class TestParseNumericValue(TestCase):
+    def test_simple(self):
+        assert parse_numeric_value("10", None) == 10
+
+    def test_k(self):
+        assert parse_numeric_value("1", "k") == 1000.0
+        assert parse_numeric_value("1", "K") == 1000.0
+
+    def test_m(self):
+        assert parse_numeric_value("1", "m") == 1000000.0
+        assert parse_numeric_value("1", "M") == 1000000.0
+
+    def test_b(self):
+        assert parse_numeric_value("1", "b") == 1000000000.0
+        assert parse_numeric_value("1", "B") == 1000000000.0
+
+
+class TestParseSizeValue(TestCase):
+    def test_simple(self):
+        assert parse_size("8", "bit") == 1
+
+    def test_uppercase(self):
+        assert parse_size("1", "KB") == 1000
+        assert parse_size("1", "kb") == 1000
+        assert parse_size("1", "Kb") == 1000
+
+
 class TestParseDuration(TestCase):
     def test_ms(self):
-        assert parse_duration(123, "ms") == 123
+        assert parse_duration("123", "ms") == 123
 
     def test_sec(self):
-        assert parse_duration(456, "s") == 456000
+        assert parse_duration("456", "s") == 456000
 
     def test_minutes(self):
-        assert parse_duration(789, "min") == 789 * 60 * 1000
-        assert parse_duration(789, "m") == 789 * 60 * 1000
+        assert parse_duration("789", "min") == 789 * 60 * 1000
+        assert parse_duration("789", "m") == 789 * 60 * 1000
 
     def test_hours(self):
-        assert parse_duration(234, "hr") == 234 * 60 * 60 * 1000
-        assert parse_duration(234, "h") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "hr") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "h") == 234 * 60 * 60 * 1000
 
     def test_days(self):
-        assert parse_duration(567, "day") == 567 * 24 * 60 * 60 * 1000
-        assert parse_duration(567, "d") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "day") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "d") == 567 * 24 * 60 * 60 * 1000
 
     def test_weeks(self):
-        assert parse_duration(890, "wk") == 890 * 7 * 24 * 60 * 60 * 1000
-        assert parse_duration(890, "w") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "wk") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "w") == 890 * 7 * 24 * 60 * 60 * 1000
 
     def test_errors(self):
         with pytest.raises(InvalidQuery):
             parse_duration("test", "ms")
 
         with pytest.raises(InvalidQuery):
-            parse_duration(123, "test")
+            parse_duration("123", "test")
 
     def test_large_durations(self):
         max_duration = 999999999 * 24 * 60 * 60 * 1000
-        assert parse_duration(999999999, "d") == max_duration
-        assert parse_duration(999999999 * 24, "h") == max_duration
-        assert parse_duration(999999999 * 24 * 60, "m") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60, "s") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
+        assert parse_duration("999999999", "d") == max_duration
+        assert parse_duration(str(999999999 * 24), "h") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60), "m") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60), "s") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60 * 1000), "ms") == max_duration
 
     def test_overflow_durations(self):
         with pytest.raises(InvalidQuery):
-            assert parse_duration(999999999 + 1, "d")
+            assert parse_duration(str(999999999 + 1), "d")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24, "h")
+            assert parse_duration(str((999999999 + 1) * 24), "h")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 + 1), "m")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 + 1), "s")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 * 1000 + 1), "ms")
 
 
 def test_tokenize_query_only_keyed_fields():
@@ -131,10 +169,19 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
-@region_silo_test(stable=True)
-class ParseQueryTest(TestCase):
+class ParseQueryTest(APITestCase, SnubaTestCase):
+    @property
+    def rpc_user(self):
+        return user_service.get_user(user_id=self.user.id)
+
+    @property
+    def current_rpc_user(self):
+        # This doesn't include useremails. Used in filters
+        # where the current user is passed back
+        return serialize_rpc_user(self.user)
+
     def parse_query(self, query):
-        return parse_query([self.project], query, self.user, None)
+        return parse_query([self.project], query, self.user, [])
 
     def test_simple(self):
         result = self.parse_query("foo bar")
@@ -167,49 +214,49 @@ class ParseQueryTest(TestCase):
     # TODO: update docs to include minutes, days, and weeks suffixes
     @freeze_time("2016-01-01")
     def test_age_tag_negative_value(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:-12h")
         assert result == {"tags": {}, "query": "", "age_from": expected, "age_from_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_positive_value(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:+12h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_weeks(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(days=35)
         result = self.parse_query("age:+5w")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_days(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(days=10)
         result = self.parse_query("age:+10d")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_hours(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=10)
         result = self.parse_query("age:+10h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_minutes(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(minutes=30)
         result = self.parse_query("age:+30m")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_two_age_tags(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected_to = start - timedelta(hours=12)
         expected_from = start - timedelta(hours=24)
         result = self.parse_query("age:+12h age:-24h")
@@ -226,9 +273,9 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("event.timestamp:2016-01-02")
         assert result == {
             "query": "",
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": True,
-            "date_to": datetime(2016, 1, 3, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 3, tzinfo=UTC),
             "date_to_inclusive": False,
             "tags": {},
         }
@@ -246,7 +293,7 @@ class ParseQueryTest(TestCase):
             "query": "",
             "times_seen_lower": 10,
             "times_seen_lower_inclusive": False,
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": False,
         }
 
@@ -257,7 +304,7 @@ class ParseQueryTest(TestCase):
             "query": "",
             "times_seen_lower": 10,
             "times_seen_lower_inclusive": True,
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": True,
         }
 
@@ -268,7 +315,7 @@ class ParseQueryTest(TestCase):
             "query": "",
             "times_seen_upper": 10,
             "times_seen_upper_inclusive": False,
-            "date_to": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 2, tzinfo=UTC),
             "date_to_inclusive": False,
         }
 
@@ -281,7 +328,7 @@ class ParseQueryTest(TestCase):
             "query": "",
             "times_seen_upper": 10,
             "times_seen_upper_inclusive": True,
-            "date_to": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 2, tzinfo=UTC),
             "date_to_inclusive": True,
         }
 
@@ -335,7 +382,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_me(self):
         result = self.parse_query("assigned:me")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_none(self):
         result = self.parse_query("assigned:none")
@@ -343,11 +390,11 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_email(self):
         result = self.parse_query(f"assigned:{self.user.email}")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_unknown_user(self):
         result = self.parse_query("assigned:fake@example.com")
-        assert isinstance(result["assigned_to"], User)
+        assert isinstance(result["assigned_to"], RpcUser)
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
@@ -367,11 +414,11 @@ class ParseQueryTest(TestCase):
 
     def test_bookmarks_me(self):
         result = self.parse_query("bookmarks:me")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_email(self):
         result = self.parse_query(f"bookmarks:{self.user.email}")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_unknown_user(self):
         result = self.parse_query("bookmarks:fake@example.com")
@@ -387,12 +434,12 @@ class ParseQueryTest(TestCase):
         release = self.create_release(
             project=self.project,
             version="older_release",
-            date_added=datetime.now() - timedelta(days=1),
+            date_added=timezone.now() - timedelta(days=1),
         )
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [release.version], "tags": {}, "query": ""}
         release = self.create_release(
-            project=self.project, version="new_release", date_added=datetime.now()
+            project=self.project, version="new_release", date_added=timezone.now()
         )
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [release.version], "tags": {}, "query": ""}
@@ -408,12 +455,12 @@ class ParseQueryTest(TestCase):
         release = self.create_release(
             project=self.project,
             version="older_release",
-            date_added=datetime.now() - timedelta(days=1),
+            date_added=timezone.now() - timedelta(days=1),
         )
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
         release = self.create_release(
-            project=self.project, version="new_release", date_added=datetime.now()
+            project=self.project, version="new_release", date_added=timezone.now()
         )
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
@@ -435,18 +482,46 @@ class ParseQueryTest(TestCase):
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
     def test_user_lookup_with_dot_query(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
+
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
         result = self.parse_query("user.username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        assert result["tags"]["sentry:user"] == "id:1"
 
     def test_unknown_user_legacy_syntax(self):
         result = self.parse_query("user:email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
     def test_user_lookup_legacy_syntax(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
+
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
         result = self.parse_query("user:username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        assert result["tags"]["sentry:user"] == "id:1"
 
     def test_is_unassigned(self):
         result = self.parse_query("is:unassigned")
@@ -496,38 +571,38 @@ class ParseQueryTest(TestCase):
 
     def test_date_range(self):
         result = self.parse_query("event.timestamp:>2016-01-01 event.timestamp:<2016-01-02")
-        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_with_timezone(self):
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00-03:00 event.timestamp:<2016-01-02T10:00:00+02:00"
         )
-        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_with_z_timezone(self):
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00Z event.timestamp:<2016-01-02T10:00:00Z"
         )
-        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_inclusive(self):
         result = self.parse_query("event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02")
-        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is True
-        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is True
 
     def test_date_approx_day(self):
-        date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01")
         assert result["date_from"] == date_value
         assert result["date_from_inclusive"]
@@ -535,7 +610,7 @@ class ParseQueryTest(TestCase):
         assert not result["date_to_inclusive"]
 
     def test_date_approx_precise(self):
-        date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
@@ -543,7 +618,7 @@ class ParseQueryTest(TestCase):
         assert not result["date_to_inclusive"]
 
     def test_date_approx_precise_with_timezone(self):
-        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00-05:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
@@ -589,7 +664,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_or_suggested_me(self):
         result = self.parse_query("assigned_or_suggested:me")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_none(self):
         result = self.parse_query("assigned_or_suggested:none")
@@ -601,11 +676,11 @@ class ParseQueryTest(TestCase):
 
     def test_owner_email(self):
         result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_unknown_user(self):
         result = self.parse_query("assigned_or_suggested:fake@example.com")
-        assert isinstance(result["assigned_or_suggested"], User)
+        assert isinstance(result["assigned_or_suggested"], RpcUser)
         assert result["assigned_or_suggested"].id == 0
 
     def test_owner_valid_team(self):
@@ -624,7 +699,6 @@ class ParseQueryTest(TestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
-@region_silo_test(stable=True)
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -683,18 +757,66 @@ class GetLatestReleaseTest(TestCase):
             other_project_env_release.version,
         ]
 
+        with pytest.raises(Release.DoesNotExist):
+            assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+                new.version,
+                other_project_env_release.version,
+            ]
+
+        ReleaseProjectEnvironment.objects.filter(
+            release__in=[new, other_project_env_release]
+        ).update(adopted=timezone.now())
+
+        assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+            new.version,
+            other_project_env_release.version,
+        ]
+
     def test_semver(self):
         project_2 = self.create_project()
-        release_1 = self.create_release(version="test@2.0.0")
-        self.create_release(version="test@1.3.2")
-        self.create_release(version="test@1.0.0")
+        release_1 = self.create_release(version="test@2.0.0", environments=[self.environment])
+        env_2 = self.create_environment()
+        self.create_release(version="test@1.3.2", environments=[env_2])
+        self.create_release(version="test@1.0.0", environments=[self.environment, env_2])
 
         # Check when we're using a single project that we sort by semver
         assert get_latest_release([self.project], None) == [release_1.version]
         assert get_latest_release([project_2, self.project], None) == [release_1.version]
-        release_4 = self.create_release(project_2, version="test@1.3.3")
+        release_3 = self.create_release(
+            project_2, version="test@1.3.3", environments=[self.environment, env_2]
+        )
         assert get_latest_release([project_2, self.project], None) == [
-            release_4.version,
+            release_3.version,
+            release_1.version,
+        ]
+
+        with pytest.raises(Release.DoesNotExist):
+            get_latest_release([project_2, self.project], [self.environment, env_2], adopted=True)
+
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3, release_1]).update(
+            adopted=timezone.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_3.version,
+            release_1.version,
+        ]
+        assert get_latest_release([project_2, self.project], [env_2], adopted=True) == [
+            release_3.version,
+        ]
+        # Make sure unadopted releases are ignored
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3]).update(
+            unadopted=timezone.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_1.version,
+        ]
+
+        ReleaseProject.objects.filter(release__in=[release_1]).update(adopted=timezone.now())
+        assert get_latest_release([project_2, self.project], None, adopted=True) == [
             release_1.version,
         ]
 
@@ -710,7 +832,70 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
-@control_silo_test(stable=True)
+class GetFirstLastReleaseForGroupTest(TestCase):
+    def test_date(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.DATE, True)
+
+        oldest = self.create_release(version="old")
+        self.create_group_release(group=self.group, release=oldest)
+        newest = self.create_release(
+            version="newest", date_released=oldest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=newest)
+
+        assert newest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert oldest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        self.create_group_release(group=group_2, release=oldest)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, False)
+
+    def test_semver(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
+
+        latest = self.create_release(version="test@2.0.0")
+        middle = self.create_release(version="test@1.3.2")
+        earliest = self.create_release(
+            version="test@1.0.0", date_released=latest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=latest)
+        self.create_group_release(group=self.group, release=middle)
+        self.create_group_release(group=self.group, release=earliest)
+
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, False
+        )
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        self.create_group_release(group=group_2, release=latest)
+        self.create_group_release(group=group_2, release=middle)
+        assert latest == get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        assert middle == get_first_last_release_for_group(
+            group_2, LatestReleaseOrders.SEMVER, False
+        )
+
+
+@control_silo_test
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'

@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
-import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type ResourceLink = {
   link: string;
@@ -14,10 +16,12 @@ export type ResourceLink = {
 type Props = {
   configResources: NonNullable<IssueTypeConfig['resources']>;
   eventPlatform: Event['platform'];
+  groupId: string;
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources({configResources, eventPlatform}: Props) {
+export function Resources({configResources, eventPlatform, groupId}: Props) {
+  const organization = useOrganization();
   const links = [
     ...configResources.links,
     ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
@@ -29,7 +33,18 @@ export function Resources({configResources, eventPlatform}: Props) {
       <LinkSection>
         {links.map(({link, text}) => (
           // Please note that the UI will not fit a very long text and if we need to support that we will need to update the UI
-          <ExternalLink key={link} href={link} openInNewTab>
+          <ExternalLink
+            onClick={() =>
+              trackAnalytics('issue_details.resources_link_clicked', {
+                organization,
+                resource: text,
+                group_id: groupId,
+              })
+            }
+            key={link}
+            href={link}
+            openInNewTab
+          >
             <IconDocs /> {text}
           </ExternalLink>
         ))}
@@ -48,6 +63,7 @@ const LinkSection = styled('div')`
   a {
     display: flex;
     align-items: center;
+    width: max-content;
   }
 
   svg {

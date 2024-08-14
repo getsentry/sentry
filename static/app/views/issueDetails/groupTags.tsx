@@ -1,155 +1,144 @@
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
+import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, TagWithTopValues} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = AsyncComponent['props'] & {
+type GroupTagsProps = {
   baseUrl: string;
   environments: string[];
   group: Group;
-  organization: Organization;
-} & RouteComponentProps<{}, {}>;
-
-type State = AsyncComponent['state'] & {
-  tagList: null | TagWithTopValues[];
 };
 
-class GroupTags extends AsyncComponent<Props, State> {
-  getDefaultState(): State {
+type SimpleTag = {
+  key: string;
+  topValues: Array<{
+    count: number;
+    name: string;
+    value: string;
+    query?: string;
+  }>;
+  totalValues: number;
+};
+
+function GroupTags({group, baseUrl, environments}: GroupTagsProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const {
+    data = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useFetchIssueTags({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    environment: environments,
+  });
+
+  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('There was an error loading issue tags.')}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  const getTagKeyTarget = (tag: SimpleTag) => {
     return {
-      ...super.getDefaultState(),
-      tagList: null,
+      pathname: `${baseUrl}tags/${tag.key}/`,
+      query: extractSelectionParameters(location.query),
     };
-  }
+  };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {group, environments} = this.props;
-    return [
-      [
-        'tagList',
-        `/issues/${group.id}/tags/`,
-        {
-          query: {environment: environments},
-        },
-      ],
-    ];
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.environments, this.props.environments)) {
-      this.remountComponent();
-    }
-  }
-
-  renderTags() {
-    const {baseUrl, location} = this.props;
-    const {tagList} = this.state;
-
-    const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
-
-    return (
-      <Container>
-        {alphabeticalTags.map((tag, tagIdx) => (
-          <TagItem key={tagIdx}>
-            <StyledPanel>
-              <PanelBody withPadding>
-                <TagHeading>
-                  <Link
-                    to={{
-                      pathname: `${baseUrl}tags/${tag.key}/`,
-                      query: extractSelectionParameters(location.query),
-                    }}
-                  >
-                    <span data-test-id="tag-title">{tag.key}</span>
-                  </Link>
-                </TagHeading>
-                <UnstyledUnorderedList>
-                  {tag.topValues.map((tagValue, tagValueIdx) => (
-                    <li key={tagValueIdx} data-test-id={tag.key}>
-                      <TagBarGlobalSelectionLink
-                        to={{
-                          pathname: `${baseUrl}events/`,
-                          query: {
-                            query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                          },
-                        }}
-                      >
-                        <TagBarBackground
-                          widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
-                        />
-                        <TagBarLabel>
-                          {tag.key === 'release' ? (
-                            <Version version={tagValue.name} anchor={false} />
-                          ) : (
-                            <DeviceName value={tagValue.name} />
-                          )}
-                        </TagBarLabel>
-                        <TagBarCount>
-                          <Count value={tagValue.count} />
-                        </TagBarCount>
-                      </TagBarGlobalSelectionLink>
-                    </li>
-                  ))}
-                </UnstyledUnorderedList>
-              </PanelBody>
-            </StyledPanel>
-          </TagItem>
-        ))}
-      </Container>
-    );
-  }
-
-  renderBody() {
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <FilterSection>
-            <EnvironmentPageFilter />
-          </FilterSection>
-          <Alert type="info">
-            {tct(
-              'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
-                ),
-              }
-            )}
-          </Alert>
-          {this.renderTags()}
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <Alert type="info">
+          {tct(
+            'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
+            {
+              link: <ExternalLink href={TAGS_DOCS_LINK} />,
+            }
+          )}
+        </Alert>
+        <Container>
+          {alphabeticalTags.map((tag, tagIdx) => (
+            <TagItem key={tagIdx}>
+              <StyledPanel>
+                <PanelBody withPadding>
+                  <TagHeading>
+                    <Link to={getTagKeyTarget(tag)}>
+                      <span data-test-id="tag-title">{tag.key}</span>
+                    </Link>
+                  </TagHeading>
+                  <UnstyledUnorderedList>
+                    {tag.topValues.map((tagValue, tagValueIdx) => (
+                      <li key={tagValueIdx} data-test-id={tag.key}>
+                        <TagBarGlobalSelectionLink
+                          to={{
+                            pathname: `${baseUrl}events/`,
+                            query: {
+                              query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
+                            },
+                          }}
+                        >
+                          <TagBarBackground
+                            widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
+                          />
+                          <TagBarLabel>
+                            {tag.key === 'release' ? (
+                              <Version version={tagValue.name} anchor={false} />
+                            ) : (
+                              <DeviceName value={tagValue.name} />
+                            )}
+                          </TagBarLabel>
+                          <TagBarCount>
+                            <Count value={tagValue.count} />
+                          </TagBarCount>
+                        </TagBarGlobalSelectionLink>
+                      </li>
+                    ))}
+                  </UnstyledUnorderedList>
+                </PanelBody>
+              </StyledPanel>
+            </TagItem>
+          ))}
+        </Container>
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
 const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
-
-const FilterSection = styled('div')`
-  width: max-content;
-  max-width: 100%;
   margin-bottom: ${space(2)};
 `;
 
@@ -220,4 +209,4 @@ const TagBarCount = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-export default withOrganization(GroupTags);
+export default GroupTags;

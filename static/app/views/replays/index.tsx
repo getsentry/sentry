@@ -1,16 +1,14 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = RouteComponentProps<{}, {}> & {
   children: React.ReactNode;
-  organization: Organization;
 };
 
-function ReplaysContainer({organization, children}: Props) {
+export default function ReplaysContainer({children}: Props) {
+  const organization = useOrganization();
+
   return <NoProjectMessage organization={organization}>{children}</NoProjectMessage>;
 }
-
-export default withOrganization(ReplaysContainer);

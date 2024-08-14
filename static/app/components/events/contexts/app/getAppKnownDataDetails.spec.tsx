@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {appKnownDataValues} from 'sentry/components/events/contexts/app';
 import {getAppKnownDataDetails} from 'sentry/components/events/contexts/app/getAppKnownDataDetails';
 
@@ -11,7 +13,7 @@ describe('getAppKnownDataDetails', function () {
       const appKnownDataDetails = getAppKnownDataDetails({
         type: appKnownDataValues[type],
         data: appMockData,
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!appKnownDataDetails) {
@@ -32,6 +34,7 @@ describe('getAppKnownDataDetails', function () {
       {subject: 'Build Name', value: ''},
       {subject: 'Version', value: '7.1.3'},
       {subject: 'App Build', value: '1'},
+      {subject: 'In Foreground', value: false},
     ]);
   });
 });

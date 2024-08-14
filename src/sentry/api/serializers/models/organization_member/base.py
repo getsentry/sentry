@@ -1,17 +1,14 @@
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
-
-from django.db.models import Prefetch, prefetch_related_objects
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.role import OrganizationRoleSerializer
-from sentry.models import ExternalActor, OrganizationMember, User
-from sentry.models.actor import ACTOR_TYPES, Actor
-from sentry.models.team import Team
-from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
@@ -19,30 +16,8 @@ from .utils import get_organization_id
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
-    def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
+    def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
-
-    def __sorted_org_roles_for_user(self, item: OrganizationMember) -> Sequence[Mapping[str, Any]]:
-        org_roles = [
-            (team.slug, organization_roles.get(team.org_role)) for team in item.team_role_prefetch
-        ]
-
-        sorted_org_roles = sorted(
-            org_roles,
-            key=lambda r: r[1].priority,
-            reverse=True,
-        )
-
-        return [
-            {
-                "teamSlug": slug,
-                "role": serialize(
-                    role,
-                    serializer=OrganizationRoleSerializer(organization=item.organization),
-                ),
-            }
-            for slug, role in sorted_org_roles
-        ]
 
     def get_attrs(
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
@@ -52,16 +27,6 @@ class OrganizationMemberSerializer(Serializer):
         the organization_members in `item_list`.
         TODO(dcramer): assert on relations
         """
-
-        # Preload to avoid fetching each team individually
-        prefetch_related_objects(
-            item_list,
-            Prefetch(
-                "teams",
-                queryset=Team.objects.all().exclude(org_role=None),
-                to_attr="team_role_prefetch",
-            ),
-        )
 
         # Bulk load users
         users_set = sorted(
@@ -77,10 +42,6 @@ class OrganizationMemberSerializer(Serializer):
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
 
-        actor_ids = Actor.objects.filter(
-            user_id__in=users_set, type=ACTOR_TYPES["user"]
-        ).values_list("id", flat=True)
-
         inviters_set = sorted(
             {
                 organization_member.inviter_id
@@ -89,7 +50,7 @@ class OrganizationMemberSerializer(Serializer):
             }
         )
         inviters_by_id: Mapping[int, RpcUser] = {
-            u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
+            u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
         }
 
         external_users_map = defaultdict(list)
@@ -97,7 +58,7 @@ class OrganizationMemberSerializer(Serializer):
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
-                    actor_id__in=actor_ids,
+                    user_id__in=users_set,
                     organization_id=organization_id,
                 )
             )
@@ -108,14 +69,16 @@ class OrganizationMemberSerializer(Serializer):
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
-            user = users_by_id.get(str(item.user_id), None)
-            user_id = user["id"] if user else ""
-            inviter = inviters_by_id.get(item.inviter_id, None)
+            user_dct = users_by_id.get(str(item.user_id), None)
+            user_id = user_dct["id"] if user_dct else ""
+            if item.inviter_id is not None:
+                inviter = inviters_by_id.get(item.inviter_id, None)
+            else:
+                inviter = None
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
-                "user": user,
+                "user": user_dct,
                 "externalUsers": external_users,
-                "groupOrgRoles": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
             }
@@ -131,13 +94,11 @@ class OrganizationMemberSerializer(Serializer):
                 inviter_name = inviter.get_display_name()
         user = attrs["user"]
         email = attrs["email"]
-        d: OrganizationMemberResponse = {
+        data: OrganizationMemberResponse = {
             "id": str(obj.id),
             "email": email,
             "name": user["name"] if user else email,
             "user": attrs["user"],
-            "role": obj.role,  # Deprecated, use orgRole instead
-            "roleName": roles.get(obj.role).name,  # Deprecated
             "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
@@ -147,14 +108,16 @@ class OrganizationMemberSerializer(Serializer):
                 "sso:linked": bool(getattr(obj.flags, "sso:linked")),
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
                 "member-limit:restricted": bool(getattr(obj.flags, "member-limit:restricted")),
+                "partnership:restricted": bool(getattr(obj.flags, "partnership:restricted")),
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
-            "groupOrgRoles": attrs.get("groupOrgRoles", []),
+            "role": obj.role,  # Deprecated, use orgRole instead
+            "roleName": roles.get(obj.role).name,  # Deprecated
         }
 
         if "externalUsers" in self.expand:
-            d["externalUsers"] = attrs.get("externalUsers", [])
+            data["externalUsers"] = attrs.get("externalUsers", [])
 
-        return d
+        return data

@@ -1,10 +1,11 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class ShortIdLookupEndpointTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
@@ -14,7 +15,7 @@ class ShortIdLookupEndpointTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-short-id-lookup",
-            kwargs={"organization_slug": org.slug, "short_id": group.qualified_short_id},
+            kwargs={"organization_id_or_slug": org.slug, "short_id": group.qualified_short_id},
         )
         response = self.client.get(url, format="json")
 

@@ -2,7 +2,7 @@ import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,8 +64,10 @@ export const fields: Record<string, Field> = {
     },
 
     saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t('You will be redirected to the new project slug after saving'),
+    saveMessageAlertType: 'warning',
+    saveMessage: t(
+      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+    ),
   },
 
   platform: {
@@ -89,24 +91,6 @@ export const fields: Record<string, Field> = {
       },
     }),
   },
-
-  // TODO(recap): Move this to a separate page or debug files one, not general settings
-  recapServerUrl: {
-    name: 'recapServerUrl',
-    type: 'string',
-    placeholder: t('URL'),
-    label: t('Recap Server URL'),
-    help: t('URL to the Recap Server events should be polled from'),
-  },
-
-  recapServerToken: {
-    name: 'recapServerToken',
-    type: 'string',
-    placeholder: t('Token'),
-    label: t('Recap Server Token'),
-    help: t('Auth Token to the configured Recap Server'),
-  },
-
   subjectPrefix: {
     name: 'subjectPrefix',
     type: 'string',
@@ -168,7 +152,7 @@ export const fields: Record<string, Field> = {
     disabled: ({organization, name}) => !organization[name],
     disabledReason: ORG_DISABLED_REASON,
     // `props` are the props given to FormField
-    setValue: (val, props) => props.organization && props.organization[props.name] && val,
+    setValue: (val, props) => props.organization?.[props.name] && val,
     label: t('Enable JavaScript source fetching'),
     help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
   },

@@ -2,35 +2,14 @@ from __future__ import annotations
 
 import os
 import socket
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
 
 T = TypeVar("T", bound=Callable[..., Any])
-
-_service_status: dict[str, bool] = {}
-
-
-def snuba_is_available() -> bool:
-    if "snuba" in _service_status:
-        return _service_status["snuba"]
-    try:
-        parsed = urlparse(settings.SENTRY_SNUBA)
-        assert parsed.port is not None
-        with socket.create_connection((parsed.hostname, parsed.port), 1.0):
-            pass
-    except OSError:
-        _service_status["snuba"] = False
-    else:
-        _service_status["snuba"] = True
-    return _service_status["snuba"]
-
-
-requires_snuba = pytest.mark.skipif(
-    not snuba_is_available(), reason="requires snuba server running"
-)
 
 
 def is_arm64() -> bool:
@@ -67,40 +46,47 @@ def skip_for_relay_store(reason: str) -> Callable[[T], T]:
     return decorator
 
 
-def relay_is_available() -> bool:
-    if "relay" in _service_status:
-        return _service_status["relay"]
+def _service_available(host: str, port: int) -> bool:
     try:
-        with socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0):
+        with socket.create_connection((host, port), 1.0):
             pass
     except OSError:
-        _service_status["relay"] = False
+        return False
     else:
-        _service_status["relay"] = True
-    return _service_status["relay"]
+        return True
 
 
-requires_relay = pytest.mark.skipif(
-    not relay_is_available(), reason="requires relay server running"
-)
+def _requires_service_message(name: str) -> str:
+    return f"requires '{name}' server running\n\t💡 Hint: run `sentry devservices up {name}`"
 
 
-def symbolicator_is_available() -> bool:
-    from sentry import options
-
-    if "symbolicator" in _service_status:
-        return _service_status["symbolicator"]
-    try:
-        parsed = urlparse(options.get("symbolicator.options", True)["url"])
-        with socket.create_connection((parsed.hostname, parsed.port), 1.0):
-            pass
-    except OSError:
-        _service_status["symbolicator"] = False
-    else:
-        _service_status["symbolicator"] = True
-    return _service_status["symbolicator"]
+@pytest.fixture(scope="session")
+def _requires_snuba() -> None:
+    parsed = urlparse(settings.SENTRY_SNUBA)
+    assert parsed.hostname is not None
+    assert parsed.port is not None
+    if not _service_available(parsed.hostname, parsed.port):
+        pytest.fail(_requires_service_message("snuba"))
 
 
-requires_symbolicator = pytest.mark.skipif(
-    not symbolicator_is_available(), reason="requires symbolicator server running"
-)
+@pytest.fixture(scope="session")
+def _requires_kafka() -> None:
+    kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
+    (port,) = kafka_conf["ports"].values()
+
+    if not _service_available("127.0.0.1", port):
+        pytest.fail(_requires_service_message("kafka"))
+
+
+@pytest.fixture(scope="session")
+def _requires_symbolicator() -> None:
+    symbolicator_conf = settings.SENTRY_DEVSERVICES["symbolicator"](settings, {})
+    (port,) = symbolicator_conf["ports"].values()
+
+    if not _service_available("127.0.0.1", port):
+        pytest.fail(_requires_service_message("symbolicator"))
+
+
+requires_snuba = pytest.mark.usefixtures("_requires_snuba")
+requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
+requires_kafka = pytest.mark.usefixtures("_requires_kafka")

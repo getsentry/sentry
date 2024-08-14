@@ -6,18 +6,22 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-  integration: IntegrationWithConfig;
+  integration: OrganizationIntegration;
   onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
   organization: Organization;
   serverlessFunction: ServerlessFunction;

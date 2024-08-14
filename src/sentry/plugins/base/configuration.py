@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from sentry import options
 from sentry.api import client
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.utils import json
 from sentry.web.helpers import render_to_string
 
@@ -78,7 +78,7 @@ def default_plugin_config(plugin, project, request):
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
-                    options.set(key, value)
+                    options.set(key, value, channel=options.UpdateChannel.APPLICATION)
 
             messages.add_message(
                 request, messages.SUCCESS, _("Your settings were saved successfully.")
@@ -114,7 +114,7 @@ def default_issue_plugin_config(plugin, project, form_data):
         if project:
             ProjectOption.objects.set_value(project, key, value)
         else:
-            options.set(key, value)
+            options.set(key, value, channel=options.UpdateChannel.APPLICATION)
 
 
 def default_plugin_options(plugin, project):

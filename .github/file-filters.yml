@@ -1,44 +1,38 @@
-# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+# This is used by the action https://github.com/dorny/paths-filter
 
-# TODO: There are some meta files that we potentially could ignore for both front/backend,
-# as well as some configuration files that should trigger both
-frontend_components_lintable: &frontend_components_lintable
-  - '**/*.[tj]{s,sx}'
+sentry_specific_workflow: &sentry_specific_workflow
+  - added|modified: '.github/workflows/frontend.yml'
+sentry_specific_test_files: &sentry_specific_test_files
+  - added|modified: 'tests/js/**/*'
+  - added|deleted|modified: 'fixtures/search-syntax/**/*'
 
-frontend_lintable: &frontend_lintable
-  - *frontend_components_lintable
-  - '**/tsconfig*.json'
-  - '{package,now,vercel}.json'
+# Provides list of changed files to test (jest)
+# getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
+testable_modified: &testable_modified
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/*.[tj]{s,sx}'
+  - *sentry_specific_test_files
 
-yarn_lockfile: &yarn_lockfile
-  - 'yarn.lock'
+# Trigger for when we must run full tests (jest)
+testable_rules_changed: &testable_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'jest.config.ts'
 
-eslint_config: &eslint_config
-  - '.eslint*'
+# Trigger whether to run tsc or not
+# There's no "rules_changed" for this, because we run it for all files always
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger tsc
+typecheckable_rules_changed: &typecheckable_rules_changed
+  - *sentry_specific_workflow
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
 
-# `frontend_src` filters on files that are frontend changes excluding
-# changes to the tests/ directory.
-# If you want to filter on *all* frontend files, use the `frontend_all` filter.
-frontend_src: &frontend_src
-  - *yarn_lockfile
-  - *eslint_config
-  - '!(tests)/**/*.[tj]{s,sx}'
-  - '**/tsconfig*.json'
-  - '{package,now,vercel}.json'
-  - '**/*.less'
-  - 'static/**'
-  - 'fixtures/search-syntax/**/*'
-  - '.github/workflows/frontend.yml'
-
+# Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
-  - *frontend_src
-  - '**/*.[tj]{s,sx}'
-
-frontend_modified_lintable:
-  - added|modified: *frontend_lintable
-
-frontend_components_modified_lintable:
-  - added|modified: *frontend_components_lintable
+  - added|modified: '**/*.[tj]{s,sx}'
+  - added|modified: '**/*.{less,json,yml,md}'
+  - added|modified: '{.volta,vercel}.json'
 
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
@@ -63,6 +57,7 @@ backend_src: &backend_src
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
+  - 'src/sentry_plugins/**/*.html'
   - 'migrations_lockfile.txt'
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
@@ -80,10 +75,6 @@ acceptance: &acceptance
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
-plugins: &plugins
-  - *backend_all
-  - 'src/sentry_plugins/**/*.html'
-
 api_docs: &api_docs
   - *backend_all
   - 'api-docs/**'
@@ -93,15 +84,15 @@ api_docs: &api_docs
 backend_any_type: &backend_any_type
   - *backend_all
   - *api_docs
-  - *plugins
 
 migrations_added:
-  - added: 'src/sentry/migrations/*'
+  - added:
+      - 'src/sentry/migrations/*'
+      - 'src/sentry/feedback/migrations/*'
+      - 'src/sentry/hybridcloud/migrations/*'
+      - 'src/sentry/replays/migrations/*'
 
-migrations_modified:
-  - modified: 'src/sentry/migrations/*'
-
-# These files will trigger our wokrflow to check if lockfile
+# These files will trigger our workflow to check if lockfile
 # updates are needed
 migration_lockfile:
   - *backend_dependencies

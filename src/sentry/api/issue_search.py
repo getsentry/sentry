@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
+from typing import Optional, Union
 
-from sentry import features
 from sentry.api.event_search import (
     AggregateFilter,
+    ParenExpression,
     SearchConfig,
     SearchFilter,
     SearchKey,
@@ -19,10 +20,13 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
     get_group_types_by_category,
 )
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
-from sentry.search.events.filter import to_list
+from sentry.search.events.filter import ParsedTerms, to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     get_teams_for_users,
@@ -32,7 +36,9 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -77,7 +83,7 @@ ValueConverter = Callable[
         User,
         Optional[Sequence[Environment]],
     ],
-    Union[str, List[str], List[Optional[Union[User, Team]]], List[User], List[int]],
+    Union[str, list[str], list[Optional[Union[User, Team]]], list[User], list[int]],
 ]
 
 
@@ -85,8 +91,8 @@ def convert_actor_or_none_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[Optional[Union[User, Team]]]:
+    environments: Sequence[Environment] | None,
+) -> list[User | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     actors_or_none = []
@@ -102,8 +108,8 @@ def convert_user_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[User]:
+    environments: Sequence[Environment] | None,
+) -> list[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
@@ -113,11 +119,11 @@ def convert_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> Union[str, List[str]]:
+    environments: Sequence[Environment] | None,
+) -> str | list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     results = list(releases)
@@ -130,11 +136,11 @@ def convert_first_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[str]:
+    environments: Sequence[Environment] | None,
+) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
@@ -156,11 +162,11 @@ def convert_substatus_value(
 
 
 def convert_status_value(
-    value: Iterable[Union[str, int]],
+    value: Iterable[str | int],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     parsed = []
     for status in value:
         try:
@@ -174,10 +180,10 @@ def convert_category_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results: List[int] = []
+    results: list[int] = []
     for category in value:
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
@@ -186,12 +192,28 @@ def convert_category_value(
     return results
 
 
+def convert_priority_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[int]:
+    """Convert a value like 'high' or 'medium' to the Priority value for issue lookup"""
+    results: list[int] = []
+    for priority in value:
+        priority_value = PriorityLevel.from_str(priority)
+        if not priority_value:
+            raise InvalidSearchQuery(f"Invalid priority value of '{priority}'")
+        results.append(priority_value.value)
+    return results
+
+
 def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     results = []
     for type in value:
@@ -206,8 +228,8 @@ def convert_device_class_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[str]:
+    environments: Sequence[Environment] | None,
+) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
     results = set()
     for device_class in value:
@@ -228,6 +250,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
     "issue.category": convert_category_value,
+    "issue.priority": convert_priority_value,
     "issue.type": convert_type_value,
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
@@ -235,11 +258,13 @@ value_converters: Mapping[str, ValueConverter] = {
 
 
 def convert_query_values(
-    search_filters: list[SearchFilter],
+    search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[SearchFilter]:
+    user: User | RpcUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> list[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -247,19 +272,22 @@ def convert_query_values(
     :param projects: List of projects being searched across
     :param user: The user making the search
     :param environments: The environments to consider when making the search
+    :param value_converters: A dictionary of functions that convert search filter values into different formats.
     :return: New collection of `SearchFilters`, which may have converted values.
     """
 
     def convert_search_filter(
         search_filter: SearchFilter, organization: Organization
     ) -> SearchFilter:
-        if search_filter.key.name == "empty_stacktrace.js_console":
-            if not features.has(
-                "organizations:javascript-console-error-tag", organization, actor=None
-            ):
-                raise InvalidSearchQuery(
-                    "The empty_stacktrace.js_console filter is not supported for this organization"
-                )
+        if isinstance(search_filter, ParenExpression):
+            return search_filter._replace(
+                children=[
+                    child if isinstance(child, str) else convert_search_filter(child, organization)
+                    for child in search_filter.children
+                ]
+            )
+        elif isinstance(search_filter, str):
+            return search_filter
 
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
@@ -275,7 +303,7 @@ def convert_query_values(
                 value=SearchValue(new_value),
                 operator=operator,
             )
-        elif isinstance(search_filter, AggregateFilter):
+        elif isinstance(search_filter, AggregateFilter) and not allow_aggregate_filters:
             raise InvalidSearchQuery(
                 f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )
@@ -283,19 +311,16 @@ def convert_query_values(
         return search_filter
 
     def expand_substatus_query_values(
-        search_filters: list[SearchFilter], org: Organization
+        search_filters: ParsedTerms, org: Organization
     ) -> list[SearchFilter]:
         first_status_incl = None
         first_status_excl = None
         includes_status_filter = False
         includes_substatus_filter = False
         for search_filter in search_filters:
+            if isinstance(search_filter, (ParenExpression, str)):
+                continue
             if search_filter.key.name == "substatus":
-                if not features.has("organizations:escalating-issues", org):
-                    raise InvalidSearchQuery(
-                        "The substatus filter is not supported for this organization"
-                    )
-
                 converted = convert_search_filter(search_filter, org)
                 new_value = converted.value.raw_value
                 status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(

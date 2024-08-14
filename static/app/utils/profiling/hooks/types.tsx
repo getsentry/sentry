@@ -1,5 +1,5 @@
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {FieldValueType} from 'sentry/utils/fields';
+import type {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import type {FieldValueType} from 'sentry/utils/fields';
 
 export type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
@@ -30,8 +30,7 @@ export type FunctionTrend = {
   breakpoint: number;
   change: TrendType;
   'count()': number;
-  'examples()': string[];
-  // fingerprint: number; DO NOT use this yet
+  fingerprint: number;
   function: string;
   package: string;
   project: string;
@@ -39,6 +38,7 @@ export type FunctionTrend = {
   trend_difference: number;
   trend_percentage: number;
   unweighted_p_value: number;
+  worst: FunctionExample[];
 };
 
 type EpochTime = number;
@@ -50,3 +50,5 @@ type FunctionTrendStats = {
   end: number;
   start: number;
 };
+
+type FunctionExample = [EpochTime, string];

@@ -2,10 +2,12 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.silo import control_silo_test
 
 
-class SentryAppInstallationDocs(APIDocsTestCase):
+@control_silo_test
+class SentryAppInstallationDocsTest(APIDocsTestCase):
     def setUp(self):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Jessla", owner=None)
@@ -22,7 +24,7 @@ class SentryAppInstallationDocs(APIDocsTestCase):
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-sentry-app-installations",
-            kwargs={"organization_slug": self.org.slug},
+            kwargs={"organization_id_or_slug": self.org.slug},
         )
 
     def test_get(self):

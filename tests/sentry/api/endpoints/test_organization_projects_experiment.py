@@ -6,18 +6,20 @@ from django.urls import reverse
 from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
+    DISABLED_FEATURE_ERROR_STRING,
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.experiments.manager import ExperimentManager
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.testutils import APITestCase
+from sentry.models.team import Team
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class OrganizationProjectsExperimentCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-experiment"
     method = "post"
@@ -29,7 +31,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         self.login_as(user=self.user)
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
-        self.mock_experiment_get = patch("sentry.experiments.manager.get", return_value=1).start()
+        self.mock_experiment_get = patch.object(ExperimentManager, "get", return_value=1).start()
 
     @cached_property
     def path(self):
@@ -55,7 +57,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         )
         assert response.data == {"platform": ["Invalid platform"]}
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     @patch.object(
         OrganizationProjectsExperimentEndpoint, "should_add_creator_to_team", return_value=False
     )
@@ -64,28 +66,14 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert response.data == {"detail": "User is not authenticated"}
         mock_add_creator.assert_called_once()
 
+    @with_feature({"organizations:team-roles": False})
     def test_missing_team_roles_flag(self):
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
         assert response.data == {
             "detail": "You do not have permission to join a new team as a Team Admin."
         }
 
-    @with_feature("organizations:team-roles")
-    def test_missing_project_creation_all_flag(self):
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
-
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
-    def test_missing_experiment(self):
-        self.mock_experiment_get.return_value = 0
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
-
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     @patch("sentry.models.team.Team.objects.filter")
     def test_exceed_unique_team_slug_attempts(self, mock_filter):
         mock_filter.exists.return_value = True
@@ -94,7 +82,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
             "detail": "Unable to create a default team for this user. Please try again.",
         }
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_valid_params(self):
         response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
 
@@ -114,7 +102,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert project.name == project.slug == self.p1
         assert project.teams.first() == team
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_project_slug_is_slugified(self):
         unslugified_name = "not_slugged_$!@#$"
         response = self.get_success_response(
@@ -138,7 +126,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert project.slug == slugify(unslugified_name)
         assert project.teams.first() == team
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_team_slug_is_slugified(self):
         special_email = "test.bad$email@foo.com"
         t1 = "team-testbademail"
@@ -164,7 +152,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert project.name == project.slug == self.p1
         assert project.teams.first() == team
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_with_default_rules(self):
         response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
 
@@ -174,7 +162,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
         assert Rule.objects.filter(project=project).exists()
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_without_default_rules(self):
         response = self.get_success_response(
             self.organization.slug, name=self.p1, default_rules=False, status_code=201
@@ -186,7 +174,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
         assert not Rule.objects.filter(project=project).exists()
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_consecutive_reqs_adds_team_suffix(self):
         resp1 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
         resp2 = self.get_success_response(self.organization.slug, name=self.p2, status_code=201)
@@ -209,7 +197,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert proj1.teams.first() == team1
         assert proj2.teams.first() == team2
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_consecutive_reqs_with_duplicate_project_names(self):
         resp1 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
         resp2 = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
@@ -233,7 +221,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert proj1.teams.first() == team1
         assert proj2.teams.first() == team2
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_duplicate_team_post_suffixing(self):
         self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
@@ -256,7 +244,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
             "detail": "A team with this slug already exists.",
         }
 
-    @with_feature(["organizations:team-roles", "organizations:team-project-creation-all"])
+    @with_feature(["organizations:team-roles"])
     def test_member_does_not_exist(self):
         prior_team_count = Team.objects.count()
 
@@ -278,3 +266,25 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
                 "detail": "You must be a member of the organization to join a new team as a Team Admin",
             }
         assert Team.objects.count() == prior_team_count
+
+    @with_feature(["organizations:team-roles"])
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="member", teams=[])
+        self.login_as(user=test_member)
+        response = self.get_error_response(
+            test_org.slug,
+            name="foo",
+            status_code=403,
+        )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            name="foo",
+            status_code=201,
+        )

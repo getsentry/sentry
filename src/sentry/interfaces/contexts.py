@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import string
+from typing import Any, ClassVar, TypeVar
 
 from django.utils.encoding import force_str
 
@@ -8,7 +11,9 @@ from sentry.utils.safe import get_path
 
 __all__ = ("Contexts",)
 
-context_types = {}
+ContextTypeT = TypeVar("ContextTypeT", bound="ContextType")
+
+context_types: dict[str, type[ContextType]] = {}
 
 
 class _IndexFormatter(string.Formatter):
@@ -22,7 +27,7 @@ def format_index_expr(format_string, data):
     return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
 
-def contexttype(cls):
+def contexttype(cls: type[ContextTypeT]) -> type[ContextTypeT]:
     context_types[cls.type] = cls
     return cls
 
@@ -34,7 +39,7 @@ def contexttype(cls):
 
 
 class ContextType:
-    context_to_tag_mapping = None
+    context_to_tag_mapping: ClassVar[dict[str, str]] = {}
     """
     This indicates which fields should be promoted into tags during event
     normalization. (See EventManager)
@@ -74,7 +79,7 @@ class ContextType:
      - myContext.subkey: "whatever"
     """
 
-    type = None
+    type: str
     """This should match the `type` key in context object"""
 
     def __init__(self, alias, data):
@@ -88,6 +93,9 @@ class ContextType:
             # we still want to display the info the UI
             if value is not None:
                 ctx_data[force_str(key)] = value
+            # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
+            if isinstance(value, (int, float, list, dict)):
+                ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
     def to_json(self):
@@ -125,6 +133,16 @@ class ContextType:
                         yield (self.alias, value)
                     else:
                         yield (f"{self.alias}.{field}", value)
+
+    def change_type(self, value: int | float | list | dict) -> Any:
+        if isinstance(value, (float, int)) and len(str_value := force_str(value)) > 15:
+            return str_value
+        if isinstance(value, list):
+            return [self.change_type(el) for el in value]
+        elif isinstance(value, dict):
+            return {key: self.change_type(el) for key, el in value.items()}
+        else:
+            return value
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields

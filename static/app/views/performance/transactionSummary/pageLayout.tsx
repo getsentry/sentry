@@ -1,8 +1,7 @@
 import {useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/utils';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -15,16 +14,20 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
 
@@ -37,22 +40,20 @@ import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader from './header';
 import Tab from './tabs';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
   | 'performance_views.vitals.vitals_tab_clicked'
   | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
-  | 'performance_views.spans.spans_tab_clicked'
-  | 'performance_views.anomalies.anomalies_tab_clicked';
+  | 'performance_views.spans.spans_tab_clicked';
 
 const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
   [Tab.SPANS]: 'performance_views.spans.spans_tab_clicked',
-  [Tab.ANOMALIES]: 'performance_views.anomalies.anomalies_tab_clicked',
 };
 
 export type ChildProps = {
@@ -81,6 +82,7 @@ type Props = {
   projects: Project[];
   tab: Tab;
   features?: string[];
+  fillSpace?: boolean;
 };
 
 function PageLayout(props: Props) {
@@ -138,6 +140,8 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
+        case Tab.AGGREGATE_WATERFALL:
+          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
             orgSlug: organization.slug,
@@ -281,7 +285,7 @@ function PageLayout(props: Props) {
                   }}
                   metricsCardinality={metricsCardinality}
                 />
-                <Layout.Body>
+                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
                   {defined(error) && (
                     <StyledAlert type="error" showIcon>
                       {error}
@@ -298,7 +302,7 @@ function PageLayout(props: Props) {
                     transactionThreshold={transactionThreshold}
                     transactionThresholdMetric={transactionThresholdMetric}
                   />
-                </Layout.Body>
+                </StyledBody>
               </Layout.Page>
             </Tabs>
           </PageFiltersContainer>
@@ -315,6 +319,22 @@ export function NoAccess() {
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
   margin: 0;
+`;
+
+const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
+  ${p =>
+    p.fillSpace &&
+    `
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+
+  @media (min-width: ${p.theme.breakpoints.large}) {
+    display: flex;
+    flex-direction: column;
+    gap: ${space(3)};
+  }
+  `}
 `;
 
 export function redirectToPerformanceHomepage(

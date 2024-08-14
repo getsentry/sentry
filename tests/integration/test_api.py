@@ -1,8 +1,14 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import AuthProviderTestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
+
+pytestmark = [requires_snuba]
 
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
@@ -20,10 +26,11 @@ class AuthenticationTest(AuthProviderTestCase):
         member.save()
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
-        auth_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy", flags=0
-        )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy", flags=0
+            )
+            AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
         self.login_as(self.user)
 
         self.paths = (
@@ -41,8 +48,9 @@ class AuthenticationTest(AuthProviderTestCase):
         self._test_paths_with_status(401)
 
     def test_sso_superuser_required(self):
-        # superuser should still require SSO as they're a member of the org
-        self.user.update(is_superuser=True)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # superuser should still require SSO as they're a member of the org
+            self.user.update(is_superuser=True)
         self._test_paths_with_status(401)
 
     def test_sso_with_expiry_valid(self):
@@ -76,7 +84,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -95,7 +103,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=https%3A%2F%2Ftestdomain.com%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -112,7 +120,7 @@ class AuthenticationTest(AuthProviderTestCase):
             HTTP_REFERER="http://example.com",
         )
 
-        assert resp.data["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
+        assert resp.json()["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
 
     def _test_paths_with_status(self, status):
         for path in self.paths:

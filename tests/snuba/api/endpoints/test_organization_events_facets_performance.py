@@ -2,13 +2,13 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
 class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
+    url: str
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
@@ -35,7 +35,6 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
             return self.client.get(self.url, query, format="json")
 
 
-@region_silo_test
 class OrganizationEventsFacetsPerformanceEndpointTest(
     BaseOrganizationEventsFacetsPerformanceEndpointTest
 ):
@@ -57,7 +56,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-facets-performance",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def store_transaction(
@@ -67,8 +66,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             tags = []
         if project_id is None:
             project_id = self.project.id
-        event = load_data("transaction").copy()
-        event.data["tags"].extend(tags)
+        event = load_data("transaction")
+        event["tags"].extend(tags)
         event.update(
             {
                 "transaction": name,
@@ -270,3 +269,39 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         assert data[0]["comparison"] == 0
         assert data[0]["tags_key"] == "color"
         assert data[0]["tags_value"] == "purple"
+
+    def test_cursor(self):
+        self.store_transaction(tags=[["third_tag", "good"]], duration=1000)
+        self.store_transaction(tags=[["third_tag", "bad"]], duration=10000)
+
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 2,
+            "cursor": "0:0:0",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["count"] == 5
+        assert data[1]["tags_key"] == "many"
+        assert data[1]["count"] == 1
+
+        request["cursor"] = "0:2:0"
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        # Only 1 key in this page
+        assert len(data) == 1
+        assert data[0]["tags_key"] == "third_tag"
+        assert data[0]["count"] == 1
+
+        request["cursor"] = "0:4:0"
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        # 0 keys, past all 3 tag keys stored.
+        assert len(data) == 0

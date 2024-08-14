@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import atexit
 from collections import deque
+from collections.abc import Callable
 from concurrent import futures
-from typing import TYPE_CHECKING, Callable, Deque, Optional
+from typing import Deque
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
-from arroyo.types import BrokerValue, Topic
+from arroyo.types import BrokerValue, Partition, Topic
 
-if TYPE_CHECKING:
-    ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
-else:
-    ProducerFuture = object
+ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
 
 
 class SingletonProducer:
@@ -26,14 +24,15 @@ class SingletonProducer:
     def __init__(
         self, kafka_producer_factory: Callable[[], KafkaProducer], max_futures: int = 1000
     ) -> None:
-        self._producer: Optional[KafkaProducer] = None
+        self._producer: KafkaProducer | None = None
         self._factory = kafka_producer_factory
         self._futures: Deque[ProducerFuture] = deque()
         self.max_futures = max_futures
 
-    def produce(self, topic: Topic, payload: KafkaPayload) -> None:
-        future = self._get().produce(topic, payload)
+    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> ProducerFuture:
+        future = self._get().produce(destination, payload)
         self._track_futures(future)
+        return future
 
     def _get(self) -> KafkaProducer:
         if self._producer is None:

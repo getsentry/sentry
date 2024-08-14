@@ -16,9 +16,10 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PlatformType} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -70,7 +71,7 @@ export function StackTracePreviewContent({
   }, [stacktrace]);
 
   const framePlatform = stacktrace?.frames?.find(frame => !!frame.platform)?.platform;
-  const platform = (framePlatform ?? event.platform ?? 'other') as PlatformType;
+  const platform = (framePlatform ?? event.platform ?? 'other') as PlatformKey;
   const newestFirst = isStacktraceNewestFirst();
 
   const commonProps = {

@@ -12,11 +12,13 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
     update_snuba_subscription,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_kafka, requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
+@pytest.mark.snuba_ci
 class CreateSnubaQueryTest(TestCase):
     def test(self):
         query_type = SnubaQuery.Type.ERROR
@@ -121,11 +123,15 @@ class CreateSnubaSubscriptionTest(TestCase):
             query_type, dataset, query, "count()", time_window, resolution, self.environment
         )
         subscription = create_snuba_subscription(self.project, type, snuba_query)
+        subscription_with_query_extra = create_snuba_subscription(
+            self.project, type, snuba_query, query_extra="foo:bar"
+        )
 
         assert subscription.status == QuerySubscription.Status.CREATING.value
         assert subscription.project == self.project
         assert subscription.type == type
         assert subscription.subscription_id is None
+        assert subscription_with_query_extra.query_extra == "foo:bar"
 
     def test_with_task(self):
         with self.tasks():
@@ -329,6 +335,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
         update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
+        assert subscription.snuba_query is not None
         assert subscription.snuba_query.dataset == dataset.value
         assert subscription.snuba_query.query == query
         assert subscription.snuba_query.aggregate == aggregate

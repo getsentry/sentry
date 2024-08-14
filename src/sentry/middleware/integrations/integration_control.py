@@ -1,88 +1,60 @@
 from __future__ import annotations
 
 import logging
-import re
-from typing import Mapping, Type
+from collections.abc import Callable
 
-from sentry.silo import SiloMode
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 
-from .parsers import (
-    GithubRequestParser,
-    GitlabRequestParser,
-    JiraRequestParser,
-    MsTeamsRequestParser,
-    SlackRequestParser,
-)
-from .parsers.base import BaseRequestParser
+from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_PARSERS = [
-    GithubRequestParser,
-    GitlabRequestParser,
-    JiraRequestParser,
-    SlackRequestParser,
-    MsTeamsRequestParser,
-]
+
+from sentry.middleware.integrations.classifications import (
+    BaseClassification,
+    IntegrationClassification,
+    PluginClassification,
+)
+
+ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
 
 
 class IntegrationControlMiddleware:
-    integration_prefix: str = "/extensions/"
-    """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    setup_suffix: str = "/setup/"
-    """Suffix for PipelineAdvancerView on installation. See `src/sentry/web/urls.py`"""
+    classifications: list[type[BaseClassification]] = [
+        IntegrationClassification,
+        PluginClassification,
+    ]
+    """
+    Classifications to determine whether request must be parsed, sorted in priority order.
+    getsentry expands this list on django initialization.
+    """
 
-    integration_parsers: Mapping[str, Type[BaseRequestParser]] = {
-        parser.provider: parser for parser in ACTIVE_PARSERS
-    }
-
-    def __init__(self, get_response):
+    def __init__(self, get_response: ResponseHandler):
         self.get_response = get_response
 
-    def _identify_provider(self, request) -> str | None:
-        """
-        Parses the provider out of the request path
-            e.g. `/extensions/slack/commands/` -> `slack`
-        """
-        integration_prefix_regex = re.escape(self.integration_prefix)
-        provider_regex = rf"^{integration_prefix_regex}(\w+)"
-        result = re.search(provider_regex, request.path)
-        if not result:
-            logger.error(
-                "integration_control.invalid_provider",
-                extra={"path": request.path},
-            )
-            return None
-        return result.group(1)
-
-    def _should_operate(self, request) -> bool:
+    def _should_operate(self, request: HttpRequest) -> bool:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
-        is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
-        is_integration = request.path.startswith(self.integration_prefix)
-        is_not_setup = not request.path.endswith(self.setup_suffix)
-        return is_correct_silo and is_integration and is_not_setup
+        return SiloMode.get_current_mode() == SiloMode.CONTROL
 
-    def __call__(self, request):
+    @classmethod
+    def register_classifications(cls, classifications: list[type[BaseClassification]]):
+        """
+        Add new classifications for middleware to determine request parsing dynamically.
+        Used in getsentry to expand scope of parsing.
+        """
+        cls.classifications += classifications
+
+    def __call__(self, request: HttpRequest):
         if not self._should_operate(request):
             return self.get_response(request)
 
-        provider = self._identify_provider(request)
-        if not provider:
-            return self.get_response(request)
+        # Check request against each classification, if a match is found, return early
+        for classification in self.classifications:
+            _cls = classification(response_handler=self.get_response)
+            if _cls.should_operate(request):
+                return _cls.get_response(request)
 
-        parser_class = self.integration_parsers.get(provider)
-        if not parser_class:
-            logger.error(
-                "integration_control.unknown_provider",
-                extra={"path": request.path, "provider": provider},
-            )
-            return self.get_response(request)
-
-        parser = parser_class(
-            request=request,
-            response_handler=self.get_response,
-        )
-
-        return parser.get_response()
+        return self.get_response(request)

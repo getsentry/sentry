@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, List, TypedDict
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.group import Group
@@ -41,18 +44,18 @@ GROUP_OWNER_TYPE = {
 
 
 class OwnersSerialized(TypedDict):
-    type: GroupOwnerType
+    type: str
     owner: str
-    date_added: models.DateTimeField
+    date_added: datetime
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -64,7 +67,7 @@ class GroupOwner(Model):
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
-    context = JSONField(null=True)
+    context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -74,7 +77,7 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        keys = list(filter(None, [self.user_id, self.team_id]))
+        keys = [k for k in (self.user_id, self.team_id) if k is not None]
         assert len(keys) != 2, "Must have team or user or neither, not both"
         super().save(*args, **kwargs)
 
@@ -91,74 +94,30 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models import ActorTuple
+        from sentry.types.actor import Actor
 
         if not self.owner_id():
             return None
 
-        return ActorTuple.from_actor_identifier(self.owner_id())
+        return Actor.from_identifier(self.owner_id())
 
     @classmethod
-    def get_autoassigned_owner_cache_key(self, group_id, project_id, autoassignment_types):
-        if not len(autoassignment_types):
-            raise Exception("Requires the autoassignment types")
-        return f"groupowner_id:{group_id}:{project_id}:{':'.join([str(t) for t in autoassignment_types])}"
-
-    @classmethod
-    def get_autoassigned_owner_cached(cls, group_id, project_id, autoassignment_types):
+    def get_autoassigned_owner(cls, group_id, project_id, autoassignment_types):
         """
-        Cached read access to find the autoassigned GroupOwner.
+        Non-cached read access to find the autoassigned GroupOwner.
         """
-        cache_key = cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-        issue_owner = cache.get(cache_key)
+        issue_owner = (
+            cls.objects.filter(
+                group_id=group_id, project_id=project_id, type__in=autoassignment_types
+            )
+            .exclude(user_id__isnull=True, team_id__isnull=True)
+            .order_by("type")
+            .first()
+        )
+        # should return False if no owner
         if issue_owner is None:
-            issue_owner = (
-                cls.objects.filter(
-                    group_id=group_id, project_id=project_id, type__in=autoassignment_types
-                )
-                .exclude(user_id__isnull=True, team_id__isnull=True)
-                .order_by("type")
-                .first()
-            )
-            if issue_owner is None:
-                issue_owner = False
-            # Store either the GroupOwner if exists or False for no owners
-            cache.set(cache_key, issue_owner, READ_CACHE_DURATION)
-
+            return False
         return issue_owner
-
-    @classmethod
-    def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
-        """
-        If `group_id` is provided, clear the autoassigned owner cache for that group, else clear
-        the cache of all groups for a project that had an event within the READ_CACHE_DURATION
-        window.
-        """
-        if group_id:
-            cache_key = cls.get_autoassigned_owner_cache_key(
-                group_id, project_id, autoassignment_types
-            )
-            cache.delete(cache_key)
-            return
-
-        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window.
-        # Any groups without events in that window would have expired their TTL in the cache.
-        queryset = Group.objects.filter(
-            project_id=project_id,
-            last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
-        ).values_list("id", flat=True)
-
-        # Run cache invalidation in batches
-        group_id_iter = queryset.iterator(chunk_size=1000)
-        while True:
-            group_ids = list(itertools.islice(group_id_iter, 1000))
-            if not group_ids:
-                break
-            cache_keys = [
-                cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-                for group_id in group_ids
-            ]
-            cache.delete_many(cache_keys)
 
     @classmethod
     def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id, group_id=None):
@@ -190,8 +149,8 @@ class GroupOwner(Model):
     @classmethod
     def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
         """
-        If `group_id` is provided, clear the invalidate assignee exists cache for that group, else
-        clear the cache of all groups for a project hat had an event within the
+        If `group_id` is provided, clear the assignee exists cache for that group, else
+        clear the cache of all groups for a project that had an event within the
         ASSIGNEE_EXISTS_DURATION window.
         """
         if group_id:
@@ -215,7 +174,7 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
 
-def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
+def get_owner_details(group_list: list[Group], user: Any) -> dict[int, list[OwnersSerialized]]:
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
         user_id__isnull=True, team_id__isnull=True
@@ -225,7 +184,7 @@ def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerializ
         owner_details[go.group_id].append(
             OwnersSerialized(
                 type=GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
-                owner=go.owner().get_actor_identifier(),
+                owner=go.owner().identifier,
                 date_added=go.date_added,
             ),
         )

@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from unittest import mock
+
 from django.conf import settings
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
@@ -7,7 +13,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.subdomain import SubdomainMiddleware
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import no_silo_test
 
 
 class SubdomainMiddlewareTest(TestCase):
@@ -17,32 +24,46 @@ class SubdomainMiddlewareTest(TestCase):
             "system.base-hostname": "us.dev.getsentry.net:8000",
         }
 
-        def request_with_host(host):
-            subdomain_middleware = SubdomainMiddleware(lambda request: request)
+        def request_with_host(host: str) -> tuple[HttpRequest, HttpResponseBase]:
+            got_request = None
+
+            def get_response(request: HttpRequest) -> HttpResponseBase:
+                nonlocal got_request
+                got_request = request
+                return mock.sentinel.response
+
+            subdomain_middleware = SubdomainMiddleware(get_response)
             request = RequestFactory().get("/", HTTP_HOST=host)
-            return subdomain_middleware(request)
+            response = subdomain_middleware(request)
+            return (request, response)
+
+        def run_request(host: str) -> HttpRequest:
+            return request_with_host(host)[0]
+
+        def run_response(host: str) -> HttpResponseBase:
+            return request_with_host(host)[1]
 
         with self.options(options):
-            assert request_with_host("foobar").subdomain is None
-            assert request_with_host("dev.getsentry.net:8000").subdomain is None
-            assert request_with_host("us.dev.getsentry.net:8000").subdomain is None
-            assert request_with_host("foobar.us.dev.getsentry.net:8000").subdomain == "foobar"
-            assert request_with_host("FOOBAR.us.dev.getsentry.net:8000").subdomain == "foobar"
-            assert request_with_host("foo.bar.us.dev.getsentry.net:8000").subdomain == "foo.bar"
-            assert request_with_host("foo.BAR.us.dev.getsentry.net:8000").subdomain == "foo.bar"
+            assert run_request("foobar").subdomain is None
+            assert run_request("dev.getsentry.net:8000").subdomain is None
+            assert run_request("us.dev.getsentry.net:8000").subdomain is None
+            assert run_request("foobar.us.dev.getsentry.net:8000").subdomain == "foobar"
+            assert run_request("FOOBAR.us.dev.getsentry.net:8000").subdomain == "foobar"
+            assert run_request("foo.bar.us.dev.getsentry.net:8000").subdomain == "foo.bar"
+            assert run_request("foo.BAR.us.dev.getsentry.net:8000").subdomain == "foo.bar"
             # Invalid subdomain according to RFC 1034/1035.
             assert isinstance(
-                request_with_host("_smtp._tcp.us.dev.getsentry.net:8000"), HttpResponseRedirect
+                run_response("_smtp._tcp.us.dev.getsentry.net:8000"), HttpResponseRedirect
             )
 
         with self.options({}):
-            assert request_with_host("foobar").subdomain is None
-            assert request_with_host("dev.getsentry.net:8000").subdomain is None
-            assert request_with_host("us.dev.getsentry.net:8000").subdomain is None
-            assert request_with_host("foobar.us.dev.getsentry.net:8000").subdomain is None
-            assert request_with_host("foo.bar.us.dev.getsentry.net:8000").subdomain is None
+            assert run_request("foobar").subdomain is None
+            assert run_request("dev.getsentry.net:8000").subdomain is None
+            assert run_request("us.dev.getsentry.net:8000").subdomain is None
+            assert run_request("foobar.us.dev.getsentry.net:8000").subdomain is None
+            assert run_request("foo.bar.us.dev.getsentry.net:8000").subdomain is None
             assert isinstance(
-                request_with_host("_smtp._tcp.us.dev.getsentry.net:8000"), HttpResponseRedirect
+                run_response("_smtp._tcp.us.dev.getsentry.net:8000"), HttpResponseRedirect
             )
 
 
@@ -67,6 +88,7 @@ urlpatterns = [
 ]
 
 
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
@@ -91,7 +113,7 @@ class End2EndTest(APITestCase):
         response = self.client.get(
             reverse("test-endpoint"),
             SERVER_NAME="albertos_apples.testserver",
-            follow=True,
         )
-        assert response.status_code == 200
-        assert response.redirect_chain == [("http://testserver", 302)]
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.status_code == 302
+        assert response.url == "http://testserver"

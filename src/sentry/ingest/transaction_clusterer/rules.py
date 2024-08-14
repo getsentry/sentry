@@ -1,11 +1,13 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
+from typing import Protocol
 
 import sentry_sdk
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
-from sentry.models import Project
+from sentry.ingest.transaction_clusterer.rule_validator import RuleValidator
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 from .base import ReplacementRule
@@ -61,7 +63,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(key, rules)
+                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -82,17 +84,17 @@ class ProjectOptionRuleStore:
         self._storage = namespace.value.persistent_storage
         self._tracker = namespace.value.tracker
 
-    def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
+    def read_sorted(self, project: Project) -> list[tuple[ReplacementRule, int]]:
         ret = project.get_option(self._storage, default=[])
         # normalize tuple vs. list for json writing
-        return [tuple(lst) for lst in ret]  # type: ignore[misc]
+        return [tuple(lst) for lst in ret]
 
     def read(self, project: Project) -> RuleSet:
         rules = {rule: last_seen for rule, last_seen in self.read_sorted(project)}
         self.last_read = rules
         return rules
 
-    def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
+    def _sort(self, rules: RuleSet) -> list[tuple[ReplacementRule, int]]:
         """Sort rules by number of slashes, i.e. depth of the rule"""
         return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
@@ -102,7 +104,7 @@ class ProjectOptionRuleStore:
         converted_rules = [list(tup) for tup in self._sort(rules)]
 
         # Track the number of rules per project.
-        metrics.timing(self._tracker, len(converted_rules))
+        metrics.distribution(self._tracker, len(converted_rules))
 
         project.update_option(self._storage, converted_rules)
 
@@ -111,12 +113,12 @@ class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
     MERGE_MAX_RULES: int = 50
 
-    def __init__(self, namespace: ClustererNamespace, stores: List[RuleStore]):
+    def __init__(self, namespace: ClustererNamespace, stores: list[RuleStore]):
         self._namespace = namespace
         self._stores = stores
 
     def read(self, project: Project) -> RuleSet:
-        merged_rules: Dict[ReplacementRule, int] = {}
+        merged_rules: dict[ReplacementRule, int] = {}
         for store in self._stores:
             rules = store.read(project)
             for rule, last_seen in rules.items():
@@ -132,8 +134,12 @@ class CompositeRuleStore:
     def merge(self, project: Project) -> None:
         """Read rules from all stores, merge and write them back so they all are up-to-date."""
         merged_rules = self.read(project)
+        merged_rules = self._clean_rules(merged_rules)
         trimmed_rules = self._trim_rules(merged_rules)
         self.write(project, trimmed_rules)
+
+    def _clean_rules(self, rules: RuleSet) -> RuleSet:
+        return {rule: seen for rule, seen in rules.items() if RuleValidator(rule).is_valid()}
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
@@ -141,18 +147,17 @@ class CompositeRuleStore:
         sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
-            with sentry_sdk.configure_scope() as scope:
-                sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
-                scope.set_context(
-                    "clustering_rules_max",
-                    {
-                        "num_existing_rules": len(rules),
-                        "max_amount": self.MERGE_MAX_RULES,
-                        "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
-                    },
-                )
-                sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
+            sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
+            sentry_sdk.Scope.get_isolation_scope().set_context(
+                "clustering_rules_max",
+                {
+                    "num_existing_rules": len(rules),
+                    "max_amount": self.MERGE_MAX_RULES,
+                    "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
+                },
+            )
+            sentry_sdk.set_tag("namespace", self._namespace.value.name)
+            sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}
@@ -185,7 +190,7 @@ def get_redis_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
 
 def get_sorted_rules(
     namespace: ClustererNamespace, project: Project
-) -> List[Tuple[ReplacementRule, int]]:
+) -> list[tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
     The rules are fetched from project options rather than redis, because
@@ -200,7 +205,7 @@ def get_sorted_rules(
 def update_rules(
     namespace: ClustererNamespace, project: Project, new_rules: Sequence[ReplacementRule]
 ) -> int:
-    """Write newly discovered rules to projection option and redis, and update last_used.
+    """Write newly discovered rules to project option and redis, and update last_used.
 
     Return the number of _new_ rules (that were not already present in project option).
     """

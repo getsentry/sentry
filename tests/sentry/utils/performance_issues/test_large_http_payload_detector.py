@@ -6,9 +6,8 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import create_event, create_span
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.large_payload_detector import (
     LargeHTTPPayloadDetector,
 )
@@ -19,7 +18,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class LargeHTTPPayloadDetectorTest(TestCase):
     def setUp(self):
@@ -40,7 +38,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -76,7 +74,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -108,7 +106,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -125,7 +123,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.mp3",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -142,7 +140,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -176,7 +174,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json?foo=bar",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -210,7 +208,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -244,7 +242,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
                 duration=1.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },

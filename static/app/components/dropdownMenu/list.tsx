@@ -3,19 +3,22 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
-import {AriaMenuOptions, useMenu} from '@react-aria/menu';
+import type {AriaMenuOptions} from '@react-aria/menu';
+import {useMenu} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
-import {Node} from '@react-types/shared';
+import type {TreeProps, TreeState} from '@react-stately/tree';
+import {useTreeState} from '@react-stately/tree';
+import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import useOverlay from 'sentry/utils/useOverlay';
+import type useOverlay from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
-import DropdownMenuItem, {MenuItemProps} from './item';
+import type {MenuItemProps} from './item';
+import DropdownMenuItem from './item';
 import DropdownMenuSection from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
@@ -54,23 +57,28 @@ export interface DropdownMenuListProps
    * Whether the menu should close when an item has been clicked/selected
    */
   closeOnSelect?: boolean;
-  /*
+  /**
+   * To be displayed below the menu items
+   */
+  menuFooter?: React.ReactChild;
+  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactChild;
   /**
    * Minimum menu width
    */
-  minWidth?: number;
+  minMenuWidth?: number;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minWidth,
+  minMenuWidth,
   size,
   menuTitle,
+  menuFooter,
   overlayState,
   overlayPositionProps,
   ...props
@@ -180,7 +188,6 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        menuWiderThanTrigger={false}
         isDismissable={false}
         shouldCloseOnBlur={false}
         shouldCloseOnInteractOutside={() => false}
@@ -242,11 +249,12 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth,
+                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
+            {menuFooter}
           </StyledOverlay>
         </DropdownMenuContext.Provider>
       </PositionWrapper>
@@ -277,7 +285,7 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 
 const MenuTitle = styled('div')`
   flex-shrink: 0;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;

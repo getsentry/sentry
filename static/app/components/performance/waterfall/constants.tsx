@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
 export const ROW_HEIGHT = 24;
 export const ROW_PADDING = 4;

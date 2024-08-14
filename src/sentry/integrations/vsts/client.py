@@ -1,19 +1,26 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+from collections.abc import Mapping, Sequence
+from time import time
+from typing import TYPE_CHECKING, Any, Union
+from urllib.parse import quote
 
 from requests import PreparedRequest
 from rest_framework.response import Response
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-from sentry.models import Identity
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.exceptions import InvalidIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
+from sentry.integrations.client import ApiClient
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import control_silo_function
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 UNSET = object()
 
@@ -44,6 +51,8 @@ class VstsApiPath:
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-changes
     commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/items/get
+    items = "{instance}{project}/_apis/git/repositories/{repo_id}/items"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/get
     project = "{instance}_apis/projects/{project_id}"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list
@@ -107,9 +116,9 @@ class VstsApiMixin:
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
 
-    def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
+    def create_subscription(self, shared_secret: str) -> Response:
         return self.post(
-            VstsApiPath.subscriptions.format(instance=instance),
+            VstsApiPath.subscriptions.format(instance=self.base_url),
             data={
                 "publisherId": "tfs",
                 "eventType": "workitem.updated",
@@ -128,8 +137,9 @@ class VstsApiMixin:
 class VstsSetupApiClient(ApiClient, VstsApiMixin):
     integration_name = "vsts"
 
-    def __init__(self, oauth_redirect_url: str, access_token: str):
+    def __init__(self, base_url: str, oauth_redirect_url: str, access_token: str):
         super().__init__()
+        self.base_url = base_url
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
@@ -145,7 +155,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
-class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
+class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
 
@@ -181,11 +191,24 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
         return self._request(method, *args, headers=headers, **kwargs)
 
     @control_silo_function
+    def _refresh_auth_if_expired(self):
+        """
+        Checks if auth is expired and if so refreshes it
+        """
+        time_expires = self.identity.data.get("expires")
+        if time_expires is None:
+            raise InvalidIdentity("VstsApiClient requires identity with specified expired time")
+        if int(time_expires) <= int(time()):
+            self.identity.get_provider().refresh_identity(
+                self.identity, redirect_url=self.oauth_redirect_url
+            )
+
+    @control_silo_function
     def authorize_request(
         self,
         prepared_request: PreparedRequest,
     ) -> PreparedRequest:
-        self.check_auth(redirect_url=self.oauth_redirect_url)
+        self._refresh_auth_if_expired()
         access_token = self.identity.data["access_token"]
         headers = prepare_auth_header(
             access_token=access_token,
@@ -195,13 +218,12 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
 
     def create_work_item(
         self,
-        instance: str,
         project: Project,
-        item_type: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        comment: Optional[str] = None,
-        link: Optional[str] = None,
+        item_type: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        comment: str | None = None,
+        link: str | None = None,
     ) -> Response:
         data = []
         if title:
@@ -223,14 +245,13 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
 
         return self.patch(
             VstsApiPath.work_items_create.format(
-                instance=instance, project=project, type=item_type
+                instance=self.base_url, project=project, type=item_type
             ),
             data=data,
         )
 
     def update_work_item(
         self,
-        instance: str,
         id: str,
         title: UnsettableString = UNSET,
         description: UnsettableString = UNSET,
@@ -239,7 +260,7 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
         assigned_to: UnsettableString = UNSET,
         state: UnsettableString = UNSET,
     ) -> Response:
-        data: List[Mapping[str, Any]] = []
+        data: list[Mapping[str, Any]] = []
 
         for f_name, f_value in (
             ("title", title),
@@ -259,21 +280,21 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
                         # TODO(dcramer): this is problematic when the link already exists
                         "op": "replace" if f_name != "link" else "add",
                         "path": FIELD_MAP[f_name],
-                        "value": {"rel": "Hyperlink", "url": f_value}
-                        if f_name == "link"
-                        else f_value,
+                        "value": (
+                            {"rel": "Hyperlink", "url": f_value} if f_name == "link" else f_value
+                        ),
                     }
                 )
 
         if comment is not UNSET and comment:
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
 
-        return self.patch(VstsApiPath.work_items.format(instance=instance, id=id), data=data)
+        return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
 
-    def get_work_item(self, instance: str, id: str) -> Response:
-        return self.get(VstsApiPath.work_items.format(instance=instance, id=id))
+    def get_work_item(self, id: int) -> Response:
+        return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
-    def get_work_item_states(self, instance: str, project: str) -> Response:
+    def get_work_item_states(self, project: str) -> Response:
         # XXX: Until we add the option to enter the 'WorkItemType' for syncing status changes from
         # Sentry to Azure DevOps, we need will attempt to use the sequence below. There are certain
         # ADO configurations which don't have 'Bug' or 'Issue', hence iterating until we find a match.
@@ -282,7 +303,7 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
         for check_type in check_sequence:
             response = self.get(
                 VstsApiPath.work_item_states.format(
-                    instance=instance,
+                    instance=self.base_url,
                     project=project,
                     type=check_type,
                 ),
@@ -292,63 +313,65 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
                 break
         return response
 
-    def get_work_item_categories(self, instance: str, project: str) -> Response:
-        return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
+    def get_work_item_categories(self, project: str) -> Response:
+        return self.get(
+            VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)
+        )
 
-    def get_repo(self, instance: str, name_or_id: str, project: Optional[str] = None) -> Response:
+    def get_repo(self, name_or_id: str, project: str | None = None) -> Response:
         return self.get(
             VstsApiPath.repository.format(
-                instance=instance,
+                instance=self.base_url,
                 project=f"{project}/" if project else "",
                 repo_id=name_or_id,
             )
         )
 
-    def get_repos(self, instance: str, project: Optional[str] = None) -> Response:
+    def get_repos(self, project: str | None = None) -> Response:
         return self.get(
             VstsApiPath.repositories.format(
-                instance=instance, project=f"{project}/" if project else ""
+                instance=self.base_url, project=f"{project}/" if project else ""
             ),
             timeout=5,
         )
 
-    def get_commits(self, instance: str, repo_id: str, commit: str, limit: int = 100) -> Response:
+    def get_commits(self, repo_id: str, commit: str, limit: int = 100) -> Response:
         return self.get(
-            VstsApiPath.commits.format(instance=instance, repo_id=repo_id),
+            VstsApiPath.commits.format(instance=self.base_url, repo_id=repo_id),
             params={"commit": commit, "$top": limit},
         )
 
-    def get_commit(self, instance: str, repo_id: str, commit: str) -> Response:
+    def get_commit(self, repo_id: str, commit: str) -> Response:
         return self.get(
-            VstsApiPath.commit.format(instance=instance, repo_id=repo_id, commit_id=commit)
+            VstsApiPath.commit.format(instance=self.base_url, repo_id=repo_id, commit_id=commit)
         )
 
-    def get_commit_filechanges(self, instance: str, repo_id: str, commit: str) -> Response:
+    def get_commit_filechanges(self, repo_id: str, commit: str) -> Response:
         resp = self.get(
-            VstsApiPath.commits_changes.format(instance=instance, repo_id=repo_id, commit_id=commit)
+            VstsApiPath.commits_changes.format(
+                instance=self.base_url, repo_id=repo_id, commit_id=commit
+            )
         )
         changes = resp["changes"]
         return changes
 
-    def get_commit_range(
-        self, instance: str, repo_id: str, start_sha: str, end_sha: str
-    ) -> Response:
+    def get_commit_range(self, repo_id: str, start_sha: str, end_sha: str) -> Response:
         return self.post(
-            VstsApiPath.commits_batch.format(instance=instance, repo_id=repo_id),
+            VstsApiPath.commits_batch.format(instance=self.base_url, repo_id=repo_id),
             data={
                 "itemVersion": {"versionType": "commit", "version": start_sha},
                 "compareVersion": {"versionType": "commit", "version": end_sha},
             },
         )
 
-    def get_project(self, instance: str, project_id: str) -> Response:
+    def get_project(self, project_id: str) -> Response:
         return self.get(
-            VstsApiPath.project.format(instance=instance, project_id=project_id),
+            VstsApiPath.project.format(instance=self.base_url, project_id=project_id),
             params={"stateFilter": "WellFormed"},
         )
 
-    def get_projects(self, instance: str) -> Response:
-        def gen_params(page_number: int, page_size: int) -> Mapping[str, Union[str, int]]:
+    def get_projects(self) -> list[dict[str, Any]]:
+        def gen_params(page_number: int, page_size: int) -> Mapping[str, str | int]:
             # ADO supports a continuation token in the response but only in the newer API version (
             # https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1
             # ). The token comes as a response header instead of the body and our API clients
@@ -360,12 +383,12 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
             return resp["value"]
 
         return self.get_with_pagination(
-            VstsApiPath.projects.format(instance=instance),
+            VstsApiPath.projects.format(instance=self.base_url),
             gen_params=gen_params,
             get_results=get_results,
         )
 
-    def get_users(self, account_name: str, continuation_token: Optional[str] = None) -> Response:
+    def get_users(self, account_name: str, continuation_token: str | None = None) -> Response:
         """
         Gets Users with access to a given account/organization
         https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
@@ -376,24 +399,43 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
             params={"continuationToken": continuation_token},
         )
 
-    def get_subscription(self, instance: str, subscription_id: str) -> Response:
+    def get_subscription(self, subscription_id: str) -> Response:
         return self.get(
-            VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
+            VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def delete_subscription(self, instance: str, subscription_id: str) -> Response:
+    def delete_subscription(self, subscription_id: str) -> Response:
         return self.delete(
-            VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
+            VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def update_subscription(self, instance: str, subscription_id: str) -> Response:
+    def update_subscription(self, subscription_id: str) -> Response:
         return self.put(
-            VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
+            VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
-    def search_issues(self, account_name: str, query: Optional[str] = None) -> Response:
+    def search_issues(self, account_name: str, query: str | None = None) -> Response:
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},
             api_preview=True,
         )
+
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+        return self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": version,
+            },
+        )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        raise IntegrationFeatureNotImplementedError

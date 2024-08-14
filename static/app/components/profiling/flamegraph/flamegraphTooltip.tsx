@@ -1,26 +1,29 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import {relativeChange} from 'sentry/utils/profiling/units/units';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
   flamegraph: Flamegraph
 ) {
-  return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
+  return `${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%`;
 }
 
 function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
@@ -39,11 +42,19 @@ function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
 export interface FlamegraphTooltipProps {
   canvasBounds: Rect;
   configSpaceCursor: vec2;
+  flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphCanvas: FlamegraphCanvas;
   flamegraphRenderer: FlamegraphRenderer;
   flamegraphView: CanvasView<Flamegraph>;
   frame: FlamegraphFrame;
   platform: 'javascript' | 'python' | 'ios' | 'android' | string | undefined;
+  disableColorCoding?: boolean;
+}
+
+function isDifferentiableFlamegraph(
+  flamegraph: Flamegraph | DifferentialFlamegraph
+): flamegraph is DifferentialFlamegraph {
+  return 'isDifferentialFlamegraph' in flamegraph && flamegraph.isDifferentialFlamegraph;
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
@@ -56,7 +67,49 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
     ).transformRect(props.flamegraphView.configSpaceTransform);
   }, [props.flamegraphView, props.frame]);
 
-  const isCount = props.flamegraphRenderer.flamegraph.profile.unit === 'count';
+  if (
+    props.flamegraphRenderer.flamegraph.profile.unit === 'count' &&
+    !isDifferentiableFlamegraph(props.flamegraph)
+  ) {
+    return (
+      <AggregateFlamegraphTooltip {...props} frameInConfigSpace={frameInConfigSpace} />
+    );
+  }
+
+  if (isDifferentiableFlamegraph(props.flamegraph)) {
+    return (
+      <DifferentialFlamegraphTooltip
+        {...props}
+        flamegraph={props.flamegraph}
+        frameInConfigSpace={frameInConfigSpace}
+      />
+    );
+  }
+
+  return <FlamechartTooltip {...props} frameInConfigSpace={frameInConfigSpace} />;
+}
+
+interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
+  flamegraph: DifferentialFlamegraph;
+  frameInConfigSpace: Rect;
+}
+function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
+  const flamegraph = props.flamegraph as DifferentialFlamegraph;
+  const count = useMemo(() => {
+    return props.flamegraph.weights.get(props.frame.node);
+  }, [props.frame, props.flamegraph]);
+
+  // A change can only happen if a frame was present in previous and current profiles
+  const shouldShowChange = !!count;
+  const relative = shouldShowChange ? relativeChange(count.after, count.before) : 0;
+
+  const formattedChange = shouldShowChange
+    ? relative === 0
+      ? t('no change')
+      : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
+    : props.flamegraph.negated
+      ? t('removed function')
+      : t(`new function`);
 
   return (
     <BoundTooltip
@@ -69,12 +122,9 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {isCount && t('samples') + ' '}
-        {formatWeightToProfileDuration(
-          props.frame.node,
-          props.flamegraphRenderer.flamegraph
-        )}{' '}
+        {flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {t('samples, ') + formattedChange}{' '}
+        {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
@@ -87,23 +137,96 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
       </FlamegraphTooltipTimelineInfo>
-      {!isCount && (
+    </BoundTooltip>
+  );
+}
+
+interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
+  frameInConfigSpace: Rect;
+}
+function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
+  return (
+    <BoundTooltip
+      bounds={props.canvasBounds}
+      cursor={props.configSpaceCursor}
+      canvas={props.flamegraphCanvas}
+      canvasView={props.flamegraphView}
+    >
+      <FlamegraphTooltipFrameMainInfo>
+        <FlamegraphTooltipColorIndicator
+          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+        />
+        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {t('samples') + ' '}
+        {`(${formatWeightToProfileDuration(
+          props.frame.node,
+          props.flamegraphRenderer.flamegraph
+        )})`}{' '}
+        {props.frame.frame.name}
+      </FlamegraphTooltipFrameMainInfo>
+      <FlamegraphTooltipTimelineInfo>
+        {defined(props.frame.frame.file) && (
+          <Fragment>
+            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+          </Fragment>
+        )}
         <FlamegraphTooltipTimelineInfo>
-          {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
-          {' \u2014 '}
-          {props.flamegraphRenderer.flamegraph.timelineFormatter(
-            frameInConfigSpace.right
-          )}
-          {props.frame.frame.inline ? (
-            <FlamegraphInlineIndicator>
-              <IconLightning width={10} />
-              {t('inline frame')}
-            </FlamegraphInlineIndicator>
-          ) : (
-            ''
-          )}
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
-      )}
+      </FlamegraphTooltipTimelineInfo>
+    </BoundTooltip>
+  );
+}
+
+interface FlamechartTooltipProps extends FlamegraphTooltipProps {
+  frameInConfigSpace: Rect;
+}
+function FlamechartTooltip(props: FlamechartTooltipProps) {
+  return (
+    <BoundTooltip
+      bounds={props.canvasBounds}
+      cursor={props.configSpaceCursor}
+      canvas={props.flamegraphCanvas}
+      canvasView={props.flamegraphView}
+    >
+      <FlamegraphTooltipFrameMainInfo>
+        <FlamegraphTooltipColorIndicator
+          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+        />
+        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {`(${formatWeightToProfileDuration(
+          props.frame.node,
+          props.flamegraphRenderer.flamegraph
+        )})`}{' '}
+        {props.frame.frame.name}
+      </FlamegraphTooltipFrameMainInfo>
+      <FlamegraphTooltipTimelineInfo>
+        {defined(props.frame.frame.file) && (
+          <Fragment>
+            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+          </Fragment>
+        )}
+        <FlamegraphTooltipTimelineInfo>
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
+        </FlamegraphTooltipTimelineInfo>
+      </FlamegraphTooltipTimelineInfo>
+      <FlamegraphTooltipTimelineInfo>
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(
+          props.frameInConfigSpace.left
+        )}{' '}
+        {' \u2014 '}
+        {props.flamegraphRenderer.flamegraph.timelineFormatter(
+          props.frameInConfigSpace.right
+        )}
+        {props.frame.frame.inline ? (
+          <FlamegraphInlineIndicator>
+            <IconLightning width={10} />
+            {t('inline frame')}
+          </FlamegraphInlineIndicator>
+        ) : (
+          ''
+        )}
+      </FlamegraphTooltipTimelineInfo>
     </BoundTooltip>
   );
 }

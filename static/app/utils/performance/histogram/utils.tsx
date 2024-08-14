@@ -1,7 +1,7 @@
-import {ColumnType} from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 
-import {HistogramData} from './types';
+import type {HistogramData} from './types';
 
 export function getBucketWidth(data: HistogramData) {
   // We can assume that all buckets are of equal width, use the first two

@@ -19,7 +19,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
@@ -29,7 +29,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import Accordion from '../components/accordion';
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,
@@ -39,8 +39,12 @@ import {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -52,7 +56,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
-  const pageError = usePageError();
+  const {setPageError} = usePageAlert();
   const theme = useTheme();
 
   const colors = [...theme.charts.getColorPalette(5)].reverse();
@@ -94,7 +98,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
@@ -157,7 +161,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                 'low'
               )}
               hideError
-              onError={pageError.setPageError}
+              onError={setPageError}
               queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
             />
           );
@@ -177,78 +181,74 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getAreaChart = provided =>
-    function () {
-      const durationUnit = getDurationUnit(provided.widgetData.chart.data);
-      return (
-        <StackedAreaChart
-          {...provided.widgetData.chart}
-          {...provided}
-          colors={colors}
-          series={provided.widgetData.chart.data}
-          animation
-          isGroupedByDate
-          showTimeInTooltip
-          yAxis={{
-            minInterval: durationUnit,
-            axisLabel: {
-              formatter(value: number) {
-                return axisLabelFormatter(
-                  value,
-                  aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
-                  undefined,
-                  durationUnit
-                );
-              },
+  const getAreaChart = provided => {
+    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+    return (
+      <StackedAreaChart
+        {...provided.widgetData.chart}
+        {...provided}
+        colors={colors}
+        series={provided.widgetData.chart.data}
+        animation
+        isGroupedByDate
+        showTimeInTooltip
+        yAxis={{
+          minInterval: durationUnit,
+          axisLabel: {
+            formatter(value: number) {
+              return axisLabelFormatter(
+                value,
+                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                undefined,
+                durationUnit
+              );
             },
-          }}
-          xAxis={{
-            show: false,
-            axisLabel: {show: true, margin: 8},
-            axisLine: {show: false},
-          }}
-          tooltip={{
-            valueFormatter: value => tooltipFormatter(value, 'duration'),
-          }}
-        />
-      );
-    };
+          },
+        }}
+        xAxis={{
+          show: false,
+          axisLabel: {show: true, margin: 8},
+          axisLine: {show: false},
+        }}
+        tooltip={{
+          valueFormatter: value => tooltipFormatter(value, 'duration'),
+        }}
+      />
+    );
+  };
 
   const getHeaders = provided =>
-    provided.widgetData.list.data.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map((listItem, i) => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
 
-          const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-          const transactionTarget = isUnparameterizedRow
-            ? createUnnamedTransactionsDiscoverTarget({
-                organization,
-                location,
-              })
-            : transactionSummaryRouteWithQuery({
-                orgSlug: props.organization.slug,
-                projectID: listItem['project.id'] as string,
-                transaction,
-                query: props.eventView.generateQueryStringObject(),
-                subPath: 'spans',
-              });
+      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+      const transactionTarget = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionSummaryRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectID: listItem['project.id'] as string,
+            transaction,
+            query: props.eventView.generateQueryStringObject(),
+            subPath: 'spans',
+          });
 
-          const displayedField = 'count()';
-          const rightValue = listItem[displayedField];
+      const displayedField = 'count()';
+      const rightValue = listItem[displayedField];
 
-          return (
-            <Fragment>
-              <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                <Count value={rightValue} />
-              </RightAlignedCell>
-            </Fragment>
-          );
-        }
-    );
+      return (
+        <Fragment key={i}>
+          <GrowLink to={transactionTarget}>
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <RightAlignedCell>
+            <Count value={rightValue} />
+          </RightAlignedCell>
+        </Fragment>
+      );
+    });
 
   return (
     <GenericPerformanceWidget<DataType>

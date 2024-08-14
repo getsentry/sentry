@@ -7,7 +7,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-type Props = {
+export interface EventDataSectionProps {
   children: React.ReactNode;
   /**
    * The title of the section
@@ -46,7 +46,7 @@ type Props = {
    * Should the title be wrapped in a h3?
    */
   wrapTitle?: boolean;
-};
+}
 
 function scrollToSection(element: HTMLDivElement) {
   if (window.location.hash && element) {
@@ -80,7 +80,7 @@ export function EventDataSection({
   showPermalink = true,
   isHelpHoverable = false,
   ...props
-}: Props) {
+}: EventDataSectionProps) {
   let titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   titleNode = guideTarget ? (
@@ -93,8 +93,8 @@ export function EventDataSection({
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
-      {title && (
-        <SectionHeader id={type}>
+      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+        {title && (
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
@@ -110,9 +110,9 @@ export function EventDataSection({
               <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
             )}
           </Title>
-          {actions && <ActionContainer>{actions}</ActionContainer>}
-        </SectionHeader>
-      )}
+        )}
+        {actions && <ActionContainer>{actions}</ActionContainer>}
+      </SectionHeader>
       <SectionContents>{children}</SectionContents>
     </DataSection>
   );
@@ -163,7 +163,7 @@ const SectionHeader = styled('div')`
   & h3 a {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   & h3 {
@@ -179,7 +179,7 @@ const SectionHeader = styled('div')`
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

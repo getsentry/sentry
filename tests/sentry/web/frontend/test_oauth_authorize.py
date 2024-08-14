@@ -1,12 +1,15 @@
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
-from sentry.testutils import TestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -240,7 +243,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert authorization.get_scopes() == grant.get_scopes()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
     def path(self):
@@ -316,12 +319,12 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
         assert location == "https://example.com"
-        fragment = parse_qs(fragment)
-        assert fragment["access_token"] == [token.token]
-        assert fragment["token_type"] == ["bearer"]
-        assert "refresh_token" not in fragment
-        assert fragment["expires_in"]
-        assert fragment["token_type"] == ["bearer"]
+        fragment_d = parse_qs(fragment)
+        assert fragment_d["access_token"] == [token.token]
+        assert fragment_d["token_type"] == ["bearer"]
+        assert "refresh_token" not in fragment_d
+        assert fragment_d["expires_in"]
+        assert fragment_d["token_type"] == ["bearer"]
 
     def test_minimal_params_code_deny_flow(self):
         self.login_as(self.user)
@@ -339,7 +342,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
         assert location == "https://example.com"
-        fragment = parse_qs(fragment)
-        assert fragment == {"error": ["access_denied"]}
+        fragment_d = parse_qs(fragment)
+        assert fragment_d == {"error": ["access_denied"]}
 
         assert not ApiToken.objects.filter(user=self.user).exists()

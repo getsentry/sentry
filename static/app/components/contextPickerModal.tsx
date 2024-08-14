@@ -3,11 +3,10 @@ import {findDOMNode} from 'react-dom';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import SelectControl, {
-  StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +15,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Project} from 'sentry/types';
+import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -181,7 +182,7 @@ class ContextPickerModal extends Component<Props> {
     if (el !== null) {
       const input = el.querySelector('input');
 
-      input && input.focus();
+      input?.focus();
     }
   };
 
@@ -431,15 +432,18 @@ type ContainerProps = Omit<
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type ContainerState = {
   organizations: Organization[];
   integrationConfigs?: Integration[];
   selectedOrganization?: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
+class ContextPickerModalContainer extends DeprecatedAsyncComponent<
+  ContainerProps,
+  ContainerState
+> {
   getDefaultState() {
     const storeState = OrganizationStore.get();
     return {
@@ -449,7 +453,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {configUrl} = this.props;
     if (configUrl) {
       return [['integrationConfigs', configUrl]];

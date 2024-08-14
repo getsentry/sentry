@@ -1,34 +1,38 @@
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Props = ViewerProps & AsyncComponent['props'];
+function LogFileViewer(props: ViewerProps) {
+  const {data, isLoading, isError} = useApiQuery<string>(
+    [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
+    {
+      staleTime: Infinity,
+    }
+  );
 
-type State = AsyncComponent['state'];
-
-class LogFileViewer extends AsyncComponent<Props, State> {
-  getEndpoints(): [string, string][] {
-    return [['attachmentText', getAttachmentUrl(this.props)]];
+  if (isError) {
+    return <LoadingError message={t('Failed to download attachment.')} />;
   }
 
-  renderBody() {
-    const {attachmentText} = this.state;
-
-    return !attachmentText ? null : (
-      <PreviewPanelItem>
-        <CodeWrapper>
-          <SentryStyleAnsi useClasses>{attachmentText}</SentryStyleAnsi>
-        </CodeWrapper>
-      </PreviewPanelItem>
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  return data ? (
+    <PreviewPanelItem>
+      <CodeWrapper>
+        <SentryStyleAnsi useClasses>{data}</SentryStyleAnsi>
+      </CodeWrapper>
+    </PreviewPanelItem>
+  ) : null;
 }
 
 export default LogFileViewer;

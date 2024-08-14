@@ -1,13 +1,15 @@
 from unittest import mock
 
-import responses
+import orjson
 
-from sentry.models import Activity
-from sentry.notifications.notifications.activity import ResolvedActivityNotification
+from sentry.models.activity import Activity
+from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -22,72 +24,94 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             )
         )
 
-    @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved(self, mock_func):
+    def test_resolved_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved
+        and block kit is enabled.
         """
         with self.tasks():
             self.create_notification(self.group).send()
 
-        attachment, text = get_attachment()
-        assert (
-            text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification|{self.short_id}> as resolved"
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+        notification_uuid = self.get_notification_uuid(fallback_text)
+        issue_link = (
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}"
         )
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user|Notification Settings>"
+            fallback_text
+            == f"{self.name} marked <{issue_link}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.short_id}> as resolved"
+        )
+        assert blocks[0]["text"]["text"] == fallback_text
+        assert (
+            blocks[1]["text"]["text"]
+            == f":red_circle: <{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
+        assert (
+            blocks[3]["elements"][0]["text"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_performance_issue(self, mock_func, occurrence):
+    def test_resolved_performance_issue_block_with_culprit_blocks(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved
+        and block kit is enabled.
         """
         event = self.create_performance_issue()
         with self.tasks():
             self.create_notification(event.group).send()
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+        notification_uuid = self.get_notification_uuid(blocks[0]["text"]["text"])
         assert (
-            text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
+            fallback_text
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
         )
-        self.assert_performance_issue_attachments(
-            attachment, self.project.slug, "resolved_activity-slack-user"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_performance_issue_blocks_with_culprit_blocks(
+            blocks,
+            event.organization,
+            event.project.slug,
+            event.group,
+            "resolved_activity-slack",
         )
 
-    @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_generic_issue(self, mock_func, occurrence):
+    def test_resolved_generic_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved
+        and block kit is enabled.
         """
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        group_event = event.for_group(event.groups[0])
         with self.tasks():
-            self.create_notification(event.group).send()
+            self.create_notification(group_event.group).send()
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+        notification_uuid = self.get_notification_uuid(blocks[0]["text"]["text"])
+        assert event.group
         assert (
-            text
-            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
+            fallback_text
+            == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
         )
-        self.assert_generic_issue_attachments(
-            attachment, self.project.slug, "resolved_activity-slack-user"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_generic_issue_blocks(
+            blocks,
+            group_event.organization,
+            group_event.project.slug,
+            group_event.group,
+            "resolved_activity-slack",
         )

@@ -1,3 +1,8 @@
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -5,12 +10,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const project = TestStubs.Project({isMember: true});
+  const project = ProjectFixture({isMember: true});
 
   const routeProps = {
     routes: router.routes,
@@ -25,13 +30,13 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
-      body: [TestStubs.UserFeedback()],
+      body: [UserFeedbackFixture()],
       headers: {Link: pageLinks},
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
   });
 
@@ -39,9 +44,9 @@ describe('UserFeedback', function () {
     ProjectsStore.reset();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const params = {
-      organization: TestStubs.Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -54,49 +59,47 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
-    expect(screen.getByText('Something bad happened')).toBeInTheDocument();
+    expect(await screen.findByText('Something bad happened')).toBeInTheDocument();
   });
 
   it('renders no project message', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: TestStubs.Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(
       screen.getByText('You need at least one project to use this view')
     ).toBeInTheDocument();
   });
 
-  it('renders empty state', function () {
+  it('renders empty state', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
     });
 
     const params = {
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders empty state with project query', function () {
+  it('renders empty state with project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -104,9 +107,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       location: {
         ...routeProps.location,
         pathname: 'sentry',
@@ -117,22 +118,20 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     // "Unresolved"  is selected by default
     const unresolved = screen.getByRole('radio', {name: 'Unresolved'});
@@ -150,7 +149,7 @@ describe('UserFeedback', function () {
     );
   });
 
-  it('renders empty state with multi project query', function () {
+  it('renders empty state with multi project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -158,9 +157,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       location: {
         ...routeProps.location,
         pathname: 'sentry',
@@ -171,8 +168,8 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 });

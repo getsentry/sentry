@@ -1,4 +1,3 @@
-import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,8 +6,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
-  content: () => ReactNode;
-  header: () => ReactNode;
+  content: React.ReactNode;
+  header: React.ReactNode;
 }
 
 interface Props {
@@ -17,56 +16,39 @@ interface Props {
   setExpandedIndex: (index: number) => void;
 }
 
-export default function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
+/**
+ * Accordion used in performance widgets
+ */
+function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
   return (
     <AccordionContainer>
       {items.map((item, index) => (
-        <AccordionItem
-          isExpanded={index === expandedIndex}
-          currentIndex={index}
-          key={index}
-          content={item.content()}
-          setExpandedIndex={setExpandedIndex}
-        >
-          {item.header()}
+        <AccordionItem key={index}>
+          <AccordionHeader>
+            {item.header}
+            <Button
+              icon={
+                <IconChevron
+                  size="xs"
+                  direction={index === expandedIndex ? 'up' : 'down'}
+                />
+              }
+              aria-label={t('Expand')}
+              aria-expanded={index === expandedIndex}
+              disabled={index === expandedIndex}
+              size="zero"
+              borderless
+              onClick={() => setExpandedIndex(index)}
+            />
+          </AccordionHeader>
+          <AccordionContent>{index === expandedIndex && item.content}</AccordionContent>
         </AccordionItem>
       ))}
     </AccordionContainer>
   );
 }
 
-function AccordionItem({
-  isExpanded,
-  currentIndex: index,
-  children,
-  setExpandedIndex,
-  content,
-}: {
-  children: ReactNode;
-  content: ReactNode;
-  currentIndex: number;
-  isExpanded: boolean;
-  setExpandedIndex: (index: number) => void;
-}) {
-  return (
-    <StyledLineItem>
-      <ListItemContainer>
-        {children}
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpandedIndex(index)}
-        />
-      </ListItemContainer>
-      <StyledContentContainer>{isExpanded && content}</StyledContentContainer>
-    </StyledLineItem>
-  );
-}
-
-const StyledLineItem = styled('li')`
+const AccordionItem = styled('li')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
@@ -76,13 +58,15 @@ const AccordionContainer = styled('ul')`
   list-style-type: none;
 `;
 
-const ListItemContainer = styled('div')`
+const AccordionHeader = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const StyledContentContainer = styled('div')`
-  padding: ${space(0)} ${space(2)};
+const AccordionContent = styled('div')`
+  padding: 0 ${space(2)};
 `;
+
+export {Accordion};

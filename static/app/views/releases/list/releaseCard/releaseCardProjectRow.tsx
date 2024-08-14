@@ -1,9 +1,10 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
@@ -12,14 +13,14 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -31,13 +32,13 @@ import {
   isMobileRelease,
 } from '../../utils';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import {
   AdoptionColumn,
   AdoptionStageColumn,
-  CrashesColumn,
   CrashFreeRateColumn,
+  DisplaySmallCol,
   NewIssuesColumn,
   ReleaseProjectColumn,
   ReleaseProjectsLayout,
@@ -73,17 +74,17 @@ type Props = {
 };
 
 function ReleaseCardProjectRow({
-  index,
-  project,
-  organization,
-  location,
-  getHealthData,
-  releaseVersion,
   activeDisplay,
+  adoptionStages,
+  getHealthData,
+  index,
+  isTopRelease,
+  location,
+  organization,
+  project,
+  releaseVersion,
   showPlaceholders,
   showReleaseAdoptionStages,
-  isTopRelease,
-  adoptionStages,
 }: Props) {
   const theme = useTheme();
   const {id, newGroups} = project;
@@ -93,6 +94,7 @@ function ReleaseCardProjectRow({
     id,
     ReleasesDisplayOption.SESSIONS
   );
+
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
   const timeSeries = getHealthData.getTimeSeries(releaseVersion, id, activeDisplay);
@@ -178,7 +180,7 @@ function ReleaseCardProjectRow({
           )}
         </CrashFreeRateColumn>
 
-        <CrashesColumn>
+        <DisplaySmallCol>
           {showPlaceholders ? (
             <StyledPlaceholder width="30px" />
           ) : defined(crashCount) ? (
@@ -196,7 +198,7 @@ function ReleaseCardProjectRow({
           ) : (
             <NotAvailable />
           )}
-        </CrashesColumn>
+        </DisplaySmallCol>
 
         <NewIssuesColumn>
           <Tooltip title={t('Open in Issues')}>

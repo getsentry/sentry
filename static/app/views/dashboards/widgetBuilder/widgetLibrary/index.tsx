@@ -3,15 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
-import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {
-  getTopNConvertedDefaultWidgets,
-  WidgetTemplate,
-} from 'sentry/views/dashboards/widgetLibrary/data';
+import type {Organization} from 'sentry/types/organization';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 import {normalizeQueries} from '../utils';
 
@@ -31,12 +29,7 @@ export function WidgetLibrary({
   organization,
 }: Props) {
   const theme = useTheme();
-  let defaultWidgets = getTopNConvertedDefaultWidgets(organization);
-  if (!organization.features.includes('dashboards-rh-widget')) {
-    defaultWidgets = defaultWidgets.filter(
-      widget => !(widget.widgetType === WidgetType.RELEASE)
-    );
-  }
+  const defaultWidgets = getTopNConvertedDefaultWidgets(organization);
 
   function getLibrarySelectionHandler(
     widget: OverwriteWidgetModalProps['widget'],

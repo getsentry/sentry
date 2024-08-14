@@ -3,6 +3,7 @@ import datetime
 import time
 
 from sentry import options
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 
@@ -77,23 +78,25 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
 
 
 class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
-    def __init__(self, integration):
+    def __init__(self, integration: RpcIntegration):
         self.integration = integration
-        self.token = None
-        self.expires_at = None
+        self.token: str | None = None
+        self.expires_at: datetime.datetime | None = None
         super().__init__()
 
     def get_token(self):
-        if not self.token or self.expires_at < datetime.datetime.utcnow():
+        if not self.token or (
+            self.expires_at is not None and self.expires_at < datetime.datetime.utcnow()
+        ):
             res = self.create_token()
             self.token = res["token"]
             self.expires_at = datetime.datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
 
         return self.token
 
-    def get_jwt(self):
-        exp = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
-        exp = calendar.timegm(exp.timetuple())
+    def get_jwt(self) -> str:
+        exp_dt = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+        exp = calendar.timegm(exp_dt.timetuple())
         # Generate the JWT
         payload = {
             # issued at time

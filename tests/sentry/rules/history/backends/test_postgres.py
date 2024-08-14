@@ -1,15 +1,14 @@
 from datetime import timedelta
 
-import pytz
-from freezegun import freeze_time
-
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
@@ -17,7 +16,6 @@ class BasePostgresRuleHistoryBackendTest(TestCase):
         self.backend = PostgresRuleHistoryBackend()
 
 
-@region_silo_test(stable=True)
 class RecordTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)
@@ -31,9 +29,13 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
         assert RuleFireHistory.objects.filter(rule=rule, group=group_2).count() == 1
         assert RuleFireHistory.objects.filter(rule=rule).count() == 3
 
+    def test_returns_new_instance(self) -> None:
+        rule = Rule.objects.create(project=self.event.project)
+        new_instance = self.backend.record(rule, self.group)
+        assert new_instance is not None
+
 
 @freeze_time()
-@region_silo_test(stable=True)
 class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def run_test(self, rule, start, end, expected, cursor=None, per_page=25):
         result = self.backend.fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
@@ -76,7 +78,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
         RuleFireHistory.objects.bulk_create(history)
 
-        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+        base_triggered_date = before_now(days=1)
 
         self.run_test(
             rule,
@@ -151,7 +153,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
                 event_id=i,
             )
 
-        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+        base_triggered_date = before_now(days=1)
         self.run_test(
             rule,
             before_now(days=3),
@@ -194,7 +196,6 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 
 
 @freeze_time()
-@region_silo_test(stable=True)
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)

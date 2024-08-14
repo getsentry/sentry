@@ -1,23 +1,25 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
-import {Organization, SessionFieldWithOperation} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import toArray from 'sentry/utils/toArray';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
+import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   Dataset,
   Datasource,
   EventTypes,
-  MetricRule,
-  SavedMetricRule,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
-import {AlertRuleStatus, Incident, IncidentStats} from '../types';
+import type {CombinedAlerts, Incident, IncidentStats} from '../types';
+import {AlertRuleStatus, CombinedAlertType} from '../types';
 
 /**
  * Gets start and end date query parameters from stats
@@ -31,10 +33,8 @@ export function getStartEndFromStats(stats: IncidentStats) {
   return {start, end};
 }
 
-export function isIssueAlert(
-  data: IssueAlertRule | SavedMetricRule | MetricRule
-): data is IssueAlertRule {
-  return !data.hasOwnProperty('triggers');
+export function isIssueAlert(data: CombinedAlerts) {
+  return data.type === CombinedAlertType.ISSUE;
 }
 
 export const DATA_SOURCE_LABELS = {
@@ -136,6 +136,12 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, aggregation} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, aggregation);
+  }
+
   return axisLabelFormatter(value, aggregateOutputType(seriesName));
 }
 
@@ -146,6 +152,12 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, aggregation} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));

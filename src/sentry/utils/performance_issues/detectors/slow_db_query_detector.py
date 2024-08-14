@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 from datetime import timedelta
-from typing import Optional
+from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
@@ -20,6 +20,12 @@ from ..base import (
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
+# Truncating the evidence to prevent hitting Kafka's broken message size limit.
+#  A better solution would be to audit the usage of `description`,
+#  `evidence_data` and `evidence_display` and deduplicate those keys. Right now
+#  they are nearly identical
+MAX_EVIDENCE_VALUE_LENGTH = 10_000
+
 
 class SlowDBQueryDetector(PerformanceDetector):
     """
@@ -31,10 +37,12 @@ class SlowDBQueryDetector(PerformanceDetector):
     type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         settings_for_span = self.settings_for_span(span)
         if not settings_for_span:
             return
@@ -64,7 +72,7 @@ class SlowDBQueryDetector(PerformanceDetector):
                 type=type,
                 fingerprint=self._fingerprint(hash),
                 op=op,
-                desc=description,
+                desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
@@ -74,8 +82,10 @@ class SlowDBQueryDetector(PerformanceDetector):
                     "parent_span_ids": [],
                     "offender_span_ids": spans_involved,
                     "transaction_name": self._event.get("description", ""),
-                    "repeating_spans": get_span_evidence_value(span),
-                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
+                    "repeating_spans": get_span_evidence_value(span)[:MAX_EVIDENCE_VALUE_LENGTH],
+                    "repeating_spans_compact": get_span_evidence_value(span, include_op=False)[
+                        :MAX_EVIDENCE_VALUE_LENGTH
+                    ],
                     "num_repeating_spans": str(len(spans_involved)),
                 },
                 evidence_display=[
@@ -84,17 +94,17 @@ class SlowDBQueryDetector(PerformanceDetector):
                         value=get_notification_attachment_body(
                             op,
                             description,
-                        ),
+                        )[:MAX_EVIDENCE_VALUE_LENGTH],
                         # Has to be marked important to be displayed in the notifications
                         important=True,
                     )
                 ],
             )
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return features.has("organizations:performance-slow-db-issue", organization, actor=None)
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
+        return True
 
-    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings[0]["detection_enabled"]
 
     @classmethod
@@ -112,7 +122,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, hash):
+    def _fingerprint(self, hash: str) -> str:
         signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
         return f"1-{PerformanceSlowDBQueryGroupType.type_id}-{full_fingerprint}"

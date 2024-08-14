@@ -1,10 +1,10 @@
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class CreateProjectTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -18,7 +18,8 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
 
-        self.browser.click('[data-test-id="create-team"]')
+        self.browser.click(None, "//*[text()='Select a Team']")
+        self.browser.click('[data-test-id="create-team-option"]')
         self.browser.wait_until("[role='dialog']")
         input = self.browser.element('input[name="slug"]')
         input.send_keys("new-team")
@@ -27,15 +28,6 @@ class CreateProjectTest(AcceptanceTestCase):
 
         # After creating team, should end up in onboarding screen
         self.browser.wait_until(xpath='//div[text()="#new-team"]')
-        self.browser.snapshot(name="create project no teams - after create team")
-
-    def test_many_teams(self):
-        self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.team2 = self.create_team(organization=self.org, name="team two")
-
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-        self.browser.snapshot(name="create project many teams")
 
     def test_select_correct_platform(self):
         self.create_team(organization=self.org, name="team three")

@@ -1,4 +1,4 @@
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 
@@ -8,13 +8,8 @@ __all__ = (
     "AlertRuleTriggerActionSerializer",
     "ACTION_TARGET_TYPE_TO_STRING",
     "STRING_TO_ACTION_TARGET_TYPE",
-    "STRING_TO_ACTION_TYPE",
 )
 
-STRING_TO_ACTION_TYPE = {
-    registration.slug: registration.type
-    for registration in AlertRuleTriggerAction.get_registered_types()
-}
 ACTION_TARGET_TYPE_TO_STRING = {
     AlertRuleTriggerAction.TargetType.USER: "user",
     AlertRuleTriggerAction.TargetType.TEAM: "team",
@@ -32,7 +27,7 @@ QUERY_TYPE_VALID_EVENT_TYPES = {
 QUERY_TYPE_VALID_DATASETS = {
     SnubaQuery.Type.ERROR: {Dataset.Events},
     SnubaQuery.Type.PERFORMANCE: {Dataset.Transactions, Dataset.PerformanceMetrics},
-    SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics, Dataset.Sessions},
+    SnubaQuery.Type.CRASH_RATE: {Dataset.Metrics},
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error

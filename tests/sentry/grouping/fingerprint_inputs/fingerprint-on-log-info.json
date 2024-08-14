@@ -2,21 +2,10 @@
   "_fingerprinting_rules": [
     {
       "matchers": [
-        [
-          "logger",
-          "sentry.*"
-        ],
-        [
-          "level",
-          "ERROR"
-        ]
+        ["logger", "sentry.*"],
+        ["level", "ERROR"]
       ],
-      "fingerprint": [
-        "log-",
-        "{{ logger }}",
-        "-",
-        "{{ level }}"
-      ]
+      "fingerprint": ["log-", "{{ logger }}", "-", "{{ level }}"]
     }
   ],
   "logentry": {

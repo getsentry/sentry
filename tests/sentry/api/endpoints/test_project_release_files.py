@@ -4,10 +4,11 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
-from sentry.testutils import APITestCase
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseFile
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):
@@ -27,8 +28,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -48,8 +49,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -130,8 +131,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -147,8 +148,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -163,8 +164,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -198,8 +199,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -225,8 +226,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -254,8 +255,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -295,8 +296,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -318,8 +319,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -351,8 +352,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -382,8 +383,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -429,8 +430,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

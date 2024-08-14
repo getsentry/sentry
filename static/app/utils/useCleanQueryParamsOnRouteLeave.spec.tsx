@@ -1,7 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useCleanQueryParamsOnRouteLeave, {
   handleRouteLeave,
@@ -11,18 +13,10 @@ import {useLocation} from './useLocation';
 jest.mock('react-router');
 jest.mock('./useLocation');
 
-const MockBrowserHistoryListen = browserHistory.listen as jest.MockedFunction<
-  typeof browserHistory.listen
->;
-const MockBrowserHistoryReplace = browserHistory.replace as jest.MockedFunction<
-  typeof browserHistory.replace
->;
+const MockBrowserHistoryListen = jest.mocked(browserHistory.listen);
+const MockBrowserHistoryReplace = jest.mocked(browserHistory.replace);
 
-const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
-MockUseLocation.mockReturnValue({
-  pathname: '/home',
-} as Location);
+jest.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
 
 type QueryParams = {cursor: string; limit: number; project: string};
 
@@ -36,7 +30,7 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     const unsubscriber = jest.fn();
     MockBrowserHistoryListen.mockReturnValue(unsubscriber);
 
-    const {unmount} = reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+    const {unmount} = renderHook(useCleanQueryParamsOnRouteLeave, {
       initialProps: {
         fieldsToClean: ['cursor'],
       },
@@ -48,6 +42,30 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     unmount();
 
     expect(unsubscriber).toHaveBeenCalled();
+  });
+
+  it('should not update the history if shouldLeave returns false', () => {
+    MockBrowserHistoryListen.mockImplementation(onRouteLeave => {
+      onRouteLeave(
+        LocationFixture({
+          pathname: '/next',
+          query: {
+            cursor: '0:1:0',
+            limit: '5',
+          },
+        })
+      );
+      return () => {};
+    });
+
+    renderHook(useCleanQueryParamsOnRouteLeave, {
+      initialProps: {
+        fieldsToClean: ['cursor'],
+        shouldClean: () => false,
+      },
+    });
+
+    expect(MockBrowserHistoryReplace).not.toHaveBeenCalled();
   });
 
   it('should not update the history if the pathname is unchanged', () => {

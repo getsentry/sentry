@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import List, Literal, Optional, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict
 
 RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
@@ -8,9 +8,9 @@ class Remark(TypedDict):
     rule_id: str
     type: RemarkType
     # Range start is a byte offset
-    range_start: Optional[int]
+    range_start: NotRequired[int]
     # Range end is a byte offset
-    range_end: Optional[int]
+    range_end: NotRequired[int]
 
 
 class Meta:
@@ -178,7 +178,7 @@ class Meta:
         if "rem" not in meta or meta["rem"] is None:
             meta["rem"] = []
 
-        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["type"]]
+        rem_list: list[str | int] = [rem["rule_id"], rem["type"]]
 
         range_start = rem.get("range_start")
         if range_start is not None:

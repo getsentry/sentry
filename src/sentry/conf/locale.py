@@ -1,7 +1,8 @@
 import os
 
+import orjson
+
 import sentry
-from sentry.utils import json
 
 
 # change locale file dir name to locale code
@@ -12,6 +13,6 @@ def dirname_to_local(dir_name):
     return dir_name
 
 
-with open(os.path.join(os.path.dirname(sentry.__file__), "locale", "catalogs.json")) as f:
-    CATALOGS = json.load(f)["supported_locales"]
+with open(os.path.join(os.path.dirname(sentry.__file__), "locale", "catalogs.json"), "rb") as f:
+    CATALOGS = orjson.loads(f.read())["supported_locales"]
     CATALOGS = [dirname_to_local(dirname) for dirname in CATALOGS]

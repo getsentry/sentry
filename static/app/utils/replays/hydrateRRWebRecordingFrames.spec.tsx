@@ -1,25 +1,10 @@
-import {
-  recordingEndFrame,
-  recordingStartFrame,
-} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
-import {RecordingFrame} from 'sentry/utils/replays/types';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
+import {recordingEndFrame} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
+import type {RecordingFrame} from 'sentry/utils/replays/types';
 
 describe('hydrateRRWebRecordingFrames', () => {
-  const replayRecord = TestStubs.ReplayRecord();
-
-  describe('recordingStartFrame', () => {
-    it('should return a RecordingFrame', () => {
-      const frame: RecordingFrame = recordingStartFrame(replayRecord);
-      expect(frame).toStrictEqual({
-        type: 5,
-        timestamp: replayRecord.started_at.getTime(),
-        data: {
-          tag: 'replay.start',
-          payload: {},
-        },
-      });
-    });
-  });
+  const replayRecord = ReplayRecordFixture();
 
   describe('recordingEndFrame', () => {
     it('should return a RecordingFrame', () => {

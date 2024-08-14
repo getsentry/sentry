@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
-
-from typing_extensions import Self
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Generic, Literal, Self, TypeVar, overload
 
 C = TypeVar("C")
 T = TypeVar("T")
@@ -77,6 +76,26 @@ class Param(Generic[T]):
         >>>     name = Param(str, default=lambda self: self.user['name'])
     """
 
+    @overload
+    def __init__(
+        self: Param[T | None],
+        type: type[T],
+        *,
+        required: Literal[False],
+        default: T | Callable[..., T] | None = None,
+    ) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self: Param[T],
+        type: type[T],
+        *,
+        required: bool = ...,
+        default: T | Callable[..., T] | None = None,
+    ) -> None:
+        ...
+
     def __init__(
         self,
         type: type[T],
@@ -136,15 +155,3 @@ class Param(Generic[T]):
 
         def __get__(self, inst: C | None, owner: type[C]) -> T | Self:
             ...
-
-
-def if_param(name):
-    def _if_param(func):
-        def wrapper(self, *args):
-            if not hasattr(self, name) or getattr(self, name) is None:
-                return
-            return func(self, *args)
-
-        return wrapper
-
-    return _if_param

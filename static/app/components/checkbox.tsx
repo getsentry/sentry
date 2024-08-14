@@ -1,9 +1,11 @@
 import {useEffect, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
-import styled, {Interpolation} from '@emotion/styled';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import type {Interpolation} from '@emotion/styled';
+import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -20,7 +22,6 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
    * Styles to be applied to the hidden <input> element.
    */
   inputCss?: Interpolation<Theme>;
-
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -108,7 +109,7 @@ const HiddenInput = styled('input')`
   padding: 0;
   cursor: pointer;
 
-  &.focus-visible + * {
+  &:focus-visible + * {
     ${p =>
       p.checked
         ? `

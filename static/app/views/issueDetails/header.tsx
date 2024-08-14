@@ -1,41 +1,42 @@
-import {useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization, Project} from 'sentry/types';
-import {getMessage} from 'sentry/utils/events';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import GroupActions from './actions';
 import {Tab} from './types';
-import {TagAndMessageWrapper} from './unhandledTag';
-import {ReprocessingStatus} from './utils';
+import type {ReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
@@ -51,7 +52,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-function GroupHeaderTabs({
+export function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,
@@ -59,24 +60,37 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const location = useLocation();
 
-  const replaysCount = useReplaysCount({
-    groupIds: group.id,
-    organization,
-  })[group.id];
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+
+  // omit `sort` param from the URLs because it persists from the issues list,
+  // which can cause the tab content rendering to break
+  const queryParams = omit(location.query, ['sort']);
+
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
-  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasReplaySupport = organizationFeatures.has('session-replay');
+  const hasReplaySupport =
+    organizationFeatures.has('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
   });
+
+  useEffect(() => {
+    if (group.issueType === IssueType.REPLAY_HYDRATION_ERROR) {
+      trackAnalytics('replay.hydration-error.issue-details-opened', {organization});
+    }
+  }, [group.issueType, organization]);
 
   return (
     <StyledTabList hideBorder>
@@ -91,7 +105,7 @@ function GroupHeaderTabs({
         key={Tab.ACTIVITY}
         textValue={t('Activity')}
         disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={`${baseUrl}activity/${location.search}`}
+        to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
         <IconBadge>
@@ -104,7 +118,7 @@ function GroupHeaderTabs({
         textValue={t('User Feedback')}
         hidden={!issueTypeConfig.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-        to={`${baseUrl}feedback/${location.search}`}
+        to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
         {t('User Feedback')} <Badge text={group.userReportCount} />
       </TabList.Item>
@@ -112,45 +126,41 @@ function GroupHeaderTabs({
         key={Tab.ATTACHMENTS}
         hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={`${baseUrl}attachments/${location.search}`}
+        to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
       >
         {t('Attachments')}
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
+        hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
-        to={`${baseUrl}tags/${location.search}`}
+        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
       <TabList.Item
         key={Tab.EVENTS}
+        hidden={!issueTypeConfig.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
-        {t('All Events')}
+        {group.issueCategory === IssueCategory.ERROR
+          ? t('All Events')
+          : t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.MERGED}
         hidden={!issueTypeConfig.mergedIssues.enabled}
         disabled={disabledTabs.includes(Tab.MERGED)}
-        to={`${baseUrl}merged/${location.search}`}
+        to={{pathname: `${baseUrl}merged/`, query: queryParams}}
       >
         {t('Merged Issues')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.GROUPING}
-        hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
-        disabled={disabledTabs.includes(Tab.GROUPING)}
-        to={`${baseUrl}grouping/${location.search}`}
-      >
-        {t('Grouping')}
       </TabList.Item>
       <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-        to={`${baseUrl}similar/${location.search}`}
+        to={{pathname: `${baseUrl}similar/`, query: queryParams}}
       >
         {t('Similar Issues')}
       </TabList.Item>
@@ -158,7 +168,7 @@ function GroupHeaderTabs({
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={`${baseUrl}replays/${location.search}`}
+        to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -176,89 +186,26 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
-  const disabledTabs = useMemo(() => {
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
-
-    if (!hasReprocessingV2Feature) {
-      return [];
-    }
-
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
-      return [
-        Tab.ACTIVITY,
-        Tab.USER_FEEDBACK,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.GROUPING,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-      ];
-    }
-
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT) {
-      return [
-        Tab.DETAILS,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.GROUPING,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-        Tab.USER_FEEDBACK,
-      ];
-    }
-
-    return [];
-  }, [organization, groupReprocessingStatus]);
-
-  const eventRoute = useMemo(() => {
-    const searchTermWithoutQuery = omit(location.query, 'query');
-    return {
-      pathname: `${baseUrl}events/`,
-      query: searchTermWithoutQuery,
-    };
-  }, [location, baseUrl]);
+  const {
+    disabledTabs,
+    message,
+    eventRoute,
+    disableActions,
+    shortIdBreadcrumb,
+    className,
+  } = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const {userCount} = group;
 
-  let className = 'group-detail';
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (group.hasSeen) {
-    className += ' hasSeen';
-  }
-
-  if (group.status === 'resolved') {
-    className += ' isResolved';
-  }
-
-  const message = getMessage(group);
-
-  const disableActions = !!disabledTabs.length;
-
-  const shortIdBreadCrumb = group.shortId && (
-    <GuideAnchor target="issue_number" position="bottom">
-      <ShortIdBreadrcumb>
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-        <Tooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId shortId={group.shortId} />
-        </Tooltip>
-      </ShortIdBreadrcumb>
-    </GuideAnchor>
-  );
+  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
 
   return (
     <Layout.Header>
@@ -268,9 +215,13 @@ function GroupHeader({
             crumbs={[
               {
                 label: 'Issues',
-                to: `/organizations/${organization.slug}/issues/${location.search}`,
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  // Sanitize sort queries from query
+                  query: omit(location.query, 'sort'),
+                },
               },
-              {label: shortIdBreadCrumb},
+              {label: shortIdBreadcrumb},
             ]}
           />
           <GroupActions
@@ -284,51 +235,61 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
+              {NEW_ISSUE_TYPES.includes(group.issueType) && (
+                <StyledFeatureBadge type="new" />
+              )}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {!hasEscalatingIssuesUi && group.inbox && (
-                <InboxReason inbox={group.inbox} fontSize="md" />
-              )}
-              {hasEscalatingIssuesUi && (
-                <GroupStatusBadge
-                  status={group.status}
-                  substatus={group.substatus}
-                  fontSize="md"
-                />
-              )}
+              <GroupStatusBadge
+                status={group.status}
+                substatus={group.substatus}
+                fontSize="md"
+              />
             </TitleHeading>
-            <StyledTagAndMessageWrapper>
-              {group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage message={message} />
-            </StyledTagAndMessageWrapper>
+            <EventMessage
+              message={message}
+              level={group.level}
+              levelIndicatorSize="11px"
+              type={group.type}
+              showUnhandled={group.isUnhandled}
+            />
           </TitleWrapper>
           <StatsWrapper>
-            <div className="count">
-              <h6 className="nav-header">{t('Events')}</h6>
-              <Link disabled={disableActions} to={eventRoute}>
-                <Count className="count" value={group.count} />
-              </Link>
-            </div>
-            <div className="count">
-              <h6 className="nav-header">{t('Users')}</h6>
-              {userCount !== 0 ? (
-                <Link
-                  disabled={disableActions}
-                  to={`${baseUrl}tags/user/${location.search}`}
-                >
-                  <Count className="count" value={userCount} />
-                </Link>
-              ) : (
-                <span>0</span>
-              )}
-            </div>
+            {issueTypeConfig.stats.enabled && (
+              <Fragment>
+                <GuideAnchor target="issue_header_stats">
+                  <div className="count">
+                    <h6 className="nav-header">{t('Events')}</h6>
+                    <Link disabled={disableActions} to={eventRoute}>
+                      <Count className="count" value={group.count} />
+                    </Link>
+                  </div>
+                </GuideAnchor>
+                <div className="count">
+                  <h6 className="nav-header">{t('Users')}</h6>
+                  {userCount !== 0 ? (
+                    <Link
+                      disabled={disableActions}
+                      to={`${baseUrl}tags/user/${location.search}`}
+                    >
+                      <Count className="count" value={userCount} />
+                    </Link>
+                  ) : (
+                    <span>0</span>
+                  )}
+                </div>
+              </Fragment>
+            )}
+            <PriorityContainer>
+              <h6 className="nav-header">{t('Priority')}</h6>
+              <GroupPriority group={group} />
+            </PriorityContainer>
           </StatsWrapper>
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
-          <EnvironmentPageFilter alignDropdown="right" />
+          <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
@@ -344,18 +305,6 @@ const BreadcrumbActionWrapper = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const ShortIdBreadrcumb = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`
@@ -386,20 +335,12 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, min-content);
+  display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;
   }
-`;
-
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-start;
-  line-height: 1.2;
 `;
 
 const IconBadge = styled(Badge)`
@@ -410,4 +351,13 @@ const IconBadge = styled(Badge)`
 
 const StyledTabList = styled(TabList)`
   margin-top: ${space(2)};
+`;
+
+const PriorityContainer = styled('div')`
+  /* Ensures that the layout doesn't shift when changing priority */
+  min-width: 80px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  align-items: flex-start;
 `;

@@ -1,21 +1,26 @@
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {IssueOwnership} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types/group';
 
 import {EditOwnershipRules} from './editRulesModal';
 
 describe('Project Ownership Input', () => {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const user = TestStubs.User();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
+  const user = UserFixture();
 
   beforeEach(() => {
     ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
-      body: TestStubs.Members(),
+      body: MembersFixture(),
     });
   });
   const ownership: IssueOwnership = {
@@ -36,20 +41,6 @@ describe('Project Ownership Input', () => {
     render(
       <EditOwnershipRules
         organization={org}
-        ownership={ownership}
-        project={project}
-        onCancel={() => {}}
-        onSave={() => {}}
-      />
-    );
-
-    expect(screen.getByText('Globbing Syntax')).toBeInTheDocument();
-  });
-
-  it('renders with streamline-targeting-context', () => {
-    render(
-      <EditOwnershipRules
-        organization={{...org, features: ['streamline-targeting-context']}}
         ownership={ownership}
         project={project}
         onCancel={() => {}}

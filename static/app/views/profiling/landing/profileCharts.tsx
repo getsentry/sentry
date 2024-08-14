@@ -2,20 +2,27 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import useRouter from 'sentry/utils/useRouter';
 
-interface ProfileChartsProps {
+// We want p99 to be before p75 because echarts renders the series in order.
+// So if p75 is before p99, p99 will be rendered on top of p75 which will
+// cover it up.
+const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
+
+interface ProfilesChartProps {
   query: string;
   referrer: string;
   compact?: boolean;
@@ -23,18 +30,13 @@ interface ProfileChartsProps {
   selection?: PageFilters;
 }
 
-// We want p99 to be before p75 because echarts renders the series in order.
-// So if p75 is before p99, p99 will be rendered on top of p75 which will
-// cover it up.
-const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
-
-export function ProfileCharts({
+export function ProfilesChart({
   query,
   referrer,
   selection,
   hideCount,
   compact = false,
-}: ProfileChartsProps) {
+}: ProfilesChartProps) {
   const router = useRouter();
   const theme = useTheme();
 
@@ -46,6 +48,7 @@ export function ProfileCharts({
   }, [hideCount]);
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query,
     referrer,
     yAxes: seriesOrder,
@@ -58,9 +61,9 @@ export function ProfileCharts({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    const allSeries = profileStats.data[0].data
+    const allSeries = profileStats.data.data
       .filter(rawData => seriesOrder.includes(rawData.axis))
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
@@ -104,6 +107,78 @@ export function ProfileCharts({
     return allSeries;
   }, [profileStats, seriesOrder]);
 
+  const chartProps: LineChartProps | AreaChartProps = useMemo(() => {
+    const baseProps: LineChartProps | AreaChartProps = {
+      height: compact ? 150 : 300,
+      series,
+      grid: [
+        {
+          top: '32px',
+          left: '24px',
+          right: '52%',
+          bottom: '16px',
+        },
+        {
+          top: '32px',
+          left: hideCount ? '24px' : '52%',
+          right: '24px',
+          bottom: '16px',
+        },
+      ],
+      legend: {
+        right: 16,
+        top: 12,
+        data: seriesOrder.slice(),
+      },
+      tooltip: {
+        valueFormatter: (value, label) =>
+          tooltipFormatter(value, aggregateOutputType(label)),
+      },
+      axisPointer: {
+        link: [
+          {
+            xAxisIndex: [0, 1],
+          },
+        ],
+      },
+      xAxes: [
+        {
+          show: !hideCount,
+          gridIndex: 0,
+          type: 'time' as const,
+        },
+        {
+          gridIndex: 1,
+          type: 'time' as const,
+        },
+      ],
+      yAxes: [
+        {
+          gridIndex: 0,
+          scale: true,
+          axisLabel: {
+            color: theme.chartLabel,
+            formatter(value: number) {
+              return axisLabelFormatter(value, 'integer');
+            },
+          },
+        },
+        {
+          gridIndex: 1,
+          scale: true,
+          axisLabel: {
+            color: theme.chartLabel,
+            formatter(value: number) {
+              return axisLabelFormatter(value, 'duration');
+            },
+          },
+        },
+      ],
+    };
+
+    return baseProps;
+  }, [compact, hideCount, series, seriesOrder, theme.chartLabel]);
+
   return (
     <ChartZoom router={router} {...selection?.datetime}>
       {zoomRenderProps => (
@@ -112,74 +187,10 @@ export function ProfileCharts({
             {!hideCount && (
               <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
             )}
-            <StyledHeaderTitle compact>{t('Profiles by Percentiles')}</StyledHeaderTitle>
+            <StyledHeaderTitle compact>{t('Profiles Duration')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
-            height={compact ? 150 : 300}
-            series={series}
-            grid={[
-              {
-                top: '32px',
-                left: '24px',
-                right: '52%',
-                bottom: '16px',
-              },
-              {
-                top: '32px',
-                left: hideCount ? '24px' : '52%',
-                right: '24px',
-                bottom: '16px',
-              },
-            ]}
-            legend={{
-              right: 16,
-              top: 12,
-              data: seriesOrder.slice(),
-            }}
-            axisPointer={{
-              link: [
-                {
-                  xAxisIndex: [0, 1],
-                },
-              ],
-            }}
-            xAxes={[
-              {
-                show: !hideCount,
-                gridIndex: 0,
-                type: 'time' as const,
-              },
-              {
-                gridIndex: 1,
-                type: 'time' as const,
-              },
-            ]}
-            yAxes={[
-              {
-                gridIndex: 0,
-                scale: true,
-                axisLabel: {
-                  color: theme.chartLabel,
-                  formatter(value: number) {
-                    return axisLabelFormatter(value, 'integer');
-                  },
-                },
-              },
-              {
-                gridIndex: 1,
-                scale: true,
-                axisLabel: {
-                  color: theme.chartLabel,
-                  formatter(value: number) {
-                    return axisLabelFormatter(value, 'duration');
-                  },
-                },
-              },
-            ]}
-            tooltip={{
-              valueFormatter: (value, label) =>
-                tooltipFormatter(value, aggregateOutputType(label)),
-            }}
+            {...chartProps}
             isGroupedByDate
             showTimeInTooltip
             {...zoomRenderProps}

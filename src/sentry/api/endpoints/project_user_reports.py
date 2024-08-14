@@ -1,15 +1,22 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.models import Environment, ProjectKey, UserReport
+from sentry.models.environment import Environment
+from sentry.models.projectkey import ProjectKey
+from sentry.models.userreport import UserReport
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -18,8 +25,17 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ("name", "email", "comments", "event_id")
 
 
+class _PaginateKwargs(TypedDict):
+    post_query_filter: NotRequired[object]
+
+
 @region_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    owner = ApiOwner.FEEDBACK
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+    }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     def get(self, request: Request, project) -> Response:
@@ -29,15 +45,17 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Return a list of user feedback items within this project.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        *This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports).*
+
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
-        paginate_kwargs = {}
+        paginate_kwargs: _PaginateKwargs = {}
         try:
             environment = self._get_environment_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
@@ -73,6 +91,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         Submit User Feedback
         ````````````````````
 
+        *This endpoint is DEPRECATED. We document it here for older SDKs and users who are still migrating to the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) or [API](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api)(multi-platform). If you are a new user, do not use this endpoint - unless you don't have a JS frontend, and your platform's SDK does not offer a feedback API.*
+
         Submit and associate user feedback with an issue.
 
         Feedback must be received by the server no more than 30 minutes after the event was saved.
@@ -84,8 +104,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Note: Feedback may be submitted with DSN authentication (see auth documentation).
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         :param string event_id: the event ID
         :param string name: user's name
@@ -101,7 +121,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         report = serializer.validated_data
         try:
-            report_instance = save_userreport(project, report)
+            report_instance = save_userreport(
+                project, report, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+            )
         except Conflict as e:
             return self.respond({"detail": str(e)}, status=409)
 

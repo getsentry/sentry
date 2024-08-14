@@ -1,12 +1,16 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 
 describe('TeamUnresolvedIssues', () => {
   it('should render graph with table with % change', async () => {
-    const team = TestStubs.Team();
-    const project = TestStubs.Project();
-    const organization = TestStubs.Organization({projects: [project]});
+    const team = TeamFixture();
+    const project = ProjectFixture();
+    const organization = OrganizationFixture();
     const issuesApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/all-unresolved-issues/`,
       body: {
@@ -31,7 +35,7 @@ describe('TeamUnresolvedIssues', () => {
     render(
       <TeamUnresolvedIssues
         organization={organization}
-        projects={organization.projects}
+        projects={[project]}
         teamSlug={team.slug}
         period="14d"
       />

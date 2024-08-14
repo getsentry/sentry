@@ -1,7 +1,7 @@
-from uuid import uuid4
+import secrets
 
 from sentry.locks import locks
-from sentry.models import OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name
@@ -55,7 +55,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
                 organization=organization, key="bitbucket:webhook_secret"
             )
             if secret is None:
-                secret = uuid4().hex + uuid4().hex
+                secret = secrets.token_hex()
                 OrganizationOption.objects.set_value(
                     organization=organization, key="bitbucket:webhook_secret", value=secret
                 )

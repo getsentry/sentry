@@ -1,4 +1,3 @@
-from enum import Enum
 from unittest.mock import patch
 
 from sentry.sentry_metrics.configuration import (
@@ -7,12 +6,13 @@ from sentry.sentry_metrics.configuration import (
     UseCaseKey,
 )
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
-from sentry.sentry_metrics.indexer.limiters.writes import UcaWritesLimiter
+from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
 
 WRITES_LIMITERS = {
-    RELEASE_HEALTH_PG_NAMESPACE: UcaWritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
-    PERFORMANCE_PG_NAMESPACE: UcaWritesLimiter(PERFORMANCE_PG_NAMESPACE, **{}),
+    RELEASE_HEALTH_PG_NAMESPACE: WritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
+    PERFORMANCE_PG_NAMESPACE: WritesLimiter(PERFORMANCE_PG_NAMESPACE, **{}),
 }
 
 
@@ -20,34 +20,25 @@ def get_writes_limiter(namespace: str):
     return WRITES_LIMITERS[namespace]
 
 
-class MockUseCaseID(Enum):
-    SESSIONS = "sessions"
-    TRANSACTIONS = "transactions"
-    USE_CASE_1 = "uc_1"
-    USE_CASE_2 = "uc_2"
-    USE_CASE_3 = "uc_3"
-
-
 MOCK_METRIC_PATH_MAPPING = {
-    MockUseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_1: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_2: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_3: UseCaseKey.PERFORMANCE,
+    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
+    UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
+    UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
+    UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
 }
 
 MOCK_REVERSE_METRIC_PATH_MAPPING = {
-    UseCaseKey.RELEASE_HEALTH: MockUseCaseID.SESSIONS,
-    UseCaseKey.PERFORMANCE: MockUseCaseID.TRANSACTIONS,
+    UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
+    UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
 MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
-    MockUseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",
-    MockUseCaseID.USE_CASE_1: "sentry-metrics.writes-limiter.limits.uc1",
-    MockUseCaseID.USE_CASE_2: "sentry-metrics.writes-limiter.limits.uc2",
+    UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",
+    UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.uc1",
+    UseCaseID.ESCALATING_ISSUES: "sentry-metrics.writes-limiter.limits.uc2",
 }
 
 
-@patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
@@ -69,19 +60,19 @@ def test_writes_limiter_no_limits():
 
         use_case_keys = UseCaseKeyCollection(
             {
-                MockUseCaseID.TRANSACTIONS: {
+                UseCaseID.TRANSACTIONS: {
                     1: {"a", "b", "c"},
                     2: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_1: {
+                UseCaseID.SPANS: {
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_2: {
+                UseCaseID.ESCALATING_ISSUES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_3: {
+                UseCaseID.CUSTOM: {
                     1: {"x", "y", "z"},
                     2: {"a", "b", "c"},
                 },
@@ -92,7 +83,6 @@ def test_writes_limiter_no_limits():
             assert state.accepted_keys.as_tuples() == use_case_keys.as_tuples()
 
 
-@patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
@@ -122,19 +112,19 @@ def test_writes_limiter_doesnt_limit():
 
         use_case_keys = UseCaseKeyCollection(
             {
-                MockUseCaseID.TRANSACTIONS: {
+                UseCaseID.TRANSACTIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                MockUseCaseID.USE_CASE_1: {
+                UseCaseID.SPANS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                MockUseCaseID.USE_CASE_2: {
+                UseCaseID.ESCALATING_ISSUES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                MockUseCaseID.USE_CASE_3: {
+                UseCaseID.CUSTOM: {
                     7: {"m", "n", "o", "p"},
                     8: {"q", "r", "s", "t"},
                 },
@@ -146,7 +136,6 @@ def test_writes_limiter_doesnt_limit():
             assert state.accepted_keys.as_tuples() == use_case_keys.as_tuples()
 
 
-@patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
@@ -176,19 +165,19 @@ def test_writes_limiter_org_limit():
 
         use_case_keys = UseCaseKeyCollection(
             {
-                MockUseCaseID.TRANSACTIONS: {
+                UseCaseID.TRANSACTIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                MockUseCaseID.USE_CASE_1: {
+                UseCaseID.SPANS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                MockUseCaseID.USE_CASE_2: {
+                UseCaseID.ESCALATING_ISSUES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                MockUseCaseID.USE_CASE_3: {
+                UseCaseID.CUSTOM: {
                     7: {"m", "n", "o", "p"},
                     8: {"q", "r", "s", "t"},
                 },
@@ -223,7 +212,6 @@ def test_writes_limiter_org_limit():
             ]
 
 
-@patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
@@ -255,19 +243,19 @@ def test_writes_limiter_global_limit():
         # individually, but not in total.
         use_case_keys = UseCaseKeyCollection(
             {
-                MockUseCaseID.TRANSACTIONS: {
+                UseCaseID.TRANSACTIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                MockUseCaseID.USE_CASE_1: {
+                UseCaseID.SPANS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
-                MockUseCaseID.USE_CASE_2: {
+                UseCaseID.ESCALATING_ISSUES: {
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                MockUseCaseID.USE_CASE_3: {
+                UseCaseID.CUSTOM: {
                     7: {"m", "n", "o", "p"},
                     8: {"q", "r", "s", "t"},
                 },
@@ -278,7 +266,6 @@ def test_writes_limiter_global_limit():
             assert len(state.dropped_strings) == 10
 
 
-@patch("sentry.sentry_metrics.indexer.limiters.writes.UseCaseID", MockUseCaseID)
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
@@ -312,19 +299,19 @@ def test_writes_limiter_respects_use_case_id():
 
         use_case_keys = UseCaseKeyCollection(
             {
-                MockUseCaseID.TRANSACTIONS: {
+                UseCaseID.TRANSACTIONS: {
                     1: {"a", "b", "c"},
                     2: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_1: {
+                UseCaseID.SPANS: {
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_2: {
+                UseCaseID.ESCALATING_ISSUES: {
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },
-                MockUseCaseID.USE_CASE_3: {
+                UseCaseID.CUSTOM: {
                     1: {"x", "y", "z"},
                     2: {"a", "b", "c"},
                 },

@@ -22,6 +22,7 @@ type Props = {
 };
 
 /**
+ *
  * Used to expand results.
  *
  * Our collapsible component was not used because we want our

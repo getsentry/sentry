@@ -2,12 +2,14 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -28,6 +30,11 @@ class IncidentSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (IncidentPermission,)
 
     def get(self, request: Request, organization, incident) -> Response:

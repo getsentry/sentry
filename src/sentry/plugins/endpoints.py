@@ -1,3 +1,4 @@
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 __all__ = ["PluginProjectEndpoint", "PluginGroupEndpoint"]
@@ -7,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import GroupMeta
+from sentry.models.groupmeta import GroupMeta
 
 
 class PluginProjectEndpoint(ProjectEndpoint):
@@ -35,6 +36,10 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     plugin = None
     view = None
 

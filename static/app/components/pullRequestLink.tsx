@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {PullRequest, Repository} from 'sentry/types';
+import type {PullRequest, Repository} from 'sentry/types/integrations';
 
 function renderIcon(repo: Repository) {
   if (!repo.provider) {
@@ -40,14 +40,14 @@ function PullRequestLink({pullRequest, repository, inline}: Props) {
   }
 
   return !inline ? (
-    <Button
+    <LinkButton
       external
       href={pullRequest.externalUrl}
       size="sm"
       icon={renderIcon(repository)}
     >
       {displayId}
-    </Button>
+    </LinkButton>
   ) : (
     <ExternalPullLink href={pullRequest.externalUrl}>
       {renderIcon(repository)}

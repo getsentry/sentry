@@ -8,7 +8,7 @@ import argparse
 
 
 def main(username, newsletter_consent_prompt=None):
-    from sentry.models import User
+    from sentry.users.models.user import User
 
     user = User.objects.get(username__iexact=username)
 

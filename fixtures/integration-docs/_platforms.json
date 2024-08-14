@@ -135,6 +135,12 @@
           "name": "AngularJS"
         },
         {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/astro/",
+          "type": "framework",
+          "id": "javascript-astro",
+          "name": "Astro"
+        },
+        {
           "link": "https://docs.getsentry.com/clients/javascript/integrations/backbone/",
           "type": "framework",
           "id": "javascript-backbone",
@@ -419,6 +425,18 @@
       ],
       "id": "mock",
       "name": "Mock"
+    },
+    {
+      "integrations": [
+        {
+          "link": "https://docs.getsentry.com/platforms/powershell/",
+          "type": "language",
+          "id": "powershell",
+          "name": "PowerShell"
+        }
+      ],
+      "id": "powershell",
+      "name": "PowerShell"
     }
   ]
 }

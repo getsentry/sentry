@@ -3,22 +3,19 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
-from sentry.models import (
-    ApiApplication,
-    AuditLogEntry,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppCreator
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestCreator(TestCase):
     def setUp(self):
         self.user = self.create_user(email="foo@bar.com", username="scuba_steve")
@@ -109,7 +106,7 @@ class TestCreator(TestCase):
             target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
         ).exists()
 
-    @patch("sentry.models.integrations.integration_feature.IntegrationFeature.objects.create")
+    @patch("sentry.integrations.models.integration_feature.IntegrationFeature.objects.create")
     def test_raises_error_creating_integration_feature(self, mock_create):
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)
@@ -130,11 +127,7 @@ class TestCreator(TestCase):
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
-        self.creator.schema = ""
-        assert self.creator.run(user=self.user)
-
-    def test_none_schema(self):
-        self.creator.schema = None
+        self.creator.schema = {}
         assert self.creator.run(user=self.user)
 
     def test_schema_with_no_elements(self):
@@ -166,6 +159,7 @@ class TestCreator(TestCase):
         assert self.creator.run(user=self.user)
 
 
+@control_silo_test
 class TestInternalCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -222,6 +216,24 @@ class TestInternalCreator(TestCase):
         )
 
         assert install.api_token
+
+    def test_skips_creating_auth_token_when_flag_is_true(self) -> None:
+        app = SentryAppCreator(
+            is_internal=True,
+            verify_install=False,
+            author=self.org.name,
+            name="nulldb",
+            organization_id=self.org.id,
+            scopes=[
+                "project:read",
+            ],
+            webhook_url="http://example.com",
+            schema={"elements": [self.create_issue_link_schema()]},
+        ).run(user=self.user, request=None, skip_default_auth_token=True)
+
+        install = SentryAppInstallation.objects.get(organization_id=self.org.id, sentry_app=app)
+
+        assert install.api_token is None
 
     @patch("sentry.utils.audit.create_audit_entry")
     def test_audits(self, create_audit_entry):

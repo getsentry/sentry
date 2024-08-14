@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from io import BytesIO
+from typing import ClassVar, Self
+from urllib.parse import urljoin
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -6,31 +10,38 @@ from django.db import models, router
 from django.utils.encoding import force_bytes
 from PIL import Image
 
-from sentry.db.models import BoundedBigIntegerField, Model
+from sentry import options
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model
+from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
-from sentry.tasks.files import copy_file_to_control_and_update_model
+from sentry.silo.base import SiloMode
+from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar, OrganizationAvatar, TeamAvatar,
-    SentryAppAvatar, and ProjectAvatar models. Associates those entities with their
+    Base class for UserAvatar, OrganizationAvatar, and SentryAppAvatar models. Associates those entities with their
     avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
-    ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
+    ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
-    FILE_TYPE = None
+    # abstract
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
+    FILE_TYPE: ClassVar[str]
+    avatar_type: models.Field[int, int]
 
-    file_id = BoundedBigIntegerField(unique=True, null=True)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:
         abstract = True
+
+    url_path = "avatar"
 
     def save(self, *args, **kwargs):
         if not self.ident:
@@ -38,24 +49,11 @@ class AvatarBase(Model):
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # Favor control_file_id if it exists and is set.
-        # Otherwise fallback to file_id. If still None, return.
-        file_class = self.file_class()
-        file_id = getattr(self, self.file_fk())
+        file_id = getattr(self, self.file_write_fk(), None)
         if file_id is None:
-            file_id = self.file_id
-            file_class = File
-            if file_id is None:
-                return None
-            copy_file_to_control_and_update_model.apply_async(
-                kwargs={
-                    "app_name": "sentry",
-                    "model_name": type(self).__name__,
-                    "model_id": self.id,
-                    "file_id": file_id,
-                }
-            )
+            return None
 
+        file_class = self.file_class()
         try:
             return file_class.objects.get(pk=file_id)
         except ObjectDoesNotExist:
@@ -95,21 +93,48 @@ class AvatarBase(Model):
                 cache.set(cache_key, photo)
         return photo
 
-    @classmethod
-    def file_class(cls):
-        from sentry.models import File
-
+    def file_class(self) -> type[File] | type[ControlFile]:
         return File
 
-    @classmethod
-    def file_fk(cls) -> str:
+    def file_fk(self) -> str:
+        """
+        Get the foreign key currently used by this record for blob storage.
+        Varies in ControlAvatarBase
+        """
         return "file_id"
 
+    def file_write_fk(self) -> str:
+        """
+        Get the foreign key that should be used for writes.
+        Varies in ControlAvatarBase
+        """
+        return "file_id"
+
+    def absolute_url(self) -> str:
+        """
+        Get the absolute URL to an avatar.
+
+        Use the implementing class's silo_limit to infer which
+        host name should be used.
+        """
+        cls = type(self)
+
+        url_base = options.get("system.url-prefix")
+        silo_limit = getattr(cls._meta, "silo_limit", None)
+        if silo_limit is not None and SiloMode.REGION in silo_limit.modes:
+            url_base = get_local_region().to_url("")
+
+        return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
+
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None):
+    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:
         if avatar:
-            with atomic_transaction(using=router.db_for_write(cls.file_class())):
-                photo = cls.file_class().objects.create(name=filename, type=cls.FILE_TYPE)
+            # Create an instance of the current class so we can
+            # access where new files should be stored.
+            dummy = cls()
+            file_class = dummy.file_class()
+            with atomic_transaction(using=router.db_for_write(file_class)):
+                photo = file_class.objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
                 if isinstance(avatar, str):
@@ -122,10 +147,7 @@ class AvatarBase(Model):
             photo = None
 
         with atomic_transaction(
-            using=(
-                router.db_for_write(cls),
-                router.db_for_write(cls.file_class()),
-            )
+            using=router.db_for_write(cls),
         ):
             if relation.get("sentry_app") and color is not None:
                 instance, created = cls.objects.get_or_create(**relation, color=color)
@@ -136,11 +158,12 @@ class AvatarBase(Model):
                 file.delete()
 
             if photo:
-                setattr(instance, cls.file_fk(), photo.id)
+                if instance.file_fk() != instance.file_write_fk():
+                    setattr(instance, instance.file_fk(), None)
+                setattr(instance, instance.file_write_fk(), photo.id)
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]
-
             instance.save()
 
         if photo and not created:

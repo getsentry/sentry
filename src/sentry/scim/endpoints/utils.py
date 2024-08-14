@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -5,8 +7,10 @@ from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models import AuthProvider
+from sentry.auth.services.auth import auth_service
+from sentry.models.organization import Organization
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
@@ -16,11 +20,11 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_tag("http.status_code", status_code)
+        super().__init__({"schemas": [SCIM_API_ERROR], "detail": detail})
         self.status_code = status_code
-        self.detail = {"schemas": [SCIM_API_ERROR], "detail": detail}
 
 
 class SCIMFilterError(ValueError):
@@ -86,19 +90,13 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(self, request: Request, view, organization: Organization) -> bool:
         result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
             return result
-        try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-        except AuthProvider.DoesNotExist:
-            return False
-        if not auth_provider.flags.scim_enabled:
-            return False
-
-        return True
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        return provider is not None and provider.flags.scim_enabled
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
@@ -120,8 +118,16 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
     }
 
 
+class SCIMListBaseResponse(TypedDict):
+    schemas: list[str]
+    totalResults: int
+    startIndex: int
+    itemsPerPage: int
+
+
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ENTERPRISE
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

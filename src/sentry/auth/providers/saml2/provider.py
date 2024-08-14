@@ -1,42 +1,49 @@
+from __future__ import annotations
+
 import abc
+from typing import NotRequired, TypedDict
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
+from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
-from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.models import AuthProvider, Organization, OrganizationStatus
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user.service import user_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 
-def get_provider(organization_slug):
+def get_provider(organization_slug: str) -> SAML2Provider | None:
     try:
-        organization = Organization.objects.get(slug=organization_slug)
-    except Organization.DoesNotExist:
+        mapping = OrganizationMapping.objects.get(slug=organization_slug)
+    except OrganizationMapping.DoesNotExist:
         return None
 
-    if organization.status != OrganizationStatus.ACTIVE:
+    if mapping.status != OrganizationStatus.ACTIVE:
         return None
 
     try:
-        provider = AuthProvider.objects.get(organization_id=organization.id).get_provider()
+        provider = AuthProvider.objects.get(organization_id=mapping.organization_id).get_provider()
     except AuthProvider.DoesNotExist:
         return None
 
@@ -47,7 +54,7 @@ def get_provider(organization_slug):
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "SAMLResponse" in request.POST:
             return helper.next_step()
 
@@ -73,9 +80,10 @@ class SAML2LoginView(AuthView):
 # the auth assertion is directly posted to the ACS URL. Because the user will
 # not have initiated their SSO flow we must provide a endpoint similar to
 # auth_provider_login, but with support for initializing the auth flow.
+@control_silo_view
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug):
         from sentry.auth.helper import AuthHelper
 
         helper = AuthHelper.get_for_request(request)
@@ -116,7 +124,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -140,7 +148,7 @@ class SAML2ACSView(AuthView):
 
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
@@ -166,7 +174,7 @@ class SAML2SLSView(BaseView):
 
 
 class SAML2MetadataView(BaseView):
-    def dispatch(self, request: Request, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug):
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 
@@ -234,7 +242,10 @@ class SAML2Provider(Provider, abc.ABC):
       constants to the Identity Provider attribute keys.
     """
 
+    # SAML does nothing with refresh state -- don't waste resources calling it in check_auth job.
+    requires_refresh = False
     required_feature = "organizations:sso-saml2"
+    is_saml = True
 
     def get_auth_pipeline(self):
         return [SAML2LoginView(), SAML2ACSView()]
@@ -250,7 +261,6 @@ class SAML2Provider(Provider, abc.ABC):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        pass
 
     def attribute_mapping(self):
         """
@@ -289,8 +299,8 @@ class SAML2Provider(Provider, abc.ABC):
                 )
             )
 
-        name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = " ".join(_f for _f in name if _f)
+        name_gen = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
+        name = " ".join(_f for _f in name_gen if _f)
 
         return {
             "id": attributes[Attributes.IDENTIFIER],
@@ -303,7 +313,48 @@ class SAML2Provider(Provider, abc.ABC):
         return
 
 
-def build_saml_config(provider_config, org):
+class _SamlConfigSecurity(TypedDict):
+    authnRequestsSigned: bool
+    logoutRequestSigned: bool
+    logoutResponseSigned: bool
+    signMetadata: bool
+    wantMessagesSigned: bool
+    wantAssertionsSigned: bool
+    wantAssertionsEncrypted: bool
+    signatureAlgorithm: bool
+    digestAlgorithm: bool
+    wantNameId: bool
+    requestedAuthnContext: bool
+
+
+class _SamlConfigService(TypedDict):
+    url: str
+    binding: NotRequired[str]
+
+
+class _SamlConfigSp(TypedDict):
+    entityId: str
+    assertionConsumerService: _SamlConfigService
+    singleLogoutService: _SamlConfigService
+    x509cert: NotRequired[str]
+    privateKey: NotRequired[str]
+
+
+class _SamlConfigIdp(TypedDict):
+    entityId: str
+    x509cert: str
+    singleSignOnService: _SamlConfigService
+    singleLogoutService: _SamlConfigService
+
+
+class SamlConfig(TypedDict):
+    strict: bool
+    sp: _SamlConfigSp
+    security: _SamlConfigSecurity
+    idp: NotRequired[_SamlConfigIdp]
+
+
+def build_saml_config(provider_config, org) -> SamlConfig:
     """
     Construct the SAML configuration dict to be passed into the OneLogin SAML
     library.
@@ -313,7 +364,7 @@ def build_saml_config(provider_config, org):
     """
     avd = provider_config.get("advanced", {})
 
-    security_config = {
+    security_config: _SamlConfigSecurity = {
         "authnRequestsSigned": avd.get("authn_request_signed", False),
         "logoutRequestSigned": avd.get("logout_request_signed", False),
         "logoutResponseSigned": avd.get("logout_response_signed", False),
@@ -332,7 +383,7 @@ def build_saml_config(provider_config, org):
     sls_url = absolute_uri(reverse("sentry-auth-organization-saml-sls", args=[org]))
     metadata_url = absolute_uri(reverse("sentry-auth-organization-saml-metadata", args=[org]))
 
-    saml_config = {
+    saml_config: SamlConfig = {
         "strict": True,
         "sp": {
             "entityId": metadata_url,
@@ -382,3 +433,28 @@ def build_auth(request, saml_config):
     }
 
     return OneLogin_Saml2_Auth(saml_request, saml_config)
+
+
+def handle_saml_single_logout(request):
+    # Do not handle SLO if a user is in more than 1 organization
+    # Propagating it to multiple IdPs results in confusion for the user
+    organizations = user_service.get_organizations(user_id=request.user.id)
+    if not len(organizations) == 1:
+        return
+
+    org = organizations[0]
+    if not features.has("organizations:sso-saml2-slo", org):
+        return
+
+    provider = get_provider(org.slug)
+    if not provider or not provider.is_saml:
+        return
+
+    # Try/catch is needed because IdP may not support SLO (e.g. Okta) and
+    # will return an error
+    try:
+        saml_config = build_saml_config(provider.config, org)
+        idp_auth = build_auth(request, saml_config)
+        idp_auth.logout()
+    except Exception as e:
+        sentry_sdk.capture_exception(e)

@@ -1,9 +1,12 @@
-import {defined, lastOfArray} from 'sentry/utils';
+import moment from 'moment-timezone';
+
+import {defined} from 'sentry/utils';
+import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
-import {Frame} from './../frame';
+import type {Frame} from './../frame';
 import {Profile} from './profile';
-import {createSentrySampleProfileFrameIndex} from './utils';
+import type {createSentrySampleProfileFrameIndex} from './utils';
 
 type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & {
   weight: number;
@@ -118,7 +121,7 @@ export class SentrySampledProfile extends Profile {
       }
     );
 
-    function resolveFrame(index) {
+    function resolveFrame(index): Frame {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -146,6 +149,8 @@ export class SentrySampledProfile extends Profile {
     const {threadId, threadName} = getThreadData(sampledProfile);
 
     const profile = new SentrySampledProfile({
+      // .unix() only has second resolution
+      timestamp: moment(sampledProfile.timestamp).valueOf() / 1000,
       duration: endedAt - startedAt,
       startedAt,
       endedAt,

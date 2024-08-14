@@ -2,18 +2,18 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member, Organization, Project, User} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
-  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+  `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
 type MentionableUser = {
   actor: {
@@ -35,7 +35,6 @@ type Props = {
   disabled?: boolean;
   onInputChange?: (value: any) => any;
   placeholder?: string;
-  project?: Project;
   styles?: {control?: (provided: any) => any};
 };
 
@@ -64,7 +63,11 @@ class SelectMembers extends Component<Props, State> {
   };
 
   componentWillUnmount() {
-    this.unlisteners.forEach(callIfFunction);
+    this.unlisteners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   unlisteners = [
@@ -75,7 +78,7 @@ class SelectMembers extends Component<Props, State> {
   ];
 
   renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
   );
 
   createMentionableUser = (user: User): MentionableUser => ({

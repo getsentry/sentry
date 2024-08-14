@@ -5,7 +5,8 @@ import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender'
 
 import {VirtualizedTreeReducer} from './useVirtualizedTreeReducer';
 import {VirtualizedTree} from './VirtualizedTree';
-import {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import type {VirtualizedTreeRenderedRow} from './virtualizedTreeUtils';
 import {
   cancelAnimationTimeout,
   computeVirtualizedTreeNodeScrollTop,
@@ -14,8 +15,75 @@ import {
   markRowAsClicked,
   markRowAsHovered,
   requestAnimationTimeout,
-  VirtualizedTreeRenderedRow,
 } from './virtualizedTreeUtils';
+
+type MaybeContainers = HTMLElement | HTMLElement[] | null;
+function getMaxScrollHeight(containers: MaybeContainers) {
+  if (!containers) {
+    return 0;
+  }
+  if (!Array.isArray(containers)) {
+    return containers.getBoundingClientRect()?.height ?? 0;
+  }
+  return Math.max(
+    ...containers.map(container => container.getBoundingClientRect().height)
+  );
+}
+
+function getMinScrollTop(containers: MaybeContainers) {
+  if (!containers) {
+    return 0;
+  }
+  if (!Array.isArray(containers)) {
+    return containers.scrollTop;
+  }
+  return Math.min(...containers.map(container => container.scrollTop));
+}
+
+function scrollToTop(top: number, containers: MaybeContainers) {
+  if (!containers) {
+    return;
+  }
+  if (!Array.isArray(containers)) {
+    containers.scrollTop = top;
+    return;
+  }
+  containers.forEach(container => {
+    container.scrollTop = top;
+  });
+}
+
+function addListenerToContainer(
+  container: MaybeContainers,
+  type: string,
+  listener: (evt: any) => void,
+  options?: AddEventListenerOptions & EventListenerOptions
+) {
+  if (!container) {
+    return;
+  }
+  if (Array.isArray(container)) {
+    container.forEach(c => c.addEventListener(type, listener, options));
+    return;
+  }
+  container.addEventListener(type, listener, options);
+}
+
+function removeListenerFromContainer(
+  container: MaybeContainers,
+  type: string,
+  listener: (evt: any) => void,
+  options?: AddEventListenerOptions & EventListenerOptions
+) {
+  if (!container) {
+    return;
+  }
+  if (Array.isArray(container)) {
+    container.forEach(c => c.removeEventListener(type, listener, options));
+    return;
+  }
+  container.removeEventListener(type, listener, options);
+}
 
 export interface TreeLike {
   children?: TreeLike[];
@@ -24,7 +92,18 @@ export interface TreeLike {
 const DEFAULT_OVERSCROLL_ITEMS = 5;
 
 export interface UseVirtualizedTreeProps<T extends TreeLike> {
-  renderRow: (
+  rowHeight: number;
+  scrollContainer: MaybeContainers;
+  tree: T[];
+  expanded?: boolean;
+  initialSelectedNodeIndex?: number;
+  onScrollToNode?: (
+    node: VirtualizedTreeRenderedRow<T>,
+    scrollContainer: MaybeContainers,
+    coordinates?: {depth: number; top: number}
+  ) => void;
+  overscroll?: number;
+  renderRow?: (
     item: VirtualizedTreeRenderedRow<T>,
     itemHandlers: {
       handleExpandTreeNode: (
@@ -38,44 +117,31 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
       selectedNodeIndex: number | null;
     }
   ) => React.ReactNode;
-  rowHeight: number;
-  scrollContainer: HTMLElement | null;
-  tree: T[];
-  expanded?: boolean;
-  initialSelectedNodeIndex?: number;
-  onScrollToNode?: (
-    node: VirtualizedTreeRenderedRow<T>,
-    scrollContainer: HTMLElement | null,
-    coordinates?: {depth: number; top: number}
-  ) => void;
-  overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
+  virtualizedTree?: VirtualizedTree<T>;
 }
 
 export function useVirtualizedTree<T extends TreeLike>(
   props: UseVirtualizedTreeProps<T>
 ) {
-  const {onScrollToNode} = props;
-
+  const onScrollToNode = props.onScrollToNode;
   const theme = useTheme();
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
+    scrollTop: 0,
     roots: props.tree,
     selectedNodeIndex: props.initialSelectedNodeIndex ?? null,
-    scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
-    scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
+    scrollHeight: getMaxScrollHeight(props.scrollContainer),
   });
 
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(
-      props.tree,
-      props.expanded,
-      props.skipFunction
-    );
+    const initialTree =
+      props.virtualizedTree ||
+      VirtualizedTree.fromRoots(props.tree, props.expanded, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -114,12 +180,14 @@ export function useVirtualizedTree<T extends TreeLike>(
   >(undefined);
 
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(
-      props.tree,
-      props.expanded,
-      props.skipFunction,
-      expandedHistory.current
-    );
+    const newTree =
+      props.virtualizedTree ||
+      VirtualizedTree.fromRoots(
+        props.tree,
+        props.expanded,
+        props.skipFunction,
+        expandedHistory.current
+      );
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
@@ -132,11 +200,8 @@ export function useVirtualizedTree<T extends TreeLike>(
       newTree
     );
 
-    const scroll = props.scrollContainer?.scrollTop ?? 0;
-
-    if (props.scrollContainer) {
-      props.scrollContainer.scrollTo({top: scroll});
-    }
+    const scroll = getMinScrollTop(props.scrollContainer);
+    scrollToTop(scroll, props.scrollContainer);
 
     dispatch({type: 'set selected node index', payload: selectedNodeIndex});
     setTree(newTree);
@@ -159,6 +224,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     flattenedHistory.current = newTree.flattened;
   }, [
     props.tree,
+    props.virtualizedTree,
     props.expanded,
     props.skipFunction,
     props.sortFunction,
@@ -174,17 +240,55 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
 
+    let raf: number;
     function handleScroll(evt) {
+      if (!props.scrollContainer) {
+        return;
+      }
       const scrollTop = Math.max(0, evt.target.scrollTop);
-      dispatch({type: 'set scroll top', payload: scrollTop});
+      raf !== undefined && window.cancelAnimationFrame(raf);
+
+      raf = window.requestAnimationFrame(() => {
+        dispatch({type: 'set scroll top', payload: scrollTop});
+        if (Array.isArray(props.scrollContainer)) {
+          for (let i = 0; i < props.scrollContainer.length; i++) {
+            if (props.scrollContainer[i] === evt.target) {
+              // our scroll event is non blocking, so we only need to update the other containers
+              continue;
+            }
+            props.scrollContainer[i].scrollTop = scrollTop;
+          }
+        }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'none';
+          });
+        } else {
+          (props.scrollContainer?.firstChild as HTMLElement).style.pointerEvents = 'none';
+        }
+      });
 
       if (scrollEndTimeoutId.current !== undefined) {
         cancelAnimationTimeout(scrollEndTimeoutId.current);
       }
 
-      evt.target.firstChild.style.pointerEvents = 'none';
       scrollEndTimeoutId.current = requestAnimationTimeout(() => {
-        evt.target.firstChild.style.pointerEvents = 'auto';
+        if (!props.scrollContainer) {
+          return;
+        }
+        if (Array.isArray(props.scrollContainer)) {
+          props.scrollContainer.forEach(container => {
+            if (!container.firstChild) {
+              return;
+            }
+            (container.firstChild as HTMLElement).style.pointerEvents = 'auto';
+          });
+        } else {
+          (props.scrollContainer.firstChild as HTMLElement).style.pointerEvents = 'auto';
+        }
       }, 150);
 
       if (latestStateRef.current.selectedNodeIndex !== null) {
@@ -211,10 +315,37 @@ export function useVirtualizedTree<T extends TreeLike>(
     const scrollListenerOptions: AddEventListenerOptions & EventListenerOptions = {
       passive: true,
     };
-    scrollContainer.addEventListener('scroll', handleScroll, scrollListenerOptions);
+
+    if (Array.isArray(props.scrollContainer)) {
+      props.scrollContainer.forEach(container => {
+        container.addEventListener('scroll', handleScroll, scrollListenerOptions);
+      });
+    } else if (scrollContainer) {
+      (scrollContainer as HTMLElement).addEventListener(
+        'scroll',
+        handleScroll,
+        scrollListenerOptions
+      );
+    }
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll, scrollListenerOptions);
+      if (raf !== undefined) {
+        window.cancelAnimationFrame(raf);
+      }
+      if (!scrollContainer) {
+        return;
+      }
+      if (Array.isArray(props.scrollContainer)) {
+        props.scrollContainer.forEach(container => {
+          container.removeEventListener('scroll', handleScroll, scrollListenerOptions);
+        });
+      } else {
+        (scrollContainer as HTMLElement).removeEventListener(
+          'scroll',
+          handleScroll,
+          scrollListenerOptions
+        );
+      }
     };
   }, [props.scrollContainer, props.rowHeight, theme]);
 
@@ -278,12 +409,12 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
     };
 
-    scrollContainer.addEventListener('click', handleClick);
-    scrollContainer.addEventListener('mousemove', handleMouseMove);
+    addListenerToContainer(scrollContainer, 'click', handleClick);
+    addListenerToContainer(scrollContainer, 'mousemove', handleMouseMove);
 
     return () => {
-      scrollContainer.removeEventListener('click', handleClick);
-      scrollContainer.removeEventListener('mousemove', handleMouseMove);
+      removeListenerFromContainer(scrollContainer, 'click', handleClick);
+      removeListenerFromContainer(scrollContainer, 'mousemove', handleMouseMove);
     };
   }, [props.rowHeight, props.scrollContainer, theme]);
 
@@ -304,12 +435,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       });
     }
 
-    container.addEventListener('mouseleave', onMouseLeave, {
+    const options = {
       passive: true,
-    });
+    };
+    addListenerToContainer(container, 'mouseleave', onMouseLeave, options);
 
     return () => {
-      container.removeEventListener('mouseleave', onMouseLeave);
+      removeListenerFromContainer(container, 'mouseleave', onMouseLeave, options);
     };
   }, [props.scrollContainer, theme, props.rowHeight]);
 
@@ -563,6 +695,9 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const handleScrollTo = useCallback(
     (matcher: (item: T) => boolean) => {
+      if (!props.scrollContainer) {
+        return;
+      }
       const node = latestTreeRef.current.findNode(matcher);
       // If we cant find, noop
       if (!node) {
@@ -630,31 +765,49 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When a new view is larger than the previous view, we need to update the scroll height
       // synchronously so that the view can be scrolled to its new position. If we don't do this,
       // then the scrollTo(newScrollTop) will be clamped to the previous scroll height.
-      if (props.scrollContainer?.childNodes[0]) {
-        // Not exactly sure why we need the cast here, maybe we should limit HTMLElement to HTMLDivElement.
-        // https://stackoverflow.com/questions/58773652/ts2339-property-style-does-not-exist-on-type-element
-        const firstChild = props.scrollContainer?.childNodes?.[0] as
-          | HTMLElement
-          | undefined;
+      if (Array.isArray(props.scrollContainer)) {
+        props.scrollContainer.forEach(container => {
+          const firstChild = container?.childNodes?.[0] as HTMLElement | undefined;
+          if (!firstChild) {
+            return;
+          }
 
-        if (!firstChild) {
-          return;
+          firstChild.style.height = `${newMaxHeight}px`;
+          firstChild.style.maxHeight = `${newMaxHeight}px`;
+        });
+      } else {
+        if (props.scrollContainer?.childNodes[0]) {
+          // Not exactly sure why we need the cast here, maybe we should limit HTMLElement to HTMLDivElement.
+          // https://stackoverflow.com/questions/58773652/ts2339-property-style-does-not-exist-on-type-element
+          const firstChild = props.scrollContainer?.childNodes?.[0] as
+            | HTMLElement
+            | undefined;
+
+          if (!firstChild) {
+            return;
+          }
+          firstChild.style.height = `${newMaxHeight}px`;
+          firstChild.style.maxHeight = `${newMaxHeight}px`;
         }
-        firstChild.style.height = `${newMaxHeight}px`;
-        firstChild.style.maxHeight = `${newMaxHeight}px`;
       }
-      if (props.scrollContainer) {
+
+      if (Array.isArray(props.scrollContainer)) {
+        props.scrollContainer.forEach(container => {
+          container.scrollTo({
+            top: newScrollTop,
+          });
+        });
+      } else {
         props.scrollContainer.scrollTo({
           top: newScrollTop,
         });
+      }
 
-        if (onScrollToNode) {
-          onScrollToNode(
-            latestItemsRef.current[newlyVisibleIndex],
-            props.scrollContainer,
-            {top: newScrollTop, depth: node.depth}
-          );
-        }
+      if (onScrollToNode) {
+        onScrollToNode(latestItemsRef.current[newlyVisibleIndex], props.scrollContainer, {
+          top: newScrollTop,
+          depth: node.depth,
+        });
       }
     },
 
@@ -679,7 +832,11 @@ export function useVirtualizedTree<T extends TreeLike>(
   }, [tree.flattened.length, props.rowHeight]);
 
   const renderRow = props.renderRow;
+
   const renderedItems: React.ReactNode[] = useMemo(() => {
+    if (!renderRow) {
+      return [];
+    }
     const renderered: React.ReactNode[] = [];
 
     // It is important that we do not create a copy of item
@@ -728,7 +885,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       });
     });
 
-    resizeObserver.observe(props.scrollContainer);
+    if (Array.isArray(props.scrollContainer)) {
+      props.scrollContainer.forEach(container => {
+        resizeObserver.observe(container);
+      });
+    } else {
+      resizeObserver.observe(props.scrollContainer);
+    }
 
     return () => {
       if (typeof rafId === 'number') {

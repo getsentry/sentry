@@ -1,10 +1,12 @@
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Mapping, Sequence, Set
 
 from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     Direction,
@@ -17,9 +19,9 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key
@@ -32,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
-    def fetch_projects_with_recent_sessions(self) -> Mapping[int, Sequence[int]]:
+    def fetch_projects_with_recent_sessions_with_offset(self) -> Mapping[int, Sequence[int]]:
         with metrics.timer(
             "release_monitor.fetch_projects_with_recent_sessions.loop", sample_rate=1.0
         ):
@@ -56,7 +58,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Condition(
                                 Column("metric_id"),
                                 Op.EQ,
-                                SESSION_METRIC_NAMES[SessionMRI.SESSION.value],
+                                SESSION_METRIC_NAMES[SessionMRI.RAW_SESSION.value],
                             ),
                         ],
                         granularity=Granularity(3600),
@@ -95,6 +97,90 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
 
         return aggregated_projects
 
+    def fetch_projects_with_recent_sessions_with_filter(self) -> Mapping[int, Sequence[int]]:
+        with metrics.timer(
+            "release_monitor.fetch_projects_with_recent_sessions.loop", sample_rate=1.0
+        ):
+            aggregated_projects = defaultdict(list)
+            start_time = time.time()
+            prev_org_id = 0
+            prev_project_id = 0
+
+            while (time.time() - start_time) < self.MAX_SECONDS:
+                query = Query(
+                    match=Entity(EntityKey.OrgMetricsCounters.value),
+                    select=[
+                        Column("org_id"),
+                        Column("project_id"),
+                    ],
+                    groupby=[Column("org_id"), Column("project_id")],
+                    where=[
+                        Condition(
+                            Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                        ),
+                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(
+                            Column("metric_id"),
+                            Op.EQ,
+                            SESSION_METRIC_NAMES[SessionMRI.RAW_SESSION.value],
+                        ),
+                        BooleanCondition(
+                            BooleanOp.OR,
+                            [
+                                Condition(Column("org_id"), Op.GT, prev_org_id),
+                                BooleanCondition(
+                                    BooleanOp.AND,
+                                    [
+                                        Condition(Column("org_id"), Op.EQ, prev_org_id),
+                                        Condition(Column("project_id"), Op.GT, prev_project_id),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
+                    granularity=Granularity(3600),
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
+                ).set_limit(self.CHUNK_SIZE + 1)
+                request = Request(
+                    dataset=Dataset.Metrics.value, app_id="release_health", query=query
+                )
+                data = raw_snql_query(
+                    request, referrer="release_monitor.fetch_projects_with_recent_sessions"
+                )["data"]
+                count = len(data)
+                more_results = count > self.CHUNK_SIZE
+
+                if more_results:
+                    data = data[:-1]
+
+                for row in data:
+                    aggregated_projects[row["org_id"]].append(row["project_id"])
+
+                # Update prev_org_id and prev_project_id for the next iteration
+                if data:
+                    last_row = data[-1]
+                    prev_org_id = last_row["org_id"]
+                    prev_project_id = last_row["project_id"]
+
+                if not more_results:
+                    break
+
+            else:
+                logger.error(
+                    "release_monitor.fetch_projects_with_recent_sessions.loop_timeout",
+                    extra={"prev_org_id": prev_org_id, "prev_project_id": prev_project_id},
+                )
+
+        return aggregated_projects
+
+    def fetch_projects_with_recent_sessions(self) -> Mapping[int, Sequence[int]]:
+        if options.get("release-health.use-org-and-project-filter"):
+            return self.fetch_projects_with_recent_sessions_with_filter()
+        return self.fetch_projects_with_recent_sessions_with_offset()
+
     def fetch_project_release_health_totals(
         self, org_id: int, project_ids: Sequence[int]
     ) -> Totals:
@@ -103,9 +189,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "release")
+                release_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "release")
                 release_col = Column(release_key)
-                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "environment")
+                env_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "environment")
                 env_col = Column(env_key)
                 query = (
                     Query(
@@ -134,7 +220,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value
+                                    UseCaseID.SESSIONS, org_id, SessionMRI.RAW_SESSION.value
                                 ),
                             ),
                         ],
@@ -166,7 +252,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         data = data[:-1]
 
                     # convert indexes back to strings
-                    indexes: Set[int] = set()
+                    indexes: set[int] = set()
                     for row in data:
                         indexes.add(row[env_key])
                         indexes.add(row[release_key])
@@ -178,10 +264,10 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         env_name = resolved_strings.get(row[env_key])
                         release_name = resolved_strings.get(row[release_key])
                         row_totals = totals[row["project_id"]].setdefault(
-                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore
+                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore[arg-type]
                         )
                         row_totals["total_sessions"] += row["sessions"]
-                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore
+                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore[index]
 
                 if not more_results:
                     break

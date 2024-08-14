@@ -1,26 +1,30 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
-import {PanelItem} from 'sentry/components/panels';
-import PanelTable from 'sentry/components/panels/panelTable';
+import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, ReleaseProject} from 'sentry/types';
-import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import type {ReleaseProject} from 'sentry/types/release';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
@@ -116,7 +120,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {WEB_VITAL_DETAILS[vital.title].name} (
             {WEB_VITAL_DETAILS[vital.title].acronym})
           </Link>
@@ -130,7 +142,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {span.title}
           </Link>
         </SubTitle>
@@ -308,7 +328,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {span.title}
           </Link>
         </SubTitle>

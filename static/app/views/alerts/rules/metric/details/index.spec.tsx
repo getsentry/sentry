@@ -1,14 +1,21 @@
+import {EventsStatsFixture} from 'sentry-fixture/events';
+import {GroupFixture} from 'sentry-fixture/group';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
-  const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
+  const project = ProjectFixture({slug: 'earth', platform: 'javascript'});
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
@@ -21,11 +28,11 @@ describe('MetricAlertDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2017-10-10T02%3A41%3A20',
-      body: [TestStubs.Group()],
+      body: [GroupFixture()],
     });
   });
 
@@ -36,13 +43,20 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg();
-    const incident = TestStubs.Incident();
-    const rule = TestStubs.MetricRule({
+    const {organization, routerProps, router} = initializeOrg();
+    const incident = IncidentFixture();
+    const rule = MetricRuleFixture({
       projects: [project.slug],
       latestIncident: incident,
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -58,7 +72,7 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -77,10 +91,17 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders selected incident', async () => {
-    const {routerContext, organization, router, routerProps} = initializeOrg();
-    const rule = TestStubs.MetricRule({projects: [project.slug]});
-    const incident = TestStubs.Incident();
-
+    const {organization, router, routerProps} = initializeOrg();
+    const rule = MetricRuleFixture({projects: [project.slug]});
+    const incident = IncidentFixture();
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -96,7 +117,7 @@ describe('MetricAlertDetails', () => {
     // Related issues to the selected incident
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2016-04-26T19%3A44%3A05&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2016-03-29T19%3A44%3A05',
-      body: [TestStubs.Group()],
+      body: [GroupFixture()],
     });
 
     render(
@@ -106,7 +127,7 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -124,15 +145,12 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {routerContext, organization, router} = initializeOrg({
-      organization: {features: ['mute-metric-alerts']},
-    });
-    const incident = TestStubs.Incident();
-    const rule = TestStubs.MetricRule({
+    const {organization, routerProps, router} = initializeOrg();
+    const incident = IncidentFixture();
+    const rule = MetricRuleFixture({
       projects: [project.slug],
       latestIncident: incident,
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -141,7 +159,14 @@ describe('MetricAlertDetails', () => {
       url: `/organizations/org-slug/incidents/`,
       body: [incident],
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
       method: 'POST',
@@ -153,15 +178,11 @@ describe('MetricAlertDetails', () => {
 
     render(
       <MetricAlertDetails
+        {...routerProps}
         organization={organization}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByText('Mute for me')).toBeInTheDocument();
@@ -173,5 +194,44 @@ describe('MetricAlertDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Unmute'}));
 
     expect(deleteRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
+    const {organization, routerProps, router} = initializeOrg({
+      organization: {features: ['discover-basic']},
+    });
+    const rule = MetricRuleFixture({
+      projects: [project.slug],
+      dataset: Dataset.ERRORS,
+      query: 'is:unresolved',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror%20is%3Aunresolved&sort=freq&start=2017-10-10T02%3A41%3A20',
+      body: [],
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        {...routerProps}
+        params={{ruleId: rule.id}}
+      />,
+      {router, organization}
+    );
+
+    expect(await screen.findAllByText(rule.name)).toHaveLength(2);
+    expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('dataset=errors')
+    );
   });
 });

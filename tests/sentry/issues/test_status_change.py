@@ -1,16 +1,19 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
-from sentry.models import Activity, GroupStatus
+from sentry.models.activity import Activity
+from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):
-    def create_issue(self, status: GroupStatus, substatus: Optional[GroupSubStatus] = None) -> None:
+    def create_issue(self, status: int, substatus: int | None = None) -> None:
         self.group = self.create_group(status=status)
         self.group_list = [self.group]
         self.group_ids = [self.group]
@@ -30,13 +33,10 @@ class HandleStatusChangeTest(TestCase):
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -56,13 +56,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unresolved.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -82,13 +79,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreDuration") == 30
 
         assert GroupHistory.objects.filter(
@@ -108,13 +102,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(

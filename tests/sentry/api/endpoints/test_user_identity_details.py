@@ -1,5 +1,6 @@
-from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import APITestCase
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -1,42 +1,49 @@
+import type {MouseEvent as ReactMouseEvent} from 'react';
 import {Fragment} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
-import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {getSeriesApiInterval} from 'sentry/components/charts/utils';
+import {Flex} from 'sentry/components/container/flex';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
-import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
+import type {ScoreCardProps} from 'sentry/components/scoreCard';
+import ScoreCard from 'sentry/components/scoreCard';
+import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
-import {
-  FORMAT_DATETIME_DAILY,
-  FORMAT_DATETIME_HOURLY,
-  getDateFromMoment,
-} from './usageChart/utils';
-import {UsageSeries, UsageStat} from './types';
+import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
+import {mapSeriesToChart} from './mapSeriesToChart';
+import type {UsageSeries} from './types';
+import type {ChartStats, UsageChartProps} from './usageChart';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
-  ChartStats,
-  UsageChartProps,
+  SeriesTypes,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
+import {isDisplayUtc} from './utils';
 
-export type UsageStatsOrganizationProps = {
+export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
+  dataCategoryApiName: DataCategoryInfo['apiName'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
+    clientDiscard?: boolean;
     dataCategory?: DataCategoryInfo['plural'];
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
@@ -45,11 +52,13 @@ export type UsageStatsOrganizationProps = {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
-} & AsyncComponent['props'];
+  clientDiscard?: boolean;
+}
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+  metricOrgStats?: UsageSeries | undefined;
+} & DeprecatedAsyncComponent['state'];
 
 /**
  * This component is replaced by EnhancedUsageStatsOrganization in getsentry, which inherits
@@ -58,24 +67,33 @@ type UsageStatsOrganizationState = {
  */
 class UsageStatsOrganization<
   P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
-  S extends UsageStatsOrganizationState = UsageStatsOrganizationState
-> extends AsyncComponent<P, S> {
+  S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
+> extends DeprecatedAsyncComponent<P, S> {
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
-    const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
-    const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
+    const {
+      dataDatetime: prevDateTime,
+      projectIds: prevProjectIds,
+      dataCategoryApiName: prevDataCategoryApiName,
+    } = prevProps;
+    const {
+      dataDatetime: currDateTime,
+      projectIds: currProjectIds,
+      dataCategoryApiName: currentDataCategoryApiName,
+    } = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
+      prevDataCategoryApiName !== currentDataCategoryApiName ||
       !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
 
@@ -105,24 +123,26 @@ class UsageStatsOrganization<
   }
 
   get endpointQuery() {
-    const {dataDatetime, projectIds} = this.props;
+    const {dataDatetime, projectIds, dataCategoryApiName} = this.props;
 
     const queryDatetime = this.endpointQueryDatetime;
 
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['category', 'outcome'],
+      groupBy: ['outcome', 'reason'],
       project: projectIds,
       field: ['sum(quantity)'],
+      category: dataCategoryApiName,
     };
   }
 
   get chartData(): {
     cardStats: {
       accepted?: string;
-      dropped?: string;
       filtered?: string;
+      invalid?: string;
+      rateLimited?: string;
       total?: string;
     };
     chartDateEnd: string;
@@ -133,13 +153,18 @@ class UsageStatsOrganization<
     chartDateTimezoneDisplay: string;
     chartDateUtc: boolean;
     chartStats: ChartStats;
+    chartSubLabels: TooltipSubLabel[];
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
-    const {orgStats} = this.state;
-
     return {
-      ...this.mapSeriesToChart(orgStats),
+      ...mapSeriesToChart({
+        orgStats: this.state.orgStats,
+        chartDateInterval: this.chartDateRange.chartDateInterval,
+        chartDateUtc: this.chartDateRange.chartDateUtc,
+        dataCategory: this.props.dataCategory,
+        endpointQuery: this.endpointQuery,
+      }),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -221,7 +246,7 @@ class UsageStatsOrganization<
   }
 
   get chartProps(): UsageChartProps {
-    const {dataCategory} = this.props;
+    const {dataCategory, clientDiscard, handleChangeState} = this.props;
     const {error, errors, loading} = this.state;
     const {
       chartStats,
@@ -231,6 +256,7 @@ class UsageStatsOrganization<
       chartDateEnd,
       chartDateUtc,
       chartTransform,
+      chartSubLabels,
     } = this.chartData;
 
     const hasError = error || !!dataError;
@@ -248,14 +274,32 @@ class UsageStatsOrganization<
       usageDateShowUtc: chartDateUtc,
       usageDateInterval: chartDateInterval,
       usageStats: chartStats,
+      chartTooltip: {
+        subLabels: chartSubLabels,
+        skipZeroValuedSubLabels: true,
+      },
+      legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
+      onLegendSelectChanged: ({name, selected}) => {
+        if (name === SeriesTypes.CLIENT_DISCARD) {
+          handleChangeState({clientDiscard: selected[name]});
+        }
+      },
     } as UsageChartProps;
 
     return chartProps;
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization, projectIds} = this.props;
-    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
+    const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
+    const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
+
+    const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
+      if (router) {
+        navigateTo(url, router);
+      }
+    };
 
     const cardMetadata: Record<string, ScoreCardProps> = {
       total: {
@@ -279,161 +323,34 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Filtered [dataCategory] were blocked due to your inbound data filter rules',
-          {dataCategory}
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          {
+            dataCategory,
+            filterSettings: (
+              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+          }
         ),
         score: filtered,
       },
-      dropped: {
-        title: tct('Dropped [dataCategory]', {dataCategory: dataCategoryName}),
+      rateLimited: {
+        title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
+          'Rate Limited [dataCategory] were discarded due to rate limits or quota',
           {dataCategory}
         ),
-        score: dropped,
+        score: rateLimited,
+      },
+      invalid: {
+        title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements',
+          {dataCategory}
+        ),
+        score: invalid,
       },
     };
     return cardMetadata;
-  }
-
-  mapSeriesToChart(orgStats?: UsageSeries): {
-    cardStats: {
-      accepted?: string;
-      dropped?: string;
-      filtered?: string;
-      total?: string;
-    };
-    chartStats: ChartStats;
-    dataError?: Error;
-  } {
-    const cardStats = {
-      total: undefined,
-      accepted: undefined,
-      dropped: undefined,
-      filtered: undefined,
-    };
-    const chartStats: ChartStats = {
-      accepted: [],
-      dropped: [],
-      projected: [],
-      filtered: [],
-    };
-
-    if (!orgStats) {
-      return {cardStats, chartStats};
-    }
-
-    try {
-      const {dataCategory} = this.props;
-      const {chartDateInterval, chartDateUtc} = this.chartDateRange;
-
-      const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
-        const dateTime = moment(interval);
-
-        return {
-          date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
-          total: 0,
-          accepted: 0,
-          filtered: 0,
-          dropped: {total: 0},
-        };
-      });
-
-      // Tally totals for card data
-      const count: Record<'total' | Outcome, number> = {
-        total: 0,
-        [Outcome.ACCEPTED]: 0,
-        [Outcome.FILTERED]: 0,
-        [Outcome.DROPPED]: 0,
-        [Outcome.INVALID]: 0, // Combined with dropped later
-        [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
-        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
-      };
-
-      orgStats.groups.forEach(group => {
-        const {outcome, category} = group.by;
-        // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
-          return;
-        }
-
-        if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)'];
-        }
-
-        count[outcome] += group.totals['sum(quantity)'];
-
-        group.series['sum(quantity)'].forEach((stat, i) => {
-          switch (outcome) {
-            case Outcome.ACCEPTED:
-            case Outcome.FILTERED:
-              usageStats[i][outcome] += stat;
-              return;
-            case Outcome.DROPPED:
-            case Outcome.RATE_LIMITED:
-            case Outcome.INVALID:
-              usageStats[i].dropped.total += stat;
-              // TODO: add client discards to dropped?
-              return;
-            default:
-              return;
-          }
-        });
-      });
-
-      // Invalid and rate_limited data is combined with dropped
-      count[Outcome.DROPPED] += count[Outcome.INVALID];
-      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
-
-      usageStats.forEach(stat => {
-        stat.total = stat.accepted + stat.filtered + stat.dropped.total;
-
-        // Chart Data
-        (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]});
-        (chartStats.dropped as any[]).push({
-          value: [stat.date, stat.dropped.total],
-        } as any);
-        (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
-      });
-
-      return {
-        cardStats: {
-          total: formatUsageWithUnits(
-            count.total,
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          accepted: formatUsageWithUnits(
-            count[Outcome.ACCEPTED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          filtered: formatUsageWithUnits(
-            count[Outcome.FILTERED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          dropped: formatUsageWithUnits(
-            count[Outcome.DROPPED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-        },
-        chartStats,
-      };
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setContext('query', this.endpointQuery);
-        scope.setContext('body', {...orgStats});
-        Sentry.captureException(err);
-      });
-
-      return {
-        cardStats,
-        chartStats,
-        dataError: new Error('Failed to parse stats data'),
-      };
-    }
   }
 
   renderCards() {
@@ -448,6 +365,7 @@ class UsageStatsOrganization<
         score={loading ? undefined : card.score}
         help={card.help}
         trend={card.trend}
+        isTooltipHoverable
       />
     ));
   }
@@ -458,7 +376,7 @@ class UsageStatsOrganization<
   }
 
   renderChartFooter = () => {
-    const {handleChangeState} = this.props;
+    const {handleChangeState, clientDiscard} = this.props;
     const {loading, error} = this.state;
     const {
       chartDateInterval,
@@ -486,6 +404,19 @@ class UsageStatsOrganization<
               )}
             </span>
           </FooterDate>
+        </InlineContainer>
+        <InlineContainer>
+          {(this.chartData.chartStats.clientDiscard ?? []).length > 0 && (
+            <Flex align="center" gap={space(1)}>
+              <strong>{t('Show client-discarded data:')}</strong>
+              <SwitchButton
+                toggle={() => {
+                  handleChangeState({clientDiscard: !clientDiscard});
+                }}
+                isActive={clientDiscard}
+              />
+            </Flex>
+          )}
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
@@ -537,7 +468,7 @@ const PageGrid = styled('div')`
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 `;
 
@@ -553,9 +484,14 @@ const ChartWrapper = styled('div')`
 const Footer = styled('div')`
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(1.5)};
   padding: ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
+  > *:first-child {
+    flex-grow: 1;
+  }
 `;
 const FooterDate = styled('div')`
   display: flex;
@@ -567,7 +503,7 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

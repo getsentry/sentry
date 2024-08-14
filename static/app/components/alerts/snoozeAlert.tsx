@@ -1,14 +1,15 @@
 import {useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +25,7 @@ type Props = {
   projectSlug: string;
   ruleActionCategory: RuleActionsCategories;
   type: 'issue' | 'metric';
+  disabled?: boolean;
   ruleId?: string;
 };
 
@@ -35,6 +37,7 @@ function SnoozeAlert({
   ruleActionCategory,
   hasAccess,
   type,
+  disabled: alwaysDisabled,
 }: Props) {
   const organization = useOrganization();
   const api = useApi();
@@ -151,7 +154,7 @@ function SnoozeAlert({
       <Button
         size="sm"
         icon={<IconMute />}
-        disabled={disabled || !hasAccess}
+        disabled={alwaysDisabled || disabled || !hasAccess}
         onClick={() => handleUnmute()}
       >
         {t('Unmute')}
@@ -163,7 +166,7 @@ function SnoozeAlert({
       <MuteButton
         size="sm"
         icon={<IconSound />}
-        disabled={disabled || !hasAccess}
+        disabled={alwaysDisabled || disabled || !hasAccess}
         hasDropdown={hasDropdown}
         onClick={() => {
           handleMute(primaryMuteAction);
@@ -179,11 +182,11 @@ function SnoozeAlert({
               {...triggerProps}
               size="sm"
               aria-label={t('Mute alert options')}
-              icon={<IconChevron direction="down" size="xs" />}
+              icon={<IconChevron direction="down" />}
             />
           )}
           items={dropdownItems}
-          isDisabled={disabled || !hasAccess}
+          isDisabled={alwaysDisabled || disabled || !hasAccess}
         />
       )}
     </ButtonBar>

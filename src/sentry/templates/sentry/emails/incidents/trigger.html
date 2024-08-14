@@ -38,7 +38,9 @@
       </div>
     {% endif %}
     <div>
-      <h5 style="margin-bottom: 12px;">Alert Rule Details</h5>
+      <h5 style="margin-bottom: 12px;">
+        Alert Rule Details
+      </h5>
       <table class="alert-details">
         <tr>
           <td width="25%">Project</td>
@@ -47,11 +49,22 @@
         <tr>
           <td width="25%">Environment</td>
           <td>{{ environment }}</td>
-        </tr>
+          </tr>
+          {% if monitor_type == 1 %}
+            <tr>
+              {% if condition_type == 0 %}
+                <td width="25%">New Release</td>
+                <td>{{activator}}</td>
+              {% elif condition_type == 1 %}
+                <td width="25%">New Deploy</td>
+                <td>{{activator}}</td>
+              {% endif %}
+              </tr>
+          {% endif %}
         <tr>
           <td width="25%">Threshold</td>
           <td>
-            {{ threshold_direction_string }} {{ threshold }}{% if 'percentage' in aggregate %}%{% endif %}
+            {{ threshold_prefix_string }} {{ threshold }}{% if 'percentage' in aggregate %}%{% endif %}
           </td>
         </tr>
         <tr>
@@ -66,10 +79,6 @@
           <td width="25%">Filter</td>
           <td>{{ query }}</td>
         </tr>
-        <tr>
-          <td width="25%">Date Created</td>
-          <td>{{ alert_date_added }}</td>
-        </tr>
       </table>
 
       <p class="info-box">
@@ -77,7 +86,7 @@
            <a class='mute' href="{{ snooze_alert_url }}">Mute this alert</a>
         {% endif %}
         This email was triggered by
-            <a href="{{ rule_link }}">{{ incident_name }}</a>
+            <a href="{{ link }}">{{ incident_name }}</a>
     </p>
     </div>
   {% endif %}

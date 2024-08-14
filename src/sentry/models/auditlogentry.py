@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+import logging
 import re
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
 
+from sentry.audit_log.services.log import AuditLogEvent
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -11,12 +18,13 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.log import AuditLogEvent
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
+
+logger = logging.getLogger(__name__)
 
 
 def is_scim_token_actor(actor):
@@ -29,13 +37,14 @@ def format_scim_token_actor_name(actor):
         r".*([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
     )
     scim_match = re.match(scim_regex, actor.get_display_name())
-    uuid_prefix = scim_match.groups()[0]
-    return "SCIM Internal Integration (" + uuid_prefix + ")"
+    assert scim_match is not None
+    uuid_prefix = scim_match[1]
+    return f"SCIM Internal Integration ({uuid_prefix})"
 
 
-@control_silo_only_model
+@control_silo_model
 class AuditLogEntry(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
@@ -56,7 +65,7 @@ class AuditLogEntry(Model):
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    data = GzippedDictField()
+    data: models.Field[Mapping[str, Any] | None, dict[str, Any]] = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -72,20 +81,25 @@ class AuditLogEntry(Model):
     def save(self, *args, **kwargs):
         # trim label to the max length
         self._apply_actor_label()
-        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH] if self.actor_label else ""
         super().save(*args, **kwargs)
 
     def _apply_actor_label(self):
         if not self.actor_label:
-            assert self.actor_id or self.actor_key
+            assert self.actor_id or self.actor_key or self.ip_address
             if self.actor_id:
                 # Fetch user by RPC service as
                 # Audit logs are often created in regions.
                 user = user_service.get_user(self.actor_id)
-                self.actor_label = user.username
-            else:
+                if user:
+                    self.actor_label = user.username
+            elif self.actor_key:
                 # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
+
+        # Fallback to IP address if user or actor label not available
+        if not self.actor_label:
+            self.actor_label = self.ip_address or ""
 
     def as_event(self) -> AuditLogEvent:
         """
@@ -110,13 +124,13 @@ class AuditLogEntry(Model):
         )
 
     @classmethod
-    def from_event(cls, event: AuditLogEvent) -> "AuditLogEntry":
+    def from_event(cls, event: AuditLogEvent) -> AuditLogEntry:
         """
         Deserializes a kafka event object into a control silo database item.  Keep in mind that these event objects
         could have been created from previous code versions -- the events are stored on an async queue for indefinite
         delivery and from possibly older code versions.
         """
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         if event.actor_label:
             label = event.actor_label[:MAX_ACTOR_LABEL_LENGTH]

@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {PanelBody} from 'sentry/components/panels';
+import PanelBody from 'sentry/components/panels/panelBody';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor, Member, Team} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {Actor} from 'sentry/types/core';
+import type {Member, Team} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -137,13 +138,13 @@ function Sidebar({rule, teams, projectSlug}: Props) {
           />
           {rule.dateCreated && (
             <KeyValueTableRow
-              keyName={t('Date Created')}
+              keyName={t('Date created')}
               value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
             />
           )}
           {rule.createdBy && (
             <KeyValueTableRow
-              keyName={t('Created By')}
+              keyName={t('Created by')}
               value={
                 <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
               }
@@ -222,7 +223,7 @@ const StepContent = styled('div')`
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ChevronContainer = styled('div')`
@@ -240,7 +241,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.5;
 `;
 
@@ -253,7 +254,7 @@ const ConditionsBadge = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(1)};
   width: fit-content;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`

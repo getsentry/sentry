@@ -2,16 +2,23 @@ from django.db.models import Count
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
-from sentry.models import SentryApp, SentryAppAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.integrations.sentry_app import SentryApp
 
 
 @control_silo_endpoint
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
-    permission_classes = (SuperuserPermission,)
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
         sentry_apps = (

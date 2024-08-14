@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, FrozenSet, Mapping, MutableMapping, Optional, Sequence, Tuple
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry.utils import json, metrics
 
@@ -11,8 +14,8 @@ class UnexpectedOperation(Exception):
 
 
 def basic_protocol_handler(
-    unsupported_operations: FrozenSet[str],
-) -> Callable[[str, Any, Any], Optional[Mapping[str, Any]]]:
+    unsupported_operations: frozenset[str],
+) -> Callable[[str, Any, Any], dict[str, Any] | None]:
     # The insert message formats for Version 1 and 2 are essentially unchanged,
     # so this function builds a handler function that can deal with both.
 
@@ -20,7 +23,7 @@ def basic_protocol_handler(
         operation: str,
         event_data: Mapping[str, Any],
         task_state: Mapping[str, Any],
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> dict[str, Any] | None:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
 
@@ -41,7 +44,7 @@ def basic_protocol_handler(
 
         return kwargs
 
-    def handle_message(operation: str, *data: Any) -> Optional[Mapping[str, Any]]:
+    def handle_message(operation: str, *data: Any) -> dict[str, Any] | None:
         if operation == "insert":
             return get_task_kwargs_for_insert(operation, *data)
         elif operation in unsupported_operations:
@@ -85,14 +88,14 @@ class InvalidVersion(Exception):
     pass
 
 
-def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
+def get_task_kwargs_for_message(value: bytes) -> dict[str, Any] | None:
     """
     Decodes a message body, returning a dictionary of keyword arguments that
     can be applied to a post-processing task, or ``None`` if no task should be
     dispatched.
     """
 
-    metrics.timing("eventstream.events.size.data", len(value))
+    metrics.distribution("eventstream.events.size.data", len(value), unit="byte")
     payload = json.loads(value, use_rapid_json=True)
 
     try:
@@ -115,7 +118,7 @@ def decode_str(value: bytes) -> str:
     return value.decode("utf-8")
 
 
-def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
+def decode_optional_str(value: bytes | None) -> str | None:
     if value is None:
         return None
     return decode_str(value)
@@ -126,7 +129,7 @@ def decode_int(value: bytes) -> int:
     return int(value)
 
 
-def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
+def decode_optional_int(value: bytes | None) -> int | None:
     if value is None:
         return None
     return decode_int(value)
@@ -136,7 +139,7 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
-def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
+def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
     if value is None:
         return None
 
@@ -148,8 +151,8 @@ def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
 
 
 def get_task_kwargs_for_message_from_headers(
-    headers: Sequence[Tuple[str, Optional[bytes]]]
-) -> Optional[Mapping[str, Any]]:
+    headers: Sequence[tuple[str, bytes | None]]
+) -> dict[str, Any] | None:
     """
     Same as get_task_kwargs_for_message but gets the required information from
     the kafka message headers.
@@ -202,10 +205,13 @@ def get_task_kwargs_for_message_from_headers(
             try:
                 group_states = decode_optional_list_str(group_states_str)
             except ValueError:
-                logger.error(f"Received event with malformed group_states: '{group_states_str}'")
+                logger.exception(
+                    "Received event with malformed group_states: '%s'", group_states_str
+                )
             except Exception:
-                logger.error(
-                    f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
+                logger.exception(
+                    "Uncaught exception thrown when trying to parse group_states: '%s'",
+                    group_states_str,
                 )
             task_state["group_states"] = group_states
 

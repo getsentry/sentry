@@ -1,3 +1,10 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -5,14 +12,14 @@ import ConfigStore from 'sentry/stores/configStore';
 import ProjectOwnershipModal from './modal';
 
 describe('Project Ownership', () => {
-  const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
   const issueId = '1234';
-  const stacktrace = TestStubs.EventEntryStacktrace();
-  const event = TestStubs.Event({
+  const stacktrace = EventEntryStacktraceFixture();
+  const event = EventFixture({
     entries: [stacktrace],
   });
-  const user = TestStubs.User();
+  const user = UserFixture();
 
   beforeEach(() => {
     ConfigStore.set('user', user);
@@ -45,10 +52,10 @@ describe('Project Ownership', () => {
       },
     });
     // Set one frame to in-app
-    stacktrace.data.frames[0].inApp = true;
+    stacktrace.data.frames![0].inApp = true;
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
-      body: TestStubs.Members(),
+      body: MembersFixture(),
     });
   });
 
@@ -61,26 +68,6 @@ describe('Project Ownership', () => {
       <ProjectOwnershipModal
         issueId={issueId}
         organization={org}
-        project={project}
-        eventData={event}
-        onCancel={() => {}}
-      />
-    );
-
-    // Rule builder
-    expect(screen.getByLabelText('Rule pattern')).toBeInTheDocument();
-
-    expect(screen.getByText(/Match against Issue Data/)).toBeInTheDocument();
-    // First in-app (default reverse order) frame is suggested
-    expect(screen.getByText('raven/base.py')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
-  });
-
-  it('renders streamline-targeting-context suggestions', () => {
-    render(
-      <ProjectOwnershipModal
-        issueId={issueId}
-        organization={{...org, features: ['streamline-targeting-context']}}
         project={project}
         eventData={event}
         onCancel={() => {}}
@@ -100,9 +87,6 @@ describe('Project Ownership', () => {
     expect(
       screen.getByText(`url:*/path ${user.email}`, {exact: false})
     ).toBeInTheDocument();
-
-    // Rule builder hidden TODO: remove when streamline-targeting-context is GA
-    expect(screen.queryByLabelText('Rule pattern')).not.toBeInTheDocument();
   });
 
   it('can cancel', async () => {

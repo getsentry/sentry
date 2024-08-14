@@ -9,9 +9,9 @@ class SelectAsyncField extends SelectField {
 
   onResults = data => {
     const {name} = this.props;
-    const results = data && data[name];
+    const results = data?.[name];
 
-    return (results && results.map(({id, text}) => ({value: id, label: text}))) || [];
+    return results?.map(({id, text}) => ({value: id, label: text})) || [];
   };
 
   onQuery = query =>

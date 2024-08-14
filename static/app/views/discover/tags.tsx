@@ -1,10 +1,11 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
-import {fetchTagFacets, Tag, TagSegment} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import type {Tag, TagSegment} from 'sentry/actionCreators/events';
+import {fetchTagFacets} from 'sentry/actionCreators/events';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -15,10 +16,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
@@ -29,6 +32,8 @@ type Props = {
   organization: Organization;
   totalValues: null | number;
   confirmedQuery?: boolean;
+  onTagValueClick?: (title: string, value: TagSegment) => void;
+  tagsQueryResults?: UseApiQueryResult<Tag[], RequestError>;
 };
 
 type State = {
@@ -84,6 +89,29 @@ class Tags extends Component<Props, State> {
       this.setState({hasLoaded: false, tags: []});
     }
 
+    // If we have tagsQueryResults, we can use that instead of fetching new data on mount.
+    if (!appendTags && this.props.tagsQueryResults) {
+      const pageLinks =
+        this.props.tagsQueryResults?.getResponseHeader?.('Link') ?? undefined;
+      let hasMore = false;
+      let cursor: string | undefined;
+      if (pageLinks) {
+        const paginationObject = parseLinkHeader(pageLinks);
+        hasMore = paginationObject?.next?.results ?? false;
+        cursor = paginationObject.next?.cursor;
+      }
+
+      this.setState({
+        tags: this.props.tagsQueryResults.data || [],
+        loading: this.props.tagsQueryResults.isLoading,
+        hasLoaded: !this.props.tagsQueryResults.isLoading,
+        hasMore,
+        nextCursor: cursor,
+        error: this.props.tagsQueryResults.error?.message || '',
+      });
+      return;
+    }
+
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
     // since this component can mount/unmount via show/hide tags separate from
     // data being loaded for the rest of the page.
@@ -107,9 +135,6 @@ class Tags extends Component<Props, State> {
       }
 
       let tags = data;
-      if (!organization.features.includes('device-classification')) {
-        tags = tags.filter(tag => tag.key !== 'device.class');
-      }
       if (appendTags) {
         tags = [...this.state.tags, ...tags];
       }
@@ -117,7 +142,7 @@ class Tags extends Component<Props, State> {
     } catch (err) {
       if (
         err.status !== 400 &&
-        err.responseJSON.detail !==
+        err.responseJSON?.detail !==
           'Invalid date range. Please try a more recent date range.'
       ) {
         Sentry.captureException(err);
@@ -126,14 +151,8 @@ class Tags extends Component<Props, State> {
     }
   };
 
-  handleTagClick = (tag: string) => {
-    const {organization} = this.props;
-    // metrics
-    trackAnalytics('discover_v2.facet_map.clicked', {organization, tag});
-  };
-
   renderTag(tag: Tag, index: number) {
-    const {generateUrl, totalValues} = this.props;
+    const {generateUrl, onTagValueClick, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       segment.url = generateUrl(tag.key, segment.value);
@@ -153,6 +172,7 @@ class Tags extends Component<Props, State> {
           segments={segments}
           totalValues={Number(maxTotalValues)}
           expandByDefault={index === 0}
+          onTagValueClick={onTagValueClick}
         />
       </li>
     );
@@ -187,7 +207,8 @@ class Tags extends Component<Props, State> {
     if (tags.length > 0) {
       return (
         <Fragment>
-          <StyledTagFacetList>
+          {/* sentry-discover-tags-chromext depends on a stable id */}
+          <StyledTagFacetList id="tag-facet-list">
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
           {hasMore &&

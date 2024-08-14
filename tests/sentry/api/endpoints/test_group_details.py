@@ -1,37 +1,42 @@
-from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
 from django.test import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry import tsdb
+from sentry import audit_log, buffer, tsdb
+from sentry.buffer.redis import RedisBuffer
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    Activity,
-    ApiKey,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Release,
-)
+from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.release import Release
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
@@ -125,7 +130,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
+        with mock.patch(
+            "sentry.tsdb.backend.get_range", side_effect=tsdb.backend.get_range
+        ) as get_range:
             response = self.client.get(url, {"environment": "production"}, format="json")
             assert response.status_code == 200
             assert get_range.call_count == 2
@@ -149,7 +156,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            '<a href="https://example.com/issues/2">Issue#2</a>'
+            {"url": "https://example.com/issues/2", "displayName": "Issue#2"}
         ]
 
     def test_plugin_external_issue_annotation(self):
@@ -165,7 +172,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
-        assert response.data["annotations"] == ['<a href="https://trello.com/c/134">Trello-134</a>']
+        assert response.data["annotations"] == [
+            {"url": "https://trello.com/c/134", "displayName": "Trello-134"}
+        ]
 
     def test_integration_external_issue_annotation(self):
         group = self.create_group()
@@ -184,7 +193,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            '<a href="https://example.com/browse/api-123">api-123</a>'
+            {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
 
     def test_permalink_superuser(self):
@@ -206,7 +215,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             organization=self.organization,
             scopes=("project:read", "org:read", "event:write"),
         )
-        token = internal_app.installations.first().api_token
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_app,
+        )
 
         group = self.create_group(project=project)
         url = f"/api/0/issues/{group.id}/"
@@ -240,7 +252,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             datetime=timezone.now(),
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.delete()
 
         url = f"/api/0/issues/{group.id}/"
@@ -262,8 +274,36 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"collapse": ["tags"]})
         assert "tags" not in response.data
 
+    def test_count_with_buffer(self):
+        """Test that group count includes the count from the buffer."""
+        self.login_as(user=self.user)
 
-@region_silo_test(stable=True)
+        redis_buffer = RedisBuffer()
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+        ):
+            event = self.store_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            group = event.group
+            event.group.update(times_seen=1)
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
+
+            url = f"/api/0/issues/{group.id}/"
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == str(group.id)
+            assert response.data["count"] == "16"
+
+            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == str(group.id)
+            assert response.data["count"] == "16"
+
+
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
         self.login_as(user=self.user)
@@ -300,6 +340,24 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.RESOLVED
 
         assert GroupResolution.objects.filter(group=group).exists()
+
+    def test_resolved_in_next_release_no_release(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+        group = self.create_group(project=project)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.put(url, data={"status": "resolvedInNextRelease"})
+        assert response.status_code == 200, response.content
+
+        group = Group.objects.get(id=group.id, project=group.project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # no GroupResolution because there is no release
+        assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_snooze_duration(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -424,7 +482,7 @@ class GroupUpdateTest(APITestCase):
         # hitting an endpoint that uses `client.{get,put,post}` to redirect to
         # another endpoint. This catches a regression that happened when
         # migrating to DRF 3.x.
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             api_key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["event:write"]
             )
@@ -435,7 +493,7 @@ class GroupUpdateTest(APITestCase):
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
@@ -513,6 +571,28 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
+    def test_seen_by_deleted_user(self):
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+        self.login_as(user=self.user)
+        # Create a stale GroupSeen referencing a user that no longer exists
+        GroupSeen.objects.create(group=group, user_id=424242, project_id=self.project.id)
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert empty set for single invalid GroupSeen
+        assert response.data["seenBy"] == []
+
+        has_seen_response = self.client.put(url, data={"hasSeen": "1"}, format="json")
+        assert has_seen_response.status_code == 200
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert only valid GroupSeens are serialized
+        last_seen_data = response.data["seenBy"]
+        assert len(last_seen_data) == 1
+        assert last_seen_data[0]["id"] == str(self.user.id)
+
     def test_subscription(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -530,6 +610,48 @@ class GroupUpdateTest(APITestCase):
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_team_subscription(self):
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+
+        # subscribe the team
+        GroupSubscription.objects.create(
+            team=team,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.team_mentioned,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data["participants"]) == 1
+        assert response.data["participants"][0]["type"] == "team"
+
+        # add the user as a subscriber
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        # both the user and their team should be subscribed separately
+        assert len(response.data["participants"]) == 2
+        assert (
+            response.data["participants"][0]["type"] == "user"
+        )  # user participants are processed first
+        assert response.data["participants"][1]["type"] == "team"
 
     def test_discard(self):
         self.login_as(user=self.user)
@@ -583,9 +705,8 @@ class GroupUpdateTest(APITestCase):
             assert response.status_code == 429
 
 
-@region_silo_test(stable=True)
 class GroupDeleteTest(APITestCase):
-    def test_delete(self):
+    def test_delete_deferred(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -604,6 +725,13 @@ class GroupDeleteTest(APITestCase):
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
+    def test_delete_and_tasks_run(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        hash = "x" * 32
+        GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
         url = f"/api/0/issues/{group.id}/"
 
         with self.tasks():
@@ -614,6 +742,15 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        with self.tasks(), outbox_runner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.get(
+                    event=audit_log.get_event_id("ISSUE_DELETE"),
+                ).data["issue_id"]
+                == group.id
+            )
 
     def test_delete_performance_issue(self):
         """Test that a performance issue cannot be deleted"""

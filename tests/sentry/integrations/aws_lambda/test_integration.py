@@ -4,15 +4,18 @@ from urllib.parse import urlencode
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 
-from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
-from sentry.models import Integration, OrganizationIntegration, ProjectKey
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.projectkey import ProjectKey
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.projects.services.project import project_service
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -23,7 +26,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
@@ -36,15 +39,17 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     def test_project_select(self, mock_react_view):
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
-        with exempt_from_silo_limits():
-            serialized_projects = serialize([self.projectA, self.projectB])
+        serialized_projects = project_service.serialize_many(
+            organization_id=self.projectA.organization_id,
+            filter=dict(project_ids=[self.projectA.id, self.projectB.id]),
+        )
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_one_project(self, mock_react_view):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             self.projectB.delete()
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
@@ -179,20 +184,14 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         # TODO: pass in lambdaA=false
         # having issues with reading json data
         # request.POST looks like {"lambdaB": "True"}
         # string instead of boolean
-        resp = self.client.post(
-            self.setup_path,
-            data={"lambdaB": "true", "lambdaA": "false"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true", "lambdaA": "false"})
 
         assert resp.status_code == 200
 
@@ -247,16 +246,10 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
-        resp = self.client.post(
-            self.setup_path,
-            data={"lambdaA": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaA": "true"})
 
         assert resp.status_code == 200
 
@@ -325,13 +318,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -382,13 +369,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -440,13 +421,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -503,13 +478,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()

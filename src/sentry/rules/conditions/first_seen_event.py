@@ -1,8 +1,8 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
@@ -14,7 +14,7 @@ class FirstSeenEventCondition(EventCondition):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         # TODO(mgaeta): Bug: Rule is optional.
-        if self.rule.environment_id is None:  # type: ignore
+        if self.rule.environment_id is None:  # type: ignore[union-attr]
             return state.is_new
         else:
             return state.is_new_group_environment

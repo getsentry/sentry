@@ -1,5 +1,5 @@
-import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
+import type {CSSProperties, ReactNode} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -17,7 +17,10 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {Frame} from 'sentry/utils/profiling/frame';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,15 +41,21 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'slowFnCursor';
+const DEFAULT_CURSOR_NAME = 'slowFnCursor';
+
+type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
 
 interface SlowestFunctionsWidgetProps {
+  breakdownFunction: BreakdownFunction;
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function SlowestFunctionsWidget({
+  breakdownFunction,
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
   widgetHeight,
@@ -56,16 +65,19 @@ export function SlowestFunctionsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const slowFnCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
@@ -107,8 +119,8 @@ export function SlowestFunctionsWidget({
   return (
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
-        <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        {header ?? <HeaderTitleLegend>{t('Slowest Functions')}</HeaderTitleLegend>}
+        <Subtitle>{t('Slowest functions by total self time spent.')}</Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
@@ -132,8 +144,8 @@ export function SlowestFunctionsWidget({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <Accordion>
-            {(functionsQuery.data?.data ?? []).map((f, i) => {
+          <StyledAccordion>
+            {(functionsQuery.data?.data ?? []).map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
               );
@@ -141,15 +153,19 @@ export function SlowestFunctionsWidget({
               return (
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
+                  breakdownFunction={breakdownFunction}
                   isExpanded={i === expandedIndex}
-                  setExpanded={() => setExpandedIndex(i)}
+                  setExpanded={() => {
+                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    setExpandedIndex(nextIndex);
+                  }}
                   func={f}
                   totalDuration={projectTotalDuration as number}
                   query={userQuery ?? ''}
                 />
               );
             })}
-          </Accordion>
+          </StyledAccordion>
         )}
       </ContentContainer>
     </WidgetContainer>
@@ -157,6 +173,7 @@ export function SlowestFunctionsWidget({
 }
 
 interface SlowestFunctionEntryProps {
+  breakdownFunction: BreakdownFunction;
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
   query: string;
@@ -167,6 +184,7 @@ interface SlowestFunctionEntryProps {
 const BARS = 10;
 
 function SlowestFunctionEntry({
+  breakdownFunction,
   func,
   isExpanded,
   query,
@@ -181,18 +199,34 @@ function SlowestFunctionEntry({
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
+  const frame = useMemo(() => {
+    return new Frame(
+      {
+        key: 0,
+        name: func.function as string,
+        package: func.package as string,
+      },
+      // Ensures that the frame runs through the normalization code path
+      project?.platform && /node|javascript/.test(project.platform)
+        ? project.platform
+        : undefined,
+      'aggregate'
+    );
+  }, [func, project]);
+
   const userQuery = useMemo(() => {
     const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    conditions.setFilterValues('package', [String(func.package)]);
-    conditions.setFilterValues('function', [String(func.function)]);
+    // it is more efficient to filter on the fingerprint
+    // than it is to filter on the package + function
+    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
 
     return conditions.formatString();
   }, [func, query]);
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
-    fields: functionTransactionsFields,
+    fields: [...functionTransactionsFields, breakdownFunction],
     referrer: 'api.profiling.suspect-functions.transactions',
     sort: {
       key: 'sum()',
@@ -205,17 +239,17 @@ function SlowestFunctionEntry({
 
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
         <FunctionName>
-          <Tooltip title={func.package}>{func.function}</Tooltip>
+          <Tooltip title={frame.package}>{frame.name}</Tooltip>
         </FunctionName>
         <Tooltip
-          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
+          title={tct('Appeared [count] times for a total time spent of [totalSelfTime]', {
             count: <Count value={func['count()'] as number} />,
             totalSelfTime: (
               <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
@@ -230,9 +264,9 @@ function SlowestFunctionEntry({
           aria-expanded={isExpanded}
           size="zero"
           borderless
-          onClick={() => setExpanded()}
+          onClick={setExpanded}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
@@ -254,7 +288,10 @@ function SlowestFunctionEntry({
                 <TextOverflow>{t('Count')}</TextOverflow>
               </TransactionsListHeader>
               <TransactionsListHeader align="right">
-                <TextOverflow>{t('Total Self Time')}</TextOverflow>
+                <TextOverflow>{breakdownFunction.toUpperCase()}</TextOverflow>
+              </TransactionsListHeader>
+              <TransactionsListHeader align="right">
+                <TextOverflow>{t('Time Spent')}</TextOverflow>
               </TransactionsListHeader>
               {(functionTransactionsQuery.data?.data ?? []).map(transaction => {
                 const examples = transaction['examples()'] as string[];
@@ -266,11 +303,23 @@ function SlowestFunctionEntry({
                     projectSlug: project.slug,
                     profileId: examples[0],
                     query: {
-                      frameName: func.function as string,
-                      framePackage: func.package as string,
+                      frameName: frame.name,
+                      framePackage: frame.package,
                     },
                   });
-                  transactionCol = <Link to={target}>{transactionCol}</Link>;
+                  transactionCol = (
+                    <Link
+                      to={target}
+                      onClick={() => {
+                        trackAnalytics('profiling_views.go_to_flamegraph', {
+                          organization,
+                          source: 'profiling.global_suspect_functions',
+                        });
+                      }}
+                    >
+                      {transactionCol}
+                    </Link>
+                  );
                 }
 
                 return (
@@ -280,6 +329,12 @@ function SlowestFunctionEntry({
                     </TransactionsListCell>
                     <TransactionsListCell align="right">
                       <Count value={transaction['count()'] as number} />
+                    </TransactionsListCell>
+                    <TransactionsListCell align="right">
+                      <PerformanceDuration
+                        nanoseconds={transaction[breakdownFunction] as number}
+                        abbreviation
+                      />
                     </TransactionsListCell>
                     <TransactionsListCell align="right">
                       <PerformanceDuration
@@ -300,6 +355,7 @@ function SlowestFunctionEntry({
 
 const functionsFields = [
   'project.id',
+  'fingerprint',
   'package',
   'function',
   'count()',
@@ -312,17 +368,32 @@ const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
 
-const functionTransactionsFields = [
+type FunctionTransactionField =
+  | BreakdownFunction
+  | 'transaction'
+  | 'count()'
+  | 'sum()'
+  | 'examples()';
+
+const functionTransactionsFields: FunctionTransactionField[] = [
   'transaction',
   'count()',
   'sum()',
   'examples()',
-] as const;
-
-type FunctionTransactionField = (typeof functionTransactionsFields)[number];
+];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordion = styled(Accordion)`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`
@@ -332,9 +403,10 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 65% 10% 25%;
-  grid-template-rows: 18px auto auto auto auto auto;
-  padding: ${space(0)} ${space(2)};
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  grid-template-rows: 18px repeat(5, min-content);
+  column-gap: ${space(1)};
+  padding: 0 ${space(2)};
 `;
 
 const TransactionsListHeader = styled('span')<{
@@ -342,7 +414,7 @@ const TransactionsListHeader = styled('span')<{
 }>`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   text-align: ${p => p.align};
 `;

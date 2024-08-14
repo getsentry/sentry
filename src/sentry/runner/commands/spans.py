@@ -19,7 +19,7 @@ def spans() -> None:
 @spans.command()
 @click.argument("filename", type=click.Path(exists=True))
 @configuration
-def write_hashes(filename):
+def write_hashes(filename: str) -> None:
     """
     Runs span hash grouping on event data in the supplied filename using the
     default grouping strategy. Write the results to a copy of the file.

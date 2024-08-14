@@ -1,4 +1,4 @@
-import {SerializedStyles, Theme} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -58,7 +58,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   color: ${p => p.theme.chartLabel};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   transition: color 100ms;
-  ${p => p.textCss && p.textCss(p)}
+  ${p => p.textCss?.(p)}
 `;
 
 const AnimatedText = motion(Text);
@@ -159,7 +159,9 @@ const RingBar = styled('circle')<{
   stroke-dasharray: ${p => p.circumference} ${p => p.circumference};
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  transition: stroke-dashoffset 200ms, stroke 100ms;
+  transition:
+    stroke-dashoffset 200ms,
+    stroke 100ms;
 `;
 
 export default ProgressRing;

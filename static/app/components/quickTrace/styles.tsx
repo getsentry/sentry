@@ -1,15 +1,15 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
+import Tag, {Background} from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
-import Tag, {Background} from 'sentry/components/tag';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';
-import {getDuration} from 'sentry/utils/formatters';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import getDuration from 'sentry/utils/duration/getDuration';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
@@ -56,9 +56,9 @@ export const EventNode = styled(Tag)`
   }
 `;
 
-export const TraceConnector = styled('div')`
+export const TraceConnector = styled('div')<{dashed?: boolean}>`
   width: ${space(1)};
-  border-top: 1px solid ${p => p.theme.textColor};
+  border-top: 1px ${p => (p.dashed ? 'dashed' : 'solid')} ${p => p.theme.textColor};
 `;
 
 /**

@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ViewHierarchy} from '.';
@@ -49,7 +51,7 @@ describe('View Hierarchy', function () {
   let project;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
-    project = TestStubs.Project();
+    project = ProjectFixture();
   });
 
   it('can continue make selections for inspecting data', async function () {
@@ -138,7 +140,7 @@ describe('View Hierarchy', function () {
   });
 
   it('does not render the wireframe for the Unity platform', function () {
-    const mockUnityProject = TestStubs.Project({platform: 'unity'});
+    const mockUnityProject = ProjectFixture({platform: 'unity'});
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
 
     expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
@@ -194,11 +196,7 @@ describe('View Hierarchy', function () {
   });
 
   it('renders with depth markers', function () {
-    const {container} = render(
-      <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
   });
 
   it('renders an icon with a tooltip for the rendering system', async function () {

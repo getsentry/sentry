@@ -1,3 +1,12 @@
+import {CommitFixture} from 'sentry-fixture/commit';
+import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -5,7 +14,11 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Event, Group, Organization, Project, Team, User} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 
 describe('Group > AssignedTo', () => {
   let USER_1!: User;
@@ -15,39 +28,39 @@ describe('Group > AssignedTo', () => {
   let GROUP_1!: Group;
   let event!: Event;
   let organization!: Organization;
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   beforeEach(() => {
-    organization = TestStubs.Organization();
-    USER_1 = TestStubs.User({
+    organization = OrganizationFixture();
+    USER_1 = UserFixture({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = UserFixture({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = TeamFixture({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
-    event = TestStubs.Event();
+    event = EventFixture();
 
     TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);
@@ -107,7 +120,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
     const {rerender} = render(
@@ -124,13 +137,17 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('team', TEAM_1, undefined);
+    expect(onAssign).toHaveBeenCalledWith(
+      'team',
+      {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
+      undefined
+    );
 
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
@@ -146,7 +163,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -163,7 +180,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -173,12 +190,12 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -188,13 +205,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = TestStubs.CommitAuthor({id: USER_2.id});
+    const author = CommitAuthorFixture({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author})],
+            commits: [CommitFixture({author})],
             author,
           },
         ],
@@ -213,7 +230,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -226,20 +243,20 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
-    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+    expect(screen.getByText('Codeowners:/./app/components')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Suspect commit author'));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
         })
       )
     );
     expect(onAssign).toHaveBeenCalledWith(
-      'member',
+      'user',
       USER_2,
       expect.objectContaining({
         suggestedReason: 'suspectCommit',

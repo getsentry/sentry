@@ -8,19 +8,28 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project, Team
-from sentry.models.grouphistory import RESOLVED_STATUSES, UNRESOLVED_STATUSES
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import (
+    RESOLVED_STATUSES,
+    UNRESOLVED_STATUSES,
+    GroupHistory,
+    GroupHistoryStatus,
+)
+from sentry.models.project import Project
+from sentry.models.team import Team
 
 OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
 
 
 def calculate_unresolved_counts(team, project_list, start, end, environment_id):
-    # Get the current number of unresolved issues. We can use this value for the the most recent bucket.
+    # Get the current number of unresolved issues. We can use this value for the most recent bucket.
     group_environment_filter = (
         Q(groupenvironment__environment_id=environment_id) if environment_id else Q()
     )
@@ -107,6 +116,11 @@ def calculate_unresolved_counts(team, project_list, start, end, environment_id):
 
 @region_silo_endpoint
 class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, team: Team) -> Response:
         """
         Returns cumulative counts of unresolved groups per day within the stats period time range.

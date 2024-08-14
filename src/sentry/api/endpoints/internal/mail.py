@@ -2,6 +2,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import send_mail
@@ -9,6 +11,11 @@ from sentry.utils.email import send_mail
 
 @all_silo_endpoint
 class InternalMailEndpoint(Endpoint):
+    owner = ApiOwner.OPEN_SOURCE
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

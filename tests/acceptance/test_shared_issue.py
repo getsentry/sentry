@@ -1,11 +1,11 @@
-from sentry.models import GroupShare
-from sentry.testutils import AcceptanceTestCase
+from sentry.models.groupshare import GroupShare
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@no_silo_test
 class SharedIssueTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -19,6 +19,7 @@ class SharedIssueTest(AcceptanceTestCase):
         data = load_data(platform="python")
         data["timestamp"] = iso_format(before_now(days=1))
         event = self.store_event(data=data, project_id=self.project.id)
+        assert event.group is not None
 
         GroupShare.objects.create(project_id=event.group.project_id, group=event.group)
 
@@ -27,4 +28,3 @@ class SharedIssueTest(AcceptanceTestCase):
         )
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="event-entries-loading-false"]')
-        self.browser.snapshot("shared issue python")

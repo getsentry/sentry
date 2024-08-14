@@ -5,9 +5,9 @@
     "operationId": "List a Release's Deploys",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -66,9 +66,9 @@
     "operationId": "Create a New Deploy for an Organization",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -108,7 +108,7 @@
                 "description": "The optional list of projects to deploy.",
                 "items": {
                   "type": "string"
-                },
+                }
               },
               "dateStarted": {
                 "type": "string",

@@ -1,8 +1,10 @@
+import logging
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence, Tuple
 
+import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -22,7 +24,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -31,30 +32,48 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
+    GetActiveOrgs,
+    TimedIterator,
+    TimeoutException,
     are_equal_with_epsilon,
-    get_active_orgs_with_projects_counts,
-    get_adjusted_base_rate_from_cache_or_compute,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_SECONDS,
+    MAX_PROJECTS_PER_QUERY,
+    MAX_TASK_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.models import Organization, Project
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
+    sample_function,
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
+
+# This set contains all the projects for which we want to start extracting the sample rate over time. This is done
+# as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
+PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -64,14 +83,21 @@ from sentry.utils.snuba import raw_snql_query
     max_retries=5,
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
-@dynamic_sampling_task
-def boost_low_volume_projects() -> None:
-    for orgs in get_active_orgs_with_projects_counts():
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_projects(context: TaskContext) -> None:
+    logger.info(
+        "boost_low_volume_projects",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
+    for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,
             projects_with_tx_count_and_rates,
-        ) in fetch_projects_with_total_root_transaction_count_and_rates(org_ids=orgs).items():
+        ) in fetch_projects_with_total_root_transaction_count_and_rates(
+            context, org_ids=orgs
+        ).items():
             boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
 
 
@@ -82,126 +108,147 @@ def boost_low_volume_projects() -> None:
     max_retries=5,
     soft_time_limit=25 * 60,
     time_limit=2 * 60 + 5,
+    silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[
-        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+        tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
+
+    logger.info(
+        "boost_low_volume_projects_of_org",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
-    org_ids: List[int],
-    granularity: Optional[Granularity] = None,
-    query_interval: Optional[timedelta] = None,
-) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
+    context: TaskContext,
+    org_ids: list[int],
+    granularity: Granularity | None = None,
+    query_interval: timedelta | None = None,
+) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    if query_interval is None:
-        query_interval = timedelta(hours=1)
-        granularity = Granularity(3600)
+    func_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
+    timer = context.get_timer(func_name)
+    with timer:
+        context.incr_function_state(func_name, num_iterations=1)
 
-    aggregated_projects = defaultdict(list)
-    start_time = time.time()
-    offset = 0
-    org_ids = list(org_ids)
-    transaction_string_id = indexer.resolve_shared_org("decision")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
-    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        if query_interval is None:
+            query_interval = timedelta(hours=1)
+            granularity = Granularity(3600)
 
-    where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.IN, org_ids),
-    ]
+        aggregated_projects = defaultdict(list)
+        offset = 0
+        org_ids = list(org_ids)
+        transaction_string_id = indexer.resolve_shared_org("decision")
+        transaction_tag = f"tags_raw[{transaction_string_id}]"
+        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
 
-    keep_count = Function(
-        "countIf",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "keep"],
-            )
-        ],
-        alias="keep_count",
-    )
-    drop_count = Function(
-        "countIf",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "drop"],
-            )
-        ],
-        alias="drop_count",
-    )
+        where = [
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("metric_id"), Op.EQ, metric_id),
+            Condition(Column("org_id"), Op.IN, org_ids),
+        ]
 
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], "root_count_value"),
-                    Column("org_id"),
-                    Column("project_id"),
-                    keep_count,
-                    drop_count,
-                ],
-                groupby=[Column("org_id"), Column("project_id")],
-                where=where,
-                granularity=granularity,
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                    OrderBy(Column("project_id"), Direction.ASC),
-                ],
-            )
-            .set_limitby(
-                LimitBy(
-                    columns=[Column("org_id"), Column("project_id")],
-                    count=MAX_TRANSACTIONS_PER_PROJECT,
+        keep_count = Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "keep"]),
+            ],
+            alias="keep_count",
+        )
+        drop_count = Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "drop"]),
+            ],
+            alias="drop_count",
+        )
+
+        while time.monotonic() < context.expiration_time:
+            query = (
+                Query(
+                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                    select=[
+                        Function("sum", [Column("value")], "root_count_value"),
+                        Column("org_id"),
+                        Column("project_id"),
+                        keep_count,
+                        drop_count,
+                    ],
+                    groupby=[Column("org_id"), Column("project_id")],
+                    where=where,
+                    granularity=granularity,
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
                 )
+                .set_limitby(
+                    LimitBy(
+                        columns=[Column("org_id"), Column("project_id")],
+                        count=MAX_TRANSACTIONS_PER_PROJECT,
+                    )
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(offset)
             )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-        )["data"]
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query,
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+            )
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            )["data"]
+            count = len(data)
+            more_results = count > CHUNK_SIZE
+            offset += CHUNK_SIZE
 
-        if more_results:
-            data = data[:-1]
+            if more_results:
+                data = data[:-1]
 
-        for row in data:
-            aggregated_projects[row["org_id"]].append(
-                (row["project_id"], row["root_count_value"], row["keep_count"], row["drop_count"])
+            for row in data:
+                aggregated_projects[row["org_id"]].append(
+                    (
+                        row["project_id"],
+                        row["root_count_value"],
+                        row["keep_count"],
+                        row["drop_count"],
+                    )
+                )
+                context.incr_function_state(function_id=func_name, num_projects=1)
+
+            context.incr_function_state(
+                function_id=func_name,
+                num_db_calls=1,
+                num_rows_total=count,
+                num_orgs=len(aggregated_projects),
             )
 
-        if not more_results:
-            break
-    else:
-        log_query_timeout(
-            query="fetch_projects_with_total_root_transaction_count_and_rates", offset=offset
-        )
+            if not more_results:
+                break
+        else:
+            raise TimeoutException(context)
 
-    return aggregated_projects
+        return aggregated_projects
 
 
 def adjust_sample_rates_of_projects(
     org_id: int,
-    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    projects_with_tx_count: Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
@@ -214,20 +261,42 @@ def adjust_sample_rates_of_projects(
         # the query triggering this job and the actual execution of the job.
         organization = None
 
-    # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        return
+
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+    sample_rate, success = get_sliding_window_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="sliding_window_org",
+            sample_rate=sample_rate,
         )
     else:
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="blended_sample_rate",
+            sample_rate=sample_rate,
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
     if sample_rate is None:
+        sentry_sdk.capture_message(
+            "Sample rate of org not found when trying to adjust the sample rates of its projects"
+        )
         return
 
     projects_with_counts = {
@@ -273,6 +342,14 @@ def adjust_sample_rates_of_projects(
             old_sample_rate = sample_rate_to_float(
                 redis_client.hget(cache_key, rebalanced_project.id)
             )
+
+            if rebalanced_project.id in PROJECTS_WITH_METRICS:
+                metrics.gauge(
+                    "dynamic_sampling.project_sample_rate",
+                    rebalanced_project.new_sample_rate * 100,
+                    tags={"project_id": rebalanced_project.id},
+                    unit="percent",
+                )
 
             # We want to store the new sample rate as a string.
             pipeline.hset(

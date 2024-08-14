@@ -1,30 +1,28 @@
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import type {Moment} from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {Series} from 'sentry/types/echarts';
+import type {
   Commit,
   CommitFile,
   FilesByRepository,
-  ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
   Repository,
-} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+} from 'sentry/types/integrations';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
-export type CommitsByRepository = {
-  [key: string]: Commit[];
-};
+type CommitsByRepository = Record<string, Commit[]>;
 
 /**
  * Convert list of individual file changes into a per-file summary grouped by repository
@@ -58,7 +56,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
  * Convert list of individual commits into a summary grouped by repository
  */
 export function getCommitsByRepository(commitList: Commit[]): CommitsByRepository {
-  return commitList.reduce((commitsByRepository, commit) => {
+  return commitList.reduce<CommitsByRepository>((commitsByRepository, commit) => {
     const repositoryName = commit.repository?.name ?? t('unknown');
 
     if (!commitsByRepository.hasOwnProperty(repositoryName)) {
@@ -91,7 +89,11 @@ export function getQuery({location, perPage = 40, activeRepository}: GetQueryPro
     return query;
   }
 
-  return {...query, repo_name: activeRepository.name};
+  return {
+    ...query,
+    repo_id: activeRepository.externalId,
+    repo_name: activeRepository.name,
+  };
 }
 
 /**
@@ -246,8 +248,10 @@ export function generateReleaseMarkLines(
     return markLines;
   }
 
-  const releaseAdopted = adoptionStages?.adopted && moment(adoptionStages.adopted);
-  if (releaseAdopted && releaseAdopted.isBetween(start, end)) {
+  const releaseAdopted: Moment | undefined = adoptionStages?.adopted
+    ? moment(adoptionStages.adopted)
+    : undefined;
+  if (releaseAdopted?.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.adopted,
@@ -258,8 +262,10 @@ export function generateReleaseMarkLines(
     );
   }
 
-  const releaseReplaced = adoptionStages?.unadopted && moment(adoptionStages.unadopted);
-  if (releaseReplaced && releaseReplaced.isBetween(start, end)) {
+  const releaseReplaced: Moment | undefined = adoptionStages?.unadopted
+    ? moment(adoptionStages.unadopted)
+    : undefined;
+  if (releaseReplaced?.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.unadopted,

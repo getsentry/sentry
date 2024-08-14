@@ -1,15 +1,14 @@
-import * as Sentry from '@sentry/react';
-import compact from 'lodash/compact';
-import isString from 'lodash/isString';
-import uniq from 'lodash/uniq';
+import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformType} from 'sentry/types';
-import {Image} from 'sentry/types/debugImage';
-import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
+import type {Image} from 'sentry/types/debugImage';
+import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -19,6 +18,103 @@ import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtens
 function escapeBashString(v: string) {
   return v.replace(/(["$`\\])/g, '\\$1');
 }
+interface ImageForAddressProps {
+  addrMode: Frame['addrMode'];
+  address: Frame['instructionAddr'];
+  event: Event;
+}
+
+interface HiddenFrameIndicesProps {
+  data: StacktraceType;
+  frameCountMap: {[frameIndex: number]: number};
+  toggleFrameMap: {[frameIndex: number]: boolean};
+}
+
+export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
+  const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
+
+  if (!images || !address) {
+    return null;
+  }
+
+  const image = images.find((img, idx) => {
+    if (!addrMode || addrMode === 'abs') {
+      const [startAddress, endAddress] = getImageRange(img);
+      return address >= (startAddress as any) && address < (endAddress as any);
+    }
+
+    return addrMode === `rel:${idx}`;
+  });
+
+  return image;
+}
+
+export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
+  if (!nextFrame) {
+    return false;
+  }
+  return (
+    frame.lineNo === nextFrame.lineNo &&
+    frame.instructionAddr === nextFrame.instructionAddr &&
+    frame.package === nextFrame.package &&
+    frame.module === nextFrame.module &&
+    frame.function === nextFrame.function
+  );
+}
+
+export function getRepeatedFrameIndices(data: StacktraceType) {
+  const repeats: number[] = [];
+  (data.frames ?? []).forEach((frame, frameIdx) => {
+    const nextFrame = (data.frames ?? [])[frameIdx + 1];
+    const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+
+    if (repeatedFrame) {
+      repeats.push(frameIdx);
+    }
+  });
+  return repeats;
+}
+
+export function getHiddenFrameIndices({
+  data,
+  toggleFrameMap,
+  frameCountMap,
+}: HiddenFrameIndicesProps) {
+  const repeatedIndeces = getRepeatedFrameIndices(data);
+  let hiddenFrameIndices: number[] = [];
+  Object.keys(toggleFrameMap)
+    .filter(frameIndex => toggleFrameMap[frameIndex] === true)
+    .forEach(indexString => {
+      const index = parseInt(indexString, 10);
+      const indicesToBeAdded: number[] = [];
+      let i = 1;
+      let numHidden = frameCountMap[index];
+      while (numHidden > 0) {
+        if (!repeatedIndeces.includes(index - i)) {
+          indicesToBeAdded.push(index - i);
+          numHidden -= 1;
+        }
+        i += 1;
+      }
+      hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
+    });
+  return hiddenFrameIndices;
+}
+
+export function getLastFrameIndex(frames: Frame[]) {
+  const inAppFrameIndexes = frames
+    .map((frame, frameIndex) => {
+      if (frame.inApp) {
+        return frameIndex;
+      }
+      return undefined;
+    })
+    .filter(frame => frame !== undefined);
+
+  return !inAppFrameIndexes.length
+    ? frames.length - 1
+    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+}
 
 // TODO(dcramer): support cookies
 export function getCurlCommand(data: EntryRequest['data']) {
@@ -27,6 +123,8 @@ export function getCurlCommand(data: EntryRequest['data']) {
   if (defined(data.method) && data.method !== 'GET') {
     result += ' \\\n -X ' + data.method;
   }
+
+  data.headers = data.headers?.filter(defined);
 
   // TODO(benvinegar): just gzip? what about deflate?
   const compressed = data.headers?.find(
@@ -59,16 +157,13 @@ export function getCurlCommand(data: EntryRequest['data']) {
         break;
 
       default:
-        if (isString(data.data)) {
+        if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
-        } else if (Object.keys(data.data).length === 0) {
-          // Do nothing with empty object data.
-        } else {
-          Sentry.withScope(scope => {
-            scope.setExtra('data', data);
-            Sentry.captureException(new Error('Unknown event data'));
-          });
         }
+      // It is common for `data.inferredContentType` to be
+      // "multipart/form-data" or "null", in which case, we do not attempt to
+      // serialize the `data.data` object as port of the cURL command.
+      // See https://github.com/getsentry/sentry/issues/71456
     }
   }
 
@@ -77,7 +172,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(query: string | [key: string, value: string][]) {
-  if (isString(query)) {
+  if (typeof query === 'string') {
     return query;
   }
 
@@ -220,18 +315,48 @@ export function parseAssembly(assembly: string | null) {
   return {name, version, culture, publicKeyToken};
 }
 
-export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) {
-  const fileExtensions = uniq(
-    compact(frames.map(frame => getFileExtension(frame.filename ?? '')))
-  );
+function getFramePlatform(frame: Frame) {
+  const fileExtension = getFileExtension(frame.filename ?? '');
+  const fileExtensionPlatform = fileExtension
+    ? fileExtensionToPlatform(fileExtension)
+    : null;
 
-  if (fileExtensions.length === 1) {
-    const newPlatform = fileExtensionToPlatform(fileExtensions[0]);
-
-    return newPlatform ?? platform;
+  if (fileExtensionPlatform) {
+    return fileExtensionPlatform;
   }
 
-  return platform;
+  if (frame.platform) {
+    return frame.platform;
+  }
+
+  return null;
+}
+
+/**
+ * Returns the representative platform for the given stack trace frames.
+ * Prioritizes recent in-app frames, checking first for a matching file extension
+ * and then for a frame.platform attribute [1].
+ *
+ * If none of the frames have a platform, falls back to the event platform.
+ *
+ * [1] https://develop.sentry.dev/sdk/event-payloads/stacktrace/#frame-attributes
+ */
+export function stackTracePlatformIcon(eventPlatform: PlatformKey, frames: Frame[]) {
+  const [inAppFrames, systemFrames] = partition(
+    // Reverse frames to get newest-first ordering
+    [...frames].reverse(),
+    frame => frame.inApp
+  );
+
+  for (const frame of [...inAppFrames, ...systemFrames]) {
+    const framePlatform = getFramePlatform(frame);
+
+    if (framePlatform) {
+      return framePlatform;
+    }
+  }
+
+  return eventPlatform;
 }
 
 export function isStacktraceNewestFirst() {
@@ -267,7 +392,18 @@ export function getThreadById(event: Event, tid?: number) {
   return threads?.data.values?.find(thread => thread.id === tid);
 }
 
-export function inferPlatform(event: Event, thread?: Thread): PlatformType {
+export function getStacktracePlatform(
+  event: Event,
+  stacktrace?: StacktraceType | null
+): PlatformKey {
+  const overridePlatform = stacktrace?.frames?.find(frame =>
+    defined(frame.platform)
+  )?.platform;
+
+  return overridePlatform ?? event.platform ?? 'other';
+}
+
+export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   const exception = getThreadException(event, thread);
   let exceptionFramePlatform: Frame | undefined = undefined;
 

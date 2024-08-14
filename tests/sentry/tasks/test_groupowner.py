@@ -2,19 +2,24 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.models import GroupRelease, Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
 class TestGroupOwners(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -59,6 +64,7 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         GroupRelease.objects.create(
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -95,6 +101,7 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_user_deletion_cascade(self):
         other_user = self.create_user()
         group = self.create_group()
@@ -115,7 +122,7 @@ class TestGroupOwners(TestCase):
         )
 
         assert GroupOwner.objects.count() == 2
-        with exempt_from_silo_limits(), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.delete()
         assert GroupOwner.objects.count() == 2
 
@@ -264,7 +271,7 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
         assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-        go = GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).first()
+        go = GroupOwner.objects.get(group=event_2.group, user_id=self.user_2.id)
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 

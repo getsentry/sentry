@@ -1,18 +1,17 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import isString from 'lodash/isString';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import Redirect from 'sentry/utils/redirect';
 import withApi from 'sentry/utils/withApi';
 
 type DetailsProps = {
@@ -81,7 +80,7 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
 
   hasProjectId() {
     const projectID = this.getProjectId();
-    return isString(projectID) && projectID.length > 0;
+    return typeof projectID === 'string' && projectID.length > 0;
   }
 
   getOrganizationId() {

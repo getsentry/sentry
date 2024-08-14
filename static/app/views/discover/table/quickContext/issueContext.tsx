@@ -4,17 +4,18 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {EventCause, StyledPanel} from 'sentry/components/events/eventCause';
-import {CauseHeader, DataSection} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
+import {StyledPanel, SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -27,7 +28,8 @@ import {
   ContextTitle,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -147,17 +149,16 @@ function IssueContext(props: BaseContextProps) {
               <IconUser size="md" />
             </StyledIconWrapper>
           )}
-          {getAssignedToDisplayName(issue)}
+          {getAssignedToDisplayName(issue) ?? t('No one')}
         </AssignedToBody>
       </IssueContextContainer>
     );
 
   const renderSuspectCommits = () =>
-    event &&
-    event.eventID &&
+    event?.eventID &&
     issue && (
       <SuspectCommitsContainer data-test-id="quick-context-suspect-commits-container">
-        <EventCause
+        <SuspectCommits
           project={issue.project}
           eventId={event.eventID}
           commitRow={QuickContextCommitRow}
@@ -191,11 +192,7 @@ const SuspectCommitsContainer = styled(ContextContainer)`
     box-shadow: none;
   }
 
-  ${DataSection} {
-    padding: 0;
-  }
-
-  ${CauseHeader} {
+  ${SuspectCommitHeader} {
     margin: ${space(2)} 0 ${space(0.75)};
   }
 `;

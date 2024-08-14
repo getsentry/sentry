@@ -1,24 +1,30 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import OptionManager, Value
+from sentry.db.models.manager.option import OptionManager
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
-class UserOptionManager(OptionManager["User"]):
-    def _make_key(
+class UserOptionManager(OptionManager["UserOption"]):
+    def _make_key(  # type: ignore[override]
         self,
         user: User | RpcUser | int,
         project: Project | int | None = None,
@@ -37,8 +43,8 @@ class UserOptionManager(OptionManager["User"]):
         return super()._make_key(metakey)
 
     def get_value(
-        self, user: User | RpcUser, key: str, default: Value | None = None, **kwargs: Any
-    ) -> Value:
+        self, user: User | RpcUser, key: str, default: Any | None = None, **kwargs: Any
+    ) -> Any:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -65,7 +71,7 @@ class UserOptionManager(OptionManager["User"]):
             return
         self._option_cache[metakey].pop(key, None)
 
-    def set_value(self, user: User | int, key: str, value: Value, **kwargs: Any) -> None:
+    def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
         project_id = kwargs.get("project_id", None)
@@ -100,7 +106,7 @@ class UserOptionManager(OptionManager["User"]):
         project: Project | int | None = None,
         organization: Organization | int | None = None,
         force_reload: bool = False,
-    ) -> Mapping[str, Value]:
+    ) -> Mapping[str, Any]:
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
@@ -122,7 +128,7 @@ class UserOptionManager(OptionManager["User"]):
 
         return self._option_cache.get(metakey, {})
 
-    def post_save(self, instance: UserOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: UserOption, created: bool, **kwargs: object) -> None:
         self.get_all_values(
             instance.user, instance.project_id, instance.organization_id, force_reload=True
         )
@@ -135,7 +141,7 @@ class UserOptionManager(OptionManager["User"]):
 
 # TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
-@control_silo_only_model
+@control_silo_model
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project OR an organization.
@@ -157,6 +163,8 @@ class UserOption(Model):
         - unused
      - issues:defaults:jira_server
         - unused
+    - issue_details_new_experience_q4_2023
+        - Whether the user has opted into the new issue details experience (boolean)
      - language
         - which language to display the app in
      - mail:email
@@ -185,7 +193,7 @@ class UserOption(Model):
         - unused
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
@@ -193,7 +201,7 @@ class UserOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects = UserOptionManager()
+    objects: ClassVar[UserOptionManager] = UserOptionManager()
 
     class Meta:
         app_label = "sentry"
@@ -201,3 +209,56 @@ class UserOption(Model):
         unique_together = (("user", "project_id", "key"), ("user", "organization_id", "key"))
 
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
+
+    @classmethod
+    def get_relocation_ordinal_fields(self, json_model: Any) -> list[str] | None:
+        # "global" user options (those with no organization and/or project scope) get a custom
+        # ordinal; non-global ones use the default ordering.
+        org_id = json_model["fields"].get("organization_id", None)
+        project_id = json_model["fields"].get("project_id", None)
+        if org_id is None and project_id is None:
+            return ["user", "key"]
+
+        return None
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        from sentry.users.models.user import User
+
+        old_user_id = self.user_id
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # If we are merging users, ignore the imported options and use the existing user's
+        # options instead.
+        if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
+            return None
+
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        # TODO(getsentry/team-ospo#190): This circular import is a bit gross. See if we can't find a
+        # better place for this logic to live.
+        from sentry.api.endpoints.user_details import UserOptionsSerializer
+
+        serializer_options = UserOptionsSerializer(data={self.key: self.value}, partial=True)
+        serializer_options.is_valid(raise_exception=True)
+
+        # TODO(getsentry/team-ospo#190): Find a more general solution to one-off indices such as
+        # this. We currently have this constraint on prod, but not in Django, probably from legacy
+        # SQL manipulation.
+        #
+        # Ensure that global (ie: `organization_id` and `project_id` both `NULL`) constraints are
+        # not duplicated on import.
+        if self.organization_id is None and self.project_id is None:
+            colliding_global_user_option = self.objects.filter(
+                user=self.user, key=self.key, organization_id__isnull=True, project_id__isnull=True
+            ).first()
+            if colliding_global_user_option is not None:
+                return None
+
+        return super().write_relocation_import(scope, flags)

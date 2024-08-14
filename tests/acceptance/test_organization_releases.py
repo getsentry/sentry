@@ -1,17 +1,22 @@
-from datetime import datetime
+from datetime import UTC, datetime
+from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
+
+pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test(stable=True)
+@no_silo_test
 class OrganizationReleasesTest(AcceptanceTestCase):
-    release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
+    release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)
 
     def setUp(self):
         super().setUp()
+
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -26,14 +31,15 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.path = f"/organizations/{self.org.slug}/releases/"
         self.project.update(first_event=timezone.now())
 
-    def test_list(self):
+    @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
+    def test_list(self, _):
         self.create_release(project=self.project, version="1.0", date_added=self.release_date)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases - with releases")
         # TODO(releases): add health data
 
-    def test_detail(self):
+    @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
+    def test_detail(self, _):
         release = self.create_release(
             project=self.project, version="1.0", date_added=self.release_date
         )
@@ -41,10 +47,10 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-        self.browser.snapshot("organization releases - detail")
         # TODO(releases): add health data
 
-    def test_detail_pick_project(self):
+    @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
+    def test_detail_pick_project(self, _):
         release = self.create_release(
             project=self.project,
             additional_projects=[self.project2],
@@ -56,7 +62,8 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         assert "Select a project to continue" in self.browser.element("[role='dialog'] header").text
 
     # This is snapshotting features that are enable through the discover and performance features.
-    def test_detail_with_discover_and_performance(self):
+    @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
+    def test_detail_with_discover_and_performance(self, _):
         with self.feature(["organizations:discover-basic", "organizations:performance-view"]):
             release = self.create_release(
                 project=self.project, version="1.0", date_added=self.release_date
@@ -65,5 +72,4 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("organization releases - detail with discover and performance")
             # TODO(releases): add health data

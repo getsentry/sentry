@@ -1,28 +1,42 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {
+  createOnDemandFilterWarning,
+  isOnDemandQueryString,
+  shouldDisplayOnDemandWidgetWarning,
+} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 import {
   DashboardFilterKeys,
-  DashboardFilters,
-  WidgetQuery,
-  WidgetType,
+  type DashboardFilters,
+  OnDemandExtractionState,
+  type ValidateWidgetResponse,
+  type WidgetQuery,
+  type WidgetType,
 } from 'sentry/views/dashboards/types';
+import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {BuildStep, SubHeading} from '../buildStep';
 
@@ -37,6 +51,7 @@ interface Props {
   organization: Organization;
   queries: WidgetQuery[];
   selection: PageFilters;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
@@ -57,6 +72,7 @@ export function FilterResultsStep({
   widgetType,
   selection,
   onQueryConditionChange,
+  validatedWidgetResponse,
 }: Props) {
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
 
@@ -99,6 +115,15 @@ export function FilterResultsStep({
 
   const datasetConfig = getDatasetConfig(widgetType);
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    tct(
+      'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+      {
+        strong: <strong />,
+      }
+    )
+  );
+
   return (
     <BuildStep
       title={t('Filter your results')}
@@ -112,7 +137,7 @@ export function FilterResultsStep({
       <StyledPageFilterBar>
         <ProjectPageFilter disabled />
         <EnvironmentPageFilter disabled />
-        <DatePageFilter alignDropdown="left" disabled />
+        <DatePageFilter disabled />
         <ReleasesProvider organization={organization} selection={selection}>
           <StyledReleasesSelectControl
             selectedReleases={
@@ -144,12 +169,25 @@ export function FilterResultsStep({
             >
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
+                  getFilterWarning={
+                    shouldDisplayOnDemandWidgetWarning(query, widgetType, organization)
+                      ? getOnDemandFilterWarning
+                      : undefined
+                  }
                   organization={organization}
                   pageFilters={selection}
                   onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
+                  dataset={getDiscoverDatasetFromWidgetType(widgetType)}
                 />
+                {shouldDisplayOnDemandWidgetWarning(query, widgetType, organization) && (
+                  <WidgetOnDemandQueryWarning
+                    query={query}
+                    validatedWidgetResponse={validatedWidgetResponse}
+                    queryIndex={queryIndex}
+                  />
+                )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -186,6 +224,44 @@ export function FilterResultsStep({
         )}
       </div>
     </BuildStep>
+  );
+}
+
+function WidgetOnDemandQueryWarning(props: {
+  query: WidgetQuery;
+  queryIndex: number;
+  validatedWidgetResponse: Props['validatedWidgetResponse'];
+}) {
+  const organization = useOrganization();
+  if (!hasOnDemandMetricWidgetFeature(organization)) {
+    return null;
+  }
+  if (!isOnDemandQueryString(props.query.conditions)) {
+    return null;
+  }
+
+  if (
+    props.validatedWidgetResponse?.data?.warnings?.queries?.[props.queryIndex] ===
+    OnDemandExtractionState.DISABLED_SPEC_LIMIT
+  ) {
+    return (
+      <OnDemandWarningIcon
+        msg={tct(
+          'We don’t routinely collect metrics for this property and you’ve exceeded the maximum number of extracted metrics for your organization. [strong:Please review your other widgets and remove any unused or less valuable queries marked with a (!) sign.]',
+          {strong: <strong />}
+        )}
+        color="yellow300"
+      />
+    );
+  }
+
+  return (
+    <OnDemandWarningIcon
+      msg={tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+        {strong: <strong />}
+      )}
+    />
   );
 }
 

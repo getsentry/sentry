@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
 import {AvatarUploader} from 'sentry/components/avatarUploader';
 import {Button} from 'sentry/components/button';
@@ -10,11 +10,15 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
 
 export type Model = Pick<AvatarUser, 'avatar'>;
@@ -39,6 +43,7 @@ type DefaultProps = {
   allowUpload?: boolean;
   defaultChoice?: DefaultChoice;
   type?: AvatarChooserType;
+  uploadDomain?: string;
 };
 
 type Props = {
@@ -69,6 +74,7 @@ class AvatarChooser extends Component<Props, State> {
     defaultChoice: {
       allowDefault: false,
     },
+    uploadDomain: '',
   };
 
   state: State = {
@@ -168,6 +174,7 @@ class AvatarChooser extends Component<Props, State> {
       title,
       help,
       defaultChoice,
+      uploadDomain,
     } = this.props;
     const {hasError, model, dataUrl} = this.state;
 
@@ -240,6 +247,7 @@ class AvatarChooser extends Component<Props, State> {
                   type={type!}
                   model={model}
                   savedDataUrl={savedDataUrl}
+                  uploadDomain={uploadDomain ?? ''}
                   updateDataUrlState={dataState => this.setState(dataState)}
                 />
               )}

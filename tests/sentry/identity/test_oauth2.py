@@ -10,13 +10,13 @@ import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)
@@ -126,7 +126,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "JSON" in result["error_description"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuth2LoginViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)

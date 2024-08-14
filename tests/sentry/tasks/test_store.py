@@ -4,16 +4,18 @@ from unittest import mock
 import pytest
 from django.test.utils import override_settings
 
-from sentry import quotas
-from sentry.event_manager import EventManager, HashDiscarded
+from sentry import options, quotas
+from sentry.event_manager import EventManager
+from sentry.exceptions import HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import (
+    is_process_disabled,
     preprocess_event,
     process_event,
     save_event,
     time_synthetic_monitoring_event,
 )
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -58,18 +60,6 @@ def mock_process_event():
 @pytest.fixture
 def mock_symbolicate_event():
     with mock.patch("sentry.tasks.symbolication.symbolicate_event") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_symbolicate_event_low_priority():
-    with mock.patch("sentry.tasks.symbolication.symbolicate_event_low_priority") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_get_symbolication_function():
-    with mock.patch("sentry.lang.native.processing.get_native_symbolication_function") as m:
         yield m
 
 
@@ -351,3 +341,13 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
         mock.ANY,
     )
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
+
+
+@django_db_all
+def test_killswitch():
+    assert not is_process_disabled(1, "asdasdasd", "null")
+    options.set("store.load-shed-process-event-projects-gradual", {1: 0.0})
+    assert not is_process_disabled(1, "asdasdasd", "null")
+    options.set("store.load-shed-process-event-projects-gradual", {1: 1.0})
+    assert is_process_disabled(1, "asdasdasd", "null")
+    options.set("store.load-shed-process-event-projects-gradual", {})

@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Alert, AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -9,7 +10,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +34,7 @@ function InnerGlobalSdkUpdateAlert(
 
   const handleSnoozePrompt = useCallback(() => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       feature: 'sdk_updates',
       status: 'snoozed',
     });
@@ -53,7 +54,7 @@ function InnerGlobalSdkUpdateAlert(
     let isUnmounted = false;
 
     promptsCheck(api, {
-      organizationId: organization.id,
+      organization,
       feature: 'sdk_updates',
     }).then(prompt => {
       if (isUnmounted) {

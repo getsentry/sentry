@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 import isodate
 from croniter import croniter
-from freezegun import freeze_time
-from rest_framework.request import Request
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
@@ -11,8 +11,10 @@ from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import no_silo_test
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
@@ -41,12 +43,12 @@ class DummyEndpoint(Endpoint):
 dummy_endpoint = DummyEndpoint.as_view()
 
 
-@control_silo_test
+@no_silo_test
 class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def assert_deprecation_metadata(self, request: Request, response: Response):
+    def assert_deprecation_metadata(self, request: HttpRequest, response: HttpResponse) -> None:
         assert "X-Sentry-Deprecation-Date" in response
         assert "X-Sentry-Replacement-Endpoint" in response
         assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()
@@ -105,12 +107,11 @@ class TestDeprecationDecorator(APITestCase):
             self.assert_not_deprecated("HEAD")
 
     def test_default_key(self):
-        with self.settings(
-            SENTRY_SELF_HOSTED=False,
-            SENTRY_OPTIONS={
+        with self.settings(SENTRY_SELF_HOSTED=False), override_options(
+            {
                 "api.deprecation.brownout-duration": custom_duration,
                 "api.deprecation.brownout-cron": custom_cron,
-            },
+            }
         ):
             options.delete("api.deprecation.brownout-cron")
             options.delete("api.deprecation.brownout-duration")
@@ -160,36 +161,32 @@ class TestDeprecationDecorator(APITestCase):
     def test_bad_schedule_format(self):
         brownout_start = timeiter.get_next(datetime)
         with freeze_time(brownout_start):
-            with self.settings(
-                SENTRY_SELF_HOSTED=False,
-                SENTRY_OPTIONS={
+            with self.settings(SENTRY_SELF_HOSTED=False), override_options(
+                {
                     "api.deprecation.brownout-duration": "bad duration",
                 },
             ):
                 options.delete("api.deprecation.brownout-duration")
                 self.assert_allowed_request("GET")
 
-            with self.settings(
-                SENTRY_SELF_HOSTED=False,
-                SENTRY_OPTIONS={
+            with self.settings(SENTRY_SELF_HOSTED=False), override_options(
+                {
                     "api.deprecation.brownout-duration": "PT1M",
                 },
             ):
                 options.delete("api.deprecation.brownout-duration")
                 self.assert_denied_request("GET")
 
-            with self.settings(
-                SENTRY_SELF_HOSTED=False,
-                SENTRY_OPTIONS={
+            with self.settings(SENTRY_SELF_HOSTED=False), override_options(
+                {
                     "api.deprecation.brownout-cron": "bad schedule",
                 },
             ):
                 options.delete("api.deprecation.brownout-cron")
                 self.assert_allowed_request("GET")
 
-            with self.settings(
-                SENTRY_SELF_HOSTED=False,
-                SENTRY_OPTIONS={
+            with self.settings(SENTRY_SELF_HOSTED=False), override_options(
+                {
                     "api.deprecation.brownout-cron": "0 12 * * *",
                 },
             ):

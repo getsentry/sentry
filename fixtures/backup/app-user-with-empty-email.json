@@ -1,0 +1,46 @@
+[
+  {
+    "model": "sentry.email",
+    "pk": 9,
+    "fields": {
+      "email": "",
+      "date_added": "2023-07-26T19:19:37.201Z"
+    }
+  },
+  {
+    "model": "sentry.user",
+    "pk": 34,
+    "fields": {
+      "password": "pbkdf2_sha256$260000$PZVIL4vL6NjJjNK7q3Pevw$BUL3Z3d3/UXcZDrZ4CuRBQjng4IypUeakfPicaQHgwQ=",
+      "last_login": null,
+      "username": "test_app-afcf782e-428d-475a-bb6f-d81b72505f6d",
+      "name": "",
+      "email": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_unclaimed": true,
+      "is_superuser": false,
+      "is_managed": false,
+      "is_sentry_app": true,
+      "is_password_expired": false,
+      "last_password_change": "2023-09-24T17:12:09.126Z",
+      "flags": "0",
+      "session_nonce": null,
+      "date_joined": "2023-07-26T19:19:37.198Z",
+      "last_active": "2023-07-26T19:19:37.198Z",
+      "avatar_type": 0,
+      "avatar_url": null
+    }
+  },
+  {
+    "model": "sentry.useremail",
+    "pk": 34,
+    "fields": {
+      "user": 34,
+      "email": "",
+      "validation_hash": "GXJ1pWLdSmbMFI1NxDpIv9CYufsSrWo0",
+      "date_hash_added": "2023-09-24T17:12:11.190Z",
+      "is_verified": false
+    }
+  }
+]

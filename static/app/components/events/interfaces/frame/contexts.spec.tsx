@@ -1,10 +1,12 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
 import {UserEventContext} from 'sentry/components/events/contexts/user';
 import {FILTER_MASK} from 'sentry/constants';
-import {DeviceContext} from 'sentry/types';
+import type {DeviceContext} from 'sentry/types/event';
 
 describe('User', function () {
   it("displays filtered values but doesn't use them for avatar", function () {
@@ -18,7 +20,7 @@ describe('User', function () {
           ip_address: '',
           data: {},
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
       />
     );
 
@@ -35,7 +37,7 @@ describe('User', function () {
           ip_address: '',
           data: {},
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
       />
     );
 
@@ -52,7 +54,7 @@ describe('User', function () {
           ip_address: '',
           data: {},
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
       />
     );
 
@@ -75,18 +77,14 @@ describe('Device', function () {
 
   describe('getInferredData', function () {
     it('renders', function () {
-      const {container} = render(
-        <DeviceEventContext data={device} event={TestStubs.Event()} />
-      );
-
-      expect(container).toSnapshot();
+      render(<DeviceEventContext data={device} event={EventFixture()} />);
     });
 
     it('renders screen_resolution inferred from screen_width_pixels and screen_height_pixels', function () {
       render(
         <DeviceEventContext
           data={{...device, screen_resolution: undefined}}
-          event={TestStubs.Event()}
+          event={EventFixture()}
         />
       );
 
@@ -115,7 +113,7 @@ describe('Device', function () {
             screen_width_pixels: undefined,
             screen_height_pixels: undefined,
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
         />
       );
 

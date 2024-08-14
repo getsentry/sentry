@@ -5,17 +5,15 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import ReleaseProjectEnvironment
+from sentry import release_health
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -30,15 +28,15 @@ def result_sorted(result):
     return result
 
 
-ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
-TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=2)
+ONE_DAY_AGO = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
+TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=2)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=303000)
 MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
 MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
-TIMESTAMP = to_timestamp(MOCK_DATETIME)
+TIMESTAMP = MOCK_DATETIME.timestamp()
 RECEIVED = TIMESTAMP
 SESSION_STARTED = TIMESTAMP // 3600 * 3600  # round to the hour
 
@@ -74,14 +72,21 @@ def make_session(project, **kwargs):
     )
 
 
-@region_silo_test
-class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
-    def adjust_start(self, date, interval):
-        return date  # sessions do not adjust start & end intervals
+def adjust_start(start: datetime.datetime, interval: int) -> datetime.datetime:
+    # align start and end to the beginning of the intervals
+    start, _end, _num_intervals = to_intervals(
+        start, start + datetime.timedelta(minutes=1), interval
+    )
+    return start
 
-    def adjust_end(self, date, interval):
-        return date  # sessions do not adjust start & end intervals
 
+def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
+    # align start and end to the beginning of the intervals
+    _start, end, _num_intervals = to_intervals(end - datetime.timedelta(minutes=1), end, interval)
+    return end
+
+
+class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -103,34 +108,32 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
-        self.store_session(
-            make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0")
+        self.bulk_store_sessions(
+            [
+                make_session(self.project1, started=SESSION_STARTED + 12 * 60),
+                make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0"),
+                make_session(self.project1, started=SESSION_STARTED - 60 * 60),
+                make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60),
+                make_session(self.project2, status="crashed"),
+                make_session(self.project2, environment="development"),
+                make_session(self.project3, errors=1, release="foo@1.2.0"),
+                make_session(
+                    self.project3,
+                    distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
+                    started=SESSION_STARTED - 60 * 60,
+                ),
+                make_session(
+                    self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
+                ),
+                make_session(self.project4),
+            ]
         )
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 60 * 60))
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60))
-        self.store_session(make_session(self.project2, status="crashed"))
-        self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
-        self.store_session(
-            make_session(
-                self.project3,
-                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=SESSION_STARTED - 60 * 60,
-            )
-        )
-        self.store_session(
-            make_session(
-                self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
-            )
-        )
-        self.store_session(make_session(self.project4))
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -224,19 +227,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
+        previous_start_of_day_snuba_format = (
+            MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
+        ).strftime(SNUBA_TIME_FORMAT)
 
-        # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
-        # sessions abstract this in adjust_start/adjust_end which take care of the differences
-        one_day = 24 * 60 * 60
-        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
-        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), one_day)
+        expected_start = MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
+        expected_end = MOCK_DATETIME_START_OF_DAY + datetime.timedelta(days=1)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "start": expected_start.strftime(SNUBA_TIME_FORMAT),
             "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
-            "intervals": [start_of_day_snuba_format],
-            "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
+            "intervals": [previous_start_of_day_snuba_format, start_of_day_snuba_format],
+            "groups": [
+                {"by": {}, "series": {"sum(session)": [0, 9]}, "totals": {"sum(session)": 9}}
+            ],
         }
 
         response = self.do_request(
@@ -244,23 +249,26 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         six_hours = 6 * 60 * 60
-        expected_start = self.adjust_start(
-            TWO_DAYS_AGO.replace(hour=18, minute=0, second=0), six_hours
-        )
-        expected_end = self.adjust_end(MOCK_DATETIME.replace(minute=28, second=0), six_hours)
+        expected_start = adjust_start(TWO_DAYS_AGO.replace(hour=12, minute=0, second=0), six_hours)
+        expected_end = adjust_end(MOCK_DATETIME.replace(minute=28, second=0), six_hours)
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "start": expected_start.strftime(SNUBA_TIME_FORMAT),
             "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
             "intervals": [
+                TWO_DAYS_AGO.replace(hour=12, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
                 TWO_DAYS_AGO.replace(hour=18, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
                 MOCK_DATETIME.replace(hour=0, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
                 MOCK_DATETIME.replace(hour=6, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
                 MOCK_DATETIME.replace(hour=12, minute=0, second=0).strftime(SNUBA_TIME_FORMAT),
             ],
             "groups": [
-                {"by": {}, "series": {"sum(session)": [0, 1, 2, 6]}, "totals": {"sum(session)": 9}}
+                {
+                    "by": {},
+                    "series": {"sum(session)": [0, 0, 1, 2, 6]},
+                    "totals": {"sum(session)": 9},
+                }
             ],
         }
 
@@ -271,19 +279,22 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             user=self.user2,
         )
 
+        start_of_previous_day = MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
         start_of_day_snuba_format = MOCK_DATETIME_START_OF_DAY.strftime(SNUBA_TIME_FORMAT)
+        start_of_previous_day_snuba_format = start_of_previous_day.strftime(SNUBA_TIME_FORMAT)
 
-        one_day = 24 * 60 * 60
-        expected_start = self.adjust_start(MOCK_DATETIME_START_OF_DAY, one_day)
-        expected_end = self.adjust_end(MOCK_DATETIME.replace(hour=12, minute=28, second=0), one_day)
+        expected_start = MOCK_DATETIME_START_OF_DAY - datetime.timedelta(days=1)
+        expected_end = MOCK_DATETIME_START_OF_DAY + datetime.timedelta(days=1)
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
             "start": expected_start.strftime(SNUBA_TIME_FORMAT),
             "end": expected_end.strftime(SNUBA_TIME_FORMAT),
             "query": "",
-            "intervals": [start_of_day_snuba_format],
-            "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
+            "intervals": [start_of_previous_day_snuba_format, start_of_day_snuba_format],
+            "groups": [
+                {"by": {}, "series": {"sum(session)": [0, 9]}, "totals": {"sum(session)": 9}}
+            ],
         }
 
     def test_no_projects(self):
@@ -308,15 +319,11 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
 
-            # (RaduW.) Horrible hack, start and end are adjusted differently on metrics layer and in the
-            # sessions abstract this in adjust_start/adjust_end which take care of the differences
             ten_min = 10 * 60
-            expected_start = self.adjust_start(
+            expected_start = adjust_start(
                 MOCK_DATETIME.replace(hour=12, minute=0, second=0), ten_min
             )
-            expected_end = self.adjust_end(
-                MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min
-            )
+            expected_end = adjust_end(MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min)
 
             assert result_sorted(response.data) == {
                 "start": expected_start.strftime(SNUBA_TIME_FORMAT),
@@ -352,19 +359,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
 
-            from sentry.api.endpoints.organization_sessions import release_health
-
-            if release_health.is_metrics_based():
+            if release_health.backend.is_metrics_based():
                 # With the metrics backend, we should get exactly what we asked for,
-                # 6 intervals with 10 second length. However, because of rounding,
-                # we get it rounded to the next minute (see
-                # https://github.com/getsentry/sentry/blob/d6c59c32307eee7162301c76b74af419055b9b39/src/sentry/snuba
-                # /sessions_v2.py#L388-L392)
-                assert len(response.data["intervals"]) == 9
+                # 6 intervals with 10 second length. However, since we add both the
+                # starting and ending interval we get 7 intervals.
+                assert len(response.data["intervals"]) == 7
             else:
-                # With the sessions backend, the entire period will be aligned
-                # to one hour, and the resolution will still be one minute:
-                assert len(response.data["intervals"]) == 38
+                # With the sessions backend, the resolution will be 1m and will include starting and ending
+                # minute so 2 intervals
+                assert len(response.data["intervals"]) == 2
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_projects(self):
@@ -379,7 +382,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [5]}, "totals": {"sum(session)": 5}}
+            {"by": {}, "series": {"sum(session)": [0, 5]}, "totals": {"sum(session)": 5}}
         ]
 
     @freeze_time(MOCK_DATETIME)
@@ -392,21 +395,18 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         response = req()
         assert response.status_code == 200
 
-        from sentry.api.endpoints.organization_sessions import release_health
-
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
                     "by": {},
                     "totals": {"anr_rate()": 0.0, "crash_free_rate(user)": 1.0},
-                    "series": {"anr_rate()": [0.0], "crash_free_rate(user)": [1.0]},
+                    "series": {"anr_rate()": [None, 0.0], "crash_free_rate(user)": [None, 1.0]},
                 }
             ]
         else:
@@ -416,19 +416,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = req(field=["anr_rate()", "sum(session)"])
         assert response.status_code == 200
 
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
                     "by": {},
                     "totals": {"anr_rate()": 0.0, "sum(session)": 9},
-                    "series": {"anr_rate()": [0.0], "sum(session)": [9]},
+                    "series": {"anr_rate()": [None, 0.0], "sum(session)": [0, 9]},
                 }
             ]
         else:
             # Only sum(session) is supported by the sessions backend
             assert response.data["groups"] == [
-                {"by": {}, "totals": {"sum(session)": 9}, "series": {"sum(session)": [9]}}
+                {"by": {}, "totals": {"sum(session)": 9}, "series": {"sum(session)": [0, 9]}}
             ]
 
     @freeze_time(MOCK_DATETIME)
@@ -445,7 +445,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {"by": {}, "series": {"sum(session)": [0, 1]}, "totals": {"sum(session)": 1}}
         ]
 
         response = self.do_request(
@@ -460,7 +460,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {"by": {}, "series": {"sum(session)": [0, 1]}, "totals": {"sum(session)": 1}}
         ]
 
     @freeze_time(MOCK_DATETIME)
@@ -477,7 +477,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {"by": {}, "series": {"sum(session)": [0, 1]}, "totals": {"sum(session)": 1}}
         ]
 
         response = self.do_request(
@@ -492,7 +492,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [2]}, "totals": {"sum(session)": 2}}
+            {"by": {}, "series": {"sum(session)": [0, 2]}, "totals": {"sum(session)": 2}}
         ]
 
         response = self.do_request(
@@ -510,12 +510,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.1.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"release": "foo@1.2.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
         ]
@@ -552,7 +552,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"session.status": status},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
                 "totals": {"sum(session)": 0},
             }
             for status in ("abnormal", "crashed", "errored", "healthy")
@@ -574,17 +574,17 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"project": self.project1.id},
-                "series": {"sum(session)": [4]},
+                "series": {"sum(session)": [0, 4]},
                 "totals": {"sum(session)": 4},
             },
             {
                 "by": {"project": self.project2.id},
-                "series": {"sum(session)": [2]},
+                "series": {"sum(session)": [0, 2]},
                 "totals": {"sum(session)": 2},
             },
             {
                 "by": {"project": self.project3.id},
-                "series": {"sum(session)": [3]},
+                "series": {"sum(session)": [0, 3]},
                 "totals": {"sum(session)": 3},
             },
         ]
@@ -605,12 +605,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"environment": "development"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"environment": "production"},
-                "series": {"sum(session)": [8]},
+                "series": {"sum(session)": [0, 8]},
                 "totals": {"sum(session)": 8},
             },
         ]
@@ -631,17 +631,17 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"sum(session)": [7]},
+                "series": {"sum(session)": [0, 7]},
                 "totals": {"sum(session)": 7},
             },
             {
                 "by": {"release": "foo@1.1.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"release": "foo@1.2.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
         ]
@@ -662,22 +662,22 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"session.status": "abnormal"},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
                 "totals": {"sum(session)": 0},
             },
             {
                 "by": {"session.status": "crashed"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"sum(session)": [2]},
+                "series": {"sum(session)": [0, 2]},
                 "totals": {"sum(session)": 2},
             },
             {
                 "by": {"session.status": "healthy"},
-                "series": {"sum(session)": [6]},
+                "series": {"sum(session)": [0, 6]},
                 "totals": {"sum(session)": 6},
             },
         ]
@@ -698,22 +698,22 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"environment": "development", "release": "foo@1.0.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"environment": "production", "release": "foo@1.0.0"},
-                "series": {"sum(session)": [6]},
+                "series": {"sum(session)": [0, 6]},
                 "totals": {"sum(session)": 6},
             },
             {
                 "by": {"environment": "production", "release": "foo@1.1.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"environment": "production", "release": "foo@1.2.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
         ]
@@ -731,7 +731,11 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"count_unique(user)": [1]}, "totals": {"count_unique(user)": 1}}
+            {
+                "by": {},
+                "series": {"count_unique(user)": [0, 1]},
+                "totals": {"count_unique(user)": 1},
+            }
         ]
 
         response = self.do_request(
@@ -748,22 +752,22 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"session.status": "abnormal"},
-                "series": {"count_unique(user)": [0]},
+                "series": {"count_unique(user)": [0, 0]},
                 "totals": {"count_unique(user)": 0},
             },
             {
                 "by": {"session.status": "crashed"},
-                "series": {"count_unique(user)": [0]},
+                "series": {"count_unique(user)": [0, 0]},
                 "totals": {"count_unique(user)": 0},
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"count_unique(user)": [1]},
+                "series": {"count_unique(user)": [0, 1]},
                 "totals": {"count_unique(user)": 1},
             },
             {
                 "by": {"session.status": "healthy"},
-                "series": {"count_unique(user)": [0]},
+                "series": {"count_unique(user)": [0, 0]},
                 "totals": {"count_unique(user)": 0},
             },
         ]
@@ -838,7 +842,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {},
-                "series": {"count_unique(user)": [6]},
+                "series": {"count_unique(user)": [0, 6]},
                 "totals": {"count_unique(user)": 6},
             },
         ]
@@ -857,23 +861,23 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"session.status": "abnormal"},
-                "series": {"count_unique(user)": [1]},
+                "series": {"count_unique(user)": [0, 1]},
                 "totals": {"count_unique(user)": 1},
             },
             {
                 "by": {"session.status": "crashed"},
-                "series": {"count_unique(user)": [1]},
+                "series": {"count_unique(user)": [0, 1]},
                 "totals": {"count_unique(user)": 1},
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"count_unique(user)": [1]},
+                "series": {"count_unique(user)": [0, 1]},
                 "totals": {"count_unique(user)": 1},
             },
             {
                 # user
                 "by": {"session.status": "healthy"},
-                "series": {"count_unique(user)": [3]},
+                "series": {"count_unique(user)": [0, 3]},
                 "totals": {"count_unique(user)": 3},
             },
         ]
@@ -908,7 +912,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert group["totals"] == pytest.approx(expected)
         for key, series in group["series"].items():
-            assert series == pytest.approx([expected[key]])
+            assert series == pytest.approx([None, expected[key]])
 
     @freeze_time(MOCK_DATETIME)
     def test_duration_percentiles_groupby(self):
@@ -941,19 +945,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             if group["by"] == {"session.status": "healthy"}:
                 assert group["totals"] == pytest.approx(expected)
                 for key, series in group["series"].items():
-                    assert series == pytest.approx([expected[key]])
+                    assert series == pytest.approx([None, expected[key]])
             else:
                 # Everything's none:
                 assert group["totals"] == {key: None for key in expected}, group["by"]
-                assert group["series"] == {key: [None] for key in expected}
+                assert group["series"] == {key: [None, None] for key in expected}
 
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded(self):
-        # 2 * 3 => only show two groups
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.snuba.metrics.query.MAX_POINTS", 6
+        # 2 * 4 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8), patch(
+            "sentry.snuba.metrics.query.MAX_POINTS", 8
         ):
             response = self.do_request(
                 {
@@ -975,7 +979,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "project": self.project1.id,
                     },
                     "totals": {"sum(session)": 3, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 3], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -984,16 +988,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "project": self.project3.id,
                     },
                     "totals": {"sum(session)": 2, "count_unique(user)": 1},
-                    "series": {"sum(session)": [0, 0, 2], "count_unique(user)": [0, 0, 1]},
+                    "series": {"sum(session)": [0, 0, 0, 2], "count_unique(user)": [0, 0, 0, 1]},
                 },
             ]
 
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded_groupby_status(self):
         """Get consistent result when grouping by status"""
-        # 2 * 3 => only show two groups
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.snuba.metrics.query.MAX_POINTS", 6
+        # 2 * 4 => only show two groups
+        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8), patch(
+            "sentry.snuba.metrics.query.MAX_POINTS", 8
         ):
             response = self.do_request(
                 {
@@ -1015,7 +1019,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1025,7 +1029,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1035,7 +1039,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "session.status": "errored",
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1045,7 +1049,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 3, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 3], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 3], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1055,7 +1059,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1065,7 +1069,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 0, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 0], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 0], "count_unique(user)": [0, 0, 0, 0]},
                 },
                 {
                     "by": {
@@ -1075,7 +1079,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "session.status": "errored",
                     },
                     "totals": {"sum(session)": 1, "count_unique(user)": 1},
-                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 1]},
+                    "series": {"sum(session)": [0, 0, 0, 1], "count_unique(user)": [0, 0, 0, 1]},
                 },
                 {
                     "by": {
@@ -1085,7 +1089,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                         "environment": "production",
                     },
                     "totals": {"sum(session)": 1, "count_unique(user)": 0},
-                    "series": {"sum(session)": [0, 0, 1], "count_unique(user)": [0, 0, 0]},
+                    "series": {"sum(session)": [0, 0, 0, 1], "count_unique(user)": [0, 0, 0, 0]},
                 },
             ]
 
@@ -1104,7 +1108,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {"by": {}, "series": {"sum(session)": [0, 1]}, "totals": {"sum(session)": 1}}
         ]
 
     @freeze_time(MOCK_DATETIME)
@@ -1126,12 +1130,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [3]},
+                "series": {"count_unique(user)": [0, 0], "sum(session)": [0, 3]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 3},
             },
             {
                 "by": {"release": "foo@1.1.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [1]},
+                "series": {"count_unique(user)": [0, 0], "sum(session)": [0, 1]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 1},
             },
         ]
@@ -1189,12 +1193,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {
                 "by": {"release": "ahmed@1.0.0"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
             {
                 "by": {"release": "ahmed@1.1.0"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -1222,12 +1226,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {
                 "by": {"release": "ahmed2@1.2.5+125"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
             {
                 "by": {"release": "ahmed2@1.2.6+126"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -1255,12 +1259,12 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {
                 "by": {"release": "ahmed@1.2.3+123"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
             {
                 "by": {"release": "ahmed@1.2.4+124"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -1302,31 +1306,9 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {
                 "by": {"release": "adopted_release"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
-
-
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-@region_silo_test
-class OrganizationSessionsEndpointMetricsTest(
-    BaseMetricsTestCase, OrganizationSessionsEndpointTest
-):
-    def adjust_start(self, start: datetime.datetime, interval: int) -> datetime.datetime:
-        # metrics align start and end to the beginning of the intervals
-        start, _end, _num_intervals = to_intervals(
-            start, start + datetime.timedelta(minutes=1), interval
-        )
-        return start
-
-    def adjust_end(self, end: datetime.datetime, interval: int) -> datetime.datetime:
-        # metrics align start and end to the beginning of the intervals
-        _start, end, _num_intervals = to_intervals(
-            end - datetime.timedelta(minutes=1), end, interval
-        )
-        return end
-
-    """Repeat all tests with metrics backend"""
 
     @freeze_time(MOCK_DATETIME)
     def test_orderby(self):
@@ -1410,7 +1392,10 @@ class OrganizationSessionsEndpointMetricsTest(
                     "environment": "production",
                 },
                 "totals": {"sum(session)": 3, "p95(session.duration)": 25000.0},
-                "series": {"sum(session)": [0, 3], "p95(session.duration)": [None, 25000.0]},
+                "series": {
+                    "sum(session)": [0, 0, 3],
+                    "p95(session.duration)": [None, None, 25000.0],
+                },
             },
             {
                 "by": {
@@ -1419,7 +1404,10 @@ class OrganizationSessionsEndpointMetricsTest(
                     "environment": "production",
                 },
                 "totals": {"sum(session)": 1, "p95(session.duration)": 37000.0},
-                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 37000.0]},
+                "series": {
+                    "sum(session)": [0, 0, 1],
+                    "p95(session.duration)": [None, None, 37000.0],
+                },
             },
             {
                 "by": {
@@ -1428,7 +1416,10 @@ class OrganizationSessionsEndpointMetricsTest(
                     "environment": "production",
                 },
                 "totals": {"sum(session)": 1, "p95(session.duration)": 49000.0},
-                "series": {"sum(session)": [0, 1], "p95(session.duration)": [None, 49000.0]},
+                "series": {
+                    "sum(session)": [0, 0, 1],
+                    "p95(session.duration)": [None, None, 49000.0],
+                },
             },
             {
                 "by": {
@@ -1437,7 +1428,10 @@ class OrganizationSessionsEndpointMetricsTest(
                     "environment": "production",
                 },
                 "totals": {"sum(session)": 2, "p95(session.duration)": 79400.0},
-                "series": {"sum(session)": [0, 2], "p95(session.duration)": [None, 79400.0]},
+                "series": {
+                    "sum(session)": [0, 0, 2],
+                    "p95(session.duration)": [None, None, 79400.0],
+                },
             },
         ]
 
@@ -1482,6 +1476,33 @@ class OrganizationSessionsEndpointMetricsTest(
             )
 
     @freeze_time(MOCK_DATETIME)
+    def test_wildcard_search(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "2d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="release:foo@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* AND release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* OR release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="(release:foo@* OR release:bar) OR project:1")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
         default_request = {
             "project": [-1],
@@ -1499,14 +1520,14 @@ class OrganizationSessionsEndpointMetricsTest(
         response = req(field=["sum(session)"], query="!session.status:healthy")
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [3]}, "totals": {"sum(session)": 3}}
+            {"by": {}, "series": {"sum(session)": [0, 3]}, "totals": {"sum(session)": 3}}
         ]
 
         # sum(session) filtered by multiple statuses adds them
         response = req(field=["sum(session)"], query="session.status:[healthy, errored]")
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [8]}, "totals": {"sum(session)": 8}}
+            {"by": {}, "series": {"sum(session)": [0, 8]}, "totals": {"sum(session)": 8}}
         ]
 
         response = req(
@@ -1519,19 +1540,19 @@ class OrganizationSessionsEndpointMetricsTest(
             {
                 "by": {"session.status": "errored"},
                 "totals": {"sum(session)": 2},
-                "series": {"sum(session)": [2]},
+                "series": {"sum(session)": [0, 2]},
             },
             {
                 "by": {"session.status": "healthy"},
                 "totals": {"sum(session)": 6},
-                "series": {"sum(session)": [6]},
+                "series": {"sum(session)": [0, 6]},
             },
         ]
 
         response = req(field=["sum(session)"], query="session.status:healthy release:foo@1.1.0")
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
-            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+            {"by": {}, "series": {"sum(session)": [0, 1]}, "totals": {"sum(session)": 1}}
         ]
 
         response = req(field=["sum(session)"], query="session.status:healthy OR release:foo@1.1.0")
@@ -1566,17 +1587,17 @@ class OrganizationSessionsEndpointMetricsTest(
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"sum(session)": [5]},
+                "series": {"sum(session)": [0, 5]},
                 "totals": {"sum(session)": 5},
             },
             {
                 "by": {"release": "foo@1.1.0"},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
                 "totals": {"sum(session)": 1},
             },
             {
                 "by": {"release": "foo@1.2.0"},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
                 "totals": {"sum(session)": 0},
             },
         ]
@@ -1657,14 +1678,13 @@ class OrganizationSessionsEndpointMetricsTest(
         }
 
         def req(**kwargs):
-            with self.feature("organizations:anr-rate"):
-                return self.do_request(dict(default_request, **kwargs))
+            return self.do_request(dict(default_request, **kwargs))
 
         # basic test case
         response = req()
         assert response.status_code == 200
         assert response.data["groups"] == [
-            {"by": {}, "totals": {"anr_rate()": 0.5}, "series": {"anr_rate()": [0.5]}}
+            {"by": {}, "totals": {"anr_rate()": 0.5}, "series": {"anr_rate()": [None, 0.5]}}
         ]
 
         # group by session.status
@@ -1687,8 +1707,8 @@ class OrganizationSessionsEndpointMetricsTest(
             {
                 "by": {"environment": "production", "release": "foo@1.0.0"},
                 "series": {
-                    "anr_rate()": [0.5],
-                    "foreground_anr_rate()": [0.25],
+                    "anr_rate()": [None, 0.5],
+                    "foreground_anr_rate()": [None, 0.25],
                 },
                 "totals": {
                     "anr_rate()": 0.5,
@@ -1696,23 +1716,6 @@ class OrganizationSessionsEndpointMetricsTest(
                 },
             },
         ]
-
-    @freeze_time(MOCK_DATETIME)
-    def test_anr_rate_without_feature_flag(self):
-        default_request = {
-            "project": [-1],
-            "statsPeriod": "1d",
-            "interval": "1d",
-            "field": ["anr_rate()"],
-        }
-
-        def req(**kwargs):
-            return self.do_request(dict(default_request, **kwargs))
-
-        # basic test case
-        response = req()
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "This organization does not have the ANR rate feature"}
 
     @freeze_time(MOCK_DATETIME)
     def test_crash_rate(self):
@@ -1761,10 +1764,10 @@ class OrganizationSessionsEndpointMetricsTest(
             {
                 "by": {"environment": "production", "release": "foo@1.0.0"},
                 "series": {
-                    "crash_free_rate(session)": [0.8333333333333334],
-                    "crash_free_rate(user)": [1.0],
-                    "crash_rate(session)": [0.16666666666666666],
-                    "crash_rate(user)": [0.0],
+                    "crash_free_rate(session)": [None, 0.8333333333333334],
+                    "crash_free_rate(user)": [None, 1.0],
+                    "crash_rate(session)": [None, 0.16666666666666666],
+                    "crash_rate(user)": [None, 0.0],
                 },
                 "totals": {
                     "crash_free_rate(session)": 0.8333333333333334,
@@ -1776,10 +1779,10 @@ class OrganizationSessionsEndpointMetricsTest(
             {
                 "by": {"environment": "development", "release": "foo@1.0.0"},
                 "series": {
-                    "crash_free_rate(session)": [1.0],
-                    "crash_free_rate(user)": [None],
-                    "crash_rate(session)": [0.0],
-                    "crash_rate(user)": [None],
+                    "crash_free_rate(session)": [None, 1.0],
+                    "crash_free_rate(user)": [None, None],
+                    "crash_rate(session)": [None, 0.0],
+                    "crash_rate(user)": [None, None],
                 },
                 "totals": {
                     "crash_free_rate(session)": 1.0,
@@ -1814,7 +1817,7 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.data["groups"] == [
             {
                 "by": {"release": "foo@1.1.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [1]},
+                "series": {"count_unique(user)": [0, 0], "sum(session)": [0, 1]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 1},
             }
         ]
@@ -1828,7 +1831,7 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.data["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"count_unique(user)": [0], "sum(session)": [3]},
+                "series": {"count_unique(user)": [0, 0], "sum(session)": [0, 3]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 3},
             }
         ]
@@ -1872,19 +1875,19 @@ class OrganizationSessionsEndpointMetricsTest(
             assert result_sorted(response.data)["groups"] == [
                 {
                     "by": {"environment": "", "release": ""},
-                    "series": {"sum(session)": [1]},
+                    "series": {"sum(session)": [0, 1]},
                     "totals": {"sum(session)": 1},
                 }
             ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -1977,17 +1980,17 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1D"},
                 "totals": {"crash_free_rate(session)": 0.8},
-                "series": {"crash_free_rate(session)": [0.8]},
+                "series": {"crash_free_rate(session)": [None, 0.8]},
             },
             {
                 "by": {"release": "1C"},
                 "totals": {"crash_free_rate(session)": 0.6666666666666667},
-                "series": {"crash_free_rate(session)": [0.6666666666666667]},
+                "series": {"crash_free_rate(session)": [None, 0.6666666666666667]},
             },
             {
                 "by": {"release": "1B"},
                 "totals": {"crash_free_rate(session)": 0.33333333333333337},
-                "series": {"crash_free_rate(session)": [0.33333333333333337]},
+                "series": {"crash_free_rate(session)": [None, 0.33333333333333337]},
             },
         ]
 
@@ -2035,42 +2038,42 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1B", "session.status": "abnormal"},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1B", "session.status": "crashed"},
                 "totals": {"sum(session)": 4},
-                "series": {"sum(session)": [4]},
+                "series": {"sum(session)": [0, 4]},
             },
             {
                 "by": {"release": "1B", "session.status": "errored"},
                 "totals": {"sum(session)": 3},
-                "series": {"sum(session)": [3]},
+                "series": {"sum(session)": [0, 3]},
             },
             {
                 "by": {"release": "1B", "session.status": "healthy"},
                 "totals": {"sum(session)": 10},
-                "series": {"sum(session)": [10]},
+                "series": {"sum(session)": [0, 10]},
             },
             {
                 "by": {"release": "1A", "session.status": "abnormal"},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1A", "session.status": "crashed"},
                 "totals": {"sum(session)": 2},
-                "series": {"sum(session)": [2]},
+                "series": {"sum(session)": [0, 2]},
             },
             {
                 "by": {"release": "1A", "session.status": "errored"},
                 "totals": {"sum(session)": 3},
-                "series": {"sum(session)": [3]},
+                "series": {"sum(session)": [0, 3]},
             },
             {
                 "by": {"release": "1A", "session.status": "healthy"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -2106,17 +2109,17 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1D"},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1C"},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1B"},
                 "totals": {"sum(session)": 2},
-                "series": {"sum(session)": [2]},
+                "series": {"sum(session)": [0, 2]},
             },
         ]
 
@@ -2135,22 +2138,22 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1D", "session.status": None},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1C", "session.status": None},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1B", "session.status": "abnormal"},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1B", "session.status": "crashed"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -2169,12 +2172,12 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1D", "session.status": None, "project": None},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
             {
                 "by": {"release": "1C", "session.status": None, "project": None},
                 "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
+                "series": {"sum(session)": [0, 0]},
             },
         ]
 
@@ -2250,12 +2253,12 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1B", "environment": "rando_env"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
             {
                 "by": {"release": "1A", "environment": "rando_env"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -2276,12 +2279,12 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1D", "environment": "production"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
             {
                 "by": {"release": "1C", "environment": "production"},
                 "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "series": {"sum(session)": [0, 1]},
             },
         ]
 
@@ -2360,11 +2363,11 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
             {
                 "by": {"release": "1B"},
                 "totals": {"sum(session)": 7},
-                "series": {"sum(session)": [7]},
+                "series": {"sum(session)": [0, 7]},
             },
             {
                 "by": {"release": "1A"},
                 "totals": {"sum(session)": 5},
-                "series": {"sum(session)": [5]},
+                "series": {"sum(session)": [0, 5]},
             },
         ]

@@ -1,26 +1,29 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Member} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;
+  isLoading: boolean;
   issueCount: number;
-  loading: boolean;
   members: Member[] | undefined;
   onCursor: CursorHandler;
   page: number;
   pageLinks: string;
-  previewGroups: string[] | null;
+  previewGroups: string[];
 };
 
 function PreviewTable({
@@ -30,11 +33,11 @@ function PreviewTable({
   onCursor,
   issueCount,
   page,
-  loading,
+  isLoading,
   error,
 }: Props) {
   const renderBody = () => {
-    if (loading) {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
 
@@ -53,7 +56,7 @@ function PreviewTable({
       );
     }
     const memberList = indexMembersByProject(members);
-    return previewGroups?.map((id, index) => {
+    return previewGroups.map((id, index) => {
       const group = GroupStore.get(id) as Group | undefined;
 
       return (
@@ -68,13 +71,14 @@ function PreviewTable({
           withChart={false}
           canSelect={false}
           showLastTriggered
+          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
       );
     });
   };
 
   const renderCaption = () => {
-    if (loading || error || !previewGroups) {
+    if (isLoading || error || !previewGroups) {
       return null;
     }
     const pageIssues = page * 5 + previewGroups.length;
@@ -90,13 +94,13 @@ function PreviewTable({
         pageLinks={pageLinks}
         onCursor={onCursor}
         caption={renderCaption()}
-        disabled={loading}
+        disabled={isLoading}
       />
     );
   };
 
   return (
-    <IssuesReplayCountProvider groupIds={previewGroups || []}>
+    <Fragment>
       <Panel>
         <GroupListHeader
           withChart={false}
@@ -105,7 +109,7 @@ function PreviewTable({
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}
-    </IssuesReplayCountProvider>
+    </Fragment>
   );
 }
 

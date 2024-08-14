@@ -3,27 +3,23 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  Project,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
-import {formatFloat} from 'sentry/utils/formatters';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -32,7 +28,6 @@ import {groupByTrend} from './utils';
 interface TeamStabilityProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
-  period?: string | null;
 }
 
 function TeamStability({
@@ -139,12 +134,13 @@ function TeamStability({
       response.intervals
     );
 
-    const countSeriesWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    const sumSessionsCount = Math.floor(sumSessions.length / 7);
+    const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     countSeries.forEach(
       (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)] += s.value)
     );
 
-    const sumSessionsWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
@@ -209,13 +205,13 @@ function TeamStability({
       isEmpty={projects.length === 0}
       emptyMessage={t('No projects with release health enabled')}
       emptyAction={
-        <Button
+        <LinkButton
           size="sm"
           external
           href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
         >
           {t('Learn More')}
-        </Button>
+        </LinkButton>
       }
       headers={[
         t('Project'),

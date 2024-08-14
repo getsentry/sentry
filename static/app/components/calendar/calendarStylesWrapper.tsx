@@ -26,7 +26,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayNumber {
     top: 3px;
     bottom: 3px;
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 
   .rdrDayNumber span {
@@ -181,7 +181,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrYearPicker select {
     background: none;
     color: ${p => p.theme.textColor};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeLarge};
     padding: ${space(0.25)} ${space(1)};
   }

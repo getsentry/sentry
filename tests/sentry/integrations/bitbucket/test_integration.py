@@ -3,23 +3,29 @@ from urllib.parse import quote, urlencode
 import responses
 from django.urls import reverse
 
-from sentry.models import Integration
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+from sentry.integrations.models.integration import Integration
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketIntegrationTest(APITestCase):
+    provider = BitbucketIntegrationProvider
+
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
-            provider="bitbucket",
+        self.integration = self.create_provider_integration(
+            provider=self.provider.key,
             external_id=self.subject,
             name="sentryuser",
             metadata={
                 "base_url": self.base_url,
+                "domain_name": "bitbucket.org/Test-Organization",
                 "shared_secret": self.shared_secret,
                 "subject": self.subject,
             },
@@ -138,3 +144,62 @@ class BitbucketIntegrationTest(APITestCase):
             {"identifier": "sentryuser/stuff-2018", "name": "sentryuser/stuff-2018"},
             {"identifier": "sentryuser/stuff-2019", "name": "sentryuser/stuff-2019"},
         ]
+
+    @responses.activate
+    def test_source_url_matches(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        test_cases = [
+            (
+                "https://bitbucket.org/Test-Organization/sentry/src/master/src/sentry/integrations/bitbucket/integration.py",
+                True,
+            ),
+            (
+                "https://notbitbucket.org/Test-Organization/sentry/src/master/src/sentry/integrations/bitbucket/integration.py",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        installation = self.integration.get_installation(self.organization.id)
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://bitbucket.org/Test-Organization/repo",
+                provider="integrations:bitbucket",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://bitbucket.org/Test-Organization/repo/src/master/src/sentry/integrations/bitbucket/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        installation = self.integration.get_installation(self.organization.id)
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://bitbucket.org/Test-Organization/repo",
+                provider="integrations:bitbucket",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://bitbucket.org/Test-Organization/repo/src/master/src/sentry/integrations/bitbucket/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/bitbucket/integration.py"
+        )

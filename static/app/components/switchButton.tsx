@@ -75,14 +75,16 @@ const SwitchButton = styled('button')<StyleProps>`
   height: ${getSize}px;
   width: ${p => getSize(p) * 1.875}px;
   border-radius: ${getSize}px;
-  transition: border 0.1s, box-shadow 0.1s;
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
 
   &[disabled] {
     cursor: not-allowed;
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;

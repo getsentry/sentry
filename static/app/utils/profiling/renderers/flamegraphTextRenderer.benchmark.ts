@@ -6,9 +6,10 @@ import maxBy from 'lodash/maxBy';
 
 import {initializeLocale} from '../../../bootstrap/initializeLocale';
 import {Flamegraph} from '../flamegraph';
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import type {FlamegraphFrame} from '../flamegraphFrame';
+import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
 import ios from '../profile/formats/ios/trace.json';
@@ -139,21 +140,24 @@ interface FramePartitionData {
 }
 
 const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
-  const framesPartitionedByWords = flamegraph.frames.reduce((acc, frame) => {
-    const words = frame.frame.name.split(' ');
-    words.forEach(w => {
-      if (!acc[w]) {
-        acc[w] = {
-          count: 0,
-          frames: new Set(),
-        };
-      }
-      const node = acc[w];
-      node.count++;
-      node.frames.add(frame);
-    });
-    return acc;
-  }, {} as Record<string, FramePartitionData>);
+  const framesPartitionedByWords = flamegraph.frames.reduce(
+    (acc, frame) => {
+      const words = frame.frame.name.split(' ');
+      words.forEach(w => {
+        if (!acc[w]) {
+          acc[w] = {
+            count: 0,
+            frames: new Set(),
+          };
+        }
+        const node = acc[w];
+        node.count++;
+        node.frames.add(frame);
+      });
+      return acc;
+    },
+    {} as Record<string, FramePartitionData>
+  );
 
   const [word, data] = maxBy(
     Object.entries(framesPartitionedByWords),

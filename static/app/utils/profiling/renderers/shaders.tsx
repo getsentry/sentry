@@ -1,4 +1,4 @@
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
 export const vertex = () => `
 attribute vec2 a_position;
@@ -51,7 +51,7 @@ void main() {
   vec4 color = vec4(v_color);
 
   if(u_grayscale && v_is_search_result == 0.0) {
-    color = vec4(${theme.COLORS.FRAME_GRAYSCALE_COLOR.join(',')});
+    color = vec4(${theme.COLORS.FRAME_FALLBACK_COLOR.join(',')});
   }
 
   if (u_draw_border) {

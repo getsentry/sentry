@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
-
-from sentry.models import Commit, CommitAuthor, Repository
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.repository import Repository
+from sentry.testutils.cases import APITestCase
 from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
@@ -62,7 +61,6 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
@@ -98,6 +96,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
         assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author is not None
         assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
@@ -145,6 +144,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
         assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author is not None
         assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None

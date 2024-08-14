@@ -1,15 +1,18 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -20,17 +23,20 @@ import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {DASHBOARDS_TEMPLATES} from '../data';
+import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
-import {DashboardDetails, DashboardListItem} from '../types';
+import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
@@ -50,15 +56,15 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ManageDashboards extends AsyncView<Props, State> {
+class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -66,9 +72,9 @@ class ManageDashboards extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'dashboards',
         `/organizations/${organization.slug}/dashboards/`,
@@ -144,9 +150,10 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderTemplates() {
+    const {organization} = this.props;
     return (
       <TemplateContainer>
-        {DASHBOARDS_TEMPLATES.map(dashboard => (
+        {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
@@ -161,7 +168,6 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
-
     return (
       <StyledActions>
         <SearchBar
@@ -279,12 +285,12 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderBody() {
     const {showTemplates} = this.state;
-    const {organization} = this.props;
+    const {organization, api, location} = this.props;
 
     return (
       <Feature
         organization={organization}
-        features={['dashboards-edit']}
+        features="dashboards-edit"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
@@ -312,6 +318,8 @@ class ManageDashboards extends AsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
+                    <FeedbackWidgetButton />
+                    <DashboardImportButton />
                     <Button
                       data-test-id="dashboard-create"
                       onClick={event => {
@@ -324,6 +332,22 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
+                    <Feature features="dashboards-import">
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
                   </ButtonBar>
                 </Layout.HeaderActions>
               </Layout.Header>
@@ -354,7 +378,7 @@ const StyledActions = styled('div')`
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;

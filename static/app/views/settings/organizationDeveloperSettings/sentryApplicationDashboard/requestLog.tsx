@@ -1,22 +1,29 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment-timezone';
+import type moment from 'moment-timezone';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
+import type {
+  SentryApp,
+  SentryAppSchemaIssueLink,
+  SentryAppWebhookRequest,
+} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
 const ALL_EVENTS = t('All Events');
@@ -103,18 +110,18 @@ function TimestampLink({date, link}: {date: moment.MomentInput; link?: string}) 
   );
 }
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   app: SentryApp;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentPage: number;
   errorsOnly: boolean;
   eventType: string;
   requests: SentryAppWebhookRequest[];
 };
 
-export default class RequestLog extends AsyncComponent<Props, State> {
+export default class RequestLog extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
 
   get hasNextPage() {
@@ -125,7 +132,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     return this.state.currentPage > 0;
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {slug} = this.props.app;
 
     const query: any = {};
@@ -269,13 +276,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
         <PaginationButtons>
           <Button
-            icon={<IconChevron direction="left" size="sm" />}
+            icon={<IconChevron direction="left" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
             aria-label={t('Previous page')}
           />
           <Button
-            icon={<IconChevron direction="right" size="sm" />}
+            icon={<IconChevron direction="right" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
             aria-label={t('Next page')}

@@ -7,7 +7,7 @@ import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/utils';
 import type {VisualMapComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import memoize from 'lodash/memoize';
 
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
@@ -16,7 +16,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -24,22 +24,25 @@ import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles'
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   TableData as TagTableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {getPerformanceDuration} from '../../utils';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import Tab from '../tabs';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
-import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -123,15 +126,10 @@ function TagsHeatMap(
 
   const xValues = new Set();
 
-  const histogramData =
-    tableData &&
-    tableData.histogram &&
-    tableData.histogram.data &&
-    tableData.histogram.data.length
-      ? tableData.histogram.data
-      : undefined;
-  const tagData =
-    tableData && tableData.tags && tableData.tags.data ? tableData.tags.data : undefined;
+  const histogramData = tableData?.histogram?.data?.length
+    ? tableData.histogram.data
+    : undefined;
+  const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
 
   const rowKey = histogramData && findRowKey(histogramData[0]);
 
@@ -247,7 +245,8 @@ function TagsHeatMap(
 
     const newTransactionEventView = eventView.clone();
 
-    newTransactionEventView.fields = [{field: aggregateColumn}];
+    // We need the traceSlug here to navigate to the transaction in the trace view.
+    newTransactionEventView.fields = [{field: aggregateColumn}, {field: 'trace'}];
     const [_, tagValue] = bucket.value;
 
     if (histogramBucketInfo && histogramData) {
@@ -353,11 +352,22 @@ function TagsHeatMap(
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateTransactionLink(transactionName)(
+                      const target = generateLinkToEventInTraceView({
+                        eventId: row.id,
+                        traceSlug: row.trace?.toString(),
+                        projectSlug: (row.project || row['project.name']).toString(),
+                        timestamp: row.timestamp,
+                        location: {
+                          ...location,
+                          query: {
+                            ...location.query,
+                            tab: Tab.TAGS,
+                          },
+                        },
                         organization,
-                        row,
-                        location.query
-                      );
+                        transactionName,
+                        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                      });
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>

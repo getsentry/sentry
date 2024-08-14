@@ -3,12 +3,14 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import newsletter
+from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthConfigEndpointTest(APITestCase):
     path = "/api/0/auth/config/"
 
@@ -30,7 +32,7 @@ class AuthConfigEndpointTest(APITestCase):
         assert response.data["nextUri"] == "/organizations/ricks-org/issues/"
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @exempt_from_silo_limits()  # Single org IS monolith mode
+    @assume_test_silo_mode(SiloMode.MONOLITH)  # Single org IS monolith mode
     def test_single_org(self):
         create_default_projects()
         response = self.client.get(self.path)
@@ -59,9 +61,8 @@ class AuthConfigEndpointTest(APITestCase):
         reason="Requires DummyNewsletter.",
     )
     def test_has_newsletter(self):
-        newsletter.backend.enable()
-        response = self.client.get(self.path)
-        newsletter.backend.disable()
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data["hasNewsletter"]

@@ -1,16 +1,24 @@
+from __future__ import annotations
+
 import functools
 import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
-import pytz
 from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
-from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.eventstore.models import Event
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -21,18 +29,17 @@ from sentry.tasks.unmerge import (
     get_group_creation_attributes,
     unmerge,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
-from sentry.utils.dates import to_timestamp
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-@patch("sentry.similarity.features.index", new=index)
+@patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
     def test_get_fingerprint(self):
         assert (
@@ -53,7 +60,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_group_creation_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -112,7 +119,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
             get_caches(),
@@ -128,7 +135,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 times_seen=1,
                 first_release=None,
                 culprit="",
-                data={"type": "default", "last_received": to_timestamp(now), "metadata": {}},
+                data={"type": "default", "last_received": now.timestamp(), "metadata": {}},
             ),
             [
                 self.store_event(
@@ -165,19 +172,23 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    def test_unmerge(self):
-        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
+    @mock.patch("sentry.analytics.record")
+    def test_unmerge(self, mock_record):
+        now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
 
-        def create_message_event(template, parameters, environment, release, fingerprint="group1"):
+        def create_message_event(
+            template, parameters, environment, release, fingerprint="group1"
+        ) -> Event:
             i = next(sequence)
 
             event_id = uuid.UUID(fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080)).hex
@@ -215,7 +226,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return event
 
-        events = {}
+        events: dict[str | None, list[Event]] = {}
 
         for event in (
             create_message_event(
@@ -250,7 +261,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         merge_source, source, destination = list(Group.objects.all())
 
         assert len(events) == 3
-        assert sum(map(len, events.values())) == 17
+        assert sum(len(x) for x in events.values()) == 17
 
         production_environment = Environment.objects.get(
             organization_id=project.organization_id, name="production"
@@ -265,7 +276,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert {
             (gtv.value, gtv.times_seen)
-            for gtv in tagstore.get_group_tag_values(
+            for gtv in tagstore.backend.get_group_tag_values(
                 source,
                 production_environment.id,
                 "color",
@@ -325,7 +336,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert {
             (gtv.value, gtv.times_seen)
-            for gtv in tagstore.get_group_tag_values(
+            for gtv in tagstore.backend.get_group_tag_values(
                 destination,
                 production_environment.id,
                 "color",
@@ -356,7 +367,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert {
             (gtk.value, gtk.times_seen)
-            for gtk in tagstore.get_group_tag_values(
+            for gtk in tagstore.backend.get_group_tag_values(
                 destination,
                 production_environment.id,
                 "color",
@@ -366,7 +377,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         rollup_duration = 3600
 
-        time_series = tsdb.get_range(
+        time_series = tsdb.backend.get_range(
             TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
@@ -375,7 +386,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
-        environment_time_series = tsdb.get_range(
+        environment_time_series = tsdb.backend.get_range(
             TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
@@ -391,9 +402,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 def function(aggregate, event):
                     return (aggregate if aggregate is not None else 0) + 1
 
-            expected = {}
+            expected: dict[float, float] = {}
             for event in events:
-                k = float((to_timestamp(event.datetime) // rollup_duration) * rollup_duration)
+                k = float((event.datetime.timestamp() // rollup_duration) * rollup_duration)
                 expected[k] = function(expected.get(k), event)
 
             return expected
@@ -435,7 +446,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             0,
         )
 
-        time_series = tsdb.get_distinct_counts_series(
+        time_series = tsdb.backend.get_distinct_counts_series(
             TSDBModel.users_affected_by_group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
@@ -444,7 +455,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
-        environment_time_series = tsdb.get_distinct_counts_series(
+        environment_time_series = tsdb.backend.get_distinct_counts_series(
             TSDBModel.users_affected_by_group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
@@ -456,7 +467,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
-            aggregate.add(get_event_user_from_interface(event.data["user"]).tag_value)
+            aggregate.add(
+                get_event_user_from_interface(event.data["user"], event.group.project).tag_value
+            )
+            mock_record.assert_called_with(
+                "eventuser_endpoint.request",
+                project_id=event.group.project.id,
+                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            )
             return aggregate
 
         for series in [time_series, environment_time_series]:
@@ -511,7 +529,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             items[i] = list(GroupRelease.objects.filter(group_id=i).values_list("id", flat=True))
 
         time_series = strip_zeroes(
-            tsdb.get_frequency_series(
+            tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_releases_by_group,
                 items,
                 now - timedelta(seconds=rollup_duration),
@@ -546,7 +564,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             items[i] = list(Environment.objects.all().values_list("id", flat=True))
 
         time_series = strip_zeroes(
-            tsdb.get_frequency_series(
+            tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_environments_by_group,
                 items,
                 now - timedelta(seconds=rollup_duration),

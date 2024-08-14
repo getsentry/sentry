@@ -1,15 +1,8 @@
-import re
-
-import responses
 from django.test import override_settings
 from requests import Request
 
 from sentry.integrations.jira_server.client import JiraServerClient
-from sentry.models import Integration
-from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
@@ -21,10 +14,10 @@ secret = "hush-hush-im-invisible"
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},
@@ -66,59 +59,3 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         ]
         for hc in header_components:
             assert hc in str(request.headers["Authorization"])
-
-    @responses.activate
-    def test_integration_proxy_is_active(self):
-        class JiraServerProxyTestClient(JiraServerClient):
-            _use_proxy_url_for_tests = True
-
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
-                assert (PROXY_OI_HEADER in request.headers) == is_proxy
-                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                assert ("Authorization" in request.headers) != is_proxy
-                if is_proxy:
-                    assert request.headers[PROXY_OI_HEADER] is not None
-
-        responses.add(
-            method=responses.GET,
-            # Use regex to create responses both from proxy and integration
-            url=re.compile(rf"\S+{self.jira_server_client.SERVER_INFO_URL}$"),
-            json={"ok": True},
-            status=200,
-        )
-
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = JiraServerProxyTestClient(
-                integration=self.integration, identity_id=self.identity.id
-            )
-            client.get_server_info()
-            request = responses.calls[0].request
-
-            assert client.SERVER_INFO_URL in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
-
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = JiraServerProxyTestClient(
-                integration=self.integration, identity_id=self.identity.id
-            )
-            client.get_server_info()
-            request = responses.calls[0].request
-
-            assert client.SERVER_INFO_URL in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
-
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
-            client = JiraServerProxyTestClient(
-                integration=self.integration, identity_id=self.identity.id
-            )
-            client.get_server_info()
-            request = responses.calls[0].request
-
-            assert client.SERVER_INFO_URL in request.url
-            assert client.base_url not in request.url
-            client.assert_proxy_request(request, is_proxy=True)

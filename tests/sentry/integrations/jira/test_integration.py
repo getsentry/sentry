@@ -1,4 +1,3 @@
-import copy
 from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
@@ -8,36 +7,43 @@ import responses
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from fixtures.integrations.jira import StubJiraApiClient
+from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
-from sentry.models import (
-    ExternalIssue,
-    GroupLink,
-    GroupMeta,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-)
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.integrations.jira.views import SALT
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase, IntegrationTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.skips import requires_snuba
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from sentry.utils.signing import sign
 from sentry_plugins.jira.plugin import JiraPlugin
+
+pytestmark = [requires_snuba]
 
 
 def get_client():
     return StubJiraApiClient()
 
 
-class JiraIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = Integration.objects.create(
+class RegionJiraIntegrationTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="jira:1",
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -47,13 +53,39 @@ class JiraIntegrationTest(APITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
-    def setUp(self):
-        super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.name = "Sentry Admin"
+            self.user.save()
         self.login_as(self.user)
+
+    def test_create_comment(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
+            with mock.patch.object(installation, "get_client", get_client):
+                installation.create_comment(1, self.user.id, group_note)
+                assert (
+                    mock_create_comment.call_args[0][1]
+                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
+                )
+
+    def test_update_comment(self):
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
+            with mock.patch.object(installation, "get_client", get_client):
+                installation.update_comment(1, self.user.id, group_note)
+                assert mock_update_comment.call_args[0] == (
+                    1,
+                    "123",
+                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
+                )
 
     def test_get_create_issue_config(self):
         event = self.store_event(
@@ -61,11 +93,13 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+        assert group is not None
+
         installation = self.integration.get_installation(self.organization.id)
         search_url = reverse(
             "sentry-extensions-jira-search",
@@ -178,14 +212,16 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+
         installation = self.integration.get_installation(self.organization.id)
-        with self.feature("organizations:customer-domains"), mock.patch.object(
-            installation, "get_client", get_client
+        with (
+            self.feature("system:multi-region"),
+            mock.patch.object(installation, "get_client", get_client),
         ):
             issue_config = installation.get_create_issue_config(group, self.user)
             assert f"{self.organization.slug}.testserver" in issue_config[2]["default"]
@@ -196,16 +232,20 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
 
         # When persisted reporter matches a user JIRA knows about, a default is picked.
         account_id = StubService.get_stub_data("jira", "user.json")["accountId"]
-        installation.store_issue_last_defaults(self.project, self.user, {"reporter": account_id})
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.store_issue_last_defaults(
+                self.project, self.user, {"reporter": account_id}
+            )
+
         with mock.patch.object(installation, "get_client", get_client):
             create_issue_config = installation.get_create_issue_config(group, self.user)
         reporter_field = [field for field in create_issue_config if field["name"] == "reporter"][0]
@@ -222,9 +262,10 @@ class JiraIntegrationTest(APITestCase):
         }
 
         # When persisted reporter does not match a user JIRA knows about, field is left blank.
-        installation.store_issue_last_defaults(
-            self.project, self.user, {"reporter": "invalid-reporter-id"}
-        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.store_issue_last_defaults(
+                self.project, self.user, {"reporter": "invalid-reporter-id"}
+            )
 
         with mock.patch.object(installation, "get_client", get_client):
             create_issue_config = installation.get_create_issue_config(group, self.user)
@@ -246,9 +287,9 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -271,10 +312,11 @@ class JiraIntegrationTest(APITestCase):
                 "reporter",
             ]
             # After ignoring "customfield_10200", it no longer shows up
-            installation.org_integration = integration_service.update_organization_integration(
-                org_integration_id=installation.org_integration.id,
-                config={"issues_ignored_fields": ["customfield_10200"]},
-            )
+            with assume_test_silo_mode_of(OrganizationIntegration):
+                installation.org_integration = integration_service.update_organization_integration(
+                    org_integration_id=installation.org_integration.id,
+                    config={"issues_ignored_fields": ["customfield_10200"]},
+                )
 
             fields = installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
@@ -297,16 +339,19 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-        )
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=installation.org_integration.id,
+                config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+            )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(
@@ -329,16 +374,19 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
-        )
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=installation.org_integration.id,
+                config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+            )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -362,16 +410,19 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
-        )
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=installation.org_integration.id,
+                config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
+            )
 
         with mock.patch.object(installation, "get_client", get_client):
             mock_fetch_issue_create_meta_return_value = json.loads(
@@ -405,18 +456,22 @@ class JiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
+        assert group is not None
         label_default = "hi"
 
         installation = self.integration.get_installation(self.organization.id)
-        installation.org_integration = integration_service.update_organization_integration(
-            org_integration_id=installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
-        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=installation.org_integration.id,
+                config={
+                    "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
+                },
+            )
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -557,23 +612,21 @@ class JiraIntegrationTest(APITestCase):
         assert result["key"] == "APP-123"
 
     def test_outbound_issue_sync(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-
         external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id, integration_id=integration.id, key="SEN-5"
+            organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
         )
 
-        IntegrationExternalProject.objects.create(
-            external_id="10100",
-            organization_integration_id=OrganizationIntegration.objects.get(
-                organization_id=self.organization.id, integration_id=integration.id
-            ).id,
-            resolved_status="10101",
-            unresolved_status="3",
-        )
+        with assume_test_silo_mode_of(IntegrationExternalProject):
+            IntegrationExternalProject.objects.create(
+                external_id="10100",
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization_id=self.organization.id, integration_id=self.integration.id
+                ).id,
+                resolved_status="10101",
+                unresolved_status="3",
+            )
 
-        installation = integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
 
         with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
             with mock.patch.object(installation, "get_client", get_client):
@@ -591,6 +644,7 @@ class JiraIntegrationTest(APITestCase):
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
         )
@@ -616,7 +670,9 @@ class JiraIntegrationTest(APITestCase):
         issue_id = "APP-123"
         installation = self.integration.get_installation(self.organization.id)
         external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+            organization_id=self.organization.id,
+            integration_id=installation.model.id,
+            key=issue_id,
         )
         responses.add(
             responses.GET,
@@ -636,7 +692,9 @@ class JiraIntegrationTest(APITestCase):
         installation = self.integration.get_installation(self.organization.id)
         assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
         external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+            organization_id=self.organization.id,
+            integration_id=installation.model.id,
+            key=issue_id,
         )
         responses.add(
             responses.GET,
@@ -661,8 +719,31 @@ class JiraIntegrationTest(APITestCase):
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
+
+@control_silo_test
+class JiraIntegrationTest(APITestCase):
+    @cached_property
+    def integration(self):
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Jira Cloud",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    def setUp(self):
+        super().setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+        self.login_as(self.user)
+
     def test_update_organization_config_sync_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -774,7 +855,7 @@ class JiraIntegrationTest(APITestCase):
         )
 
     def test_update_organization_config_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -808,7 +889,7 @@ class JiraIntegrationTest(APITestCase):
         ]
 
     def test_get_config_data(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
@@ -843,7 +924,7 @@ class JiraIntegrationTest(APITestCase):
         }
 
     def test_get_config_data_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -864,52 +945,11 @@ class JiraIntegrationTest(APITestCase):
             == "hello world, goodnight, moon"
         )
 
-    def test_create_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
-        group_note.data = {"text": comment}
-        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.create_comment(1, self.user.id, group_note)
-                assert (
-                    mock_create_comment.call_args[0][1]
-                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
-                )
-
-    def test_update_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
-        group_note.data = {"text": comment, "external_id": "123"}
-        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.update_comment(1, self.user.id, group_note)
-                assert mock_update_comment.call_args[0] == (
-                    1,
-                    "123",
-                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
-                )
-
 
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -929,7 +969,8 @@ class JiraMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("default_project", "SEN", self.project)
         self.plugin.set_option("instance_url", "https://example.atlassian.net", self.project)
         self.plugin.set_option("ignored_fields", "hellboy, meow", self.project)
-        self.installation = self.integration.get_installation(self.organization.id)
+        with assume_test_silo_mode_of(Integration):
+            self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
     def test_migrate_plugin(self):
@@ -952,9 +993,12 @@ class JiraMigrationIntegrationTest(APITestCase):
         plugin2_issue = GroupMeta.objects.create(
             key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
         )
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+            org_integration.save()
 
         with self.tasks():
             self.installation.migrate_issues()
@@ -976,8 +1020,9 @@ class JiraMigrationIntegrationTest(APITestCase):
             key=f"{self.plugin.slug}:tid", group_id=group.id, value="BAR-1"
         ).exists()
 
-        oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        assert len(oi.config["issues_ignored_fields"]) == 4
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+            assert len(oi.config["issues_ignored_fields"]) == 4
 
         assert self.plugin.get_option("enabled", self.project) is False
         assert plugin2.get_option("enabled", project2) is False
@@ -1025,6 +1070,7 @@ class JiraMigrationIntegrationTest(APITestCase):
             self.installation.migrate_issues()
 
 
+@control_silo_test
 class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
@@ -1036,7 +1082,7 @@ class JiraInstallationTest(IntegrationTestCase):
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             external_id="my-external-id",
@@ -1046,7 +1092,7 @@ class JiraInstallationTest(IntegrationTestCase):
     def assert_setup_flow(self):
         self.login_as(self.user)
         signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
-        params = {"signed_params": sign(**signed_data)}
+        params = {"signed_params": sign(salt=SALT, **signed_data)}
         resp = self.client.get(self.configure_path, params)
         assert resp.status_code == 302
         integration = Integration.objects.get(external_id="my-external-id")

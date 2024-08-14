@@ -1,7 +1,17 @@
+import {
+  SessionStatusCountByProjectInPeriodFixture,
+  SessionStatusCountByReleaseInPeriodFixture,
+  SessionTotalCountByProjectIn24hFixture,
+  SessionUserStatusCountByReleaseInPeriodFixture,
+  SesssionTotalCountByReleaseIn24hFixture,
+  UserTotalCountByProjectIn24hFixture,
+  UserTotalCountByReleaseIn24hFixture,
+} from 'sentry-fixture/sessions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {HealthStatsPeriodOption} from 'sentry/types';
+import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
 import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
 
@@ -19,144 +29,150 @@ describe('ReleasesRequest', () => {
     },
   };
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SessionStatusCountByReleaseInPeriod(),
-    match: [
-      MockApiClient.matchQuery({
-        query:
-          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-        interval: '1d',
-        statsPeriod: '14d',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project', 'release', 'session.status'],
-      }),
-    ],
-  });
+  let requestForAutoHealthStatsPeriodSessionHistogram: jest.Mock;
+  let requestForAutoTotalCountByProjectInPeriod: jest.Mock;
+  let requestForAutoTotalCountByReleaseInPeriod: jest.Mock;
 
-  const requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SessionStatusCountByProjectInPeriod(),
-    match: [
-      MockApiClient.matchQuery({
-        query: undefined,
-        interval: '1d',
-        statsPeriod: '14d',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project', 'session.status'],
-      }),
-    ],
-  });
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SessionStatusCountByReleaseInPeriodFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project', 'release', 'session.status'],
+        }),
+      ],
+    });
 
-  const requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SessionTotalCountByProjectIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query: undefined,
-        interval: '1d',
-        statsPeriod: '14d',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project'],
-      }),
-    ],
-  });
+    requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SessionStatusCountByProjectInPeriodFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query: undefined,
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project', 'session.status'],
+        }),
+      ],
+    });
 
-  const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query:
-          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-        interval: '1d',
-        statsPeriod: '14d',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project', 'release'],
-      }),
-    ],
-  });
+    requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SessionTotalCountByProjectIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query: undefined,
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project'],
+        }),
+      ],
+    });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sessions/`,
-    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query:
-          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-        interval: '1h',
-        statsPeriod: '24h',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project', 'release'],
-      }),
-    ],
-  });
+    requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SesssionTotalCountByReleaseIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project', 'release'],
+        }),
+      ],
+    });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SessionTotalCountByProjectIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query: undefined,
-        interval: '1h',
-        statsPeriod: '24h',
-        project: [`${projectId}`],
-        field: ['sum(session)'],
-        groupBy: ['project'],
-      }),
-    ],
-  });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sessions/`,
+      body: SesssionTotalCountByReleaseIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1h',
+          statsPeriod: '24h',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project', 'release'],
+        }),
+      ],
+    });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
-    match: [
-      MockApiClient.matchQuery({
-        query:
-          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-        interval: '1d',
-        statsPeriod: '14d',
-        project: [`${projectId}`],
-        field: ['count_unique(user)', 'sum(session)'],
-        groupBy: ['project', 'release', 'session.status'],
-      }),
-    ],
-  });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SessionTotalCountByProjectIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query: undefined,
+          interval: '1h',
+          statsPeriod: '24h',
+          project: [`${projectId}`],
+          field: ['sum(session)'],
+          groupBy: ['project'],
+        }),
+      ],
+    });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sessions/`,
-    body: TestStubs.UserTotalCountByReleaseIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query:
-          'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
-        interval: '1h',
-        statsPeriod: '24h',
-        project: [`${projectId}`],
-        field: ['count_unique(user)'],
-        groupBy: ['project', 'release'],
-      }),
-    ],
-  });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: SessionUserStatusCountByReleaseInPeriodFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1d',
+          statsPeriod: '14d',
+          project: [`${projectId}`],
+          field: ['count_unique(user)', 'sum(session)'],
+          groupBy: ['project', 'release', 'session.status'],
+        }),
+      ],
+    });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.UserTotalCountByProjectIn24h(),
-    match: [
-      MockApiClient.matchQuery({
-        query: undefined,
-        interval: '1h',
-        statsPeriod: '24h',
-        project: [`${projectId}`],
-        field: ['count_unique(user)'],
-        groupBy: ['project'],
-      }),
-    ],
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sessions/`,
+      body: UserTotalCountByReleaseIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+          interval: '1h',
+          statsPeriod: '24h',
+          project: [`${projectId}`],
+          field: ['count_unique(user)'],
+          groupBy: ['project', 'release'],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sessions/`,
+      body: UserTotalCountByProjectIn24hFixture(),
+      match: [
+        MockApiClient.matchQuery({
+          query: undefined,
+          interval: '1h',
+          statsPeriod: '24h',
+          project: [`${projectId}`],
+          field: ['count_unique(user)'],
+          groupBy: ['project'],
+        }),
+      ],
+    });
   });
 
   it('calculates correct session health data', async () => {

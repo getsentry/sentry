@@ -1,10 +1,16 @@
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {DashboardDetails, DashboardListItem, Widget} from 'sentry/views/dashboards/types';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {PageFilters} from 'sentry/types/core';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
@@ -21,7 +27,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -32,7 +38,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
 export function createDashboard(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
@@ -40,7 +46,7 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/`,
+    `/organizations/${orgSlug}/dashboards/`,
     {
       method: 'POST',
       data: {
@@ -57,6 +63,7 @@ export function createDashboard(
       },
       query: {
         project: projects,
+        environment,
       },
     }
   );
@@ -66,7 +73,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -107,7 +114,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -141,6 +148,7 @@ export function updateDashboard(
       data,
       query: {
         project: projects,
+        environment,
       },
     }
   );
@@ -153,7 +161,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -179,7 +187,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }
@@ -188,12 +196,12 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidget(
-  api: Client,
+export function validateWidgetRequest(
   orgId: string,
-  widget: Widget
-): Promise<undefined> {
-  const promise: Promise<undefined> = api.requestPromise(
+  widget: Widget,
+  selection: PageFilters
+) {
+  return [
     `/organizations/${orgId}/dashboards/widgets/`,
     {
       method: 'POST',
@@ -203,8 +211,19 @@ export function validateWidget(
         // when we save Dashboard page filters. This is being sent to
         // bypass validation when creating or updating dashboards
         project: [ALL_ACCESS_PROJECTS],
+        environment: selection.environments,
       },
-    }
-  );
+    },
+  ] as const;
+}
+
+export function validateWidget(
+  api: Client,
+  orgId: string,
+  widget: Widget
+): Promise<undefined> {
+  const {selection} = PageFiltersStore.getState();
+  const widgetQuery = validateWidgetRequest(orgId, widget, selection);
+  const promise: Promise<undefined> = api.requestPromise(widgetQuery[0], widgetQuery[1]);
   return promise;
 }

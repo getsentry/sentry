@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
@@ -7,12 +7,12 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils.snuba import raw_snql_query
 
 
 def fetch_unique_transaction_names(
-    project: Project, time_range: Tuple[datetime, datetime], limit: int
+    project: Project, time_range: tuple[datetime, datetime], limit: int
 ) -> Iterable[str]:
     then, now = time_range
     snuba_request = Request(

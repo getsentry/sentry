@@ -5,9 +5,10 @@ import shutil
 from collections import defaultdict
 from typing import Any
 
+import orjson
+
 from fixtures.integrations import FIXTURE_DIRECTORY
 from fixtures.integrations.stub_service import StubService
-from sentry.utils import json
 from sentry.utils.numbers import base32_encode
 
 
@@ -26,7 +27,7 @@ class MockService(StubService):
         super().__init__()
         self.mode = mode
         self._next_error_code = None
-        self._next_ids = defaultdict(lambda: 0)
+        self._next_ids = defaultdict(int)
 
         if self.mode == "file":
             path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data")
@@ -88,8 +89,7 @@ class MockService(StubService):
     def _get_project_path(self, project):
         path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)
 
-        if not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
         return path
 
     def _set_data(self, project, name, data):
@@ -100,8 +100,8 @@ class MockService(StubService):
             return
 
         path = os.path.join(self._get_project_path(project), f"{name}.json")
-        with open(path, "w") as f:
-            f.write(json.dumps(data))
+        with open(path, "wb") as f:
+            f.write(orjson.dumps(data))
 
     def _get_data(self, project, name):
         if self.mode == "memory":
@@ -113,5 +113,5 @@ class MockService(StubService):
         if not os.path.exists(path):
             return None
 
-        with open(path) as f:
-            return json.loads(f.read())
+        with open(path, "rb") as f:
+            return orjson.loads(f.read())

@@ -10,9 +10,8 @@ import pytest
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.io_main_thread_detector import (
     FileIOMainThreadDetector,
 )
@@ -37,7 +36,6 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test
 @pytest.mark.django_db
 class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self):
@@ -107,6 +105,11 @@ class FileIOMainThreadDetectorTest(TestCase):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["file.path"] = "somethins/stuff.txt/blah/yup/ios.nib"
 
+        assert self.find_problems(event) == []
+
+    def test_ignores_keyboard_files(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayout_iPhone.dat"
         assert self.find_problems(event) == []
 
     def test_gives_problem_correct_title(self):

@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useApi from 'sentry/utils/useApi';
@@ -10,7 +12,7 @@ describe('EvidencePreview', () => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/group-id/',
+      url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
@@ -39,7 +41,7 @@ describe('EvidencePreview', () => {
   });
 
   it('renders the span evidence correctly when request succeeds', async () => {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       occurrence: {
         evidenceDisplay: [
           {name: 'Transaction', value: '/api/0/transaction-test-endpoint/'},
@@ -50,7 +52,7 @@ describe('EvidencePreview', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 

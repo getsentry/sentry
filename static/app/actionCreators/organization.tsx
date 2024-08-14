@@ -6,19 +6,22 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 async function fetchOrg(
   api: Client,
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<Organization> {
   const [org] = await getPreloadedDataPromise(
     'organization',
@@ -28,28 +31,36 @@ async function fetchOrg(
       // If this url changes make sure to update the preload
       api.requestPromise(`/organizations/${slug}/`, {
         includeAllArgs: true,
-        query: {detailed: 0},
+        query: {detailed: 0, include_feature_flags: 1},
       }),
-    isInitialFetch
+    usePreload
   );
 
   if (!org) {
     throw new Error('retrieved organization is falsey');
   }
 
+  FeatureFlagOverrides.singleton().loadOrg(org);
+
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
+
+  const scope = Sentry.getCurrentScope();
+  // XXX(dcramer): this is duplicated in sdk.py on the backend
+  scope.setTag('organization', org.id);
+  scope.setTag('organization.slug', org.slug);
+  scope.setContext('organization', {id: org.id, slug: org.slug});
 
   return org;
 }
 
 async function fetchProjectsAndTeams(
   slug: string,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
-    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
+    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
   ]
 > {
   // Create a new client so the request is not cancelled
@@ -65,10 +76,10 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
-    isInitialFetch
+    usePreload
   );
 
   const teamsPromise = getPreloadedDataPromise(
@@ -80,7 +91,7 @@ async function fetchProjectsAndTeams(
       uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
         includeAllArgs: true,
       }),
-    isInitialFetch
+    usePreload
   );
 
   try {
@@ -109,12 +120,13 @@ async function fetchProjectsAndTeams(
  * @param slug The organization slug
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
+ * @param usePreload Should the preloaded data be used if available?
  */
 export function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
-  isInitialFetch?: boolean
+  usePreload?: boolean
 ) {
   if (!silent) {
     OrganizationStore.reset();
@@ -123,52 +135,62 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const loadOrganization = async () => {
-    try {
-      await fetchOrg(api, slug, isInitialFetch);
-    } catch (err) {
-      if (!err) {
-        return;
-      }
-
-      OrganizationStore.onFetchOrgError(err);
-
-      if (err.status === 403 || err.status === 401) {
-        const errMessage =
-          typeof err.responseJSON?.detail === 'string'
-            ? err.responseJSON?.detail
-            : typeof err.responseJSON?.detail?.message === 'string'
-            ? err.responseJSON?.detail.message
-            : null;
-
-        if (errMessage) {
-          addErrorMessage(errMessage);
-        }
-
-        return;
-      }
-
-      Sentry.captureException(err);
+  const getErrorMessage = err => {
+    if (typeof err.responseJSON?.detail === 'string') {
+      return err.responseJSON?.detail;
     }
+    if (typeof err.responseJSON?.detail?.message === 'string') {
+      return err.responseJSON?.detail.message;
+    }
+    return null;
   };
 
-  const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
-      slug,
-      isInitialFetch
-    );
+  const loadOrganization = () => {
+    return new Promise(async (resolve, reject) => {
+      let org: Organization | undefined = undefined;
+      try {
+        org = await fetchOrg(api, slug, usePreload);
+      } catch (err) {
+        if (!err) {
+          reject(err);
+          return;
+        }
 
-    ProjectsStore.loadInitialData(projects);
+        OrganizationStore.onFetchOrgError(err);
 
-    const teamPageLinks = resp?.getResponseHeader('Link');
-    if (teamPageLinks) {
-      const paginationObject = parseLinkHeader(teamPageLinks);
-      const hasMore = paginationObject?.next?.results ?? false;
-      const cursor = paginationObject.next?.cursor;
-      TeamStore.loadInitialData(teams, hasMore, cursor);
-    } else {
-      TeamStore.loadInitialData(teams);
-    }
+        if (err.status === 403 || err.status === 401) {
+          const errMessage = getErrorMessage(err);
+
+          if (errMessage) {
+            addErrorMessage(errMessage);
+            reject(errMessage);
+          }
+
+          return;
+        }
+        Sentry.captureException(err);
+      }
+      resolve(org);
+    });
+  };
+
+  const loadTeamsAndProjects = () => {
+    return new Promise(async resolve => {
+      const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+
+      ProjectsStore.loadInitialData(projects ?? []);
+
+      const teamPageLinks = resp?.getResponseHeader('Link');
+      if (teamPageLinks) {
+        const paginationObject = parseLinkHeader(teamPageLinks);
+        const hasMore = paginationObject?.next?.results ?? false;
+        const cursor = paginationObject.next?.cursor;
+        TeamStore.loadInitialData(teams, hasMore, cursor);
+      } else {
+        TeamStore.loadInitialData(teams);
+      }
+      resolve([projects, teams]);
+    });
   };
 
   return Promise.all([loadOrganization(), loadTeamsAndProjects()]);

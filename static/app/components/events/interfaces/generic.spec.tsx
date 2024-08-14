@@ -1,19 +1,22 @@
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Generic} from 'sentry/components/events/interfaces/generic';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 describe('Generic entry', function () {
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       _meta: {
         hpkp: {'': {rem: [['organization:1', 'x']]}},
       },
-    };
-    render(<Generic type="hpkp" data={null} meta={event._meta.hpkp} />, {
+    });
+    render(<Generic type={FoldSectionKey.HPKP} data={null} meta={event._meta?.hpkp} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

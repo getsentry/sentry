@@ -1,15 +1,14 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
-from sentry.models import (
-    Commit,
-    CommitFileChange,
-    ExternalActor,
-    ProjectCodeOwners,
-    ProjectOwnership,
-    Repository,
-)
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 LATEST_GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -79,12 +78,12 @@ class CodeOwnersTest(TestCase):
 
         assert code_owners.schema == {"$version": 1, "rules": []}
 
+    @patch("django.utils.timezone.now")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file):
-
+    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file, mock_timezone_now):
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
@@ -100,6 +99,8 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
+            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
+            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
@@ -120,6 +121,7 @@ class CodeOwnersTest(TestCase):
                 },
             ],
         }
+        assert code_owners.date_updated == mock_now
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",

@@ -1,22 +1,33 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
+import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
-import {tct, tn} from 'sentry/locale';
+import {Sticky} from 'sentry/components/sticky';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniq} from 'sentry/utils/array/uniq';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
@@ -36,9 +47,121 @@ type IssueListActionsProps = {
   selection: PageFilters;
   sort: string;
   statsPeriod: string;
-  onActionTaken?: (itemIds: string[]) => void;
-  onMarkReviewed?: (itemIds: string[]) => void;
+  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
+
+const animationProps: AnimationProps = {
+  initial: {translateY: 8, opacity: 0},
+  animate: {translateY: 0, opacity: 1},
+  exit: {translateY: -8, opacity: 0},
+  transition: {duration: 0.1},
+};
+
+function ActionsBarPriority({
+  anySelected,
+  narrowViewport,
+  displayReprocessingActions,
+  pageSelected,
+  queryCount,
+  selectedIdsSet,
+  multiSelected,
+  allInQuerySelected,
+  query,
+  handleDelete,
+  handleMerge,
+  handleUpdate,
+  sort,
+  selectedProjectSlug,
+  onSortChange,
+  onSelectStatsPeriod,
+  isSavedSearchesOpen,
+  statsPeriod,
+  selection,
+}: {
+  allInQuerySelected: boolean;
+  anySelected: boolean;
+  displayReprocessingActions: boolean;
+  handleDelete: () => void;
+  handleMerge: () => void;
+  handleUpdate: (data: IssueUpdateData) => void;
+  isSavedSearchesOpen: boolean;
+  multiSelected: boolean;
+  narrowViewport: boolean;
+  onSelectStatsPeriod: (period: string) => void;
+  onSortChange: (sort: string) => void;
+  pageSelected: boolean;
+  query: string;
+  queryCount: number;
+  selectedIdsSet: Set<string>;
+  selectedProjectSlug: string | undefined;
+  selection: PageFilters;
+  sort: string;
+  statsPeriod: string;
+}) {
+  const shouldDisplayActions = anySelected && !narrowViewport;
+
+  return (
+    <ActionsBarContainer>
+      {!narrowViewport && (
+        <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
+          <Checkbox
+            onChange={() => SelectedGroupStore.toggleSelectAll()}
+            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+            disabled={displayReprocessingActions}
+          />
+        </ActionsCheckbox>
+      )}
+      {!displayReprocessingActions && (
+        <AnimatePresence initial={false} mode="wait">
+          {shouldDisplayActions && (
+            <HeaderButtonsWrapper key="actions" {...animationProps}>
+              <ActionSet
+                queryCount={queryCount}
+                query={query}
+                issues={selectedIdsSet}
+                allInQuerySelected={allInQuerySelected}
+                anySelected={anySelected}
+                multiSelected={multiSelected}
+                selectedProjectSlug={selectedProjectSlug}
+                onShouldConfirm={action =>
+                  shouldConfirm(action, {pageSelected, selectedIdsSet})
+                }
+                onDelete={handleDelete}
+                onMerge={handleMerge}
+                onUpdate={handleUpdate}
+              />
+            </HeaderButtonsWrapper>
+          )}
+          {!anySelected && (
+            <HeaderButtonsWrapper key="sort" {...animationProps}>
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </HeaderButtonsWrapper>
+          )}
+        </AnimatePresence>
+      )}
+      <AnimatePresence initial={false} mode="wait">
+        {!anySelected ? (
+          <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
+            <Headers
+              onSelectStatsPeriod={onSelectStatsPeriod}
+              selection={selection}
+              statsPeriod={statsPeriod}
+              isReprocessingQuery={displayReprocessingActions}
+              isSavedSearchesOpen={isSavedSearchesOpen}
+            />
+          </AnimatedHeaderItemsContainer>
+        ) : (
+          <motion.div key="sort" {...animationProps}>
+            <SortDropdownMargin>
+              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+            </SortDropdownMargin>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </ActionsBarContainer>
+  );
+}
 
 function IssueListActions({
   allResultsVisible,
@@ -46,7 +169,6 @@ function IssueListActions({
   groupIds,
   onActionTaken,
   onDelete,
-  onMarkReviewed,
   onSelectStatsPeriod,
   onSortChange,
   queryCount,
@@ -56,6 +178,7 @@ function IssueListActions({
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {
     pageSelected,
@@ -73,7 +196,7 @@ function IssueListActions({
 
   const disableActions = useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 
@@ -128,18 +251,28 @@ function IssueListActions({
         },
         {}
       );
+      if (selection.projects[0]) {
+        const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
+        trackAnalytics('issues_stream.merged', {
+          organization,
+          project_id: trackProject?.id,
+          platform: trackProject?.platform,
+          items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
+        });
+      }
     });
   }
 
-  function handleUpdate(data?: any) {
-    if (data.status === 'ignored') {
-      const statusDetails = data.statusDetails.ignoreCount
-        ? 'ignoreCount'
-        : data.statusDetails.ignoreDuration
-        ? 'ignoreDuration'
-        : data.statusDetails.ignoreUserCount
-        ? 'ignoreUserCount'
-        : undefined;
+  function handleUpdate(data: IssueUpdateData) {
+    if ('status' in data && data.status === 'ignored') {
+      const statusDetails =
+        'ignoreCount' in data.statusDetails
+          ? 'ignoreCount'
+          : 'ignoreDuration' in data.statusDetails
+            ? 'ignoreDuration'
+            : 'ignoreUserCount' in data.statusDetails
+              ? 'ignoreUserCount'
+              : undefined;
       trackAnalytics('issues_stream.archived', {
         action_status_details: statusDetails,
         action_substatus: data.substatus,
@@ -147,13 +280,14 @@ function IssueListActions({
       });
     }
 
+    if ('priority' in data) {
+      trackAnalytics('issues_stream.updated_priority', {
+        organization,
+        priority: data.priority,
+      });
+    }
+
     actionSelectedGroups(itemIds => {
-      if (data?.inbox === false) {
-        onMarkReviewed?.(itemIds ?? []);
-      }
-
-      onActionTaken?.(itemIds ?? []);
-
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
       //
@@ -161,6 +295,10 @@ function IssueListActions({
       // * users with no global views requires a project to be specified
       // * users with global views need to be explicit about what projects the query will run against
       const projectConstraints = {project: selection.projects};
+
+      if (itemIds?.length) {
+        addLoadingMessage(t('Saving changes\u2026'));
+      }
 
       bulkUpdate(
         api,
@@ -170,56 +308,66 @@ function IssueListActions({
           data,
           query,
           environment: selection.environments,
+          failSilently: true,
           ...projectConstraints,
           ...selection.datetime,
         },
-        {}
+        {
+          success: () => {
+            clearIndicators();
+            onActionTaken?.(itemIds ?? [], data);
+
+            // Prevents stale data on issue details
+            if (itemIds?.length) {
+              for (const itemId of itemIds) {
+                queryClient.invalidateQueries({
+                  queryKey: [`/organizations/${organization.slug}/issues/${itemId}/`],
+                  exact: false,
+                });
+              }
+            } else {
+              // If we're doing a full query update we invalidate all issue queries to be safe
+              queryClient.invalidateQueries({
+                predicate: apiQuery =>
+                  typeof apiQuery.queryKey[0] === 'string' &&
+                  apiQuery.queryKey[0].startsWith(
+                    `/organizations/${organization.slug}/issues/`
+                  ),
+              });
+            }
+          },
+          error: () => {
+            clearIndicators();
+            addErrorMessage(t('Unable to update issues'));
+          },
+        }
       );
     });
   }
 
   return (
-    <Sticky>
-      <StyledFlex>
-        {!disableActions && (
-          <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
-            <Checkbox
-              onChange={() => SelectedGroupStore.toggleSelectAll()}
-              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-              disabled={displayReprocessingActions}
-            />
-          </ActionsCheckbox>
-        )}
-        {!displayReprocessingActions && (
-          <HeaderButtonsWrapper>
-            {!disableActions && (
-              <ActionSet
-                queryCount={queryCount}
-                query={query}
-                issues={selectedIdsSet}
-                allInQuerySelected={allInQuerySelected}
-                anySelected={anySelected}
-                multiSelected={multiSelected}
-                selectedProjectSlug={selectedProjectSlug}
-                onShouldConfirm={action =>
-                  shouldConfirm(action, {pageSelected, selectedIdsSet})
-                }
-                onDelete={handleDelete}
-                onMerge={handleMerge}
-                onUpdate={handleUpdate}
-              />
-            )}
-            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          </HeaderButtonsWrapper>
-        )}
-        <Headers
-          onSelectStatsPeriod={onSelectStatsPeriod}
-          selection={selection}
-          statsPeriod={statsPeriod}
-          isReprocessingQuery={displayReprocessingActions}
-          isSavedSearchesOpen={isSavedSearchesOpen}
-        />
-      </StyledFlex>
+    <StickyActions>
+      <ActionsBarPriority
+        query={query}
+        queryCount={queryCount}
+        selection={selection}
+        statsPeriod={statsPeriod}
+        onSortChange={onSortChange}
+        allInQuerySelected={allInQuerySelected}
+        pageSelected={pageSelected}
+        selectedIdsSet={selectedIdsSet}
+        displayReprocessingActions={displayReprocessingActions}
+        handleDelete={handleDelete}
+        handleMerge={handleMerge}
+        handleUpdate={handleUpdate}
+        multiSelected={multiSelected}
+        narrowViewport={disableActions}
+        selectedProjectSlug={selectedProjectSlug}
+        isSavedSearchesOpen={isSavedSearchesOpen}
+        sort={sort}
+        anySelected={anySelected}
+        onSelectStatsPeriod={onSelectStatsPeriod}
+      />
       {!allResultsVisible && pageSelected && (
         <Alert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
@@ -263,18 +411,18 @@ function IssueListActions({
           </SelectAllNotice>
         </Alert>
       )}
-    </Sticky>
+    </StickyActions>
   );
 }
 
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedIds = useLegacyStore(SelectedGroupStore);
+  const selectedGroupState = useLegacyStore(SelectedGroupStore);
+  const selectedIds = SelectedGroupStore.getSelectedIds();
 
-  const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
+  const projects = [...selectedIds]
     .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);
@@ -290,7 +438,7 @@ function useSelectedGroupsState() {
 
   useEffect(() => {
     setAllInQuerySelected(false);
-  }, [selectedIds]);
+  }, [selectedGroupState]);
 
   return {
     pageSelected,
@@ -310,7 +458,8 @@ function shouldConfirm(
   switch (action) {
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
-    case ConfirmAction.IGNORE:
+    case ConfirmAction.ARCHIVE:
+    case ConfirmAction.SET_PRIORITY:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }
@@ -323,13 +472,17 @@ function shouldConfirm(
   }
 }
 
-const Sticky = styled('div')`
-  position: sticky;
+const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
-  top: -1px;
+
+  /* Remove border radius from the action bar when stuck. Without this there is
+   * a small gap where color can peek through. */
+  &[data-stuck] > div {
+    border-radius: 0;
+  }
 `;
 
-const StyledFlex = styled('div')`
+const ActionsBarContainer = styled('div')`
   display: flex;
   min-height: 45px;
   padding-top: ${space(1)};
@@ -350,7 +503,7 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
-const HeaderButtonsWrapper = styled('div')`
+const HeaderButtonsWrapper = styled(motion.div)`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     width: 50%;
   }
@@ -376,6 +529,15 @@ const SelectAllNotice = styled('div')`
 
 const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
+`;
+
+const SortDropdownMargin = styled('div')`
+  margin-right: ${space(1)};
+`;
+
+const AnimatedHeaderItemsContainer = styled(motion.div)`
+  display: flex;
+  align-items: center;
 `;
 
 export {IssueListActions};

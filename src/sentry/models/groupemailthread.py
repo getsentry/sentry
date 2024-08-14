@@ -1,16 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupEmailThread(Model):
     """
     Keep track of the original Message-Id that was sent
@@ -19,15 +14,13 @@ class GroupEmailThread(Model):
     for email threading.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     email = models.EmailField(max_length=75)
     project = FlexibleForeignKey("sentry.Project", related_name="groupemail_set")
     group = FlexibleForeignKey("sentry.Group", related_name="groupemail_set")
     msgid = models.CharField(max_length=100)
     date = models.DateTimeField(default=timezone.now, db_index=True)
-
-    objects = BaseManager()
 
     class Meta:
         app_label = "sentry"

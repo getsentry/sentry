@@ -1,31 +1,41 @@
 import io
 import os
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
+from unittest import mock
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
-from freezegun import freeze_time
 
-from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.tasks.assemble import (
+    ArtifactBundlePostAssembler,
+    AssembleResult,
     AssembleTask,
     ChunkFileState,
     assemble_artifacts,
     assemble_dif,
     assemble_file,
+    delete_assemble_status,
     get_assemble_status,
+    set_assemble_status,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
@@ -99,11 +109,11 @@ class AssembleDifTest(BaseAssembleTest):
 
         # find all blobs
         for reference, checksum in files:
-            blob = FileBlob.objects.get(checksum=checksum)
+            file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with blob.getfile() as f:
+            with file_blob.getfile() as f:
                 assert f.read(len(ref_bytes)) == ref_bytes
-            FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
+            FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
             AssembleTask.DIF,
@@ -126,7 +136,7 @@ class AssembleDifTest(BaseAssembleTest):
         FileBlob.from_files(files, organization=self.organization)
 
         # assemble a second time
-        f, tmp = assemble_file(
+        rv = assemble_file(
             AssembleTask.DIF,
             self.project,
             "testfile",
@@ -134,6 +144,8 @@ class AssembleDifTest(BaseAssembleTest):
             [x[1] for x in files],
             "dummy.type",
         )
+        assert rv is not None
+        f, tmp = rv
         tmp.close()
         assert f.checksum == file_checksum.hexdigest()
 
@@ -151,11 +163,11 @@ class AssembleDifTest(BaseAssembleTest):
 
         # find all blobs
         for reference, checksum in files:
-            blob = FileBlob.objects.get(checksum=checksum)
+            file_blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
-            with blob.getfile() as f:
+            with file_blob.getfile() as f:
                 assert f.read(len(ref_bytes)) == ref_bytes
-            FileBlobOwner.objects.filter(blob=blob, organization_id=self.organization.id).get()
+            FileBlobOwner.objects.filter(blob=file_blob, organization_id=self.organization.id).get()
 
         rv = assemble_file(
             AssembleTask.DIF,
@@ -197,9 +209,6 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
-    def setUp(self):
-        super().setUp()
-
     def test_artifacts_with_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -255,8 +264,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 )
                 assert len(release_artifact_bundle) == count
                 if count == 1:
-                    release_artifact_bundle[0].version_name = version
-                    release_artifact_bundle[0].dist_name = dist
+                    assert release_artifact_bundle[0].release_name == version
+                    assert release_artifact_bundle[0].dist_name == (dist or "")
 
                 project_artifact_bundles = ProjectArtifactBundle.objects.filter(
                     project_id=self.project.id
@@ -268,6 +277,77 @@ class AssembleArtifactsTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.all().delete()
             ReleaseArtifactBundle.objects.all().delete()
             ProjectArtifactBundle.objects.all().delete()
+
+            status, details = get_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+            )
+            assert status is None
+
+    @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
+    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
+        post_assemble.side_effect = Exception
+
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        files = File.objects.filter()
+        assert len(files) == 0
+
+    @patch("sentry.tasks.assemble.ArtifactBundleArchive")
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self, artifact_bundle_archive):
+        artifact_bundle_archive.side_effect = Exception
+
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        files = File.objects.filter()
+        assert len(files) == 0
+
+    def test_assembled_bundle_is_deleted_if_checksum_mismatches(self):
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = "a" * 40
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        files = File.objects.filter()
+        assert len(files) == 0
 
     def test_upload_artifacts_with_duplicated_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
@@ -317,9 +397,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
         # `date_added` or the last upload.
-        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00").replace(
-            tzinfo=timezone.utc
-        )
+        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
@@ -502,7 +580,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
-        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+        # debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
         # We simulate the existence of a two ArtifactBundles already with the same bundle_id.
         ArtifactBundle.objects.create(
@@ -534,12 +612,84 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 1
 
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        # FIXME(swatinem): The test assumed that we re-index debug-ids in case the bundle was already
+        # in the database.
+        # debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        # assert len(debug_id_artifact_bundles) == 2
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_bundle_indexing_started_when_over_threshold(self, index_artifact_bundles_for_release):
+        release = "1.0"
+        dist = "android"
+
+        bundle_file_1 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        total_checksum_1 = sha1(bundle_file_1).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_1,
+            chunks=[blob1_1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        bundle_file_2 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle", project=self.project.id
+        )
+        blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
+        total_checksum_2 = sha1(bundle_file_2).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_2,
+            chunks=[blob1_2.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        bundle_file_3 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
+        )
+        blob1_3 = FileBlob.from_file(ContentFile(bundle_file_3))
+        total_checksum_3 = sha1(bundle_file_3).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_3,
+            chunks=[blob1_3.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        bundles = ArtifactBundle.objects.all()
+
+        # Since the threshold is now passed, we expect the system to perform indexing.
+        index_artifact_bundles_for_release.assert_called_with(
+            organization_id=self.organization.id,
+            artifact_bundles=[(bundles[2], mock.ANY)],
+        )
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
@@ -577,6 +727,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 if min_files == 1:
                     # An archive was saved
                     index = read_artifact_index(self.release, dist=None)
+                    assert index is not None
                     archive_ident = index["files"]["~/index.js"]["archive_ident"]
                     releasefile = ReleaseFile.objects.get(
                         release_id=self.release.id, ident=archive_ident
@@ -657,7 +808,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         with self.options(
             {
-                "processing.save-release-archives": True,
                 "processing.release-archive-min-files": 1,
             }
         ):
@@ -674,3 +824,248 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
+
+
+@freeze_time("2023-05-31T10:00:00")
+class ArtifactBundleIndexingTest(TestCase):
+    def _create_bundle_and_bind_to_release(self, release, dist, bundle_id, indexing_state, date):
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=File.objects.create(name="bundle.zip", type="artifact_bundle"),
+            artifact_count=10,
+            indexing_state=indexing_state,
+            date_uploaded=date,
+            date_added=date,
+            date_last_modified=date,
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=release,
+            dist_name=dist,
+            artifact_bundle=artifact_bundle,
+            date_added=date,
+        )
+
+        return artifact_bundle
+
+    def mock_assemble_result(self) -> AssembleResult:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+        rv = assemble_file(
+            task=AssembleTask.ARTIFACT_BUNDLE,
+            org_or_project=self.organization,
+            name="bundle.zip",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            file_type="artifact.bundle",
+        )
+        assert rv is not None
+        return rv
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_no_bundles(self, index_artifact_bundles_for_release):
+        release = "1.0"
+        dist = "android"
+
+        with ArtifactBundlePostAssembler(
+            assemble_result=self.mock_assemble_result(),
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
+        ) as post_assembler:
+            post_assembler._index_bundle_if_needed(
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
+            )
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_lower_bundles_than_threshold(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        with ArtifactBundlePostAssembler(
+            assemble_result=self.mock_assemble_result(),
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
+        ) as post_assembler:
+            post_assembler._index_bundle_if_needed(
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
+            )
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_higher_bundles_than_threshold(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=2),
+        )
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        artifact_bundle_3 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        with ArtifactBundlePostAssembler(
+            assemble_result=self.mock_assemble_result(),
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
+        ) as post_assembler:
+            post_assembler._index_bundle_if_needed(
+                artifact_bundle=artifact_bundle_3,
+                release=release,
+                dist=dist,
+            )
+
+        index_artifact_bundles_for_release.assert_called_with(
+            organization_id=self.organization.id,
+            artifact_bundles=[(artifact_bundle_3, mock.ANY)],
+        )
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
+        release = "1.0"
+        dist = "android"
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=2),
+        )
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        with ArtifactBundlePostAssembler(
+            assemble_result=self.mock_assemble_result(),
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
+        ) as post_assembler:
+            post_assembler._index_bundle_if_needed(artifact_bundle=None, release=release, dist=dist)
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_newer_bundle_already_stored(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=2),
+        )
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            # We simulate that this bundle is into the database but was created after the assembling of bundle 1 started
+            # its progress but did not finish.
+            date=datetime.now(UTC) + timedelta(hours=1),
+        )
+
+        with ArtifactBundlePostAssembler(
+            assemble_result=self.mock_assemble_result(),
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
+        ) as post_assembler:
+            post_assembler._index_bundle_if_needed(
+                artifact_bundle=artifact_bundle_1,
+                release=release,
+                dist=dist,
+            )
+
+        index_artifact_bundles_for_release.assert_called_with(
+            organization_id=self.organization.id,
+            artifact_bundles=[(artifact_bundle_1, mock.ANY)],
+        )
+
+
+@use_redis_cluster()
+def test_redis_assemble_status():
+    task = AssembleTask.DIF
+    project_id = uuid.uuid4().hex
+    checksum = uuid.uuid4().hex
+
+    # If it doesn't exist, it should return correct values.
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)
+
+    # Test setter
+    set_assemble_status(task, project_id, checksum, ChunkFileState.CREATED, detail="cylons")
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (
+        "created",
+        "cylons",
+    )
+
+    # Deleting should actually delete it.
+    delete_assemble_status(task, project_id, checksum=checksum)
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)

@@ -1,83 +1,42 @@
+from unittest import mock
+
 from sentry import audit_log
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.audit_log import AuditLogEvent
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test
 class AuditLogEventRegisterTest(TestCase):
     def test_get_api_names(self):
-        audit_log_api_name_list = [
-            "member.invite",
-            "member.add",
-            "member.accept-invite",
-            "member.edit",
-            "member.remove",
-            "member.join-team",
-            "member.leave-team",
-            "member.pending",
-            "org.create",
-            "org.edit",
-            "org.remove",
-            "org.restore",
-            "team.create",
-            "team.edit",
-            "team.remove",
-            "project.create",
-            "project.edit",
-            "project.remove",
-            "project.remove-with-origin",
-            "project.request-transfer",
-            "project.accept-transfer",
-            "project.enable",
-            "project.disable",
-            "tagkey.remove",
-            "projectkey.create",
-            "projectkey.edit",
-            "projectkey.remove",
-            "projectkey.change",
-            "sso.enable",
-            "sso.disable",
-            "sso.edit",
-            "sso-identity.link",
-            "api-key.create",
-            "api-key.edit",
-            "api-key.remove",
-            "rule.create",
-            "rule.edit",
-            "rule.remove",
-            "rule.mute",
-            "servicehook.create",
-            "servicehook.edit",
-            "servicehook.remove",
-            "integration.upgrade",
-            "integration.add",
-            "integration.edit",
-            "integration.remove",
-            "sentry-app.add",
-            "sentry-app.remove",
-            "sentry-app.install",
-            "sentry-app.uninstall",
-            "sampling_priority.enabled",
-            "sampling_priority.disabled",
-            "monitor.add",
-            "monitor.edit",
-            "monitor.environment.remove",
-            "monitor.remove",
-            "internal-integration.create",
-            "internal-integration.add-token",
-            "internal-integration.remove-token",
-            "invite-request.create",
-            "invite-request.remove",
-            "alertrule.create",
-            "alertrule.edit",
-            "alertrule.remove",
-            "alertrule.mute",
-            "notification_action.create",
-            "notification_action.edit",
-            "notification_action.remove",
-            "team-and-project.created",
-            "org-auth-token.create",
-            "org-auth-token.remove",
-        ]
+        self._event_registry: dict[str, AuditLogEvent] = {}
+        self._event_id_lookup: dict[int, AuditLogEvent] = {}
+        self._api_name_lookup: dict[str, AuditLogEvent] = {}
 
-        assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
+        with (
+            mock.patch("sentry.audit_log.default_manager._event_registry", new={}),
+            mock.patch("sentry.audit_log.default_manager._event_id_lookup", new={}),
+            mock.patch("sentry.audit_log.default_manager._api_name_lookup", new={}),
+        ):
+            events = [
+                AuditLogEvent(
+                    event_id=10000,
+                    name="UPTIME_MONITOR_ADD",
+                    api_name="uptime_monitor.add",
+                    template="added uptime monitor {name}",
+                ),
+                AuditLogEvent(
+                    event_id=20000,
+                    name="UPTIME_MONITOR_EDIT",
+                    api_name="uptime_monitor.edit",
+                    template="edited uptime monitor {name}",
+                ),
+                AuditLogEvent(
+                    event_id=30000,
+                    name="UPTIME_MONITOR_REMOVE",
+                    api_name="uptime_monitor.remove",
+                    template="removed uptime monitor {name}",
+                ),
+            ]
+            for event in events:
+                audit_log.add(event)
+
+            assert set(audit_log.get_api_names()) == {e.api_name for e in events}

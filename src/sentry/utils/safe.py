@@ -1,31 +1,23 @@
 import logging
-from typing import Any, Mapping, Sequence, Union
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any, ParamSpec, TypeVar, Union
 
-import sentry_sdk
 from django.conf import settings
-from django.db import transaction
 from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
-PathSearchable = Union[Mapping[str, Any], Sequence[Any]]
+PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def safe_execute(func, *args, **kwargs):
-    # TODO: we should make smart savepoints (only executing the savepoint server
-    # side if we execute a query)
-    _with_transaction = kwargs.pop("_with_transaction", True)
-    expected_errors = kwargs.pop("expected_errors", None)
+def safe_execute(func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R | None:
     try:
-        if _with_transaction:
-            with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
-                with transaction.atomic(), django_test_transaction_water_mark():
-                    result = func(*args, **kwargs)
-        else:
-            result = func(*args, **kwargs)
+        result = func(*args, **kwargs)
     except Exception as e:
         if hasattr(func, "im_class"):
             cls = func.im_class
@@ -36,10 +28,8 @@ def safe_execute(func, *args, **kwargs):
         cls_name = cls.__name__
         logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
-        if expected_errors and isinstance(e, expected_errors):
-            logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
-            return
-        logger.error("%s.process_error", func_name, exc_info=True, extra={"exception": e})
+        logger.exception("%s.process_error", func_name, extra={"exception": e})
+        return None
     else:
         return result
 
@@ -71,7 +61,7 @@ def trim(
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
-        result = {}
+        result: Any = {}
         _size += 2
         for k in sorted(value.keys(), key=lambda x: (len(force_str(value[x])), x)):
             v = value[k]
@@ -104,7 +94,7 @@ def trim(
     return object_hook(result)
 
 
-def get_path(data: PathSearchable, *path, **kwargs):
+def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
     """
     Safely resolves data from a recursive data structure. A value is only
     returned if the full path exists, otherwise ``None`` is returned.
@@ -115,10 +105,18 @@ def get_path(data: PathSearchable, *path, **kwargs):
     filtered with the given callback. Alternatively, pass ``True`` as filter to
     only filter ``None`` values.
     """
+    logger = logging.getLogger(__name__)
     default = kwargs.pop("default", None)
-    f = kwargs.pop("filter", None)
+    f: bool | None = kwargs.pop("filter", None)
     for k in kwargs:
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
+
+    logger_data = {}
+    if should_log:
+        logger_data = {
+            "path_searchable": json.dumps(data),
+            "path_arg": json.dumps(path),
+        }
 
     for p in path:
         if isinstance(data, Mapping) and p in data:
@@ -126,10 +124,21 @@ def get_path(data: PathSearchable, *path, **kwargs):
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
+            if should_log:
+                logger_data["invalid_path"] = json.dumps(p)
+                logger.info("sentry.safe.get_path.invalid_path_section", extra=logger_data)
             return default
+
+    if should_log:
+        if data is None:
+            logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
+        else:
+            logger_data["iterated_path"] = json.dumps(data)
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))
+        if should_log and len(data) == 0 and "iterated_path" in logger_data:
+            logger.info("sentry.safe.get_path.filtered_path_is_none", extra=logger_data)
 
     return data if data is not None else default
 
@@ -157,13 +166,13 @@ def set_path(data, *path, **kwargs):
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
     for p in path[:-1]:
-        if not isinstance(data, Mapping):
+        if not isinstance(data, MutableMapping):
             return False
         if data.get(p) is None:
             data[p] = {}
         data = data[p]
 
-    if not isinstance(data, Mapping):
+    if not isinstance(data, MutableMapping):
         return False
 
     p = path[-1]
@@ -195,11 +204,10 @@ def safe_urlencode(query, **kwargs):
     """
     # sequence of 2-element tuples
     if isinstance(query, (list, tuple)):
-        safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
-        return urlencode(safe_query, **kwargs)
-
-    if isinstance(query, dict):
-        safe_query = {k: "" if v is None else v for k, v in query.items()}
-        return urlencode(safe_query, **kwargs)
-
-    return urlencode(query, **kwargs)
+        query_seq = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(query_seq, **kwargs)
+    elif isinstance(query, dict):
+        query_d = {k: "" if v is None else v for k, v in query.items()}
+        return urlencode(query_d, **kwargs)
+    else:
+        return urlencode(query, **kwargs)

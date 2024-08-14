@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from importlib import import_module
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.request import urlopen
@@ -8,7 +11,33 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 
+from sentry.hybridcloud.rpc import RpcModel
+from sentry.users.services.user import RpcUser
+
 LEAVE_CHARS = getattr(settings, "SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS", 4)
+
+
+if TYPE_CHECKING:
+    from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+    from social_auth.backends import BaseAuth
+
+    from .models import UserSocialAuth
+
+
+def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> type[BaseAuth] | None:
+    # Make import here to avoid recursive imports :-/
+    from social_auth.backends import get_backends
+
+    return get_backends().get(instance.provider)
+
+
+def tokens(instance: UserSocialAuth | RpcUserSocialAuth) -> dict[str, Any]:
+    """Return access_token stored in extra_data or None"""
+    backend = instance.get_backend()
+    if backend:
+        return backend.AUTH_BACKEND.tokens(instance)
+    else:
+        return {}
 
 
 def sanitize_log_data(secret, data=None, leave_characters=LEAVE_CHARS):
@@ -69,7 +98,9 @@ def model_to_ctype(val):
     """Converts values that are instance of Model to a dictionary
     with enough information to retrieve the instance back later."""
     if isinstance(val, Model):
-        val = {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
+        return {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
+    if isinstance(val, RpcModel):
+        return val.dict()
     return val
 
 
@@ -79,7 +110,10 @@ def ctype_to_model(val):
         ctype = ContentType.objects.get_for_id(val["ctype"])
         ModelClass = ctype.model_class()
         assert ModelClass is not None
-        val = ModelClass.objects.get(pk=val["pk"])
+        return ModelClass.objects.get(pk=val["pk"])
+
+    if isinstance(val, dict) and "username" in val and "name" in val:
+        return RpcUser.parse_obj(val)
     return val
 
 

@@ -3,19 +3,20 @@ from rest_framework import serializers
 
 from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.auth.access import Access
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
     create_alert_rule_trigger_action,
     update_alert_rule_trigger_action,
 )
-from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.incidents.serializers import (
-    ACTION_TARGET_TYPE_TO_STRING,
-    STRING_TO_ACTION_TARGET_TYPE,
-    STRING_TO_ACTION_TYPE,
-)
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, Team
+from sentry.models.notificationaction import ActionService
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -37,6 +38,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     integration = serializers.IntegerField(source="integration_id", required=False, allow_null=True)
     sentry_app = serializers.IntegerField(source="sentry_app_id", required=False, allow_null=True)
+    priority = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -49,6 +51,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app",
             "sentry_app_config",
             "sentry_app_installation_uuid",
+            "priority",
         ]
         extra_kwargs = {
             "target_identifier": {"required": True},
@@ -59,12 +62,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app_installation_uuid": {"required": False, "allow_null": True},
         }
 
-    def validate_type(self, type):
-        if type not in STRING_TO_ACTION_TYPE:
-            raise serializers.ValidationError(
-                "Invalid type, valid values are [%s]" % ", ".join(STRING_TO_ACTION_TYPE.keys())
-            )
-        return STRING_TO_ACTION_TYPE[type]
+    def validate_type(self, type: str) -> ActionService:
+        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type)
+        if factory is None:
+            valid_slugs = AlertRuleTriggerAction.get_all_slugs()
+            raise serializers.ValidationError(f"Invalid type, valid values are {valid_slugs!r}")
+        return factory.service_type
 
     def validate_target_type(self, target_type):
         if target_type not in STRING_TO_ACTION_TARGET_TYPE:
@@ -81,11 +84,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         type = attrs.get("type")
         target_type = attrs.get("target_type")
-        access = self.context["access"]
+        access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
 
         if type is not None:
-            type_info = AlertRuleTriggerAction.get_registered_type(type)
+            type_info = AlertRuleTriggerAction.get_registered_factory(type)
             if target_type not in type_info.supported_target_types:
                 allowed_target_types = ",".join(
                     ACTION_TARGET_TYPE_TO_STRING[type_name]
@@ -98,7 +101,8 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     }
                 )
 
-        if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
+        action_type = attrs.get("type")
+        if action_type == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
                     team = Team.objects.get(id=identifier)
@@ -111,13 +115,18 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     organization=self.context["organization"], user_id=identifier
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
+        elif action_type == AlertRuleTriggerAction.Type.SLACK:
             if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
+        elif action_type == AlertRuleTriggerAction.Type.DISCORD:
+            if not attrs.get("integration_id"):
+                raise serializers.ValidationError(
+                    {"integration": "Integration must be provided for discord"}
+                )
 
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+        elif action_type == AlertRuleTriggerAction.Type.SENTRY_APP:
             sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")
 
             if not attrs.get("sentry_app_id"):
@@ -137,6 +146,36 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
                     )
+
+        if attrs.get("priority"):
+            if action_type not in [
+                AlertRuleTriggerAction.Type.PAGERDUTY,
+                AlertRuleTriggerAction.Type.OPSGENIE,
+            ]:
+                raise serializers.ValidationError(
+                    {"priority": "Can only be set for Pagerduty or Opsgenie"}
+                )
+
+            priority: str = attrs["priority"]
+
+            if (
+                action_type == AlertRuleTriggerAction.Type.PAGERDUTY
+                and priority not in PAGERDUTY_CUSTOM_PRIORITIES
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "priority": f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}"
+                    }
+                )
+            if (
+                action_type == AlertRuleTriggerAction.Type.OPSGENIE
+                and priority not in OPSGENIE_CUSTOM_PRIORITIES
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "priority": f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}"
+                    }
+                )
 
             # TODO(Ecosystem): Validate fields on schema config if alert-rule-action component exists
             # See NotifyEventSentryAppAction::self_validate for more details

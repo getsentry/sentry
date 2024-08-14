@@ -1,30 +1,25 @@
 import errno
-from time import time
+import os
 from unittest import mock
 
 import pytest
 import responses
 from requests import Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
-from sentry_sdk import Scope
-from sentry_sdk.consts import OP
-from sentry_sdk.tracing import Transaction
+from requests.sessions import Session
 from urllib3.exceptions import InvalidChunkLength
 from urllib3.response import HTTPResponse
 
-from sentry.identity import register
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-from sentry.models import Identity, IdentityProvider
+from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
+    ApiError,
     ApiHostError,
     ApiTimeoutError,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import TestCase
 
 
 class ApiClientTest(TestCase):
@@ -33,6 +28,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = ApiClient().get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -40,6 +36,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.POST, "http://example.com", json={})
 
         resp = ApiClient().post("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -47,6 +44,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.DELETE, "http://example.com", json={})
 
         resp = ApiClient().delete("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -54,6 +52,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PUT, "http://example.com", json={})
 
         resp = ApiClient().put("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -61,6 +60,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PATCH, "http://example.com", json={})
 
         resp = ApiClient().patch("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @mock.patch("sentry.shared_integrations.client.base.cache")
@@ -135,6 +135,7 @@ class ApiClientTest(TestCase):
             responses.GET, "http://example.com/1", status=301, headers=destination_headers
         )
         resp = ApiClient().get("http://example.com/1")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
         # By default, non GET requests are not allowed to redirect
@@ -146,6 +147,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/2")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 301
 
         responses.add(
@@ -156,6 +158,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/3", allow_redirects=True)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
     def test_connection_error_handling(self):
@@ -258,7 +261,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
-            chained_error = InvalidChunkLength(mock_error_response, "")
+            chained_error = InvalidChunkLength(mock_error_response, b"")
             caught_error = Exception(
                 "Connection broken: InvalidChunkLength(got length b'', 0 bytes read)"
             )
@@ -275,36 +278,48 @@ class ApiClientTest(TestCase):
                         == "Connection broken: invalid chunk length"
                     )
 
-    @mock.patch(
-        "sentry.shared_integrations.client.base.BaseApiResponse.from_response",
-        return_value=BaseApiResponse(),
-    )
-    def test_request_creates_transaction_when_appropriate(
-        self,
-        mock_from_response: mock.MagicMock,
-    ):
-        # pytest parameterization doesn't work in test classes, but we can fake it
-        cases = [
-            ("no transaction", None, 1),
-            ("non-server transaction", Transaction(op="some non-server op"), 1),
-            ("server transaction", Transaction(op=OP.HTTP_SERVER), 0),
-        ]
+    @responses.activate
+    def test_verify_ssl_handling(self):
+        """
+        Test handling of `verify_ssl` parameter when setting REQUESTS_CA_BUNDLE.
+        """
+        responses.add(responses.GET, "https://example.com", json={})
 
-        for case_name, existing_transaction, expected_call_count in cases:
+        requests_ca_bundle = "/some/path/to/certs"
+
+        with mock.patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": requests_ca_bundle}):
             client = ApiClient()
+            with mock.patch(
+                "requests.sessions.Session.send", wraps=Session().send
+            ) as session_send_mock:
+                client.get("https://example.com")
+                session_send_mock.assert_called_once_with(
+                    mock.ANY,
+                    timeout=30,
+                    allow_redirects=True,
+                    proxies={},
+                    stream=False,
+                    verify=requests_ca_bundle,
+                    cert=None,
+                )
 
-            mock_scope = Scope()
-            mock_scope.span = existing_transaction
-
-            with mock.patch("sentry_sdk.configure_scope") as mock_configure_scope:
-                mock_configure_scope.return_value.__enter__.return_value = mock_scope
-
-                with mock.patch("sentry_sdk.start_transaction") as mock_start_transaction:
-                    client.get("http://example.com")
-
-                    assert (
-                        mock_start_transaction.call_count == expected_call_count
-                    ), f"Case {case_name} failed"
+    @responses.activate
+    def test_parameters_passed_correctly(self):
+        responses.add(responses.GET, "https://example.com", json={})
+        client = ApiClient(verify_ssl=False)
+        with mock.patch(
+            "requests.sessions.Session.send", wraps=Session().send
+        ) as session_send_mock:
+            client.get("https://example.com", timeout=50, allow_redirects=False)
+            session_send_mock.assert_called_once_with(
+                mock.ANY,
+                timeout=50,
+                allow_redirects=False,
+                proxies={},
+                stream=False,
+                verify=False,
+                cert=None,
+            )
 
 
 class OAuthProvider(OAuth2Provider):
@@ -319,70 +334,3 @@ class OAuthProvider(OAuth2Provider):
 
     def get_refresh_token_url(self):
         return "https://example.com"
-
-
-class OAuth2ApiClient(ApiClient, OAuth2RefreshMixin):
-    def __init__(self, identity, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.identity = identity
-
-
-@control_silo_test(stable=True)
-class OAuth2ApiClientTest(TestCase):
-    def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization()
-        self.access_token = "1234567890"
-        self.identity_provider_model = IdentityProvider.objects.create(type="oauth")
-        register(OAuthProvider)
-
-    @responses.activate
-    def test_check_auth(self):
-        new_auth = {
-            "access_token": "1234567890",
-            "refresh_token": "0987654321",
-            "expires_in": 45678988239,
-        }
-        responses.add(responses.POST, "https://example.com", json=new_auth)
-        identity = Identity.objects.create(
-            idp=self.identity_provider_model,
-            user=self.user,
-            external_id="oauth_base",
-            data={
-                "access_token": "access_token",
-                "refresh_token": "refresh_token",
-                "expires": int(time()) - 3600,
-            },
-        )
-
-        client = OAuth2ApiClient(identity)
-        client.check_auth()
-
-        assert client.identity.data["access_token"] == new_auth["access_token"]
-        assert client.identity.data["refresh_token"] == new_auth["refresh_token"]
-        assert client.identity.data["expires"] > int(time())
-
-    @responses.activate
-    def test_check_auth_no_refresh(self):
-        new_auth = {
-            "access_token": "1234567890",
-            "refresh_token": "0987654321",
-            "expires_in": 45678988239,
-        }
-        old_auth = {
-            "access_token": "access_token",
-            "refresh_token": "refresh_token",
-            "expires": int(time()) + 3600,
-        }
-        responses.add(responses.POST, "https://example.com", json=new_auth)
-        identity = Identity.objects.create(
-            idp=self.identity_provider_model,
-            user=self.user,
-            external_id="oauth_base",
-            data=old_auth,
-        )
-
-        client = OAuth2ApiClient(identity)
-        client.check_auth()
-
-        assert client.identity.data == old_auth

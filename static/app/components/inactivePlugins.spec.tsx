@@ -1,3 +1,5 @@
+import {PluginsFixture} from 'sentry-fixture/plugins';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import InactivePlugins from 'sentry/components/inactivePlugins';
@@ -11,15 +13,12 @@ describe('InactivePlugins', function () {
   });
 
   it('renders plugins list', function () {
-    const {container} = render(
-      <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
-    );
-    expect(container).toSnapshot();
+    render(<InactivePlugins onEnablePlugin={() => {}} plugins={PluginsFixture()} />);
   });
 
   it('enables a plugin', async function () {
     const enableFn = jest.fn();
-    const plugins = TestStubs.Plugins();
+    const plugins = PluginsFixture();
     render(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
     await userEvent.click(screen.getByRole('button', {name: plugins[0].name}));
     expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));

@@ -1,6 +1,7 @@
 from functools import partial
 
-from sentry.api.event_search import SearchConfig, default_config, parse_search_query
+from sentry.api.event_search import SearchConfig, default_config
+from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
@@ -26,4 +27,4 @@ release_search_config = SearchConfig.create_from(
     allow_boolean=False,
     free_text_key=RELEASE_FREE_TEXT_KEY,
 )
-parse_search_query = partial(parse_search_query, config=release_search_config)
+parse_search_query = partial(base_parse_search_query, config=release_search_config)

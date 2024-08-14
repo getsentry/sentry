@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.apps import apps
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
+from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
 
 if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
+@region_silo_function
 def async_send_notification(
-    NotificationClass: BaseNotification, *args: Iterable[Any], **kwargs: Iterable[Any]
+    NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:
     """
     This function takes a notification class and arguments to instantiate
@@ -61,7 +64,8 @@ def async_send_notification(
 
 @instrumented_task(
     name="src.sentry.notifications.utils.async_send_notification",
-    queue="email",
+    silo_mode=SiloMode.REGION,
+    queue="notifications",
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
     NotificationClass = get(notification_class_name)

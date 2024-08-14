@@ -1,6 +1,5 @@
 import uuid
 from collections import defaultdict
-from typing import Optional
 
 import sentry_sdk
 from django.db import router
@@ -9,13 +8,15 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
-from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.utils.db import atomic_transaction
 
 # We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
@@ -31,7 +32,7 @@ class InvalidSortByParameter(SentryAPIException):
 
 class ArtifactBundlesMixin:
     @classmethod
-    def derive_order_by(cls, sort_by: str) -> Optional[str]:
+    def derive_order_by(cls, sort_by: str) -> str | None:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
@@ -52,6 +53,11 @@ class ArtifactBundlesMixin:
 
 @region_silo_endpoint
 class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -61,9 +67,9 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         Retrieve a list of artifact bundles for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           artifact bundle belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      artifact bundles of.
         """
         query = request.GET.get("query")
@@ -115,9 +121,9 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         Delete all artifacts inside given archive.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                             archive belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
         :qparam string name: The name of the archive to delete.
         :auth: required
@@ -129,14 +135,14 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         if bundle_id:
             error = None
 
-            project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+            project_artifact_bundles_qs = ProjectArtifactBundle.objects.filter(
                 organization_id=project.organization_id,
                 artifact_bundle__bundle_id=bundle_id,
             ).select_related("artifact_bundle")
             # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
             # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
             grouped_bundles = defaultdict(list)
-            for project_artifact_bundle in project_artifact_bundles:
+            for project_artifact_bundle in project_artifact_bundles_qs:
                 grouped_bundles[project_artifact_bundle.artifact_bundle].append(
                     project_artifact_bundle
                 )
@@ -154,7 +160,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
                 # it.
                 if len(found_project_ids) == 0:
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.isolation_scope() as scope:
                         scope.set_tag("bundle_id", bundle_id)
                         scope.set_tag("org_id", project.organization.id)
                         sentry_sdk.capture_message(

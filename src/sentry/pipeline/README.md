@@ -6,25 +6,25 @@ through the "pipeline".
 
 Some key points to understanding pipelines:
 
- * A pipeline executes a set of views (that receive the `pipeline` instance),
-   moving through them by having the view itself call `pipeline.next_step`.
+- A pipeline executes a set of views (that receive the `pipeline` instance),
+  moving through them by having the view itself call `pipeline.next_step`.
 
- * Each executed view may maintain state within the pipeline using the
-   `pipeline.bind_state` method. This state is associated to the user's
-   session.
+- Each executed view may maintain state within the pipeline using the
+  `pipeline.bind_state` method. This state is associated to the user's
+  session.
 
- * Pipelines are always subclassed to implement the `finish_pipeline` method,
-   this method will be called when a pipeline completes.
+- Pipelines are always subclassed to implement the `finish_pipeline` method,
+  this method will be called when a pipeline completes.
 
- * Pipelines are given the set of pipeline views (instances of `PipelineView`
-   subclasses) via the `get_pipeline_views` method of the Pipeline Provider
-   object that is associated to a particular provider key.
+- Pipelines are given the set of pipeline views (instances of `PipelineView`
+  subclasses) via the `get_pipeline_views` method of the Pipeline Provider
+  object that is associated to a particular provider key.
 
- * Pipelines are usually constructed and executed by either two view endpoints.
-   One to call the pipelines `initialize` method, and the next which is
-   called to move through the pipeline
+- Pipelines are usually constructed and executed by either two view endpoints.
+  One to call the pipelines `initialize` method, and the next which is
+  called to move through the pipeline
 
- * Pipelines are bound to a specific session when they are being executed.
+- Pipelines are bound to a specific session when they are being executed.
 
 ## Pipeline Providers
 
@@ -106,8 +106,7 @@ def get_pipeline_views(self):
     return [GetUserInput(), RequestApiTokenStep()]
 ```
 
-Executing a pipeline
---------------------
+## Executing a pipeline
 
 Executing a pipeline is done through either one or two views.
 
@@ -164,14 +163,14 @@ of pipelines together. For example, if you want to include an entire other
 pipeline as steps within another pipeline, you can do this using the
 `NestedPipelineView`.
 
- * The `NestedPipelineView` is itself a `PipelineView` and should be used
-   directly in the list of pipeline views returned by a provider.
+- The `NestedPipelineView` is itself a `PipelineView` and should be used
+  directly in the list of pipeline views returned by a provider.
 
- * When a nested pipeline completes, it very importantly does *not* call the
-   `finish_pipeline` method on the pipeline itself, instead the state is
-   bound into the parent pipeline.
+- When a nested pipeline completes, it very importantly does _not_ call the
+  `finish_pipeline` method on the pipeline itself, instead the state is
+  bound into the parent pipeline.
 
- * Nested pipelines use the "single view"
+- Nested pipelines use the "single view"
 
 An example of a nested pipeline looks like:
 

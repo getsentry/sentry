@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -82,13 +82,14 @@ function useReplaysFromTransaction({
     if (!response.replayIds) {
       return null;
     }
+
     return EventView.fromSavedQuery({
       id: '',
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       projects: [],
-      query: `id:[${String(response.replayIds)}]`,
+      query: response.replayIds.length ? `id:[${String(response.replayIds)}]` : undefined,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
   }, [location.query.sort, response.replayIds]);

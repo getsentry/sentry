@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
@@ -18,7 +18,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export default [
+const formGroups: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -68,8 +68,7 @@ export default [
         help: t('Enable server-side data scrubbing'),
         'aria-label': t('Enable server-side data scrubbing'),
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         confirm: {
           false: t('Are you sure you want to disable server-side data scrubbing?'),
         },
@@ -87,8 +86,7 @@ export default [
           'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
         ),
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         confirm: {
           false: t('Are you sure you want to disable using default scrubbers?'),
         },
@@ -99,8 +97,7 @@ export default [
         disabled: hasOrgOverride,
         disabledReason: ORG_DISABLED_REASON,
         // `props` are the props given to FormField
-        setValue: (val, props) =>
-          (props.organization && props.organization[props.name]) || val,
+        setValue: (val, props) => props.organization?.[props.name] || val,
         label: t('Prevent Storing of IP Addresses'),
         help: t('Preventing IP addresses from being stored for new events'),
         'aria-label': t(
@@ -148,4 +145,6 @@ export default [
       },
     ],
   },
-] as JsonFormObject[];
+];
+
+export default formGroups;

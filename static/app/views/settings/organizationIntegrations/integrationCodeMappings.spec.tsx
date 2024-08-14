@@ -1,4 +1,8 @@
-import selectEvent from 'react-select-event';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {
   render,
@@ -7,6 +11,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -14,29 +19,29 @@ import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrati
 
 describe('IntegrationCodeMappings', function () {
   const projects = [
-    TestStubs.Project(),
-    TestStubs.Project({
+    ProjectFixture(),
+    ProjectFixture({
       id: '3',
       slug: 'some-project',
       name: 'Some Project',
     }),
   ];
 
-  const org = TestStubs.Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const org = OrganizationFixture();
+  const integration = GitHubIntegrationFixture();
   const repos = [
-    TestStubs.Repository({
+    RepositoryFixture({
       integrationId: integration.id,
     }),
 
-    TestStubs.Repository({
+    RepositoryFixture({
       integrationId: integration.id,
       id: '5',
       name: 'example/hello-there',
     }),
   ];
 
-  const pathConfig1 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig1 = RepositoryProjectPathConfigFixture({
     project: projects[0],
     repo: repos[0],
     integration,
@@ -44,7 +49,7 @@ describe('IntegrationCodeMappings', function () {
     sourceRoot: 'source/root',
   });
 
-  const pathConfig2 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig2 = RepositoryProjectPathConfigFixture({
     project: projects[1],
     repo: repos[1],
     integration,
@@ -94,7 +99,7 @@ describe('IntegrationCodeMappings', function () {
     const createMock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfigFixture({
         project: projects[1],
         repo: repos[1],
         integration,
@@ -149,7 +154,7 @@ describe('IntegrationCodeMappings', function () {
     const editMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfigFixture({
         project: projects[0],
         repo: repos[0],
         integration,

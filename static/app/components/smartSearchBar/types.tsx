@@ -1,6 +1,6 @@
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
-import {Token, TokenResult} from '../searchSyntax/parser';
+import type {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -29,6 +29,7 @@ export type SearchGroup = {
    */
   childrenWrapper?: React.FC<{children: React.ReactNode}>;
   desc?: string;
+  documentation?: React.ReactNode;
   value?: string;
 };
 
@@ -94,7 +95,7 @@ export type Shortcut = {
 
 export type AutocompleteGroup = {
   recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[];
+  searchItems: SearchItem[] | SearchGroup[];
   tagName: string;
   type: ItemType;
 };

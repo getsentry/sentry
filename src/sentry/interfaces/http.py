@@ -1,20 +1,13 @@
 __all__ = ("Http",)
 
-import re
 from urllib.parse import parse_qsl
 
 from django.utils.translation import gettext as _
 
 from sentry.interfaces.base import Interface
-from sentry.utils import json
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, safe_urlencode
-from sentry.utils.strings import to_unicode
 from sentry.web.helpers import render_to_string
-
-# Instead of relying on a list of hardcoded methods, just loosely match
-# against a pattern.
-http_method_re = re.compile(r"^[A-Z\-_]{3,32}$")
 
 
 def format_headers(value):
@@ -66,10 +59,6 @@ def fix_broken_encoding(value):
     if isinstance(value, bytes):
         value = value.decode("utf8", errors="replace")
     return value
-
-
-def jsonify(value):
-    return to_unicode(value) if isinstance(value, str) else json.dumps(value)
 
 
 class Http(Interface):

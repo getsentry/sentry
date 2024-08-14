@@ -1,27 +1,34 @@
+import type {ReactNode} from 'react';
 import {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {
+  TraceError,
+  TraceFullDetailed,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -38,13 +45,15 @@ type InternalState = {
   indexError: undefined | Error;
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
+  orphanErrors?: TraceError[];
 };
 
-type ExternalState = {
+export type ExternalState = {
   didInit: boolean;
   errors: Error[];
   isFetching: boolean;
   traces: undefined | TraceFullDetailed[];
+  orphanErrors?: TraceError[];
 };
 
 const INITIAL_STATE: InternalState = {
@@ -56,6 +65,7 @@ const INITIAL_STATE: InternalState = {
   indexError: undefined,
   isFetching: false,
   traces: undefined,
+  orphanErrors: undefined,
 };
 
 type TxnContextProps = {
@@ -73,6 +83,7 @@ const TxnContext = createContext<TxnContextProps>({
 function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const organization = useOrganization();
+  useEmitTimestampChanges();
 
   const [state, setState] = useState<InternalState>(INITIAL_STATE);
 
@@ -100,30 +111,47 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     });
   }, [replayRecord]);
 
-  const singleTracePayload = useMemo(() => {
-    const start = getUtcDateString(replayRecord?.started_at.getTime());
-    const end = getUtcDateString(replayRecord?.finished_at.getTime());
-
-    const traceEventView = makeEventView({start, end});
-    return getTraceRequestPayload({eventView: traceEventView, location: {} as Location});
-  }, [replayRecord]);
-
   const fetchSingleTraceData = useCallback(
-    async traceId => {
+    async dataRow => {
       try {
-        const [trace, , _traceResp] = await doDiscoverQuery(
-          api,
-          `/organizations/${orgSlug}/events-trace/${traceId}/`,
-          singleTracePayload
+        const {trace: traceId, timestamp} = dataRow;
+        const start = getUtcDateString(replayRecord?.started_at.getTime());
+        const end = getUtcDateString(replayRecord?.finished_at.getTime());
+        const eventView = makeEventView({start, end});
+        let payload;
+
+        if (organization.features.includes('replay-trace-view-v1')) {
+          payload = {
+            limit: 10000,
+            useSpans: 1,
+            timestamp,
+          };
+        } else {
+          payload = getTraceRequestPayload({eventView, location: {} as Location});
+        }
+
+        const [trace, _traceResp] = await doDiscoverQuery<
+          TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, payload);
+
+        const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+          trace,
+          organization
         );
 
-        setState(prev => ({
-          ...prev,
-          traces: sortBy(
-            (prev.traces || []).concat(trace as TraceFullDetailed),
-            'start_timestamp'
-          ),
-        }));
+        setState(prev => {
+          return {
+            ...prev,
+            traces: sortBy(
+              (prev.traces || []).concat(transactions ?? (trace as TraceFullDetailed[])),
+              'start_timestamp'
+            ),
+            orphanErrors: sortBy(
+              (prev.orphanErrors || []).concat(orphanErrors ?? []),
+              'timestamp'
+            ),
+          };
+        });
       } catch (error) {
         setState(prev => ({
           ...prev,
@@ -131,7 +159,39 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, singleTracePayload]
+    [api, orgSlug, organization, replayRecord]
+  );
+
+  const fetchTracesInBatches = useCallback(
+    async data => {
+      const clonedData = [...data];
+
+      while (clonedData.length > 0) {
+        const batch = clonedData.splice(0, 3);
+
+        // Update state for the current batch request
+        setState(
+          prev =>
+            ({
+              ...prev,
+              detailsRequests: prev.detailsRequests + batch.length,
+            }) as InternalState
+        );
+
+        // Wait for the current batch to finish
+        await Promise.allSettled(batch.map(fetchSingleTraceData));
+
+        // Update state for the current batch response
+        setState(
+          prev =>
+            ({
+              ...prev,
+              detailsResponses: prev.detailsResponses + batch.length,
+            }) as InternalState
+        );
+      }
+    },
+    [fetchSingleTraceData]
   );
 
   const fetchTransactionData = useCallback(async () => {
@@ -175,37 +235,27 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           payload
         );
 
-        const traceIds = data.map(({trace}) => String(trace)).filter(Boolean);
+        const parsedData = data
+          .filter(row => row.trace) // Filter out items where trace is not truthy
+          .map(row => ({
+            trace: row.trace,
+            timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+          }));
 
-        // Do not await results here. Do the fetches async and let the loop continue
         (async function () {
-          setState(
-            prev =>
-              ({
-                ...prev,
-                detailsRequests: prev.detailsRequests + traceIds.length,
-              } as InternalState)
-          );
-          await Promise.allSettled(traceIds.map(fetchSingleTraceData));
-          setState(
-            prev =>
-              ({
-                ...prev,
-                detailsResponses: prev.detailsResponses + traceIds.length,
-              } as InternalState)
-          );
+          await fetchTracesInBatches(parsedData);
         })();
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next;
         const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete} as InternalState));
+        setState(prev => ({...prev, indexComplete}) as InternalState);
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true} as InternalState));
+        setState(prev => ({...prev, indexError, indexComplete: true}) as InternalState);
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
-  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
+  }, [api, listEventView, orgSlug, replayRecord, fetchTracesInBatches]);
 
   const externalState = useMemo(() => internalToExternalState(state), [state]);
 
@@ -229,6 +279,7 @@ function internalToExternalState({
   indexComplete,
   indexError,
   traces,
+  orphanErrors,
 }: InternalState): ExternalState {
   const isComplete = indexComplete && detailsRequests === detailsResponses;
 
@@ -237,6 +288,7 @@ function internalToExternalState({
     errors: indexError ? [indexError] : [], // Ignoring detailsErrors for now
     isFetching: !isComplete,
     traces,
+    orphanErrors,
   };
 }
 

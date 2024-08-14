@@ -1,16 +1,16 @@
-import {PureComponent} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {Fragment, PureComponent} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
-import capitalize from 'lodash/capitalize';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -24,41 +24,51 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {
-  parseStatsPeriod,
-  StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import Truncate from 'sentry/components/truncate';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {DateString, Organization, Project} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {getDuration} from 'sentry/utils/formatters';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleTriggerType,
-  MetricRule,
+  Dataset,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import {Incident} from '../../../types';
+import type {Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
@@ -68,7 +78,7 @@ import {
 import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
-import {TimePeriodType} from './constants';
+import type {TimePeriodType} from './constants';
 import {
   getMetricAlertChartOption,
   transformSessionResponseToSeries,
@@ -83,20 +93,19 @@ type Props = WithRouterProps & {
   query: string;
   rule: MetricRule;
   timePeriod: TimePeriodType;
+  formattedAggregate?: string;
   incidents?: Incident[];
+  isOnDemandAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
-type State = {
-  height: number;
-  width: number;
-};
+type State = Record<string, never>;
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function getRuleChangeSeries(
@@ -140,43 +149,12 @@ function getRuleChangeSeries(
   ];
 }
 
+function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
+}
+
 class MetricChart extends PureComponent<Props, State> {
-  state = {
-    width: -1,
-    height: -1,
-  };
-
   ref: null | ReactEchartsRef = null;
-
-  /**
-   * Syncs component state with the chart's width/heights
-   */
-  updateDimensions = () => {
-    const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef) {
-      return;
-    }
-
-    const width = chartRef.getWidth();
-    const height = chartRef.getHeight();
-    if (width !== this.state.width || height !== this.state.height) {
-      this.setState({
-        width,
-        height,
-      });
-    }
-  };
-
-  handleRef = (ref: ReactEchartsRef): void => {
-    if (ref && !this.ref) {
-      this.ref = ref;
-      this.updateDimensions();
-    }
-
-    if (!ref) {
-      this.ref = null;
-    }
-  };
 
   handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
@@ -192,45 +170,91 @@ class MetricChart extends PureComponent<Props, State> {
   renderChartActions(
     totalDuration: number,
     criticalDuration: number,
-    warningDuration: number
+    warningDuration: number,
+    waitingForDataDuration: number
   ) {
     const {rule, organization, project, timePeriod, query} = this.props;
 
+    let dataset: DiscoverDatasets | undefined = undefined;
+    if (shouldUseErrorsDataset(rule.dataset, query)) {
+      dataset = DiscoverDatasets.ERRORS;
+    }
+
+    let openInDiscoverDataset: SavedQueryDatasets | undefined = undefined;
+    if (hasDatasetSelector(organization)) {
+      if (rule.dataset === Dataset.ERRORS) {
+        openInDiscoverDataset = SavedQueryDatasets.ERRORS;
+      } else if (
+        rule.dataset === Dataset.TRANSACTIONS ||
+        rule.dataset === Dataset.GENERIC_METRICS
+      ) {
+        openInDiscoverDataset = SavedQueryDatasets.TRANSACTIONS;
+      }
+    }
+
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: organization.slug,
+      organization,
       projects: [project],
       rule,
       timePeriod,
       query,
+      dataset,
+      openInDiscoverDataset,
     });
 
     const resolvedPercent =
-      (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
+      (100 *
+        Math.max(
+          totalDuration - waitingForDataDuration - criticalDuration - warningDuration,
+          0
+        )) /
       totalDuration;
     const criticalPercent = 100 * Math.min(criticalDuration / totalDuration, 1);
     const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
+    const waitingForDataPercent =
+      100 *
+      Math.min(
+        (waitingForDataDuration - criticalDuration - warningDuration) / totalDuration,
+        1
+      );
 
     return (
       <StyledChartControls>
         <StyledInlineContainer>
-          <SectionHeading>{t('Summary')}</SectionHeading>
-          <StyledSectionValue>
-            <ValueItem>
-              <IconCheckmark color="successText" isCircled />
-              {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
-            </ValueItem>
-            <ValueItem>
-              <IconWarning color="warningText" />
-              {warningPercent ? warningPercent.toFixed(2) : 0}%
-            </ValueItem>
-            <ValueItem>
-              <IconFire color="errorText" />
-              {criticalPercent ? criticalPercent.toFixed(2) : 0}%
-            </ValueItem>
-          </StyledSectionValue>
+          <Fragment>
+            <SectionHeading>{t('Summary')}</SectionHeading>
+            <StyledSectionValue>
+              <ValueItem>
+                <IconCheckmark color="successText" isCircled />
+                {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+              </ValueItem>
+              <ValueItem>
+                <IconWarning color="warningText" />
+                {warningPercent ? warningPercent.toFixed(2) : 0}%
+              </ValueItem>
+              <ValueItem>
+                <IconFire color="errorText" />
+                {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+              </ValueItem>
+              {waitingForDataPercent > 0 && (
+                <StyledTooltip
+                  underlineColor="gray200"
+                  showUnderline
+                  title={t(
+                    'The time spent waiting for metrics matching the filters used.'
+                  )}
+                >
+                  <ValueItem>
+                    <IconClock />
+                    {waitingForDataPercent.toFixed(2)}%
+                  </ValueItem>
+                </StyledTooltip>
+              )}
+            </StyledSectionValue>
+          </Fragment>
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
-          <Feature features={['discover-basic']}>
+          <Feature features="discover-basic">
             <Button size="sm" {...props}>
               {buttonText}
             </Button>
@@ -255,8 +279,8 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       organization,
       timePeriod: {start, end},
+      formattedAggregate,
     } = this.props;
-    const {width} = this.state;
     const {dateModified, timeWindow} = rule;
 
     if (loading || !timeseriesData) {
@@ -272,14 +296,22 @@ class MetricChart extends PureComponent<Props, State> {
       );
     };
 
-    const {criticalDuration, warningDuration, totalDuration, chartOption} =
-      getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        incidents,
-        selectedIncident,
-        handleIncidentClick,
-      });
+    const {
+      criticalDuration,
+      warningDuration,
+      totalDuration,
+      waitingForDataDuration,
+      chartOption,
+    } = getMetricAlertChartOption({
+      timeseriesData,
+      rule,
+      seriesName: formattedAggregate,
+      incidents,
+      selectedIncident,
+      showWaitingForData:
+        shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
+      handleIncidentClick,
+    });
 
     const comparisonSeriesName = capitalize(
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)?.label ||
@@ -305,18 +337,6 @@ class MetricChart extends PureComponent<Props, State> {
     const queryFilter =
       filter?.join(' ') + t(' over ') + getDuration(rule.timeWindow * 60);
 
-    const percentOfWidth =
-      width >= 1151
-        ? 15
-        : width < 1151 && width >= 700
-        ? 14
-        : width < 700 && width >= 515
-        ? 13
-        : width < 515 && width >= 300
-        ? 12
-        : 8;
-    const truncateWidth = (percentOfWidth / 100) * width;
-
     return (
       <ChartPanel>
         <StyledPanelBody withPadding>
@@ -327,8 +347,16 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{rule.aggregate}</Filters>
-            <Truncate value={queryFilter ?? ''} maxLength={truncateWidth} />
+            <Filters>{formattedAggregate ?? rule.aggregate}</Filters>
+            <Tooltip
+              title={queryFilter}
+              isHoverable
+              skipWrapper
+              overlayStyle={{maxWidth: '90vw', lineBreak: 'anywhere', textAlign: 'left'}}
+              showOnlyOnOverflow
+            >
+              <QueryFilters>{queryFilter}</QueryFilters>
+            </Tooltip>
           </ChartFilters>
           {getDynamicText({
             value: (
@@ -337,11 +365,6 @@ class MetricChart extends PureComponent<Props, State> {
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
-                onFinished={() => {
-                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-                  this.updateDimensions();
-                }}
               >
                 {zoomRenderProps => (
                   <AreaChart
@@ -349,17 +372,18 @@ class MetricChart extends PureComponent<Props, State> {
                     {...chartOption}
                     showTimeInTooltip
                     minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                    forwardedRef={this.handleRef}
                     additionalSeries={additionalSeries}
                     tooltip={{
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
-                        const {marker, data: pointData, seriesName} = pointSeries[0];
+                        const {marker, data: pointData} = pointSeries[0];
+                        const seriesName =
+                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,
-                          seriesName ?? '',
+                          seriesName,
                           rule.aggregate
                         );
 
@@ -393,7 +417,7 @@ class MetricChart extends PureComponent<Props, State> {
                           comparisonPointY !== undefined
                             ? alertTooltipValueFormatter(
                                 comparisonPointY,
-                                seriesName ?? '',
+                                seriesName,
                                 rule.aggregate
                               )
                             : undefined;
@@ -413,8 +437,8 @@ class MetricChart extends PureComponent<Props, State> {
                           changeStatus === AlertRuleTriggerType.CRITICAL
                             ? theme.red300
                             : changeStatus === AlertRuleTriggerType.WARNING
-                            ? theme.yellow300
-                            : theme.green300;
+                              ? theme.yellow300
+                              : theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,
@@ -448,24 +472,63 @@ class MetricChart extends PureComponent<Props, State> {
             fixed: <Placeholder height="200px" testId="skeleton-ui" />,
           })}
         </StyledPanelBody>
-        {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
+        {this.renderChartActions(
+          totalDuration,
+          criticalDuration,
+          warningDuration,
+          waitingForDataDuration
+        )}
       </ChartPanel>
     );
   }
 
-  renderEmpty() {
+  renderEmptyOnDemandAlert(
+    organization: Organization,
+    timeseriesData: Series[] = [],
+    loading?: boolean
+  ) {
+    if (
+      loading ||
+      !this.props.isOnDemandAlert ||
+      !shouldShowOnDemandMetricAlertUI(organization) ||
+      !isEmptySeries(timeseriesData[0])
+    ) {
+      return null;
+    }
+
+    return (
+      <OnDemandMetricAlert
+        dismissable
+        message={t(
+          'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
+        )}
+      />
+    );
+  }
+
+  renderEmpty(placeholderText = '') {
     return (
       <ChartPanel>
         <PanelBody withPadding>
-          <Placeholder height="200px" />
+          <TriggerChartPlaceholder>{placeholderText}</TriggerChartPlaceholder>
         </PanelBody>
       </ChartPanel>
     );
   }
 
   render() {
-    const {api, rule, organization, timePeriod, project, interval, query, location} =
-      this.props;
+    const {
+      api,
+      rule,
+      organization,
+      timePeriod,
+      project,
+      interval,
+      query,
+      location,
+      isOnDemandAlert,
+      selectedIncident,
+    } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // Fix for 7 days * 1m interval being over the max number of results from events api
@@ -494,12 +557,40 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    const queryExtras = getMetricDatasetQueryExtras({
-      organization,
-      location,
-      dataset,
-      newAlertOrQuery: false,
-    });
+    let activationFilter = '';
+    if (
+      rule.monitorType === MonitorType.ACTIVATED &&
+      selectedIncident &&
+      selectedIncident.activation
+    ) {
+      const {activation} = selectedIncident;
+      const {activator, conditionType} = activation;
+      switch (conditionType) {
+        case String(ActivationConditionType.RELEASE_CREATION):
+          activationFilter = ` AND (release:${activator})`;
+          break;
+        case String(ActivationConditionType.DEPLOY_CREATION):
+          activationFilter = ` AND (deploy:${activator})`;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const queryExtras: Record<string, string> = {
+      ...getMetricDatasetQueryExtras({
+        organization,
+        location,
+        dataset,
+        newAlertOrQuery: false,
+        useOnDemandMetrics: isOnDemandAlert,
+      }),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
+    };
+
+    if (shouldUseErrorsDataset(dataset, query)) {
+      queryExtras.dataset = 'errors';
+    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -509,7 +600,7 @@ class MetricChart extends PureComponent<Props, State> {
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
-        query={query}
+        query={query + activationFilter}
         interval={interval}
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
@@ -526,7 +617,7 @@ class MetricChart extends PureComponent<Props, State> {
       <EventsRequest
         api={api}
         organization={organization}
-        query={query}
+        query={query + activationFilter}
         environment={environment ? [environment] : undefined}
         project={project.id ? [Number(project.id)] : []}
         interval={interval}
@@ -539,10 +630,19 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics
       >
-        {({loading, timeseriesData, comparisonTimeseriesData}) =>
-          this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
-        }
+        {({loading, timeseriesData, comparisonTimeseriesData}) => (
+          <Fragment>
+            {this.renderEmptyOnDemandAlert(organization, timeseriesData, loading)}
+            {this.renderChart(
+              loading,
+              timeseriesData,
+              undefined,
+              comparisonTimeseriesData
+            )}
+          </Fragment>
+        )}
       </EventsRequest>
     );
   }
@@ -580,7 +680,7 @@ const ChartFilters = styled('div')`
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
   display: inline-grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: max-content max-content auto;
   align-items: center;
 `;
 
@@ -588,9 +688,14 @@ const Filters = styled('span')`
   margin-right: ${space(1)};
 `;
 
+const QueryFilters = styled('span')`
+  min-width: 0px;
+  ${p => p.theme.overflowEllipsis}
+`;
+
 const StyledSectionValue = styled(SectionValue)`
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   gap: ${space(1.5)};
   margin: 0 0 0 ${space(1.5)};
 `;
@@ -601,9 +706,20 @@ const ValueItem = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   font-variant-numeric: tabular-nums;
+  text-underline-offset: ${space(4)};
 `;
 
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
+`;
+
+const TriggerChartPlaceholder = styled(Placeholder)`
+  height: 200px;
+  text-align: center;
+  padding: ${space(3)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  text-underline-offset: ${space(0.5)} !important;
 `;

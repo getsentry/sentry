@@ -1,179 +1,236 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {
+  deleteMonitorEnvironment,
+  setEnvironmentIsMuted,
+  updateMonitor,
+} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {t} from 'sentry/locale';
+import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
-import {
-  GridLineOverlay,
-  GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {Monitor} from '../../types';
-import {scheduleAsText} from '../../utils';
+import {DateNavigator} from '../timeline/dateNavigator';
+import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
+import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
+import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
 
-import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {OverviewRow} from './overviewRow';
+import {SortSelector} from './sortSelector';
 
 interface Props {
   monitorList: Monitor[];
 }
 
 export function OverviewTimeline({monitorList}: Props) {
-  const {replace, location} = useRouter();
   const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const location = router.location;
 
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef<Date>(new Date());
-  const start = getStartFromTimeWindow(nowRef.current, timeWindow);
-  const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const handleResolutionChange = useCallback(
-    (value: TimeWindow) => {
-      replace({...location, query: {...location.query, timeWindow: value}});
-    },
-    [location, replace]
-  );
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const dateNavigation = useDateNavigation();
 
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
-  const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
-    [
-      monitorStatsQueryKey,
-      {
-        query: {
-          until: Math.floor(nowRef.current.getTime() / 1000),
-          since: Math.floor(start.getTime() / 1000),
-          monitor: monitorList.map(m => m.slug),
-          resolution: `${rollup}s`,
-          ...location.query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: timelineWidth > 0,
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: monitorList.map(m => m.id),
+    timeWindowConfig,
+  });
+
+  const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
+    const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
+    if (!success) {
+      return;
     }
-  );
+
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      if (oldMonitorIdx < 0) {
+        return oldMonitorList;
+      }
+
+      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
+      const updatedMonitor = {
+        ...oldMonitor,
+        environments: newEnvList,
+      };
+
+      const left = oldMonitorList.slice(0, oldMonitorIdx);
+      const right = oldMonitorList.slice(oldMonitorIdx + 1);
+
+      if (newEnvList.length === 0) {
+        return [...left, ...right];
+      }
+
+      return [...left, updatedMonitor, ...right];
+    });
+  };
+
+  const handleToggleMuteEnvironment = async (
+    monitor: Monitor,
+    env: string,
+    isMuted: boolean
+  ) => {
+    const resp = await setEnvironmentIsMuted(
+      api,
+      organization.slug,
+      monitor,
+      env,
+      isMuted
+    );
+
+    if (resp === null) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+      oldMonitorList[monitorIdx] = resp;
+      return oldMonitorList;
+    });
+  };
+
+  const handleToggleStatus = async (monitor: Monitor) => {
+    const status = monitor.status === 'active' ? 'disabled' : 'active';
+    const resp = await updateMonitor(api, organization.slug, monitor, {status});
+
+    if (resp === null) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
+
+      return oldMonitorList;
+    });
+  };
 
   return (
-    <MonitorListPanel>
-      <ListFilters>
-        <SegmentedControl<TimeWindow>
-          value={timeWindow}
-          onChange={handleResolutionChange}
-          size="xs"
-          aria-label={t('Time Scale')}
-        >
-          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </ListFilters>
+    <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
-      <GridLineTimeLabels
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
-      />
-      <GridLineOverlay
+      <Header>
+        <HeaderControlsLeft>
+          <SortSelector size="xs" />
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="back"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsLeft>
+        <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
+        <HeaderControlsRight>
+          <DateNavigator
+            dateNavigation={dateNavigation}
+            direction="forward"
+            size="xs"
+            borderless
+          />
+        </HeaderControlsRight>
+      </Header>
+      <AlignedGridLineOverlay
+        stickyCursor
+        allowZoom
         showCursor={!isLoading}
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
+        showIncidents={!isLoading}
+        timeWindowConfig={timeWindowConfig}
       />
 
-      {monitorList.map(monitor => (
-        <Fragment key={monitor.id}>
-          <MonitorDetails monitor={monitor} />
-          {isLoading || !monitorStats ? (
-            <Placeholder />
-          ) : (
-            <div>
-              <CheckInTimeline
-                timeWindow={timeWindow}
-                bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
-                start={start}
-                width={timelineWidth}
-              />
-            </div>
-          )}
-        </Fragment>
-      ))}
+      <MonitorRows>
+        {monitorList.map(monitor => (
+          <OverviewRow
+            key={monitor.id}
+            monitor={monitor}
+            timeWindowConfig={timeWindowConfig}
+            bucketedData={monitorStats?.[monitor.id]}
+            onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+            onToggleMuteEnvironment={(env, isMuted) =>
+              handleToggleMuteEnvironment(monitor, env, isMuted)
+            }
+            onToggleStatus={handleToggleStatus}
+          />
+        ))}
+      </MonitorRows>
     </MonitorListPanel>
   );
 }
 
-function MonitorDetails({monitor}: {monitor: Monitor}) {
-  const organization = useOrganization();
-  const schedule = scheduleAsText(monitor.config);
-
-  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
-
-  return (
-    <DetailsContainer to={monitorDetailUrl}>
-      <Name>{monitor.name}</Name>
-      <Schedule>{schedule}</Schedule>
-    </DetailsContainer>
-  );
-}
-
-const MonitorListPanel = styled(Panel)`
+const Header = styled(Sticky)`
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-column: 1/-1;
+  grid-template-columns: subgrid;
 
-  a,
-  a + div {
-    transition: background 50ms ease-in-out;
+  z-index: 1;
+  background: ${p => p.theme.background};
+  border-top-left-radius: ${p => p.theme.panelBorderRadius};
+  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-left: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.border};
+    margin: 0 -1px;
   }
-
-  a:hover,
-  a:hover + div,
-  a:has(+ div:hover),
-  a + div:hover {
-    background: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const DetailsContainer = styled(Link)`
-  color: ${p => p.theme.textColor};
-  padding: ${space(2)};
-  border-right: 1px solid ${p => p.theme.border};
-  border-radius: 0;
-`;
-
-const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
-`;
-
-const Schedule = styled('small')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const ListFilters = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  padding: ${space(1.5)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 2;
+  grid-column: 3/-1;
+`;
+const AlignedGridLineOverlay = styled(GridLineOverlay)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const AlignedGridLineLabels = styled(GridLineLabels)`
+  grid-row: 1;
+  grid-column: 3/-1;
+`;
+
+const MonitorListPanel = styled(Panel)`
+  display: grid;
+  grid-template-columns: 350px 135px 1fr max-content;
+`;
+
+const MonitorRows = styled('ul')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const HeaderControlsLeft = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(0.5)};
+  padding: ${space(1.5)} ${space(2)};
+`;
+
+const HeaderControlsRight = styled('div')`
+  grid-row: 1;
+  grid-column: -1;
+  padding: ${space(1.5)} ${space(2)};
 `;

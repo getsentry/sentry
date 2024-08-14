@@ -1,28 +1,28 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Mapping, Optional, Union
 
-from snuba_sdk import Condition, Direction, Op, OrderBy
+from snuba_sdk import Direction, OrderBy
+from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events import builder
-from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
-    Function,
     InvalidFunctionArgument,
     NumberRange,
     NumericColumn,
     SnQLFunction,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -54,10 +54,10 @@ class Column:
     alias: str
     # the internal name in snuba
     column: str
-    # type kind/type associated with this column
+    # data type associated with this column
     kind: Kind
     # some kinds will have an unit associated with it
-    unit: Optional[Unit] = None
+    unit: Unit | None = None
 
 
 COLUMNS = [
@@ -107,9 +107,7 @@ COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
 class ProfileColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias
@@ -164,52 +162,23 @@ class ProfilesDatasetConfig(DatasetConfig):
         "project_id",
     }
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
-
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     @property
@@ -394,7 +363,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> str | None:
         try:
             col = COLUMN_MAP[column]
             if col.unit:
@@ -407,9 +376,9 @@ class ProfilesDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return (
             Function(

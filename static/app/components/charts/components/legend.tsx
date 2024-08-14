@@ -1,11 +1,11 @@
 import 'echarts/lib/component/legend';
 import 'echarts/lib/component/legendScroll';
 
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import type BaseChart from 'sentry/components/charts/baseChart';
 
 import {truncationFormatter} from '../utils';
 

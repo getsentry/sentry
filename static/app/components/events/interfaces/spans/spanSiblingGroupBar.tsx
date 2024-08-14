@@ -1,26 +1,25 @@
 import {Fragment} from 'react';
 
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
   TreeConnector,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
 import SpanRectangle from './spanRectangle';
 import {SpanRectangleOverlay} from './spanRectangleOverlay';
-import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
+import type {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
 import {
   getSpanGroupBounds,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   unwrapTreeDepth,
 } from './utils';
 
@@ -28,7 +27,7 @@ export type SpanSiblingGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
   isEmbeddedSpanTree: boolean;
@@ -41,6 +40,7 @@ export type SpanSiblingGroupBarProps = {
   spanNumber: number;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
@@ -62,6 +62,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     isEmbeddedSpanTree,
     didAnchoredSpanMount,
     spanBarType,
+    measurements,
   } = props;
 
   const organization = useOrganization();
@@ -147,6 +148,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
   return (
     <SpanGroupBar
       event={event}
+      measurements={measurements}
       span={span}
       spanGrouping={spanGrouping}
       treeDepth={props.treeDepth}

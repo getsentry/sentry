@@ -1,21 +1,28 @@
-import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 describe('IntegrationOrganizationLink', () => {
-  it('selecting org from dropdown loads the org through the API', async () => {
-    const {routerProps} = initializeOrg();
+  let org1, org2, getOrgsMock;
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    window.location.assign = jest.fn();
 
-    const org1 = TestStubs.Organization({
+    org1 = OrganizationFixture({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    const org2 = TestStubs.Organization({
+    org2 = OrganizationFixture({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -23,19 +30,37 @@ describe('IntegrationOrganizationLink', () => {
     const org1Lite = pick(org1, ['slug', 'name', 'id']);
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
 
-    const getOrgsMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
+    getOrgsMock = MockApiClient.addMockResponse({
+      url: '/organizations/?include_feature_flags=1',
       body: [org1Lite, org2Lite],
     });
+  });
+
+  it('selecting org changes the url', async () => {
+    const preselectedOrg = OrganizationFixture();
+    const {routerProps} = initializeOrg({organization: preselectedOrg});
+
+    window.__initialData = ConfigFixture({
+      customerDomain: {
+        subdomain: 'foobar',
+        organizationUrl: 'https://foobar.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+      links: {
+        ...(window.__initialData?.links ?? {}),
+        sentryUrl: 'https://sentry.io',
+      },
+    });
+    ConfigStore.loadInitialData(window.__initialData);
 
     const getOrgMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
-      body: org2,
+      url: `/organizations/foobar/`,
+      body: preselectedOrg,
     });
 
-    const getProviderMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/config/integrations/?provider_key=vercel`,
-      body: {providers: [TestStubs.VercelProvider()]},
+    MockApiClient.addMockResponse({
+      url: `/organizations/foobar/config/integrations/?provider_key=vercel`,
+      body: {providers: [VercelProviderFixture()]},
     });
 
     render(
@@ -46,13 +71,53 @@ describe('IntegrationOrganizationLink', () => {
     );
 
     expect(getOrgsMock).toHaveBeenCalled();
-    expect(getOrgMock).not.toHaveBeenCalled();
+    expect(getOrgMock).toHaveBeenCalled();
 
     // Select organization
     await selectEvent.select(screen.getByRole('textbox'), org2.name);
+    expect(window.location.assign).toHaveBeenCalledWith(generateOrgSlugUrl(org2.slug));
+  });
+  it('Selecting the same org as the domain allows you to install', async () => {
+    const initialData = initializeOrg({organization: org2});
+
+    window.__initialData = ConfigFixture({
+      customerDomain: {
+        subdomain: org2.slug,
+        organizationUrl: `https://${org2.slug}.sentry.io`,
+        sentryUrl: 'https://sentry.io',
+      },
+      links: {
+        ...(window.__initialData?.links ?? {}),
+        sentryUrl: 'https://sentry.io',
+      },
+    });
+    ConfigStore.loadInitialData(window.__initialData);
+
+    const getProviderMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/config/integrations/?provider_key=vercel`,
+      body: {providers: [VercelProviderFixture()]},
+    });
+
+    const getOrgMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/`,
+      body: org2,
+    });
+
+    render(
+      <IntegrationOrganizationLink
+        {...initialData.routerProps}
+        params={{integrationSlug: 'vercel'}}
+      />,
+      {
+        router: initialData.router,
+      }
+    );
+
+    // Select the same organization as the domain
+    await selectEvent.select(screen.getByRole('textbox'), org2.name);
+    expect(window.location.assign).not.toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
-
     expect(getProviderMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
   });

@@ -2,23 +2,29 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
 @region_silo_endpoint
 class EventIdLookupEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(1, 1),
-            RateLimitCategory.USER: RateLimit(1, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(1, 1),
+            RateLimitCategory.IP: RateLimit(limit=1, window=1),
+            RateLimitCategory.USER: RateLimit(limit=1, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
         }
     }
 
@@ -29,7 +35,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
 
         This resolves an event ID to the project slug and internal issue ID and internal event ID.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           event ID should be looked up in.
         :param string event_id: the event ID to look up. validated by a
                                 regex in the URL.

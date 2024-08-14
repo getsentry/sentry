@@ -1,17 +1,22 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
 describe('TeamIssuesBreakdown', () => {
   it('should render graph with table of issues reviewed', async () => {
-    const team = TestStubs.Team();
-    const project = TestStubs.Project({id: '2', slug: 'javascript'});
-    const organization = TestStubs.Organization();
+    const team = TeamFixture();
+    const project = ProjectFixture({id: '2', slug: 'javascript'});
+    const organization = OrganizationFixture();
     const teamIssuesActions = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdownFixture(),
     });
-    const statuses = ['new', 'regressed', 'unignored'];
+    const statuses = ['new', 'regressed', 'unarchived'];
 
     render(
       <TeamIssuesBreakdown

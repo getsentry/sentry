@@ -1,31 +1,29 @@
 from __future__ import annotations
 
-from typing import Collection, List, Tuple
+import logging
+from collections.abc import Collection
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException, status
-from sentry.app import locks
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
+from sentry.locks import locks
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
-
-class InvalidTeam(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid_team"
-    message = "The team slug does not match a team in the organization"
+logger = logging.getLogger("sentry.org_roles")
 
 
-@transaction.atomic
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: List[Team] | None,
-    teams_with_roles: List[Tuple[Team, str]] | None = None,
+    teams: list[Team] | None,
+    teams_with_roles: list[tuple[Team, str]] | None = None,
 ):
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
@@ -45,21 +43,36 @@ def save_team_assignments(
 
         new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
-        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
-        OrganizationMemberTeam.objects.bulk_create(
-            [
-                OrganizationMemberTeam(organizationmember=organization_member, team=team, role=role)
-                for team, role in new_assignments
-            ]
-        )
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+            existing = OrganizationMemberTeam.objects.filter(organizationmember=organization_member)
+            OrganizationMemberTeam.objects.bulk_delete(existing)
+            OrganizationMemberTeam.objects.bulk_create(
+                [
+                    OrganizationMemberTeam(
+                        organizationmember=organization_member, team=team, role=role
+                    )
+                    for team, role in new_assignments
+                ]
+            )
 
 
-def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
+def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
+    """
+    User can set a team role:
+
+    * If they are an active superuser (with the feature flag, they must be superuser write)
+    * If they are an org owner/manager/admin
+    * If they are a team admin on the team
+    """
+    if superuser_has_permission(request):
+        return True
+
+    access: Access = request.access
     if not can_admin_team(access, team):
         return False
 
-    org_roles = access.get_organization_roles()
-    if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
+    org_role = access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
         return True
 
     team_role = access.get_team_role(team)
@@ -74,7 +87,7 @@ def can_admin_team(access: Access, team: Team) -> bool:
         return True
     if not access.has_team_membership(team):
         return False
-    return access.has_team_scope(team, "team:write")
+    return access.has_team_scope(team, "team:write") or access.has_team_scope(team, "team:admin")
 
 
 def get_allowed_org_roles(

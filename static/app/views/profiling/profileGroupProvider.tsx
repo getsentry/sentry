@@ -1,22 +1,53 @@
 import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Frame} from 'sentry/utils/profiling/frame';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
+import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
-type ProfileGroupContextValue = ProfileGroup;
-
+type ProfileGroupContextValue = ContinuousProfileGroup | ProfileGroup;
 const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
 
-export function useProfileGroup() {
+function assertContinuousProfileGroup(
+  input: ProfileGroupContextValue | null
+): asserts input is ContinuousProfileGroup {
+  if (input && input.type !== 'loading' && input.type !== 'continuous') {
+    throw new Error('ProfileGroup is not of continuous profile type.');
+  }
+}
+
+function assertTransactionProfileGroup(
+  input: ProfileGroupContextValue | null
+): asserts input is ProfileGroup {
+  if (input && input.type !== 'loading' && input.type !== 'transaction') {
+    throw new Error('ProfileGroup is not of transaction profile type.');
+  }
+}
+
+export function useProfileGroup(): ProfileGroup {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
   }
+  assertTransactionProfileGroup(context);
   return context;
 }
 
-const LoadingGroup: ProfileGroup = {
+export function useContinuousProfileGroup(): ContinuousProfileGroup {
+  const context = useContext(ProfileGroupContext);
+  if (!context) {
+    throw new Error(
+      'useContinuousProfileGroup was called outside of ProfileGroupProvider'
+    );
+  }
+  assertContinuousProfileGroup(context);
+  return context;
+}
+
+export const LOADING_PROFILE_GROUP: Readonly<ProfileGroup> = {
   name: 'Loading',
   activeProfileIndex: 0,
   transactionID: null,
@@ -24,6 +55,7 @@ const LoadingGroup: ProfileGroup = {
   measurements: {},
   traceID: '',
   profiles: [],
+  type: 'loading',
 };
 
 interface ProfileGroupProviderProps {
@@ -37,13 +69,22 @@ interface ProfileGroupProviderProps {
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
   const profileGroup = useMemo(() => {
     if (!props.input) {
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
+    const qs = new URLSearchParams(window.location.search);
+    const threadId = qs.get('tid');
+
     try {
-      return importProfile(props.input, props.traceID, props.type, props.frameFilter);
+      return importProfile(
+        props.input,
+        props.traceID,
+        threadId,
+        props.type,
+        props.frameFilter
+      );
     } catch (err) {
       Sentry.captureException(err);
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
   }, [props.input, props.traceID, props.type, props.frameFilter]);
 

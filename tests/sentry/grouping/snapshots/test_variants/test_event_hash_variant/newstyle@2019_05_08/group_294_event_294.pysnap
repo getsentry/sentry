@@ -140,7 +140,7 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:

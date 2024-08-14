@@ -1,18 +1,21 @@
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
-from typing import Any, Generator, Mapping, Union
+from typing import Any, Union
 
+import rb
 import requests
-from redis import Redis
 from rediscluster import RedisCluster
 
 
 @dataclass
 class ServiceMemory:
+    name: str
     used: int
     available: int
     percentage: float
 
-    def __init__(self, used: int, available: int):
+    def __init__(self, name: str, used: int, available: int):
+        self.name = name
         self.used = used
         self.available = available
         self.percentage = used / available
@@ -27,28 +30,25 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
         host += "/"
     url = f"{host}api/nodes"
 
-    response = requests.get(url, timeout=1)
+    response = requests.get(url, timeout=3)
     response.raise_for_status()
     json = response.json()
-    return ServiceMemory(json[0]["mem_used"], json[0]["mem_limit"])
+    return ServiceMemory(host, json[0]["mem_used"], json[0]["mem_limit"])
 
 
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
-# - a straight `Redis` client (actually `FailoverRedis`)
-# - or any class configured via `client_class`.
-# It could in theory also be a `rb` (aka redis blaster) Cluster, but we
-# intentionally do not support these.
-Cluster = Union[RedisCluster, Redis]
+# - a `rb.Cluster` (client side routing cluster client)
+Cluster = Union[RedisCluster, rb.Cluster]
 
 
-def get_memory_usage(info: Mapping[str, Any]) -> ServiceMemory:
+def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     # or alternatively: `used_memory_rss`?
     memory_used = info.get("used_memory", 0)
     # `maxmemory` might be 0 in development
     memory_available = info.get("maxmemory", 0) or info["total_system_memory"]
 
-    return ServiceMemory(memory_used, memory_available)
+    return ServiceMemory(node_id, memory_used, memory_available)
 
 
 def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
@@ -57,8 +57,12 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
     """
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
-        for info in cluster.info().values():
-            yield get_memory_usage(info)
+        cluster_info = cluster.info()
     else:
-        # otherwise, lets just hope that `info()` does the right thing
-        yield get_memory_usage(cluster.info())
+        # rb.Cluster returns a promise with a dictionary with a _local_ node-id as key
+        with cluster.all() as client:
+            promise = client.info()
+        cluster_info = promise.value
+
+    for node_id, info in cluster_info.items():
+        yield get_memory_usage(node_id, info)

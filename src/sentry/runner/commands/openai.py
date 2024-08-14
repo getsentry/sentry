@@ -1,11 +1,15 @@
-import click
+# The sentry utils json cannot pretty print
+import json  # noqa: S003
+from typing import IO
 
-from sentry.utils import json
+import click
 
 
 @click.command("openai")
 @click.option("--event", type=click.File("r"))
-def openai(event):
+@click.option("--model", default="gpt-3.5-turbo")
+@click.option("--dump-prompt", is_flag=True)
+def openai(event: IO[str], model: str, dump_prompt: bool) -> None:
     """
     Runs the OpenAI assistent against a JSON event payload.
     """
@@ -13,7 +17,13 @@ def openai(event):
 
     configure()
 
-    from sentry.api.endpoints.event_ai_suggested_fix import suggest_fix
+    from sentry.api.endpoints.event_ai_suggested_fix import describe_event_for_ai, suggest_fix
 
     event_data = json.load(event)
-    click.echo(suggest_fix(event_data))
+    if dump_prompt:
+        click.echo(json.dumps(describe_event_for_ai(event_data, model=model), indent=2))
+    else:
+        resp = suggest_fix(event_data, stream=True, model=model)
+        for chunk in resp:
+            click.echo(chunk, nl=False)
+        click.echo()

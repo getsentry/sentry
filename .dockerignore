@@ -1,8 +1,8 @@
-# Ignore everything
-*
-
-!/self-hosted
-!/package.json
-!/yarn.lock
-!/dist/requirements-frozen.txt
-!/dist/*.whl
+/.devenv
+/.dockerignore
+/.git
+/.gitignore
+/.venv
+/fixtures
+/node_modules
+/tests

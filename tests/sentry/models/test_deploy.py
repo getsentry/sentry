@@ -1,10 +1,13 @@
-from sentry.models import Activity, Commit, Deploy, Environment, Release, ReleaseHeadCommit
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
 class DeployNotifyTest(TestCase):
     def test_notify_if_ready_long_release(self):
         org = self.create_organization()
@@ -19,6 +22,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         record = Activity.objects.get(type=ActivityType.DEPLOY.value, project=project)
+        assert record.ident is not None
         assert release.version.startswith(record.ident)
 
     def test_already_notified(self):
@@ -55,15 +59,10 @@ class DeployNotifyTest(TestCase):
         Deploy.notify_if_ready(deploy.id)
 
         # make sure activity has been created
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
-        ).exists()
-        assert (
-            Activity.objects.get(
-                type=ActivityType.DEPLOY.value, project=project, ident=release.version
-            ).data["deploy_id"]
-            == deploy.id
         )
+        assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True
 
     def test_head_commits_fetch_not_complete(self):
@@ -110,13 +109,8 @@ class DeployNotifyTest(TestCase):
         Deploy.notify_if_ready(deploy.id, fetch_complete=True)
 
         # make sure activity has been created
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
-        ).exists()
-        assert (
-            Activity.objects.get(
-                type=ActivityType.DEPLOY.value, project=project, ident=release.version
-            ).data["deploy_id"]
-            == deploy.id
         )
+        assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True

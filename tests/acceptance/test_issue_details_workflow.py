@@ -1,16 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
 from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@no_silo_test
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -46,10 +45,10 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "resolved"
 
-    def test_ignore_basic(self):
+    def test_archive_basic(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.ignore_issue()
+        self.page.archive_issue()
         self.wait_for_loading()
 
         res = self.page.api_issue_get(event.group.id)

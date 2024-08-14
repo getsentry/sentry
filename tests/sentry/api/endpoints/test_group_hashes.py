@@ -1,15 +1,13 @@
-import copy
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.models import GroupHash
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.models.grouphash import GroupHash
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)
@@ -23,10 +21,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": two_min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         new_event = self.store_event(
@@ -34,10 +32,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": new_event_id,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         assert new_event.group_id == old_event.group_id
@@ -60,10 +58,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": two_min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         event2 = self.store_event(
@@ -79,6 +77,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         # Merge the events
         eventstream = SnubaEventStream()
         state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        assert state is not None
 
         eventstream.end_merge(state)
 
@@ -94,7 +93,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_unmerge(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
+        group = self.create_group(
+            platform="javascript",
+            metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+        )
 
         hashes = [
             GroupHash.objects.create(project=group.project, group=group, hash=hash)
@@ -108,5 +110,36 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             ]
         )
 
+        with patch("sentry.api.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
+            response = self.client.delete(url, format="json")
+
+            assert response.status_code == 202, response.content
+            mock_metrics_incr.assert_any_call(
+                "grouping.unmerge_issues",
+                sample_rate=1.0,
+                tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
+            )
+
+    def test_unmerge_conflict(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group(platform="javascript")
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+        hashes[0].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        hashes[1].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+
         response = self.client.delete(url, format="json")
-        assert response.status_code == 202, response.content
+
+        assert response.status_code == 409
+        assert response.data["detail"] == "Already being unmerged"

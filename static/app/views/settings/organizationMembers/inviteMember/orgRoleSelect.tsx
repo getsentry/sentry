@@ -1,10 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import {OrgRole} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {OrgRole} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
@@ -18,6 +23,7 @@ type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
   enforceRetired: boolean;
+  helpText: string | undefined;
   roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
@@ -32,20 +38,22 @@ class OrganizationRoleSelect extends Component<Props> {
       roleList,
       roleSelected,
       setSelected,
+      helpText,
     } = this.props;
 
     return (
       <Panel>
-        <PanelHeader>
+        <StyledPanelHeader>
           <div>{t('Organization Role')}</div>
-        </PanelHeader>
+          {disabled && <QuestionTooltip size="sm" title={helpText} />}
+        </StyledPanelHeader>
 
         <PanelBody>
           {roleList.map(role => {
-            const {desc, name, id, allowed, isRetired: roleRetired} = role;
+            const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+            const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
 
             return (
               <PanelItem
@@ -70,5 +78,11 @@ class OrganizationRoleSelect extends Component<Props> {
     );
   }
 }
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: flex;
+  gap: ${space(0.5)};
+  justify-content: left;
+`;
 
 export default OrganizationRoleSelect;

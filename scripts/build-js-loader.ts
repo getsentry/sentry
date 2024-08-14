@@ -1,8 +1,5 @@
 /* eslint-disable no-console */
-/* eslint import/no-nodejs-modules:0 */
-
-import fs from 'fs';
-
+import fs from 'node:fs';
 import {minify} from 'terser';
 import * as ts from 'typescript';
 
@@ -42,7 +39,7 @@ async function run() {
   const {code: minifiedBase} = await minify(base, {
     ecma: 5,
     mangle: {
-      reserved: ['onLoad', 'forceLoad'],
+      reserved: ['onLoad', 'forceLoad', 'sentryOnLoad'],
     },
     format: {
       ecma: 5,
@@ -72,7 +69,7 @@ async function run() {
 function replacePlaceholders(str: string): string {
   return str
     .replace('__LOADER__PUBLIC_KEY__', "'{{ publicKey|safe }}'")
-    .replace('__LOADER_SDK_URL__', "'{{ jsSdkUrl|safe }}'")
+    .replace('__LOADER__SDK_URL__', "'{{ jsSdkUrl|safe }}'")
     .replace('__LOADER__CONFIG__', '{{ config|to_json|safe }}')
     .replace('__LOADER__IS_LAZY__', '{{ isLazy|safe|lower }}');
 }

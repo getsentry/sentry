@@ -1,0 +1,27 @@
+[
+    {
+        "model": "sentry.user",
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
+            "last_login": null,
+            "name": "",
+            "email": "maximum@example.com",
+            "is_staff": true,
+            "is_active": true,
+            "is_superuser": true,
+            "is_managed": false,
+            "is_sentry_app": null,
+            "is_password_expired": false,
+            "is_unclaimed": false,
+            "last_password_change": "2023-06-22T22:59:57.023Z",
+            "flags": "0",
+            "session_nonce": null,
+            "date_joined": "2023-06-22T22:59:55.488Z",
+            "last_active": "2023-06-22T22:59:55.489Z",
+            "avatar_type": 0,
+            "avatar_url": null,
+            "doesnotexist": "foo"
+        }
+    }
+]

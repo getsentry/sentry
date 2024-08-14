@@ -1,6 +1,5 @@
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -9,19 +8,21 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, MetricsApiResponse} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {WebVital} from 'sentry/utils/fields';
+import type {DateString} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {MetricsApiResponse} from 'sentry/types/metrics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import {ViewProps} from '../types';
+import type {ViewProps} from '../types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
 

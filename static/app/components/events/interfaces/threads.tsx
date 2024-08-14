@@ -1,8 +1,9 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import isNil from 'lodash/isNil';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -14,20 +15,18 @@ import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  EntryType,
-  Event,
-  Organization,
-  Project,
-  StackType,
-  StackView,
-  Thread,
-} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -45,12 +44,7 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  organization: Organization;
   projectSlug: Project['slug'];
-};
-
-type State = {
-  activeThread?: Thread;
 };
 
 function getIntendedStackView(
@@ -69,12 +63,12 @@ function getIntendedStackView(
 }
 
 export function getThreadStateIcon(state: ThreadStates | undefined) {
-  if (isNil(state)) {
+  if (state === null || state === undefined) {
     return null;
   }
   switch (state) {
     case ThreadStates.BLOCKED:
-      return <IconLock isSolid />;
+      return <IconLock locked />;
     case ThreadStates.TIMED_WAITING:
       return <IconTimer />;
     case ThreadStates.WAITING:
@@ -86,23 +80,35 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
   }
 }
 
+// We want to set the active thread every time the event changes because the best thread might not be the same between events
+const useActiveThreadState = (
+  event: Event,
+  threads: Thread[]
+): [Thread | undefined, (newState: Thread | undefined) => void] => {
+  const bestThread = threads.length ? findBestThread(threads) : undefined;
+
+  const [activeThread, setActiveThread] = useState<Thread | undefined>(() => bestThread);
+
+  useEffect(() => {
+    setActiveThread(bestThread);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id]);
+
+  return [activeThread, setActiveThread];
+};
+
 export function Threads({
   data,
   event,
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  organization,
 }: Props) {
   const threads = data.values ?? [];
-
-  const [state, setState] = useState<State>(() => {
-    const thread = threads.length ? findBestThread(threads) : undefined;
-    return {activeThread: thread};
-  });
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
   const stackTraceNotFound = !threads.length;
-  const {activeThread} = state;
 
   const hasMoreThanOneThread = threads.length > 1;
 
@@ -128,7 +134,7 @@ export function Threads({
       heldLocks,
     } = activeThread ?? {};
 
-    if (isNil(id) || !name) {
+    if (id === null || id === undefined || !name) {
       return null;
     }
 
@@ -137,7 +143,7 @@ export function Threads({
 
     return (
       <Pills>
-        {!isNil(id) && <Pill name={t('id')} value={String(id)} />}
+        <Pill name={t('id')} value={id} />
         {!!name?.trim() && <Pill name={t('name')} value={name} />}
         {current !== undefined && <Pill name={t('was active')} value={current} />}
         {crashed !== undefined && (
@@ -145,7 +151,7 @@ export function Threads({
             {crashed ? t('yes') : t('no')}
           </Pill>
         )}
-        {!isNil(threadStateDisplay) && (
+        {threadStateDisplay !== undefined && (
           <Pill name={t('state')} value={threadStateDisplay} />
         )}
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
@@ -170,13 +176,12 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           projectSlug={projectSlug}
           newestFirst={recentFirst}
           event={event}
-          platform={platform}
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -199,8 +204,8 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           newestFirst={recentFirst}
           event={event}
@@ -224,14 +229,18 @@ export function Threads({
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-  const hideThreadTags = isNil(activeThreadId) || !activeThreadName;
+  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
-  return (
+  const threadComponent = (
     <Fragment>
-      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
+      {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
-            <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+            <EventDataSection
+              type="threads"
+              title={t('Threads')}
+              showPermalink={!hasStreamlinedUI}
+            >
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -239,18 +248,19 @@ export function Threads({
                     activeThread={activeThread}
                     event={event}
                     onChange={thread => {
-                      setState({
-                        ...state,
-                        activeThread: thread,
-                      });
+                      setActiveThread(thread);
                     }}
                     exception={exception}
                   />
                 </Wrapper>
               )}
             </EventDataSection>
-            {activeThread && activeThread.state && (
-              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
+            {activeThread?.state && (
+              <EventDataSection
+                title={t('Thread State')}
+                type="thread-state"
+                showPermalink={!hasStreamlinedUI}
+              >
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -262,13 +272,17 @@ export function Threads({
                       title={getThreadStateHelpText(threadStateDisplay)}
                     />
                   )}
-                  {<LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>}
+                  <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
               </EventDataSection>
             )}
           </Grid>
           {!hideThreadTags && (
-            <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+            <EventDataSection
+              title={t('Thread Tags')}
+              type={'thread-tags'}
+              showPermalink={!hasStreamlinedUI}
+            >
               {renderPills()}
             </EventDataSection>
           )}
@@ -276,35 +290,13 @@ export function Threads({
       )}
       <TraceEventDataSection
         type={EntryType.THREADS}
-        stackType={StackType.ORIGINAL}
         projectSlug={projectSlug}
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
         fullStackTrace={stackView === StackView.FULL}
-        title={
-          hasMoreThanOneThread &&
-          activeThread &&
-          !organization.features.includes('anr-improvements') ? (
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={thread => {
-                setState({
-                  ...state,
-                  activeThread: thread,
-                });
-              }}
-              exception={exception}
-              fullWidth
-            />
-          ) : (
-            <PermalinkTitle>
-              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-            </PermalinkTitle>
-          )
-        }
+        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
+        isNestedSection
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
           !!activeThread?.rawStacktrace
@@ -347,16 +339,42 @@ export function Threads({
           ) || (activeThread?.stacktrace?.frames ?? []).length > 1
         }
         stackTraceNotFound={stackTraceNotFound}
-        wrapTitle={false}
       >
-        {childrenProps => (
-          <Fragment>
-            {!organization.features.includes('anr-improvements') && renderPills()}
-            {renderContent(childrenProps)}
-          </Fragment>
-        )}
+        {childrenProps => {
+          // TODO(scttcper): These are duplicated from renderContent, should consolidate
+          const stackType = childrenProps.display.includes('minified')
+            ? StackType.MINIFIED
+            : StackType.ORIGINAL;
+          const isRaw = childrenProps.display.includes('raw-stack-trace');
+          const stackTrace = getThreadStacktrace(
+            stackType !== StackType.ORIGINAL,
+            activeThread
+          );
+
+          return (
+            <Fragment>
+              {stackTrace && !isRaw && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceBanners event={event} stacktrace={stackTrace} />
+                </ErrorBoundary>
+              )}
+              {renderContent(childrenProps)}
+            </Fragment>
+          );
+        }}
       </TraceEventDataSection>
     </Fragment>
+  );
+
+  return hasStreamlinedUI ? (
+    <InterimSection
+      title={tn('Stack Trace', 'Stack Traces', threads.length)}
+      type={FoldSectionKey.STACKTRACE}
+    >
+      {threadComponent}
+    </InterimSection>
+  ) : (
+    threadComponent
   );
 }
 
@@ -376,11 +394,11 @@ const ThreadStateWrapper = styled('div')`
 const ThreadState = styled(TextOverflow)`
   max-width: 100%;
   text-align: left;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const LockReason = styled(TextOverflow)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
 `;
 

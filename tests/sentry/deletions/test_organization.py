@@ -1,51 +1,50 @@
 from uuid import uuid4
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.incidents.models import AlertRule, AlertRuleStatus
-from sentry.models import (
-    ActorTuple,
-    Commit,
-    CommitAuthor,
-    Dashboard,
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
-    Environment,
-    EnvironmentProject,
-    ExternalIssue,
-    Group,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    Repository,
-    ScheduledDeletion,
 )
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.group import Group
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import TransactionTestCase
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.actor import Actor
 
 
-@region_silo_test
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
-        org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
         org_member = OrganizationMember.objects.get(organization_id=org.id, user_id=org_owner.id)
         self.assert_org_member_mapping(org_member=org_member)
 
         org_owner2 = self.create_user()
         org2 = self.create_organization(name="test2", owner=org_owner2)
-        org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
 
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")
@@ -99,21 +98,22 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         widget_2_data_2 = DashboardWidgetQuery.objects.create(
             widget=widget_2, order=2, name="Outgoing data"
         )
-
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks(), outbox_runner():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert Organization.objects.filter(id=org2.id).exists()
-        assert OrganizationMapping.objects.filter(id=org_mapping2.id).exists()
-        assert OrganizationMemberMapping.objects.filter(organization_id=org2.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert OrganizationMapping.objects.filter(id=org_mapping2.id).exists()
+            assert OrganizationMemberMapping.objects.filter(organization_id=org2.id).exists()
 
         assert not Organization.objects.filter(id=org.id).exists()
-        assert not OrganizationMapping.objects.filter(id=org_mapping.id).exists()
-        assert not OrganizationMemberMapping.objects.filter(organization_id=org.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not OrganizationMapping.objects.filter(id=org_mapping.id).exists()
+            assert not OrganizationMemberMapping.objects.filter(organization_id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
         assert not ReleaseEnvironment.objects.filter(id=release_env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
@@ -133,16 +133,15 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         org = self.create_organization(name="test")
         release = Release.objects.create(version="a" * 32, organization_id=org.id)
 
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        deletion = self.ScheduledDeletion.schedule(instance=org, days=0)
         assert org.status == OrganizationStatus.ACTIVE
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert Organization.objects.filter(id=org.id).exists()
         assert Release.objects.filter(id=release.id).exists()
-        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+        assert not self.ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
     def test_large_child_relation_deletion(self):
         org = self.create_organization(name="test")
@@ -162,11 +161,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Commit.objects.filter(organization_id=org.id).exists()
@@ -182,11 +180,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         project.delete()
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Organization.objects.filter(id=org.id).exists()
@@ -208,11 +205,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         repo.delete()
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
@@ -241,11 +237,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
@@ -259,7 +254,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         other = self.create_organization(name="other", owner=self.user)
         other_project = self.create_project(organization=other, name="other project")
 
-        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query="{}")
+        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query={})
         # Make a cross-org project reference. This can happen when an account was
         # merged in the past and we didn't update the discover queries.
         query_project = DiscoverSavedQueryProject.objects.create(
@@ -267,11 +262,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
@@ -282,14 +276,13 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         org = self.create_organization(**name_filter)
 
         assert Organization.objects.filter(**name_filter).count() == 1
-        assert ScheduledDeletion.objects.count() == 0
+        assert self.ScheduledDeletion.objects.count() == 0
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert Organization.objects.filter(**name_filter).count() == 0
 
@@ -314,7 +307,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         alert_rule = self.create_alert_rule(
             organization=from_org,
             projects=[project],
-            owner=ActorTuple.from_actor_identifier(f"team:{from_team.id}"),
+            owner=Actor.from_identifier(f"team:{from_team.id}"),
             environment=environment,
         )
 
@@ -353,10 +346,10 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         )
 
         from_org.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(from_org, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=from_org, days=0)
+
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(name=from_org.name).exists()
         assert Organization.objects.filter(name=to_org.name).exists()

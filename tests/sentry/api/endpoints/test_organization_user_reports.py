@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
-from sentry.models import GroupStatus, UserReport
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.group import GroupStatus
+from sentry.models.userreport import UserReport
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
@@ -62,7 +62,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             comments="Hello world",
             group_id=self.group_1.id,
             environment_id=self.env_2.id,
-            date_added=datetime.now() - timedelta(days=7),
+            date_added=datetime.now(UTC) - timedelta(days=7),
         )
 
     def run_test(self, expected, **params):
@@ -86,13 +86,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     def test_date_filter(self):
         self.run_test(
             [self.report_1],
-            start=(datetime.now() - timedelta(days=1)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test(
             [self.report_1, self.report_2],
-            start=(datetime.now() - timedelta(days=8)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=8)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test([self.report_1, self.report_2], statsPeriod="14d")
 
@@ -119,7 +119,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
                 "event_id": "d" * 32,
                 "message": "oh no",
                 "environment": self.env_1.name,
-                "user": {"id": 1234, "email": "alice@example.com"},
+                "user": {
+                    "id": "123",
+                    "email": "alice@example.com",
+                    "username": "haveibeenpwned",
+                    "ip_address": "8.8.8.8",
+                    "name": "Alice",
+                },
             },
             project_id=self.project_1.id,
         )
@@ -131,10 +137,11 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             "email": "",
             "comments": "It broke",
         }
-        save_userreport(self.project_1, report_data)
-
+        save_userreport(
+            self.project_1, report_data, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+        )
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200
         assert response.data[0]["comments"] == "It broke"
-        assert response.data[0]["user"]["name"] == "alice@example.com"
+        assert response.data[0]["user"]["name"] == "Alice"
         assert response.data[0]["user"]["email"] == "alice@example.com"

@@ -1,47 +1,54 @@
 """
 Metrics Service Layer Tests for Performance
 """
+
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
-from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
-from sentry.api.utils import InvalidParams
-from sentry.models import (
+from sentry.exceptions import InvalidParams
+from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
+)
+from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.naming_layer import (
+    TransactionMetricKey,
+    TransactionMRI,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
-from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import (
+    BaseMetricsLayerTestCase,
+    MetricsEnhancedPerformanceTestCase,
+    TestCase,
+)
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -65,7 +72,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["meta"] == sorted(
             [
@@ -123,7 +130,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
@@ -181,7 +188,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
@@ -254,7 +261,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 2
@@ -333,7 +340,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 2
@@ -388,7 +395,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 1
@@ -404,49 +411,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             key=lambda elem: elem["name"],
         )
-
-    def test_custom_measurement_query_with_invalid_mri(self):
-        invalid_mris = [
-            "d:sessions/measurements.speed@millisecond",
-            "s:transactions/measurements.speed@millisecond",
-        ]
-
-        for value, invalid_mri in zip([100, 200], invalid_mris):
-            self.store_performance_metric(
-                name=invalid_mri,
-                tags={},
-                value=value,
-            )
-
-        for invalid_mri in invalid_mris:
-            with pytest.raises(
-                InvalidParams,
-                match=f"Unable to find a mri reverse mapping for '{invalid_mri}'.",
-            ):
-                # We keep the query in order to add more context to the test, even though the actual test
-                # is testing for the '__post_init__' inside 'MetricField'.
-                metrics_query = self.build_metrics_query(
-                    before_now="1h",
-                    granularity="1h",
-                    select=[
-                        MetricField(
-                            op="count",
-                            metric_mri=invalid_mri,
-                        ),
-                    ],
-                    groupby=[],
-                    orderby=[],
-                    limit=Limit(limit=2),
-                    offset=Offset(offset=0),
-                    include_series=False,
-                )
-
-                get_series(
-                    [self.project],
-                    metrics_query=metrics_query,
-                    include_meta=True,
-                    use_case_id=UseCaseKey.PERFORMANCE,
-                )
 
     def test_query_with_order_by_valid_str_field(self):
         project_2 = self.create_project()
@@ -497,7 +461,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -554,7 +518,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_query_with_order_by_str_field_not_in_group_by(self):
@@ -590,7 +554,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_query_with_sum_if_column(self):
@@ -622,7 +586,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -669,7 +633,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -731,7 +695,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -798,7 +762,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -867,7 +831,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -934,7 +898,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_alias_on_single_entity_derived_metrics(self):
@@ -970,7 +934,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert len(data["groups"]) == 1
         group = data["groups"][0]
@@ -1038,7 +1002,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -1087,6 +1051,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
+                    aggregation_option=AggregationOption.HIST,
                 )
 
         metrics_query = self.build_metrics_query(
@@ -1122,7 +1087,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert data["groups"] == [
@@ -1168,7 +1133,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
@@ -1216,7 +1181,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
@@ -1255,7 +1220,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     seconds_before_now=-1,
                 )
 
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1281,17 +1246,17 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data == {
-            "start": FakeDatetime(
+            "start": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
             ),
-            "end": FakeDatetime(
+            "end": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
             ),
             "intervals": [
-                FakeDatetime(
+                datetime(
                     day_ago.year,
                     day_ago.month,
                     day_ago.day,
@@ -1354,7 +1319,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
         # the expected rates would be each of those event counts divided by 86400 / 60
@@ -1413,7 +1378,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_measurement_rating(self):
@@ -1504,7 +1469,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         group_totals = data["groups"][0]["totals"]
@@ -1606,7 +1571,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["groups"] == [
             {
@@ -1670,7 +1635,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert data["groups"] == [
@@ -1721,7 +1686,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert sorted(data["groups"], key=lambda group: group["by"]["transaction_name"]) == [
@@ -1803,9 +1768,11 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                             lhs=Function(
                                 "match",
                                 parameters=[
-                                    Function("ifNull", parameters=[column, ""])
-                                    if use_if_null
-                                    else column,
+                                    (
+                                        Function("ifNull", parameters=[column, ""])
+                                        if use_if_null
+                                        else column
+                                    ),
                                     f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
                                 ],
                             ),
@@ -1821,7 +1788,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     [self.project],
                     metrics_query=metrics_query,
                     include_meta=True,
-                    use_case_id=UseCaseKey.PERFORMANCE,
+                    use_case_id=UseCaseID.TRANSACTIONS,
                 )
 
                 assert data["groups"] == [
@@ -1870,7 +1837,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_team_key_transaction_as_condition(self):
@@ -1887,7 +1854,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 minutes_before_now=minutes,
             )
 
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1972,7 +1939,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=False,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["groups"] == [
             {
@@ -1983,7 +1950,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def test_limit_when_not_passed_and_interval_is_provided(self):
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -2007,6 +1974,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
         EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
 
+        assert metrics_query.limit is not None
         assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
@@ -2035,10 +2003,285 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             "include_series": True,
         }
         with pytest.raises(InvalidParams):
-            MetricsQuery(**metrics_query_dict)
+            DeprecatingMetricsQuery(**metrics_query_dict)
 
-        mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        mq = DeprecatingMetricsQuery(**metrics_query_dict, interval=3600)
+        assert mq.limit is not None
         assert mq.limit.limit == 50
+
+
+@pytest.mark.snuba_ci
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
+class CustomMetricsMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
+    def setUp(self):
+        self.gauge_1 = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 21.0,
+            "count": 2,
+            "last": 20.0,
+        }
+        self.gauge_2 = {
+            "min": 2.0,
+            "max": 21.0,
+            "sum": 21.0,
+            "count": 3,
+            "last": 4.0,
+        }
+        self.mri = "g:custom/page_load@millisecond"
+
+    @property
+    def now(self):
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
+
+    def test_gauge_count(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {"by": {}, "series": {"count(page_load)": [2, 3]}, "totals": {"count(page_load)": 5}}
+        ]
+
+    def test_gauge_min(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="min",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {"by": {}, "series": {"min(page_load)": [1.0, 2.0]}, "totals": {"min(page_load)": 1.0}}
+        ]
+
+    def test_gauge_max(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="max",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"max(page_load)": [20.0, 21.0]},
+                "totals": {"max(page_load)": 21.0},
+            }
+        ]
+
+    def test_gauge_sum(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="sum",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"sum(page_load)": [21.0, 21.0]},
+                "totals": {"sum(page_load)": 42.0},
+            }
+        ]
+
+    def test_gauge_last(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="last",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"last(page_load)": [20.0, 4.0]},
+                "totals": {"last(page_load)": 4.0},
+            }
+        ]
+
+    def test_gauge_avg(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            self.store_custom_metric(
+                name=self.mri, tags={}, value=value, minutes_before_now=minutes
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="avg",
+                    metric_mri=self.mri,
+                ),
+            ],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {"avg(page_load)": [10.5, 7.0]},
+                "totals": {"avg(page_load)": 8.4},
+            }
+        ]
+
+    def test_gauge_group_by(self):
+        for value, minutes in ((self.gauge_1, 35), (self.gauge_2, 5)):
+            for transaction in (
+                "foo",
+                "bar",
+                "baz",
+            ):
+                self.store_custom_metric(
+                    name=self.mri,
+                    tags={"transaction": transaction},
+                    value=value,
+                    minutes_before_now=minutes,
+                )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="30m",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=self.mri,
+                ),
+            ],
+            groupby=[MetricGroupByField("transaction")],
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseID.CUSTOM,
+        )
+        groups = sorted(data["groups"], key=lambda group: group["by"]["transaction"])
+        assert groups == [
+            {
+                "by": {"transaction": "bar"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+            {
+                "by": {"transaction": "baz"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+            {
+                "by": {"transaction": "foo"},
+                "series": {"count(page_load)": [2, 3]},
+                "totals": {"count(page_load)": 5},
+            },
+        ]
 
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
@@ -2087,11 +2330,11 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
@@ -2141,16 +2384,16 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
-    def test_broken_custom_metric(self, mock):
+    def test_broken_custom_metric(self, mocked_parse_mri):
         # Store valid metric
         self.store_transaction_metric(
             1,
@@ -2161,7 +2404,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         )
 
         # mock mri failing to parse the metric
-        mock.return_value = None
+        mocked_parse_mri.return_value = None
         result = get_custom_measurements(
             project_ids=[self.project.id],
             organization_id=self.organization.id,

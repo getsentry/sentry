@@ -1,11 +1,36 @@
+from __future__ import annotations
+
 import logging
 import re
 
 from sentry.constants import ObjectStatus
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
+
+
+def _delete_children(manager, relations, transaction_id=None, actor_id=None):
+    # Ideally this runs through the deletion manager
+    for relation in relations:
+        task = manager.get(
+            transaction_id=transaction_id,
+            actor_id=actor_id,
+            task=relation.task,
+            **relation.params,
+        )
+
+        # If we want smaller tasks then this also has to return when has_more is true.
+        # This could significant increase the number of tasks we spawn. Get better estimates
+        # by collecting metrics.
+        has_more = True
+        while has_more:
+            has_more = task.chunk()
+            if has_more:
+                metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
+    return False
 
 
 class BaseRelation:
@@ -50,7 +75,7 @@ class BaseDeletionTask:
             self.actor_id,
         )
 
-    def chunk(self):
+    def chunk(self) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -90,7 +115,7 @@ class BaseDeletionTask:
             rel for rel in child_relations if rel.params.get("model") not in self.skip_models
         )
 
-    def delete_bulk(self, instance_list):
+    def delete_bulk(self, instance_list) -> bool:
         """
         Delete a batch of objects bound to this task.
 
@@ -126,24 +151,7 @@ class BaseDeletionTask:
             self.delete_instance(instance)
 
     def delete_children(self, relations):
-        # Ideally this runs through the deletion manager
-        for relation in relations:
-            task = self.manager.get(
-                transaction_id=self.transaction_id,
-                actor_id=self.actor_id,
-                task=relation.task,
-                **relation.params,
-            )
-
-            # If we want smaller tasks then this also has to return when has_more is true.
-            # This could significant increase the number of tasks we spawn. Get better estimates
-            # by collecting metrics.
-            has_more = True
-            while has_more:
-                has_more = task.chunk()
-                if has_more:
-                    metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
-        return False
+        return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
     def mark_deletion_in_progress(self, instance_list):
         pass
@@ -182,7 +190,7 @@ class ModelDeletionTask(BaseDeletionTask):
             rel(obj_list) for rel in default_manager.bulk_dependencies[self.model]
         ]
 
-    def chunk(self, num_shards=None, shard_id=None):
+    def chunk(self) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
@@ -195,11 +203,6 @@ class ModelDeletionTask(BaseDeletionTask):
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 
-            if num_shards:
-                assert num_shards > 1
-                assert shard_id < num_shards
-                queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
-
             queryset = list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
@@ -209,11 +212,6 @@ class ModelDeletionTask(BaseDeletionTask):
             remaining = remaining - query_limit
         # We have more work to do as we didn't run out of rows to delete.
         return True
-
-    def delete_instance_bulk(self, instance_list):
-        # slow, but ensures Django cascades are handled
-        for instance in instance_list:
-            self.delete_instance(instance)
 
     def delete_instance(self, instance):
         instance_id = instance.id
@@ -233,14 +231,9 @@ class ModelDeletionTask(BaseDeletionTask):
                     },
                 )
 
-    def get_actor(self):
-        from sentry.models import User
-
+    def get_actor(self) -> RpcUser | None:
         if self.actor_id:
-            try:
-                return User.objects.get_from_cache(id=self.actor_id)
-            except User.DoesNotExist:
-                pass
+            return user_service.get_user(user_id=self.actor_id)
         return None
 
     def mark_deletion_in_progress(self, instance_list):
@@ -265,10 +258,10 @@ class BulkModelDeletionTask(ModelDeletionTask):
 
         self.partition_key = partition_key
 
-    def chunk(self):
-        return self.delete_instance_bulk()
+    def chunk(self) -> bool:
+        return self._delete_instance_bulk()
 
-    def delete_instance_bulk(self):
+    def _delete_instance_bulk(self) -> bool:
         try:
             return bulk_delete_objects(
                 model=self.model,

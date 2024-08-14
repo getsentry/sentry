@@ -1,16 +1,21 @@
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Modal from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventAttachment, Project} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 function renderModal({
-  initialData: {organization, routerContext},
+  initialData: {organization, router},
   eventAttachment,
   projectSlug,
   attachmentIndex,
@@ -49,7 +54,7 @@ function renderModal({
       enablePagination={enablePagination}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -61,19 +66,19 @@ describe('Modals -> ScreenshotModal', function () {
   let getAttachmentsMock;
   beforeEach(() => {
     initialData = initializeOrg({
-      organization: TestStubs.Organization(),
+      organization: OrganizationFixture(),
       router: {
         params: {groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},
       },
     } as Parameters<typeof initializeOrg>[0]);
-    project = TestStubs.Project();
+    project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      body: [EventAttachmentFixture()],
       headers: {
         link:
           '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -86,7 +91,7 @@ describe('Modals -> ScreenshotModal', function () {
     MockApiClient.clearMockResponses();
   });
   it('paginates single screenshots correctly', async function () {
-    const eventAttachment = TestStubs.EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     renderModal({
       eventAttachment,
       initialData,
@@ -94,11 +99,11 @@ describe('Modals -> ScreenshotModal', function () {
       attachmentIndex: 0,
       attachments: [
         eventAttachment,
-        TestStubs.EventAttachment({id: '2', event_id: 'new event id'}),
-        TestStubs.EventAttachment({id: '3'}),
-        TestStubs.EventAttachment({id: '4'}),
-        TestStubs.EventAttachment({id: '5'}),
-        TestStubs.EventAttachment({id: '6'}),
+        EventAttachmentFixture({id: '2', event_id: 'new event id'}),
+        EventAttachmentFixture({id: '3'}),
+        EventAttachmentFixture({id: '4'}),
+        EventAttachmentFixture({id: '5'}),
+        EventAttachmentFixture({id: '6'}),
       ],
       enablePagination: true,
       groupId: 'group-id',
@@ -111,24 +116,24 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('fetches a new batch of screenshots correctly', async function () {
-    const eventAttachment = TestStubs.EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     renderModal({
       eventAttachment,
       initialData,
       projectSlug: project.slug,
       attachmentIndex: 11,
       attachments: [
-        TestStubs.EventAttachment({id: '2'}),
-        TestStubs.EventAttachment({id: '3'}),
-        TestStubs.EventAttachment({id: '4'}),
-        TestStubs.EventAttachment({id: '5'}),
-        TestStubs.EventAttachment({id: '6'}),
-        TestStubs.EventAttachment({id: '7'}),
-        TestStubs.EventAttachment({id: '8'}),
-        TestStubs.EventAttachment({id: '9'}),
-        TestStubs.EventAttachment({id: '10'}),
-        TestStubs.EventAttachment({id: '11'}),
-        TestStubs.EventAttachment({id: '12'}),
+        EventAttachmentFixture({id: '2'}),
+        EventAttachmentFixture({id: '3'}),
+        EventAttachmentFixture({id: '4'}),
+        EventAttachmentFixture({id: '5'}),
+        EventAttachmentFixture({id: '6'}),
+        EventAttachmentFixture({id: '7'}),
+        EventAttachmentFixture({id: '8'}),
+        EventAttachmentFixture({id: '9'}),
+        EventAttachmentFixture({id: '10'}),
+        EventAttachmentFixture({id: '11'}),
+        EventAttachmentFixture({id: '12'}),
         eventAttachment,
       ],
       enablePagination: true,
@@ -147,8 +152,8 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('renders with previous and next buttons when passed attachments and index', async function () {
-    const eventAttachment = TestStubs.EventAttachment();
-    const attachments = [eventAttachment, TestStubs.EventAttachment({id: '2'})];
+    const eventAttachment = EventAttachmentFixture();
+    const attachments = [eventAttachment, EventAttachmentFixture({id: '2'})];
     render(
       <Modal
         Header={stubEl}
@@ -168,7 +173,7 @@ describe('Modals -> ScreenshotModal', function () {
         enablePagination
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -184,7 +189,7 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('does not render pagination buttons when only one screenshot', function () {
-    const eventAttachment = TestStubs.EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     const attachments = [eventAttachment];
     render(
       <Modal
@@ -205,7 +210,7 @@ describe('Modals -> ScreenshotModal', function () {
         enablePagination
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       }
     );

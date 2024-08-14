@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Alert, alertStyles} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {alertStyles} from 'sentry/components/alert';
 import {space} from 'sentry/styles/space';
 
-type AlertType = React.ComponentProps<typeof Alert>['type'];
+type AlertType = AlertProps['type'];
 
 const getAlertSelector = (type: AlertType) =>
   type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;

@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
-import {Indicator} from 'sentry/actionCreators/indicator';
+import type {Indicator} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,7 +51,11 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
         <Icon type={type}>{icon}</Icon>
       )}
       <Message>{message}</Message>
-      {showUndo && <Undo onClick={undo}>{t('Undo')}</Undo>}
+      {showUndo && (
+        <Undo priority="link" onClick={undo}>
+          {t('Undo')}
+        </Undo>
+      )}
     </Toast>
   );
 }
@@ -103,15 +108,12 @@ const Message = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Undo = styled('div')`
-  display: inline-block;
-  color: ${p => p.theme.linkColor};
-  padding-left: ${space(1)};
-  margin-left: ${space(1)};
-  cursor: pointer;
+const Undo = styled(Button)`
+  color: ${p => p.theme.inverted.linkColor};
+  margin-left: ${space(2)};
 
   &:hover {
-    color: ${p => p.theme.linkHoverColor};
+    color: ${p => p.theme.inverted.linkHoverColor};
   }
 `;
 

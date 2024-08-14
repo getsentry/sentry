@@ -1,4 +1,7 @@
-from typing import Any, Optional, Sequence, Tuple
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_redis_tools.sliding_windows_rate_limiter import GrantedQuota, Quota
@@ -19,8 +22,8 @@ class SlidingWindowRateLimiter(Service):
         pass
 
     def check_within_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+        self, requests: Sequence[RequestedQuota], timestamp: Timestamp | None = None
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         """
         Given a set of quotas requests and limits, compute how much quota could
         be consumed.
@@ -105,7 +108,7 @@ class SlidingWindowRateLimiter(Service):
         raise NotImplementedError()
 
     def check_and_use_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+        self, requests: Sequence[RequestedQuota], timestamp: Timestamp | None = None
     ) -> Sequence[GrantedQuota]:
         """
         Check the quota requests in Redis and consume the quota in one go. See
@@ -118,23 +121,34 @@ class SlidingWindowRateLimiter(Service):
 
 class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def __init__(self, **options: Any) -> None:
-        cluster_key = options.get("cluster", "default")
-        client = redis.redis_clusters.get(cluster_key)
-        assert isinstance(client, (StrictRedis, RedisCluster)), client
-        self.client = client
-        self.impl = RedisSlidingWindowRateLimiterImpl(self.client)
+        self.cluster_key = options.get("cluster", "default")
+        self._client: RedisCluster | StrictRedis | None = None
+        self._impl: RedisSlidingWindowRateLimiterImpl | None = None
         super().__init__(**options)
+
+    @property
+    def client(self) -> StrictRedis | RedisCluster:
+        if self._client is None:
+            self._client = redis.redis_clusters.get(self.cluster_key)
+            assert isinstance(self._client, (StrictRedis, RedisCluster)), self._client
+        return self._client
+
+    @property
+    def impl(self):
+        if self._impl is None:
+            self._impl = RedisSlidingWindowRateLimiterImpl(self.client)
+        return self._impl
 
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()  # type: ignore
+            self.client.connection_pool.disconnect()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
     def check_within_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+        self, requests: Sequence[RequestedQuota], timestamp: Timestamp | None = None
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         return self.impl.check_within_quotas(requests, timestamp)
 
     def use_quotas(

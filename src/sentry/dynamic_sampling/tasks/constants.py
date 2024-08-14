@@ -16,10 +16,12 @@ MAX_REBALANCE_FACTOR = 10
 
 # Parameters to bound the execution time of queries in Snuba.
 MAX_SECONDS = 60
+
+# The maximum time a dynamic sampling task can run.
+MAX_TASK_SECONDS = 7 * 60  # 7 minutes
+
 # Snuba's limit is 10000, and we fetch CHUNK_SIZE + 1.
 CHUNK_SIZE = 9998
 
 # Time interval of queries for boost low volume transactions.
 BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL = timedelta(hours=1)
-# Time interval of queries for recalibrate orgs.
-RECALIBRATE_ORGS_QUERY_INTERVAL = timedelta(minutes=5)

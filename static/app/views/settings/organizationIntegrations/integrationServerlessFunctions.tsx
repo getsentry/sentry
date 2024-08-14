@@ -2,9 +2,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
-import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type {Organization} from 'sentry/types/organization';
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {space} from 'sentry/styles/space';
 import {Alert} from 'sentry/components/alert';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -13,16 +19,16 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
-type Props = AsyncComponent['props'] & {
-  integration: IntegrationWithConfig;
+type Props = DeprecatedAsyncComponent['props'] & {
+  integration: OrganizationIntegration;
   organization: Organization;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   serverlessFunctions: ServerlessFunction[];
 };
 
-class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
+class IntegrationServerlessFunctions extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -30,7 +36,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgSlug = this.props.organization.slug;
     return [
       [

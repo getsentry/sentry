@@ -7,15 +7,23 @@ from sentry.replays.lib.storage import (
     FilestoreBlob,
     RecordingSegmentStorageMeta,
     StorageBlob,
-    make_filename,
+    make_recording_filename,
 )
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers.response import close_streaming_response
 
 
-class EnvironmentMixin:
+class EnvironmentBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
     endpoint = "sentry-api-0-project-replay-recording-segment-details"
+
+    segment_filename: str
+
+    def init_environment(self) -> None:
+        raise NotImplementedError
 
     def setUp(self):
         super().setUp()
@@ -60,11 +68,10 @@ class EnvironmentMixin:
             )
             assert response.get("Content-Length") == str(self.segment_data_size)
             assert response.get("Content-Type") == "application/json"
-            assert self.segment_data == b"".join(response.streaming_content)
+            assert self.segment_data == close_streaming_response(response)
 
 
-@region_silo_test
-class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCase):
+class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -73,14 +80,11 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentMixin, APITestCa
             retention_days=None,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
         FilestoreBlob().set(metadata, self.segment_data)
 
 
-@region_silo_test
-class StorageReplayRecordingSegmentDetailsTestCase(
-    EnvironmentMixin, APITestCase, ReplaysSnubaTestCase
-):
+class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,
@@ -89,7 +93,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(
             retention_days=30,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
 
         self.store_replays(
             mock_replay(

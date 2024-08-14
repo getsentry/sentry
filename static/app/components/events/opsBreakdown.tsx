@@ -1,10 +1,9 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
-import {
+import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
+import type {
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -13,7 +12,13 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntrySpans, EntryType, Event, EventTransaction} from 'sentry/types/event';
+import type {
+  AggregateEventTransaction,
+  EntrySpans,
+  Event,
+  EventTransaction,
+} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -39,265 +44,252 @@ type OpStats = {
 
 const TOP_N_SPANS = 4;
 
-type OpBreakdownType = OpStats[];
+export type OpBreakdownType = OpStats[];
 
-type DefaultProps = {
-  hideHeader: boolean;
-  topN: number;
-};
-
-type Props = DefaultProps & {
-  event: Event;
+type Props = {
+  event: Event | AggregateEventTransaction;
   operationNameFilters: ActiveOperationFilter;
+  hideHeader?: boolean;
+  topN?: number;
 };
 
-class OpsBreakdown extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    topN: TOP_N_SPANS,
-    hideHeader: false,
+export function generateStats(
+  transactionEvent: EventTransaction | AggregateEventTransaction,
+  operationNameFilters: ActiveOperationFilter,
+  topN?: number
+): OpBreakdownType {
+  if (!transactionEvent) {
+    return [];
+  }
+
+  const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
+
+  if (!traceContext) {
+    return [];
+  }
+
+  const spanEntry = transactionEvent.entries.find(
+    (entry: EntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
+
+  let spans: RawSpanType[] = spanEntry?.data ?? [];
+
+  const rootSpan = {
+    op: traceContext.op,
+    timestamp: transactionEvent.endTimestamp,
+    start_timestamp: transactionEvent.startTimestamp,
+    trace_id: traceContext.trace_id || '',
+    span_id: traceContext.span_id || '',
+    data: {},
   };
 
-  getTransactionEvent(): EventTransaction | undefined {
-    const {event} = this.props;
+  spans =
+    spans.length > 0
+      ? spans
+      : // if there are no descendent spans, then use the transaction root span
+        [rootSpan];
 
-    if (event.type === 'transaction') {
-      return event as EventTransaction;
-    }
+  // Filter spans by operation name
+  if (operationNameFilters.type === 'active_filter') {
+    spans = [...spans, rootSpan];
+    spans = spans.filter(span => {
+      const operationName = getSpanOperation(span);
 
-    return undefined;
+      const shouldFilterOut =
+        typeof operationName === 'string' &&
+        !operationNameFilters.operationNames.has(operationName);
+
+      return !shouldFilterOut;
+    });
   }
 
-  generateStats(): OpBreakdownType {
-    const {topN, operationNameFilters} = this.props;
-    const event = this.getTransactionEvent();
+  const operationNameIntervals = spans.reduce(
+    (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
+      let startTimestamp = span.start_timestamp;
+      const endTimestamp = span.timestamp;
 
-    if (!event) {
-      return [];
-    }
-
-    const traceContext: TraceContextType | undefined = event?.contexts?.trace;
-
-    if (!traceContext) {
-      return [];
-    }
-
-    const spanEntry = event.entries.find(
-      (entry: EntrySpans | any): entry is EntrySpans => {
-        return entry.type === EntryType.SPANS;
+      if (!span.exclusive_time) {
+        return intervals;
       }
-    );
 
-    let spans: RawSpanType[] = spanEntry?.data ?? [];
+      if (endTimestamp < startTimestamp) {
+        // reverse timestamps
+        startTimestamp = span.timestamp;
+      }
 
-    const rootSpan = {
-      op: traceContext.op,
-      timestamp: event.endTimestamp,
-      start_timestamp: event.startTimestamp,
-      trace_id: traceContext.trace_id || '',
-      span_id: traceContext.span_id || '',
-      data: {},
-    };
+      // invariant: startTimestamp <= endTimestamp
 
-    spans =
-      spans.length > 0
-        ? spans
-        : // if there are no descendent spans, then use the transaction root span
-          [rootSpan];
+      let operationName = span.op;
 
-    // Filter spans by operation name
-    if (operationNameFilters.type === 'active_filter') {
-      spans = [...spans, rootSpan];
-      spans = spans.filter(span => {
-        const operationName = getSpanOperation(span);
+      if (typeof operationName !== 'string') {
+        // a span with no operation name is considered an 'unknown' op
+        operationName = 'unknown';
+      }
 
-        const shouldFilterOut =
-          typeof operationName === 'string' &&
-          !operationNameFilters.operationNames.has(operationName);
+      const cover: TimeWindowSpan = [
+        startTimestamp,
+        startTimestamp + span.exclusive_time / 1000,
+      ];
 
-        return !shouldFilterOut;
-      });
-    }
+      const operationNameInterval = intervals[operationName];
 
-    const operationNameIntervals = spans.reduce(
-      (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
-        let startTimestamp = span.start_timestamp;
-        const endTimestamp = span.timestamp;
-
-        if (!span.exclusive_time) {
-          return intervals;
-        }
-
-        if (endTimestamp < startTimestamp) {
-          // reverse timestamps
-          startTimestamp = span.timestamp;
-        }
-
-        // invariant: startTimestamp <= endTimestamp
-
-        let operationName = span.op;
-
-        if (typeof operationName !== 'string') {
-          // a span with no operation name is considered an 'unknown' op
-          operationName = 'unknown';
-        }
-
-        const cover: TimeWindowSpan = [
-          startTimestamp,
-          startTimestamp + span.exclusive_time / 1000,
-        ];
-
-        const operationNameInterval = intervals[operationName];
-
-        if (!Array.isArray(operationNameInterval)) {
-          intervals[operationName] = [cover];
-
-          return intervals;
-        }
-
-        operationNameInterval.push(cover);
-
-        intervals[operationName] = mergeInterval(operationNameInterval);
+      if (!Array.isArray(operationNameInterval)) {
+        intervals[operationName] = [cover];
 
         return intervals;
-      },
-      {}
-    ) as OperationNameIntervals;
-
-    const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
-      (
-        acc: Partial<OperationNameCoverage>,
-        [operationName, intervals]: [OperationName, TimeWindowSpan[]]
-      ) => {
-        const duration = intervals.reduce((sum: number, [start, end]) => {
-          return sum + Math.abs(end - start);
-        }, 0);
-
-        acc[operationName] = duration;
-
-        return acc;
-      },
-      {}
-    ) as OperationNameCoverage;
-
-    const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
-      (first: [OperationName, Duration], second: [OperationName, Duration]) => {
-        const firstDuration = first[1];
-        const secondDuration = second[1];
-
-        if (firstDuration === secondDuration) {
-          return 0;
-        }
-
-        if (firstDuration < secondDuration) {
-          // sort second before first
-          return 1;
-        }
-
-        // otherwise, sort first before second
-        return -1;
       }
-    );
 
-    const breakdown = sortedOpsBreakdown
-      .slice(0, topN)
-      .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
-        return {
-          name: operationName,
-          // percentage to be recalculated after the ops breakdown group is decided
-          percentage: 0,
-          totalInterval: duration,
-        };
-      });
+      operationNameInterval.push(cover);
 
-    const other = sortedOpsBreakdown.slice(topN).reduce(
-      (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
-        accOther.totalInterval += duration;
+      intervals[operationName] = mergeInterval(operationNameInterval);
 
-        return accOther;
-      },
-      {
-        name: OtherOperation,
+      return intervals;
+    },
+    {}
+  ) as OperationNameIntervals;
+
+  const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
+    (
+      acc: Partial<OperationNameCoverage>,
+      [operationName, intervals]: [OperationName, TimeWindowSpan[]]
+    ) => {
+      const duration = intervals.reduce((sum: number, [start, end]) => {
+        return sum + Math.abs(end - start);
+      }, 0);
+
+      acc[operationName] = duration;
+
+      return acc;
+    },
+    {}
+  ) as OperationNameCoverage;
+
+  const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
+    (first: [OperationName, Duration], second: [OperationName, Duration]) => {
+      const firstDuration = first[1];
+      const secondDuration = second[1];
+
+      if (firstDuration === secondDuration) {
+        return 0;
+      }
+
+      if (firstDuration < secondDuration) {
+        // sort second before first
+        return 1;
+      }
+
+      // otherwise, sort first before second
+      return -1;
+    }
+  );
+
+  const breakdown = sortedOpsBreakdown
+    .slice(0, topN)
+    .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
+      return {
+        name: operationName,
         // percentage to be recalculated after the ops breakdown group is decided
         percentage: 0,
-        totalInterval: 0,
-      }
+        totalInterval: duration,
+      };
+    });
+
+  const other = sortedOpsBreakdown.slice(topN).reduce(
+    (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
+      accOther.totalInterval += duration;
+
+      return accOther;
+    },
+    {
+      name: OtherOperation,
+      // percentage to be recalculated after the ops breakdown group is decided
+      percentage: 0,
+      totalInterval: 0,
+    }
+  );
+
+  if (other.totalInterval > 0) {
+    breakdown.push(other);
+  }
+
+  // calculate breakdown total duration
+
+  const total = breakdown.reduce((sum: number, operationNameGroup) => {
+    return sum + operationNameGroup.totalInterval;
+  }, 0);
+
+  // recalculate percentage values
+
+  breakdown.forEach(operationNameGroup => {
+    operationNameGroup.percentage = operationNameGroup.totalInterval / total;
+  });
+
+  return breakdown;
+}
+
+function OpsBreakdown({
+  event,
+  operationNameFilters,
+  hideHeader = false,
+  topN = TOP_N_SPANS,
+}: Props) {
+  const transactionEvent =
+    event.type === 'transaction' || event.type === 'aggregateTransaction'
+      ? event
+      : undefined;
+
+  if (!transactionEvent) {
+    return null;
+  }
+
+  const breakdown = generateStats(transactionEvent, operationNameFilters, topN);
+
+  const contents = breakdown.map(currOp => {
+    const {name, percentage, totalInterval} = currOp;
+
+    const isOther = name === OtherOperation;
+    const operationName = typeof name === 'string' ? name : t('Other');
+
+    const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
+    const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+    const opsColor: string = pickBarColor(operationName);
+
+    return (
+      <OpsLine key={operationName}>
+        <OpsNameContainer>
+          <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
+          <OpsName>{operationName}</OpsName>
+        </OpsNameContainer>
+        <OpsContent>
+          <Dur>{durLabel}ms</Dur>
+          <Pct>{pctLabel}%</Pct>
+        </OpsContent>
+      </OpsLine>
     );
+  });
 
-    if (other.totalInterval > 0) {
-      breakdown.push(other);
-    }
-
-    // calculate breakdown total duration
-
-    const total = breakdown.reduce((sum: number, operationNameGroup) => {
-      return sum + operationNameGroup.totalInterval;
-    }, 0);
-
-    // recalculate percentage values
-
-    breakdown.forEach(operationNameGroup => {
-      operationNameGroup.percentage = operationNameGroup.totalInterval / total;
-    });
-
-    return breakdown;
+  if (!hideHeader) {
+    return (
+      <StyledBreakdown>
+        <SectionHeading>
+          {t('Operation Breakdown')}
+          <QuestionTooltip
+            position="top"
+            size="sm"
+            containerDisplayMode="block"
+            title={t(
+              'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
+            )}
+          />
+        </SectionHeading>
+        {contents}
+      </StyledBreakdown>
+    );
   }
 
-  render() {
-    const {hideHeader} = this.props;
-
-    const event = this.getTransactionEvent();
-
-    if (!event) {
-      return null;
-    }
-
-    const breakdown = this.generateStats();
-
-    const contents = breakdown.map(currOp => {
-      const {name, percentage, totalInterval} = currOp;
-
-      const isOther = name === OtherOperation;
-      const operationName = typeof name === 'string' ? name : t('Other');
-
-      const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
-      const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-      const opsColor: string = pickBarColor(operationName);
-
-      return (
-        <OpsLine key={operationName}>
-          <OpsNameContainer>
-            <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
-            <OpsName>{operationName}</OpsName>
-          </OpsNameContainer>
-          <OpsContent>
-            <Dur>{durLabel}ms</Dur>
-            <Pct>{pctLabel}%</Pct>
-          </OpsContent>
-        </OpsLine>
-      );
-    });
-
-    if (!hideHeader) {
-      return (
-        <StyledBreakdown>
-          <SectionHeading>
-            {t('Operation Breakdown')}
-            <QuestionTooltip
-              position="top"
-              size="sm"
-              containerDisplayMode="block"
-              title={t(
-                'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
-              )}
-            />
-          </SectionHeading>
-          {contents}
-        </StyledBreakdown>
-      );
-    }
-
-    return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
-  }
+  return <StyledBreakdownNoHeader>{contents}</StyledBreakdownNoHeader>;
 }
 
 const StyledBreakdown = styled('div')`
@@ -320,7 +312,7 @@ export const OpsLine = styled('div')`
   }
 `;
 
-const OpsDot = styled('div')`
+export const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;

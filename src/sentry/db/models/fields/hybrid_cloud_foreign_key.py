@@ -6,10 +6,11 @@ Its main purpose is to support foreign key columns in, say, region silos that re
 also columns in the control silo that point to, say, Organization objects) that do not actually exist in the local database,
 or even the local network.
 
-Functionally, this field is just a dumb BigIntegerField. While it does support indexes, it does not support constraints.
-This means, for instance, you should absolutely expect identifiers in this column to not necessarily exist.
-Eventually, if the related object is deleted and processed correctly, this column may be set null or cleaned up;
-but at any given time an integer in this column makes no guarantees about the existence of the related object.
+Functionally, this field is just a dumb BigIntegerField. While it does support indexes, it does not support any
+integrity constraints. This means, for instance, you should not assume that these integer fields reference a valid
+existing object, even if the column is non-nullable. If the related object is deleted and processed correctly,
+the row may either be deleted or have its column value set to null depending on the chosen cascade behavior and null
+constraints set on the column, but does not make any strong consistency guarantees.
 
 Cascade behavior is provided to the application via tasks/deletion/hybrid_cloud.py jobs.  Again, to emphasize, this
 process is eventually consistent, and the timing of the completion of those process is a black box of systems
@@ -26,8 +27,8 @@ To add this field to a model, you need to do a few preparatory steps:
 3. Validate that either the default, or the registered bulk deletions in
    sentry/deletions/__init__.py make sense for your model.  This is especially true if your model
     previously had no cascade logic (a new model, for instance)
-4. For an existing field to a HCFK, django will produce a non working migration by default.  There
-   is no way to configure the auto generated django migrations unfortunately.  You'll need to carefully
+4. For an existing field to a HCFK, django will produce a non-working migration by default.  There
+   is no way to configure the auto generated django migrations, unfortunately.  You'll need to carefully
    build a migration by following this pattern:
     a. register a database operation that alters the field to a ForeignKey with db_constraint=False,
        in order to produce the custom sql of actually dropping the existing constraint in the database.
@@ -45,25 +46,23 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
-
-from django.db import models
-
-__all__ = ("HybridCloudForeignKey",)
-
-from typing import Any, Tuple
+from typing import Any
 
 from django.apps import apps
+from django.db import models
+
+from sentry.db.models.fields.types import FieldGetType, FieldSetType
+
+__all__ = ("HybridCloudForeignKey",)
 
 
 class HybridCloudForeignKeyCascadeBehavior(IntEnum):
     CASCADE = 1
     SET_NULL = 2
+    DO_NOTHING = 3
 
 
-class HybridCloudForeignKey(models.BigIntegerField):
-    on_delete: str
-    foreign_model_name: str
-
+class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
     @property
     def foreign_model(self) -> Any:
         parts = self.foreign_model_name.split(".")
@@ -74,7 +73,11 @@ class HybridCloudForeignKey(models.BigIntegerField):
         return self.foreign_model._meta.db_table
 
     def __init__(
-        self, foreign_model: str, *, on_delete: HybridCloudForeignKeyCascadeBehavior | str, **kwds
+        self,
+        foreign_model: str,
+        *,
+        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
+        **kwds: Any,
     ):
         self.on_delete = (
             on_delete
@@ -91,7 +94,7 @@ class HybridCloudForeignKey(models.BigIntegerField):
         kwds.setdefault("db_index", True)
         super().__init__(**kwds)
 
-    def deconstruct(self) -> Tuple[Any, Any, Any, Any]:
+    def deconstruct(self) -> tuple[Any, Any, Any, Any]:
         (name, path, args, kwds) = super().deconstruct()
         # This seems wrong, but due to the way django scrubs defaults, this will inevitably be wrong.
         kwds.setdefault("db_index", False)

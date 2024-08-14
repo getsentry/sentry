@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
-from sentry import features
-from sentry.issues.ongoing import transition_group_to_ongoing
-from sentry.models import Group, GroupStatus, Project, User
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import (
     GroupInboxReason,
     GroupInboxRemoveAction,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.models.project import Project
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 
 
 def update_inbox(
     in_inbox: bool,
-    group_list: List[Group],
-    project_lookup: Dict[int, Project],
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
     http_referrer: str,
     sender: Any,
@@ -35,9 +36,6 @@ def update_inbox(
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
     elif not in_inbox:
-        has_escalating = features.has(
-            "organizations:escalating-issues", group_list[0].project.organization, actor=acting_user
-        )
         for group in group_list:
             # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
@@ -46,15 +44,11 @@ def update_inbox(
                 user=acting_user,
                 referrer=http_referrer,
             )
-            if (
-                has_escalating
-                and group.substatus != GroupSubStatus.ONGOING
-                and group.status == GroupStatus.UNRESOLVED
-            ):
-                transition_group_to_ongoing(
+            if group.substatus != GroupSubStatus.ONGOING and group.status == GroupStatus.UNRESOLVED:
+                bulk_transition_group_to_ongoing(
                     group.status,
                     group.substatus,
-                    group,
+                    [group.id],
                     activity_data={"manually": True},
                 )
 

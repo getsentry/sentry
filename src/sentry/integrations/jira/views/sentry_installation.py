@@ -1,16 +1,18 @@
+import orjson
 from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
+from sentry.web.frontend.base import control_silo_view
 
-from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
+from . import SALT, UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
+@control_silo_view
 class JiraSentryInstallationView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when
@@ -30,10 +32,10 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
         # expose a link to the configuration view
         signed_data = {
             "external_id": integration.external_id,
-            "metadata": json.dumps(integration.metadata),
+            "metadata": orjson.dumps(integration.metadata).decode(),
         }
         finish_link = "{}.?signed_params={}".format(
-            absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
+            absolute_uri("/extensions/jira/configure/"), sign(salt=SALT, **signed_data)
         )
 
         image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))

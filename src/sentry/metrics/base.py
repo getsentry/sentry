@@ -1,8 +1,9 @@
 __all__ = ["MetricsBackend"]
 
+from collections.abc import Mapping, MutableMapping
 from random import random
 from threading import local
-from typing import Mapping, MutableMapping, Optional, Union
+from typing import Union
 
 from django.conf import settings
 
@@ -18,7 +19,7 @@ MutableTags = MutableMapping[str, TagValue]
 
 
 class MetricsBackend(local):
-    def __init__(self, prefix: Optional[str] = None) -> None:
+    def __init__(self, prefix: str | None = None) -> None:
         if prefix is None:
             prefix = settings.SENTRY_METRICS_PREFIX
         self.prefix = prefix
@@ -34,10 +35,12 @@ class MetricsBackend(local):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError
 
@@ -45,9 +48,10 @@ class MetricsBackend(local):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError
 
@@ -55,8 +59,36 @@ class MetricsBackend(local):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        raise NotImplementedError
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        unit: str | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        raise NotImplementedError
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError

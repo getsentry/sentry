@@ -3,30 +3,58 @@ from unittest.mock import patch
 
 import pytest
 from django.core import mail
+from django.db import router
 from django.utils import timezone
+from rest_framework.serializers import ValidationError
 
 from sentry import roles
 from sentry.auth import manager
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models import (
-    INVITE_DAYS_VALID,
-    AuthIdentity,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationOption,
-)
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils import TestCase
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_test(stable=True)
+class MockOrganizationRoles:
+    TEST_ORG_ROLES = [
+        {
+            "id": "alice",
+            "name": "Alice",
+            "desc": "In Wonderland",
+            "scopes": ["project:read", "project:write"],
+        },
+        {"id": "bob", "name": "Bob", "desc": "The builder", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?", "scopes": ["project:write"]},
+    ]
+
+    TEST_TEAM_ROLES = [
+        {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
+        {"id": "bob", "name": "Bob", "desc": "The builder"},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?"},
+    ]
+
+    def __init__(self):
+        from sentry.roles.manager import RoleManager
+
+        self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+        self.organization_roles = self.default_manager.organization_roles
+
+    def get_all(self):
+        return self.organization_roles.get_all()
+
+    def get(self, x):
+        return self.organization_roles.get(x)
+
+
 class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
@@ -51,6 +79,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
 
+    def test_get_invite_link_with_referrer(self):
+        member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
+
+        link = member.get_invite_link(referrer="test_referrer")
+        assert "?referrer=test_referrer" in link
+
     def test_send_invite_email(self):
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -61,7 +95,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         msg = mail.outbox[0]
         assert msg.to == ["foo@example.com"]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_send_invite_email_customer_domains(self):
         member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
         with self.tasks():
@@ -72,18 +106,19 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_send_sso_link_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email="foo@example.com")
+        provider = manager.get("dummy")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_invite_email()
+            member.send_sso_link_email("sender@example.com", provider)
 
         assert len(mail.outbox) == 1
 
         msg = mail.outbox[0]
-
         assert msg.to == ["foo@example.com"]
+        assert msg.subject == f"Action Required for {organization.name}"
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_send_sso_unlink_email(self, builder):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user = self.create_user(email="foo@example.com")
             user.password = ""
             user.save()
@@ -99,6 +134,29 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         assert context["organization"] == self.organization
         assert context["provider"] == provider
+        assert context["actor_email"] == user.email
+
+        assert not context["has_password"]
+        assert "set_password_url" in context
+
+    @patch("sentry.utils.email.MessageBuilder")
+    def test_send_sso_unlink_email_str_sender(self, builder):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user = self.create_user(email="foo@example.com")
+            user.password = ""
+            user.save()
+
+        member = self.create_member(user=user, organization=self.organization)
+        provider = manager.get("dummy")
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            member.send_sso_unlink_email(user.email, provider)
+
+        context = builder.call_args[1]["context"]
+
+        assert context["organization"] == self.organization
+        assert context["provider"] == provider
+        assert context["actor_email"] == user.email
 
         assert not context["has_password"]
         assert "set_password_url" in context
@@ -149,8 +207,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        assert member.token is None
-        assert member.token_expires_at is None
+        assert (member.token, member.token_expires_at) == (None, None)
 
         member.regenerate_token()
         assert member.token
@@ -177,7 +234,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
         self.assert_org_member_mapping(org_member=member)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             ap = AuthProvider.objects.create(
                 organization_id=org.id, provider="sentry_auth_provider", config={}
             )
@@ -186,33 +243,33 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert qs.exists()
 
         with outbox_runner():
-            member.save_outbox_for_update()
+            member.outbox_for_update().save()
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert qs.exists()
 
         with outbox_runner():
             member.delete()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert not qs.exists()
             self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
         org3 = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(
@@ -256,7 +313,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             role="member",
             user=user,
             token="abc-def",
-            token_expires_at="2018-01-01 10:00:00",
+            token_expires_at="2018-01-01 10:00:00+00:00",
         )
         with outbox_runner():
             OrganizationMember.objects.delete_expired(timezone.now())
@@ -335,25 +392,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
-    def test_scopes_with_team_org_role(self):
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            role="member",
-            email="test@example.com",
-        )
-        owner = OrganizationMember.objects.create(
-            organization=self.organization,
-            role="owner",
-            email="owner@example.com",
-        )
-        owner_member_scopes = member.get_scopes() | owner.get_scopes()
-
-        team = self.create_team(organization=self.organization, org_role="owner")
-        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
-
-        member.refresh_from_db()
-        assert member.get_scopes() == owner_member_scopes
-
     def test_get_contactable_members_for_org(self):
         organization = self.create_organization()
         user1 = self.create_user()
@@ -429,24 +467,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             member.validate_invitation(user, [roles.get("member")])
 
-    def test_validate_invitation_with_org_role_from_team(self):
-        team = self.create_team(org_role="admin")
-        member = self.create_member(
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-            email="hello@sentry.io",
-            role="member",
-            teams=[team],
-        )
-        user = self.create_user()
-        assert member.validate_invitation(user, [roles.get("admin"), roles.get("member")])
-
-        with pytest.raises(
-            UnableToAcceptMemberInvitationException,
-            match="You do not have permission to approve a member invitation with the role admin.",
-        ):
-            member.validate_invitation(user, [roles.get("manager")])
-
     def test_approve_member_invitation(self):
         member = self.create_member(
             organization=self.organization,
@@ -488,7 +508,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
@@ -496,18 +516,40 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             roles.get("manager"),
         ]
 
-    def test_org_roles_by_source(self):
-        manager_team = self.create_team(organization=self.organization, org_role="manager")
-        owner_team = self.create_team(organization=self.organization, org_role="owner")
-        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
-        member = self.create_member(
-            organization=self.organization,
-            teams=[manager_team, owner_team, owner_team2],
-            user=self.create_user(),
-            role="member",
-        )
+    def test_get_allowed_org_roles_to_invite_subset_logic(self):
+        mock_org_roles = MockOrganizationRoles()
+        with (
+            patch("sentry.roles.organization_roles.get", mock_org_roles.get),
+            patch("sentry.roles.organization_roles.get_all", mock_org_roles.get_all),
+        ):
+            alice = self.create_member(
+                user=self.create_user(), organization=self.organization, role="alice"
+            )
+            assert alice.get_allowed_org_roles_to_invite() == [
+                roles.get("alice"),
+                roles.get("bob"),
+                roles.get("carol"),
+            ]
 
-        roles = member.get_org_roles_from_teams_by_source()
-        assert roles[0][1].id == "owner"
-        assert roles[-1][0] == manager_team.slug
-        assert roles[-1][1].id == "manager"
+            bob = self.create_member(
+                user=self.create_user(), organization=self.organization, role="bob"
+            )
+            assert bob.get_allowed_org_roles_to_invite() == [
+                roles.get("bob"),
+            ]
+
+            carol = self.create_member(
+                user=self.create_user(), organization=self.organization, role="carol"
+            )
+            assert carol.get_allowed_org_roles_to_invite() == [
+                roles.get("carol"),
+            ]
+
+    def test_cannot_demote_last_owner(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            member = self.create_member(organization=org, role="owner", user=self.create_user())
+
+            member.role = "manager"
+            member.save()

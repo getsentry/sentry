@@ -1,15 +1,15 @@
-from sentry.models import (
-    ApiApplication,
-    ApiToken,
-    SentryAppInstallation,
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
 )
-from sentry.testutils import TestCase
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppInstallationTokenTest(TestCase):
     def setUp(self):
         self.application = ApiApplication.objects.create(owner=self.user)

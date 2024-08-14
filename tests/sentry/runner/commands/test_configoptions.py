@@ -1,20 +1,19 @@
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
+from django.conf import settings
 
 from sentry import options
-from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
-from sentry.runner.commands.configoptions import (
-    CHANNEL_UPDATE_MSG,
-    DB_VALUE,
-    DRIFT_MSG,
-    SET_MSG,
-    UNSET_MSG,
-    UPDATE_MSG,
-    configoptions,
+from sentry.options.manager import (
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_IMMUTABLE,
+    FLAG_PRIORITIZE_DISK,
+    UpdateChannel,
 )
-from sentry.testutils import CliTestCase
+from sentry.runner.commands.configoptions import configoptions
+from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
+from sentry.testutils.cases import CliTestCase
 
 
 class ConfigOptionsTest(CliTestCase):
@@ -30,6 +29,13 @@ class ConfigOptionsTest(CliTestCase):
         options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register(
+            "set_on_disk_option",
+            default="",
+            flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        settings.SENTRY_OPTIONS["set_on_disk_option"] = "test"
 
         yield
 
@@ -41,6 +47,9 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("drifted_option")
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
+        options.unregister("invalid_type")
+        options.unregister("set_on_disk_option")
+        del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -76,6 +85,7 @@ class ConfigOptionsTest(CliTestCase):
         options.default_store.delete_cache(options.lookup_key("list_option"))
         options.default_store.delete_cache(options.lookup_key("drifted_option"))
         options.default_store.delete_cache(options.lookup_key("change_channel_option"))
+        options.default_store.delete_cache(options.lookup_key("invalid_type"))
 
     def test_patch(self):
         def assert_not_set() -> None:
@@ -85,23 +95,28 @@ class ConfigOptionsTest(CliTestCase):
             assert not options.isset("list_option")
 
         def assert_output(rv):
-            assert rv.exit_code == 0, rv.output
-            output = "\n".join(
+            assert rv.exit_code == 2, rv.output
+
+            # The script produces log lines when DRIFT is detected. This
+            # makes it easier to surface these as Sentry errors.
+
+            expected_output = "\n".join(
                 [
-                    SET_MSG % ("int_option", 40),
-                    UPDATE_MSG % ("str_option", "old value", "new value"),
-                    SET_MSG % ("map_option", {"a": 1, "b": 2}),
-                    SET_MSG % ("list_option", [1, 2]),
-                    DRIFT_MSG % "drifted_option",
-                    DB_VALUE % "drifted_option",
+                    ConsolePresenter.DRIFT_MSG % "drifted_option",
+                    ConsolePresenter.DB_VALUE % "drifted_option",
                     "- 1",
                     "- 2",
                     "- 3",
                     "",
-                    CHANNEL_UPDATE_MSG % "change_channel_option",
+                    ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                    ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                    ConsolePresenter.SET_MSG % ("int_option", 40),
+                    ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                    ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
                 ]
             )
-            assert output in rv.output
+
+            assert expected_output in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -136,7 +151,7 @@ class ConfigOptionsTest(CliTestCase):
             ).read_text(),
         )
 
-        assert rv.exit_code == 0
+        assert rv.exit_code == 2
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
@@ -152,25 +167,25 @@ class ConfigOptionsTest(CliTestCase):
             "tests/sentry/runner/commands/valid_patch.yaml",
             "sync",
         )
-        assert rv.exit_code == 0, rv.output
-        output = "\n".join(
+        assert rv.exit_code == 2, rv.output
+        expected_output = "\n".join(
             [
-                SET_MSG % ("int_option", 40),
-                UPDATE_MSG % ("str_option", "old value", "new value"),
-                SET_MSG % ("map_option", {"a": 1, "b": 2}),
-                SET_MSG % ("list_option", [1, 2]),
-                DRIFT_MSG % "drifted_option",
-                DB_VALUE % "drifted_option",
+                ConsolePresenter.DRIFT_MSG % "drifted_option",
+                ConsolePresenter.DB_VALUE % "drifted_option",
                 "- 1",
                 "- 2",
                 "- 3",
                 "",
-                CHANNEL_UPDATE_MSG % "change_channel_option",
-                UNSET_MSG % "to_unset_option",
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                ConsolePresenter.SET_MSG % ("int_option", 40),
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
             ]
         )
 
-        assert output in rv.output
+        assert expected_output in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
@@ -183,12 +198,73 @@ class ConfigOptionsTest(CliTestCase):
 
         assert not options.isset("to_unset_option")
 
+    def test_bad_sync(self):
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/badsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 2, rv.output
+
+        assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
+
+    def test_sync_unset_options(self):
+
+        # test options set on disk with and without prioritize disk, tracked
+        # and not tracked
+        # test options set on db, verify that untracked options are properly deleted
+
+        options.delete("drifted_option")
+
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
+        expected_output = "\n".join(
+            [
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "str_option",
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
+            ]
+        )
+
+        assert expected_output in rv.output
+
+        assert options.get("int_option") == 20
+        assert options.get("str_option") == "blabla"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+
+        # assert there's no drift after unsetting
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
+
     def test_bad_patch(self):
         rv = self.invoke(
             "--file=tests/sentry/runner/commands/badpatch.yaml",
             "patch",
         )
-        assert rv.exit_code == -1
-        assert "Invalid option. readonly_option cannot be updated. Reason readonly" in rv.output
-        # Verify this was not updated
-        assert options.get("int_option") == 20
+
+        assert rv.exit_code == 2, rv.output
+
+        assert ConsolePresenter.SET_MSG % ("int_option", 50) in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
+
+        assert not options.isset("readonly_option")
+        assert not options.isset("invalid_type")
+        assert options.get("int_option") == 50

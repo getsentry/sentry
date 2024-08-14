@@ -1,8 +1,6 @@
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test
 class ProjectFilterDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-filters-details"
     method = "put"
@@ -70,6 +68,7 @@ class ProjectFilterDetailsTest(APITestCase):
             "ie10",
             "ie11",
             "opera_pre_15",
+            "edge_pre_79",
         ]
 
         self.get_success_response(

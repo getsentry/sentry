@@ -1,5 +1,5 @@
 from sentry.bgtasks.api import bgtask
-from sentry.models import ReleaseFile
+from sentry.models.releasefile import ReleaseFile
 
 
 @bgtask()

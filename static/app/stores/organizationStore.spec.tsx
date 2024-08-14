@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import OrganizationStore from 'sentry/stores/organizationStore';
 import RequestError from 'sentry/utils/requestError/requestError';
 
@@ -17,7 +19,7 @@ describe('OrganizationStore', function () {
   });
 
   it('updates correctly', function () {
-    const organization = TestStubs.Organization();
+    const organization = OrganizationFixture();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
@@ -40,7 +42,7 @@ describe('OrganizationStore', function () {
   });
 
   it('updates correctly from setting changes', function () {
-    const organization = TestStubs.Organization();
+    const organization = OrganizationFixture();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
@@ -62,5 +64,12 @@ describe('OrganizationStore', function () {
       organization: null,
       dirty: false,
     });
+  });
+
+  it('returns a stable reference from getState', function () {
+    const organization = OrganizationFixture();
+    OrganizationStore.onUpdate(organization);
+    const state = OrganizationStore.getState();
+    expect(Object.is(state, OrganizationStore.getState())).toBe(true);
   });
 });

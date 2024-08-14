@@ -4,23 +4,22 @@ import dataclasses
 import datetime
 from functools import cached_property
 
-from django.db import transaction
-from rest_framework.request import Request
+from django.db import router, transaction
+from django.http.request import HttpRequest
 
 from sentry import analytics, audit_log
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
-from sentry.models import (
-    ApiApplication,
-    ApiGrant,
-    ApiToken,
-    SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationToken,
-    User,
-)
-from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.services.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
+from sentry.users.models.user import User
+from sentry.utils import metrics
 
 
 @dataclasses.dataclass
@@ -29,8 +28,8 @@ class SentryAppInstallationTokenCreator:
     expires_at: datetime.date | None = None
     generate_audit: bool = False
 
-    def run(self, user: User, request: Request | None = None) -> ApiToken:
-        with transaction.atomic():
+    def run(self, user: User, request: HttpRequest | None = None) -> ApiToken:
+        with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()
             self._create_sentry_app_installation_token(api_token=api_token)
@@ -63,7 +62,7 @@ class SentryAppInstallationTokenCreator:
             api_token=api_token, sentry_app_installation=self.sentry_app_installation
         )
 
-    def audit(self, request: Request | None, api_token: ApiToken) -> None:
+    def audit(self, request: HttpRequest | None, api_token: ApiToken) -> None:
         from sentry.utils.audit import create_audit_entry
 
         if request and self.generate_audit:
@@ -101,8 +100,9 @@ class SentryAppInstallationCreator:
     slug: str
     notify: bool = True
 
-    def run(self, *, user: User, request: Request | None) -> SentryAppInstallation:
-        with transaction.atomic():
+    def run(self, *, user: User, request: HttpRequest | None) -> SentryAppInstallation:
+        metrics.incr("sentry_apps.installation.attempt")
+        with transaction.atomic(router.db_for_write(ApiGrant)):
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
             self.audit(request=request)
@@ -145,7 +145,7 @@ class SentryAppInstallationCreator:
                 url=self.sentry_app.webhook_url,
             )
 
-    def audit(self, request: Request | None) -> None:
+    def audit(self, request: HttpRequest | None) -> None:
         from sentry.utils.audit import create_audit_entry
 
         if request:
@@ -164,6 +164,7 @@ class SentryAppInstallationCreator:
             organization_id=self.organization_id,
             sentry_app=self.slug,
         )
+        metrics.incr("sentry_apps.installation.success")
 
     @cached_property
     def api_application(self) -> ApiApplication:

@@ -1,15 +1,9 @@
 import styled from '@emotion/styled';
 
-import {
-  StacktraceFilenameQuery,
-  useSourceMapDebug,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
-import {t, tn} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';
@@ -22,7 +16,6 @@ type Props = React.ComponentProps<typeof Expander> &
   React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
     isUsedForGrouping: boolean;
-    debugFrames?: StacktraceFilenameQuery[];
     frameMeta?: Record<any, any>;
     onClick?: () => void;
     onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
@@ -31,7 +24,6 @@ type Props = React.ComponentProps<typeof Expander> &
 
 function Default({
   frame,
-  debugFrames,
   nextFrame,
   isHoverPreviewed,
   isExpanded,
@@ -45,11 +37,6 @@ function Default({
   event,
   ...props
 }: Props) {
-  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.query, {
-    enabled: !!debugFrame,
-  });
-
   function renderRepeats() {
     if (defined(timesRepeated) && timesRepeated > 0) {
       return (
@@ -71,15 +58,6 @@ function Default({
     <Wrapper className="title" onMouseDown={onMouseDown} onClick={onClick}>
       <VertCenterWrapper>
         <Title>
-          {data?.errors?.length ? (
-            <Tooltip skipWrapper title={t('Missing source map')}>
-              <StyledIconWarning
-                color="red400"
-                size="sm"
-                aria-label={t('Missing source map')}
-              />
-            </Tooltip>
-          ) : null}
           <LeadHint
             event={event}
             isExpanded={isExpanded}
@@ -107,10 +85,6 @@ function Default({
 }
 
 export default Default;
-
-const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(1)};
-`;
 
 const VertCenterWrapper = styled('div')`
   display: flex;

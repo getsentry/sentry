@@ -1,16 +1,24 @@
+from django.conf import settings
 from rest_framework.request import Request
 
-from sentry.models import Group
+from sentry.issues.services.issue.service import issue_service
+from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.react_page import GenericReactPageView
 
 
+@control_silo_view
 class SharedGroupDetailsView(GenericReactPageView):
     def meta_tags(self, request: Request, share_id):
-        try:
-            group = Group.objects.from_share_id(share_id)
-        except Group.DoesNotExist:
-            return {}
-        if group.organization.flags.disable_shared_issues:
+        org_slug = getattr(request, "subdomain", None)
+        if org_slug:
+            group = issue_service.get_shared_for_org(slug=org_slug, share_id=share_id)
+        else:
+            # Backwards compatibility for Self-hosted and single tenants
+            group = issue_service.get_shared_for_region(
+                region_name=settings.SENTRY_MONOLITH_REGION, share_id=share_id
+            )
+
+        if not group:
             return {}
         return {
             "og:type": "website",

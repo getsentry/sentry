@@ -1,135 +1,117 @@
 import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {getTabKeyForFrame} from 'sentry/utils/replays/frame';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {BreadcrumbFrame, SpanFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {NetworkSpan} from 'sentry/views/replays/types';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-function useCrumbHandlers(startTimestampMs: number = 0) {
-  const organization = useOrganization();
-  const {
-    clearAllHighlights,
-    highlight,
-    removeHighlight,
-    setCurrentHoverTime,
-    setCurrentTime,
-  } = useReplayContext();
-  const {setActiveTab} = useActiveReplayTab();
+type RecordType = {
+  offsetMs: number;
+  data?:
+    | Record<string, any>
+    | {
+        nodeId: number;
+        label?: string;
+      }
+    | {
+        element: {
+          element: string;
+          target: string[];
+        };
+        label: string;
+      };
+};
 
-  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+function getNodeIdAndLabel(record: RecordType) {
+  if (!record.data || typeof record.data !== 'object') {
+    return undefined;
+  }
+  const data = record.data;
+  if (
+    'element' in data &&
+    'target' in data.element &&
+    Array.isArray(data.element.target)
+  ) {
+    return {
+      selector: data.element.target.join(' '),
+      annotation: data.label,
+    };
+  }
+  if ('nodeId' in data) {
+    return {nodeId: data.nodeId, annotation: record.data.label};
+  }
+  return undefined;
+}
+
+function useCrumbHandlers() {
+  const {replay, clearAllHighlights, addHighlight, removeHighlight, setCurrentTime} =
+    useReplayContext();
+  const [, setCurrentHoverTime] = useCurrentHoverTime();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const mouseEnterCallback = useRef<{
-    id: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame | null;
+    id: RecordType | null;
     timeoutId: NodeJS.Timeout | null;
   }>({
     id: null,
     timeoutId: null,
   });
 
-  const handleMouseEnter = useCallback(
-    (item: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
-      // this debounces the mouseEnter callback in unison with mouseLeave
-      // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
-      // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
-      mouseEnterCallback.current.id = item;
+  const onMouseEnter = useCallback(
+    (record: RecordType) => {
+      // This debounces the mouseEnter callback in unison with mouseLeave.
+      // We ensure the pointer remains over the target element before dispatching
+      // state events in order to minimize unnecessary renders. This helps during
+      // scrolling or mouse move events which would otherwise fire in rapid
+      // succession slowing down our app.
+      mouseEnterCallback.current.id = record;
       mouseEnterCallback.current.timeoutId = setTimeout(() => {
         if (startTimestampMs) {
-          setCurrentHoverTime(
-            'offsetMs' in item
-              ? item.offsetMs
-              : relativeTimeInMs(item.timestamp ?? '', startTimestampMs)
-          );
+          setCurrentHoverTime(record.offsetMs);
         }
 
-        if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
+        const metadata = getNodeIdAndLabel(record);
+        if (metadata) {
           // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
           // crumb to a tooltip
           clearAllHighlights();
-          // @ts-expect-error: Property 'label' does not exist on type
-          highlight({nodeId: item.data.nodeId, annotation: item.data.label});
+          addHighlight(metadata);
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
       }, 250);
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, addHighlight, clearAllHighlights]
   );
 
-  const handleMouseLeave = useCallback(
-    (item: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
-      // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
-      if (mouseEnterCallback.current.id === item) {
+  const onMouseLeave = useCallback(
+    (record: RecordType) => {
+      if (mouseEnterCallback.current.id === record) {
+        // If there is a mouseEnter callback queued and we're leaving the node
+        // just cancel the timeout.
         if (mouseEnterCallback.current.timeoutId) {
           clearTimeout(mouseEnterCallback.current.timeoutId);
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
-        // since there is no more work to do we just return
-        return;
-      }
-
-      setCurrentHoverTime(undefined);
-
-      if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
+      } else {
+        setCurrentHoverTime(undefined);
+        const metadata = getNodeIdAndLabel(record);
+        if (metadata) {
+          removeHighlight(metadata);
+        }
       }
     },
     [setCurrentHoverTime, removeHighlight]
   );
 
-  const handleClick = useCallback(
-    (crumb: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
-      if ('offsetMs' in crumb) {
-        const frame = crumb; // Finding `offsetMs` means we have a frame, not a crumb or span
-
-        setCurrentTime(frame.offsetMs);
-        setActiveTab(getTabKeyForFrame(frame));
-        return;
-      }
-
-      if (crumb.timestamp !== undefined) {
-        setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
-      }
-
-      if (
-        crumb.data &&
-        typeof crumb.data === 'object' &&
-        'action' in crumb.data &&
-        crumb.data.action === 'largest-contentful-paint'
-      ) {
-        setActiveTab('dom');
-        return;
-      }
-
-      if ('type' in crumb) {
-        if (hasErrorTab && crumb.type === BreadcrumbType.ERROR) {
-          setActiveTab('errors');
-          return;
-        }
-        switch (crumb.type) {
-          case BreadcrumbType.NAVIGATION:
-            setActiveTab('network');
-            break;
-          case BreadcrumbType.UI:
-            setActiveTab('dom');
-            break;
-          default:
-            setActiveTab('console');
-            break;
-        }
-      }
-    },
-    [setCurrentTime, startTimestampMs, setActiveTab, hasErrorTab]
+  const onClickTimestamp = useCallback(
+    (record: RecordType) => setCurrentTime(record.offsetMs),
+    [setCurrentTime]
   );
 
   return {
-    handleMouseEnter,
-    handleMouseLeave,
-    handleClick,
+    onMouseEnter,
+    onMouseLeave,
+    onClickTimestamp,
   };
 }
 

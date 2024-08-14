@@ -1,44 +1,65 @@
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
+import sentry_sdk
 from django.db.models.signals import post_save
 
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    record_group_history_from_activity_type,
-    remove_group_from_inbox,
-)
+from sentry import options
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import bulk_remove_groups_from_inbox
+from sentry.signals import issue_unresolved
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
+TRANSITION_AFTER_DAYS = 7
 
-def transition_group_to_ongoing(
-    from_status: GroupStatus,
-    from_substatus: GroupSubStatus,
-    group: Group,
-    activity_data: Optional[Mapping[str, Any]] = None,
+
+def bulk_transition_group_to_ongoing(
+    from_status: int,
+    from_substatus: int,
+    group_ids: list[int],
+    activity_data: Mapping[str, Any] | None = None,
 ) -> None:
-    # make sure we don't update the Group when its already updated by conditionally updating the Group
-    updated = Group.objects.filter(
-        id=group.id, status=from_status, substatus=from_substatus
-    ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-    if updated:
+    with sentry_sdk.start_span(description="groups_to_transistion") as span:
+        # make sure we don't update the Group when its already updated by conditionally updating the Group
+        groups_to_transistion = Group.objects.filter(
+            id__in=group_ids, status=from_status, substatus=from_substatus
+        )
+        span.set_tag("group_ids", group_ids)
+        span.set_tag("groups_to_transistion count", len(groups_to_transistion))
+
+    with sentry_sdk.start_span(description="update_group_status"):
+        Group.objects.update_group_status(
+            groups=groups_to_transistion,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            activity_type=ActivityType.AUTO_SET_ONGOING,
+            activity_data=activity_data,
+            send_activity_notification=False,
+            from_substatus=from_substatus,
+        )
+
+    for group in groups_to_transistion:
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
-        post_save.send_robust(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["status", "substatus"],
-        )
+        if from_status != GroupStatus.UNRESOLVED:
+            issue_unresolved.send_robust(
+                project=group.project,
+                group=group,
+                user=None,
+                transition_type="automatic",
+                sender=bulk_transition_group_to_ongoing,
+            )
 
-        remove_group_from_inbox(group)
+    with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
+        bulk_remove_groups_from_inbox(groups_to_transistion)
 
-        Activity.objects.create_group_activity(
-            group, ActivityType.AUTO_SET_ONGOING, data=activity_data, send_notification=False
-        )
-
-        record_group_history_from_activity_type(
-            group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
-        )
+    with sentry_sdk.start_span(description="post_save_send_robust"):
+        if not options.get("groups.enable-post-update-signal"):
+            for group in groups_to_transistion:
+                post_save.send_robust(
+                    sender=Group,
+                    instance=group,
+                    created=False,
+                    update_fields=["status", "substatus"],
+                )

@@ -4,9 +4,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_events_spans_performance import Span
+from sentry.api.utils import handle_query_errors
+from sentry.search.events.types import Span
 from sentry.snuba import discover
 
 DATA_FILTERS = ["all", "exclude_outliers"]
@@ -35,6 +37,10 @@ class SpansHistogramSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-span-histogram-view", organization, actor=request.user
@@ -45,7 +51,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({})
 
@@ -54,13 +60,14 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
             if serializer.is_valid():
                 data = serializer.validated_data
 
-                with self.handle_query_errors():
+                with handle_query_errors():
                     results = discover.spans_histogram_query(
-                        data["span"],
-                        data.get("query"),
-                        params,
-                        data["numBuckets"],
-                        data["precision"],
+                        span=data["span"],
+                        user_query=data.get("query"),
+                        params={},
+                        snuba_params=snuba_params,
+                        num_buckets=data["numBuckets"],
+                        precision=data["precision"],
                         min_value=data.get("min"),
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),

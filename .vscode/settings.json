@@ -7,81 +7,102 @@
     "**/*.pyc": true,
     "build": true,
     "htmlcov": true,
+    "model-manifest.json": true,
     "node_modules": true,
     "src/sentry/locale": true,
-    "src/sentry/static/sentry/dist/": true,
-    "model-manifest.json": true
+    "src/sentry/static/sentry/dist/": true
   },
   "search.followSymlinks": false,
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "files.associations": {
-    "*.jsx": "javascriptreact"
-  },
-
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-
-  "[javascript]": {
+  "[javascript][typescript][javascriptreact][typescriptreact]": {
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
-  "[typescript]": {
+  "[python]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
+
+  // auto-formatting breaks Django templates
+  // see https://github.com/Microsoft/vscode/issues/44342
+  "[html]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": false
+  },
+
+  "[less]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[markdown]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+
+  "[dockerfile]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true
+  },
+
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
     "**/config/chartcuterie/*",
     "**/node_modules/@testing-library/*",
-    "**/node_modules/@tanstack/react-query"
+    "**/node_modules/@tanstack/react-query",
+    "**/react-dom/test-utils/*"
   ],
   // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
-
-  "[typescriptreact]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2
-  },
-
-  "[javascriptreact]": {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2
-  },
-
-  "[less]": {
-    "editor.formatOnSave": true
-  },
-
-  "[python]": {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true
-    }
-  },
-
-  "[html]": {
-    "editor.formatOnSave": false
-  },
-
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
-  // test discovery is sluggish and the UI around running
-  // tests is often in your way and misclicked
+  "editor.tabSize": 4,
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
-  "python.testing.nosetestsEnabled": false,
-  "editor.tabSize": 4,
-  "restructuredtext.confPath": "",
-  "python.linting.enabled": true,
-  "python.linting.flake8Path": "${workspaceFolder}/.venv/bin/flake8",
-  "python.linting.pycodestylePath": "${workspaceFolder}/.venv/bin/pep8",
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
-  "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
-  "python.formatting.provider": "black",
-  "python.testing.pytestArgs": ["tests"]
+  "python.testing.pytestArgs": ["tests"],
+  "python.analysis.autoImportCompletions": true,
+  "prettier.configPath": "package.json"
 }

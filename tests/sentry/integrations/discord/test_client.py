@@ -1,10 +1,22 @@
 import responses
-from django.test import override_settings
+from responses import matchers
 
 from sentry import options
-from sentry.integrations.discord.client import DiscordClient
-from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.integrations.discord.client import (
+    APPLICATION_COMMANDS_URL,
+    CHANNEL_URL,
+    GUILD_URL,
+    MESSAGE_URL,
+    USERS_GUILD_URL,
+    DiscordClient,
+)
+from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.flags import (
+    EPHEMERAL_FLAG,
+    LOADING_FLAG,
+    SUPPRESS_NOTIFICATIONS_FLAG,
+    DiscordMessageFlags,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -20,18 +32,39 @@ class DiscordClientTest(TestCase):
             name="Cool server",
             provider="discord",
         )
-        self.discord_client = DiscordClient(self.integration.id)
+        self.discord_client = DiscordClient()
+
+    def test_prepare_auth_header(self):
+        expected = {"Authorization": f"Bot {self.bot_token}"}
+        assert self.discord_client.prepare_auth_header() == expected
 
     @responses.activate
-    def test_authorize_request(self):
+    def test_set_application_command(self):
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            status=204,
+            match=[
+                matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"}),
+                matchers.json_params_matcher({"command": "test"}),
+            ],
+        )
+
+        self.discord_client.set_application_command(command={"command": "test"})
+
+    @responses.activate
+    def test_has_application_commands(self):
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}/",
-            json={},
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            status=200,
+            json=[{"name": "test"}],
+            match=[
+                matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"}),
+            ],
         )
-        self.discord_client.get("/")
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == f"Bot {self.bot_token}"
+
+        assert self.discord_client.has_application_commands() is True
 
     @responses.activate
     def test_get_guild_name(self):
@@ -40,89 +73,93 @@ class DiscordClientTest(TestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.get_guild_url.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": server_name,
             },
+            match=[matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"})],
         )
 
         guild_name = self.discord_client.get_guild_name(guild_id)
         assert guild_name == "Cool server"
 
-
-control_address = "http://controlserver"
-secret = "secret-has-6-letters"
-
-
-@override_settings(
-    SENTRY_CONTROL_ADDRESS=control_address,
-    SENTRY_SUBNET_SECRET=secret,
-)
-class DiscordProxyClientTest(TestCase):
-    def setUp(self):
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider="discord",
-            name="Cool server",
-            external_id="1234567890",
+    @responses.activate
+    def test_get_access_token(self):
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
         )
-        self.installation = self.integration.get_installation(organization_id=self.organization.id)
-        self.discord_client = DiscordClient(self.integration.id)
+
+        access_token = self.discord_client.get_access_token("auth_code", "url")
+        assert access_token == "access_token"
 
     @responses.activate
-    def test_integration_proxy_is_active(self):
-        class DiscordProxyTestClient(DiscordClient):
-            _use_proxy_url_for_tests = True
-
-            def assert_proxy_request(self, request, is_proxy=True):
-                assert (PROXY_BASE_PATH in request.url) == is_proxy
-                assert (PROXY_OI_HEADER in request.headers) == is_proxy
-                assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
-                # The discord bot token shouldn't yet be in the request
-                assert ("Authorization" in request.headers) != is_proxy
-                if is_proxy:
-                    assert request.headers[PROXY_OI_HEADER] is not None
-
+    def test_get_user_id(self):
         responses.add(
-            method=responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.get_guild_url.format(guild_id=self.integration.external_id)}",
-            json={"guild_id": "1234567890", "name": "Cool server"},
-            status=200,
+            responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": "user_id"}
         )
 
+        user_id = self.discord_client.get_user_id("access_token")
+        assert user_id == "user_id"
+
+    @responses.activate
+    def test_leave_guild(self):
+        guild_id = self.integration.external_id
+
         responses.add(
-            method=responses.GET,
-            url=f"{control_address}{PROXY_BASE_PATH}{DiscordClient.get_guild_url.format(guild_id=self.integration.external_id)}",
-            json={"guild_id": "1234567890", "name": "Cool server"},
-            status=200,
+            responses.DELETE,
+            url=f"{DiscordClient.base_url}{USERS_GUILD_URL.format(guild_id=guild_id)}",
+            status=204,
+            match=[matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"})],
         )
 
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = DiscordProxyTestClient(integration_id=self.integration.id)
-            client.get_guild_name(self.integration.external_id)
-            request = responses.calls[0].request
+        self.discord_client.leave_guild(guild_id)
 
-            assert client.get_guild_url.format(guild_id=self.integration.external_id) in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+    @responses.activate
+    def test_get_channel(self):
+        channel_id = "channel-id"
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{CHANNEL_URL.format(channel_id=channel_id)}",
+            status=200,
+            json={"id": channel_id},
+            match=[matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+        )
 
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = DiscordProxyTestClient(integration_id=self.integration.id)
-            client.get_guild_name(self.integration.external_id)
-            request = responses.calls[0].request
+        response = self.discord_client.get_channel(channel_id=channel_id)
+        assert response == {"id": "channel-id"}
 
-            assert client.get_guild_url.format(guild_id=self.integration.external_id) in request.url
-            assert client.base_url in request.url
-            client.assert_proxy_request(request, is_proxy=False)
+    @responses.activate
+    def test_send_message(self):
+        channel_id = "channel-id"
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{MESSAGE_URL.format(channel_id=channel_id)}",
+            status=200,
+            json={"id": channel_id},
+            match=[
+                matchers.header_matcher({"Authorization": f"Bot {self.bot_token}"}),
+                matchers.json_params_matcher(
+                    {
+                        "components": [],
+                        "content": "test",
+                        "embeds": [],
+                        "flags": EPHEMERAL_FLAG | LOADING_FLAG | SUPPRESS_NOTIFICATIONS_FLAG,
+                    }
+                ),
+            ],
+        )
 
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.REGION):
-            client = DiscordProxyTestClient(integration_id=self.integration.id)
-            client.get_guild_name(self.integration.external_id)
-            request = responses.calls[0].request
+        message = DiscordMessageBuilder(
+            content="test",
+            flags=DiscordMessageFlags().set_loading().set_ephemeral().set_suppress_notifications(),
+        )
 
-            assert client.get_guild_url.format(guild_id=self.integration.external_id) in request.url
-            assert client.base_url not in request.url
-            client.assert_proxy_request(request, is_proxy=True)
+        self.discord_client.send_message(
+            channel_id=channel_id,
+            message=message,
+        )

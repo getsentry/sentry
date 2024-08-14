@@ -1,6 +1,7 @@
-import {IntegrationType, SentryAppStatus} from 'sentry/types';
+import type {IntegrationType, SentryAppStatus} from 'sentry/types/integrations';
 
-import {platformEventMap, PlatformEventParameters} from './platformAnalyticsEvents';
+import type {PlatformEventParameters} from './platformAnalyticsEvents';
+import {platformEventMap} from './platformAnalyticsEvents';
 
 export type IntegrationView = {
   view?:
@@ -12,6 +13,7 @@ export type IntegrationView = {
     | 'stacktrace_link'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
+    | 'messaging_integration_onboarding'
     | 'onboarding'
     | 'project_creation'
     | 'developer_settings'
@@ -24,7 +26,7 @@ type SingleIntegrationEventParams = {
   already_installed?: boolean;
   // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
-  integration_tab?: 'configurations' | 'overview';
+  integration_tab?: 'configurations' | 'overview' | 'features';
   plan?: string;
 } & IntegrationView;
 

@@ -1,19 +1,40 @@
+from datetime import datetime
+from typing import TypedDict
+
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProjectOwnership
+from sentry.models.projectownership import ProjectOwnership
+
+
+# JSON object representing optional part of API response
+class ProjectOwnershipResponseOptional(TypedDict, total=False):
+    schema: dict
+
+
+# JSON object representing this serializer in API response
+class ProjectOwnershipResponse(ProjectOwnershipResponseOptional):
+    raw: str
+    fallthrough: bool
+    dateCreated: datetime
+    lastUpdated: datetime
+    isActive: bool
+    autoAssignment: str
+    codeownersAutoSync: bool
 
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user, should_return_schema=False):
+    def serialize(self, obj, attrs, user, **kwargs) -> ProjectOwnershipResponse:
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment
-            else "Auto Assign to Issue Owner"
-            if obj.auto_assignment and not obj.suspect_committer_auto_assignment
-            else "Turn off Auto-Assignment"
+            else (
+                "Auto Assign to Issue Owner"
+                if obj.auto_assignment and not obj.suspect_committer_auto_assignment
+                else "Turn off Auto-Assignment"
+            )
         )
 
-        project_ownership_data = {
+        project_ownership_data: ProjectOwnershipResponse = {
             "raw": obj.raw,
             "fallthrough": obj.fallthrough,
             "dateCreated": obj.date_created,
@@ -22,8 +43,6 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
-
-        if should_return_schema:
-            project_ownership_data["schema"] = obj.schema
+        project_ownership_data["schema"] = obj.schema
 
         return project_ownership_data

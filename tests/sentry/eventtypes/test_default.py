@@ -1,9 +1,7 @@
-from sentry.eventtypes import DefaultEvent
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.eventtypes.base import DefaultEvent
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test
 class DefaultEventTest(TestCase):
     def test_get_metadata(self):
         inst = DefaultEvent()

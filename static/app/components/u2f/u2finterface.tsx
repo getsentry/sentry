@@ -5,8 +5,7 @@ import * as cbor from 'cbor-web';
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {ChallengeData, Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {ChallengeData} from 'sentry/types/auth';
 
 type TapParams = {
   challenge: string;
@@ -26,7 +25,6 @@ type Props = {
     superuserAccessCategory,
     superuserReason,
   }: TapParams) => Promise<void>;
-  organization: Organization;
   silentIfUnsupported: boolean;
   children?: React.ReactNode;
   style?: React.CSSProperties;
@@ -236,7 +234,7 @@ class U2fInterface extends Component<Props, State> {
   bindChallengeElement: React.RefCallback<HTMLInputElement> = ref => {
     this.setState({
       challengeElement: ref,
-      formElement: ref && ref.form,
+      formElement: ref?.form ?? null,
     });
 
     if (ref) {
@@ -376,4 +374,4 @@ class U2fInterface extends Component<Props, State> {
   }
 }
 
-export default withOrganization(U2fInterface);
+export default U2fInterface;

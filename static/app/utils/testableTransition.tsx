@@ -1,4 +1,4 @@
-import {Transition} from 'framer-motion';
+import type {Transition} from 'framer-motion';
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 

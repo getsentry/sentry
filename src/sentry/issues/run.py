@@ -1,86 +1,23 @@
+import functools
 import logging
-from typing import Mapping
+from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
+from typing import Literal
 
-import rapidjson
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, build_kafka_consumer_configuration
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing import StreamProcessor
+import orjson
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
 )
+from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
-from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
-
-
-def get_occurrences_ingest_consumer(
-    consumer_type: str,
-    auto_offset_reset: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
-) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(
-        consumer_type,
-        auto_offset_reset,
-        group_id,
-        strict_offset_reset,
-        max_batch_size,
-        max_batch_time,
-        num_processes,
-        input_block_size,
-        output_block_size,
-    )
-
-
-def create_ingest_occurences_consumer(
-    topic_name: str,
-    auto_offset_reset: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
-) -> StreamProcessor[KafkaPayload]:
-    from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
-
-    kafka_cluster = get_topic_definition(topic_name)["cluster"]
-
-    consumer = KafkaConsumer(
-        build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(kafka_cluster),
-            auto_offset_reset=auto_offset_reset,
-            group_id=group_id,
-            strict_offset_reset=strict_offset_reset,
-        )
-    )
-
-    strategy_factory = OccurrenceStrategyFactory(
-        max_batch_size,
-        max_batch_time,
-        num_processes,
-        input_block_size,
-        output_block_size,
-    )
-
-    return StreamProcessor(
-        consumer,
-        Topic(topic_name),
-        strategy_factory,
-        ONCE_PER_SECOND,
-    )
 
 
 class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -88,49 +25,87 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self,
         max_batch_size: int,
         max_batch_time: int,
-        num_processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        # not needed in batched-parallel mode
+        num_processes: int | None = None,
+        input_block_size: int | None = None,
+        output_block_size: int | None = None,
+        mode: Literal["batched-parallel", "parallel"] | None = None,
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
+
+        self.batched = mode == "batched-parallel"
+        # either use multi-process pool or a thread pool
+        if self.batched:
+            self.worker: ThreadPoolExecutor | None = ThreadPoolExecutor()
+            self.pool: MultiprocessingPool | None = None
+        else:
+            # make sure num_processes is not None
+            assert num_processes is not None
+            self.pool = MultiprocessingPool(num_processes)
+            self.worker = None
+
+    def crate_parallel_worker(
+        self,
+        commit: Commit,
+    ) -> ProcessingStrategy[KafkaPayload]:
+        assert self.pool is not None
+        return run_task_with_multiprocessing(
+            function=process_message,
+            next_step=CommitOffsets(commit),
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            pool=self.pool,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
+        )
+
+    def creat_batched_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.worker is not None
+        batch_processor = RunTask(
+            function=functools.partial(process_batch, self.worker),
+            next_step=CommitOffsets(commit),
+        )
+        return BatchStep(
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            next_step=batch_processor,
+        )
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTaskWithMultiprocessing(
-            function=process_message,
-            next_step=CommitOffsets(commit),
-            num_processes=self.num_processes,
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
-        )
+        if self.batched:
+            return self.creat_batched_parallel_worker(commit)
+        else:
+            return self.crate_parallel_worker(commit)
+
+    def shutdown(self) -> None:
+        if self.pool:
+            self.pool.close()
+        if self.worker:
+            self.worker.shutdown()
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    from sentry.issues.occurrence_consumer import (
-        EventLookupError,
-        InvalidEventPayloadError,
-        _process_message,
-    )
-    from sentry.utils import json, metrics
+    from sentry.issues.occurrence_consumer import _process_message
 
     try:
-        with metrics.timer("occurrence_consumer.process_message"):
-            payload = json.loads(message.payload.value, use_rapid_json=True)
-            _process_message(payload)
-    except (
-        rapidjson.JSONDecodeError,
-        InvalidEventPayloadError,
-        EventLookupError,
-        Exception,
-    ):
+        payload = orjson.loads(message.payload.value)
+        _process_message(payload)
+    except Exception:
         logger.exception("failed to process message payload")
+
+
+def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
+    from sentry.issues.occurrence_consumer import _process_batch
+
+    try:
+        _process_batch(worker, messages)
+    except Exception:
+        logger.exception("failed to process batch payload")

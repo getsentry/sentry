@@ -1,32 +1,268 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
-import ContextIcon from 'sentry/components/replays/contextIcon';
-import {formatTime} from 'sentry/components/replays/utils';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import PlatformIcon from 'sentry/components/replays/platformIcon';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space, ValidSize} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import {
+  IconCalendar,
+  IconCursorArrow,
+  IconDelete,
+  IconEllipsis,
+  IconFire,
+  IconPlay,
+} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import {getShortEventId} from 'sentry/utils/events';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
+  showDropdownFilters?: boolean;
 };
+
+export type ReferrerTableType = 'main' | 'selector-widget';
+
+type EditType = 'set' | 'remove';
+
+function generateAction({
+  key,
+  value,
+  edit,
+  location,
+}: {
+  edit: EditType;
+  key: string;
+  location: Location<ReplayListLocationQuery>;
+  value: string;
+}) {
+  const search = new MutableSearch(decodeScalar(location.query.query) || '');
+
+  const modifiedQuery =
+    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
+
+  const onAction = () => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: modifiedQuery.formatString(),
+      },
+    });
+  };
+
+  return onAction;
+}
+
+function OSBrowserDropdownFilter({
+  type,
+  name,
+  version,
+}: {
+  name: string | null;
+  type: string;
+  version: string | null;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        ...(name
+          ? [
+              {
+                key: 'name',
+                label: tct('[type] name: [name]', {
+                  type: <b>{type}</b>,
+                  name: <b>{name}</b>,
+                }),
+                children: [
+                  {
+                    key: 'name_add',
+                    label: t('Add to filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'set',
+                      location,
+                    }),
+                  },
+                  {
+                    key: 'name_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: generateAction({
+                      key: `${type}.name`,
+                      value: name ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(version
+          ? [
+              {
+                key: 'version',
+                label: tct('[type] version: [version]', {
+                  type: <b>{type}</b>,
+                  version: <b>{version}</b>,
+                }),
+                children: [
+                  {
+                    key: 'version_add',
+                    label: t('Add to filter'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'set',
+                      location,
+                    }),
+                  },
+                  {
+                    key: 'version_exclude',
+                    label: t('Exclude from filter'),
+                    onAction: generateAction({
+                      key: `${type}.version`,
+                      value: version ?? '',
+                      edit: 'remove',
+                      location,
+                    }),
+                  },
+                ],
+              },
+            ]
+          : []),
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps => (
+        <ActionMenuTrigger
+          {...triggerProps}
+          translucentBorder
+          aria-label={t('Actions')}
+          icon={<IconEllipsis size="xs" />}
+          size="zero"
+        />
+      )}
+    />
+  );
+}
+
+function NumericDropdownFilter({
+  type,
+  val,
+  triggerOverlay,
+}: {
+  type: string;
+  val: number;
+  triggerOverlay?: boolean;
+}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'add',
+          label: 'Add to filter',
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'greater',
+          label: 'Show values greater than',
+          onAction: generateAction({
+            key: type,
+            value: '>' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'less',
+          label: 'Show values less than',
+          onAction: generateAction({
+            key: type,
+            value: '<' + val.toString(),
+            edit: 'set',
+            location,
+          }),
+        },
+        {
+          key: 'exclude',
+          label: t('Exclude from filter'),
+          onAction: generateAction({
+            key: type,
+            value: val.toString(),
+            edit: 'remove',
+            location,
+          }),
+        },
+      ]}
+      usePortal
+      size="xs"
+      offset={4}
+      position="bottom"
+      preventOverflowOptions={{padding: 4}}
+      flipOptions={{
+        fallbackPlacements: ['top', 'right-start', 'right-end', 'left-start', 'left-end'],
+      }}
+      trigger={triggerProps =>
+        triggerOverlay ? (
+          <OverlayActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        ) : (
+          <NumericActionMenuTrigger
+            {...triggerProps}
+            translucentBorder
+            aria-label={t('Actions')}
+            icon={<IconEllipsis size="xs" />}
+            size="zero"
+          />
+        )
+      }
+    />
+  );
+}
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -51,16 +287,44 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  referrer_table,
+  isWidget,
+  className,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  className?: string;
+  isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
     },
+  };
+
+  const replayDetailsDeadRage = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      f_b_type: 'rageOrDead',
+    },
+  };
+
+  const detailsTab = () => {
+    switch (referrer_table) {
+      case 'selector-widget':
+        return replayDetailsDeadRage;
+      default:
+        return replayDetails;
+    }
   };
 
   const trackNavigationEvent = () =>
@@ -69,18 +333,19 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived}>
+      <Item isArchived={replay.is_archived} isReplayCell>
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
               {project ? <Avatar size={12} project={project} /> : null}
-              {getShortEventId(replay.id)}
+              <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
         </Row>
@@ -90,50 +355,54 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
       <Row gap={1}>
         <Row gap={0.5}>
+          {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails} onClick={trackNavigationEvent}>
+          {project ? project.slug : null}
+          <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
+          <Row gap={0.5}>
+            <IconCalendar color="gray300" size="xs" />
+            <TimeSince date={replay.started_at} />
+          </Row>
         </Row>
       </Row>
     </Cols>
   );
 
   return (
-    <Item>
-      <UserBadgeFullWidth
-        avatarSize={24}
-        displayName={
-          replay.is_archived ? (
-            replay.user.display_name || t('Unknown User')
-          ) : (
-            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Unknown User')}
-            </MainLink>
-          )
-        }
-        user={getUserBadgeUser(replay)}
-        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-        displayEmail={subText}
-      />
+    <Item isWidget={isWidget} isReplayCell className={className}>
+      <Row gap={1}>
+        <UserAvatar user={getUserBadgeUser(replay)} size={24} />
+        <SubText>
+          <Row gap={0.5}>
+            {replay.is_archived ? (
+              replay.user.display_name || t('Anonymous User')
+            ) : (
+              <MainLink
+                to={detailsTab()}
+                onClick={trackNavigationEvent}
+                data-has-viewed={replay.has_viewed}
+              >
+                {replay.user.display_name || t('Anonymous User')}
+              </MainLink>
+            )}
+          </Row>
+          <Row gap={0.5}>{subText}</Row>
+        </SubText>
+      </Row>
     </Item>
   );
 }
 
-const StyledIconDelete = styled(IconDelete)`
-  margin: ${space(0.25)};
+const ArchivedId = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-// Need to be full width for StringWalker to take up full width and truncate properly
-const UserBadgeFullWidth = styled(UserBadge)`
-  width: 100%;
+const StyledIconDelete = styled(IconDelete)`
+  margin: ${space(0.25)};
 `;
 
 const Cols = styled('div')`
@@ -152,6 +421,23 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 
 const MainLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
+  line-height: normal;
+  ${p => p.theme.overflowEllipsis};
+
+  font-weight: ${p => p.theme.fontWeightBold};
+  &[data-has-viewed='true'] {
+    font-weight: ${p => p.theme.fontWeightNormal};
+  }
+`;
+
+const SubText = styled('div')`
+  font-size: 0.875em;
+  line-height: normal;
+  color: ${p => p.theme.gray300};
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
 `;
 
 export function TransactionCell({
@@ -166,18 +452,20 @@ export function TransactionCell({
   const hasTxEvent = 'txEvent' in replay;
   const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
   return hasTxEvent ? (
-    <SpanOperationBreakdown>
-      {txDuration ? <div>{txDuration}ms</div> : null}
-      {spanOperationRelativeBreakdownRenderer(
-        replay.txEvent,
-        {organization, location},
-        {enableOnClick: false}
-      )}
-    </SpanOperationBreakdown>
+    <Item>
+      <SpanOperationBreakdown>
+        {txDuration ? <div>{txDuration}ms</div> : null}
+        {spanOperationRelativeBreakdownRenderer(
+          replay.txEvent,
+          {organization, location},
+          {enableOnClick: false}
+        )}
+      </SpanOperationBreakdown>
+    </Item>
   ) : null;
 }
 
-export function OSCell({replay}: Props) {
+export function OSCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -187,15 +475,24 @@ export function OSCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-      />
+      <Container>
+        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
+          <PlatformIcon
+            name={name ?? ''}
+            version={version && hasRoomForColumns ? version : undefined}
+            showVersion={false}
+            showTooltip={false}
+          />
+          {showDropdownFilters ? (
+            <OSBrowserDropdownFilter type="os" name={name} version={version} />
+          ) : null}
+        </Tooltip>
+      </Container>
     </Item>
   );
 }
 
-export function BrowserCell({replay}: Props) {
+export function BrowserCell({replay, showDropdownFilters}: Props) {
   const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
@@ -205,77 +502,200 @@ export function BrowserCell({replay}: Props) {
   }
   return (
     <Item>
-      <ContextIcon
-        name={name ?? ''}
-        version={version && hasRoomForColumns ? version : undefined}
-      />
+      <Container>
+        <Tooltip title={`${name} ${version}`}>
+          <PlatformIcon
+            name={name ?? ''}
+            version={version && hasRoomForColumns ? version : undefined}
+            showVersion={false}
+            showTooltip={false}
+          />
+          {showDropdownFilters ? (
+            <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+          ) : null}
+        </Tooltip>
+      </Container>
     </Item>
   );
 }
 
-export function DurationCell({replay}: Props) {
+export function DurationCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item>
-      <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+      <Container>
+        <Time>{formatReplayDuration(replay.duration.asMilliseconds())}</Time>
+        {showDropdownFilters ? (
+          <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+        ) : null}
+      </Container>
     </Item>
   );
 }
 
-export function ErrorCountCell({replay}: Props) {
+export function RageClickCountCell({replay, showDropdownFilters}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      <Container>
+        {replay.count_rage_clicks ? (
+          <RageClickCount>
+            <IconCursorArrow size="sm" color="red300" />
+            {replay.count_rage_clicks}
+          </RageClickCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="count_rage_clicks"
+            val={replay.count_rage_clicks ?? 0}
+          />
+        ) : null}
+      </Container>
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay, showDropdownFilters}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      <Container>
+        {replay.count_dead_clicks ? (
+          <DeadClickCount>
+            <IconCursorArrow size="sm" color="yellow300" />
+            {replay.count_dead_clicks}
+          </DeadClickCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="count_dead_clicks"
+            val={replay.count_dead_clicks ?? 0}
+          />
+        ) : null}
+      </Container>
+    </Item>
+  );
+}
+
+export function ErrorCountCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      {replay.count_errors ? (
-        <ErrorCount>
-          <IconFire />
-          {replay.count_errors}
-        </ErrorCount>
-      ) : (
-        <Count>0</Count>
-      )}
+      <Container>
+        {replay.count_errors ? (
+          <ErrorCount>
+            <IconFire color="red300" />
+            {replay.count_errors}
+          </ErrorCount>
+        ) : (
+          <Count>0</Count>
+        )}
+        {showDropdownFilters ? (
+          <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
+        ) : null}
+      </Container>
     </Item>
   );
 }
 
-export function ActivityCell({replay}: Props) {
+export function ActivityCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
   return (
     <Item>
-      <ScoreBar
-        size={20}
-        score={replay?.activity ?? 1}
-        palette={scoreBarPalette}
-        radius={0}
-      />
+      <Container>
+        <ScoreBar
+          size={20}
+          score={replay?.activity ?? 1}
+          palette={scoreBarPalette}
+          radius={0}
+        />
+        {showDropdownFilters ? (
+          <NumericDropdownFilter
+            type="activity"
+            val={replay?.activity ?? 0}
+            triggerOverlay
+          />
+        ) : null}
+      </Container>
     </Item>
   );
 }
 
-const Item = styled('div')<{isArchived?: boolean}>`
+export function PlayPauseCell({
+  isSelected,
+  handleClick,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+}) {
+  const inner = isSelected ? (
+    <ReplayPlayPauseButton size="sm" priority="default" borderless />
+  ) : (
+    <Button
+      title={t('Play')}
+      aria-label={t('Play')}
+      icon={<IconPlay size="sm" />}
+      onClick={handleClick}
+      data-test-id="replay-table-play-button"
+      borderless
+      size="sm"
+      priority="default"
+    />
+  );
+  return <Item>{inner}</Item>;
+}
+
+const Item = styled('div')<{
+  isArchived?: boolean;
+  isReplayCell?: boolean;
+  isWidget?: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: ${space(1.5)};
+  ${p =>
+    p.isWidget
+      ? `padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
+      : `padding: ${space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+  ${p => (p.isReplayCell ? 'overflow: auto;' : '')};
 `;
 
 const Count = styled('span')`
   font-variant-numeric: tabular-nums;
 `;
 
+const DeadClickCount = styled(Count)`
+  display: flex;
+  width: 40px;
+  gap: ${space(0.5)};
+`;
+
+const RageClickCount = styled(Count)`
+  display: flex;
+  width: 40px;
+  gap: ${space(0.5)};
+`;
+
 const ErrorCount = styled(Count)`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`
@@ -290,4 +710,39 @@ const SpanOperationBreakdown = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const ActionMenuTrigger = styled(Button)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(0.75)};
+  left: -${space(0.75)};
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &:focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
+`;
+
+const NumericActionMenuTrigger = styled(ActionMenuTrigger)`
+  left: 100%;
+  margin-left: ${space(0.75)};
+  z-index: 1;
+`;
+
+const OverlayActionMenuTrigger = styled(NumericActionMenuTrigger)`
+  right: 0%;
+  left: unset;
 `;

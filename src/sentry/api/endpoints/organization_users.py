@@ -2,24 +2,32 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.projectteam import ProjectTeam
 
 
 @region_silo_endpoint
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    publish_status = {
+        # Removing public documentation in favor of OrganizationMemberIndexEndpoint
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Users
+        List an Organization's Projects Users
         ````````````````````````````
 
-        Return a list of users that belong to a given organization.
+        Return a list of users that belong to a given organization and are part of a project.
 
         :qparam string project: restrict results to users who have access to a given project ID
-        :pparam string organization_slug: the slug of the organization for which the users
+        :pparam string organization_id_or_slug: the id or slug of the organization for which the users
                                           should be listed.
         :auth: required
         """

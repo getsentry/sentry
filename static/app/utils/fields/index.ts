@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -8,6 +9,8 @@ export enum FieldKind {
   MEASUREMENT = 'measurement',
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
+  ISSUE_FIELD = 'issue_field',
+  EVENT_FIELD = 'event_field',
   FUNCTION = 'function',
   EQUATION = 'equation',
   METRICS = 'metric',
@@ -67,6 +70,7 @@ export enum FieldKey {
   IS = 'is',
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
+  ISSUE_PRIORITY = 'issue.priority',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -107,6 +111,7 @@ export enum FieldKey {
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
+  TRACE_CLIENT_SAMPLE_RATE = 'trace.client_sample_rate',
   TRANSACTION = 'transaction',
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
@@ -118,7 +123,9 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
+  FUNCTION_DURATION = 'function.duration',
 }
 
 export enum FieldValueType {
@@ -142,6 +149,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
@@ -159,6 +167,29 @@ export enum MobileVital {
   STALL_PERCENTAGE = 'measurements.stall_percentage',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+}
+
+export enum StackTags {
+  STACK_ABS_PATH = 'stack.abs_path',
+  STACK_COLNO = 'stack.colno',
+  STACK_FILENAME = 'stack.filename',
+  STACK_FUNCTION = 'stack.function',
+  STACK_IN_APP = 'stack.in_app',
+  STACK_LINENO = 'stack.lineno',
+  STACK_MODULE = 'stack.module',
+  STACK_PACKAGE = 'stack.package',
+  STACK_RESOURCE = 'stack.resource',
+  STACK_STACK_LEVEL = 'stack.stack_level',
+}
+
+export enum ErrorTags {
+  ERROR_HANDLED = 'error.handled',
+  ERROR_MECHANISM = 'error.mechanism',
+  ERROR_TYPE = 'error.type',
+  ERROR_UNHANDLED = 'error.unhandled',
+  ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
 }
 
 export enum SpanOpBreakdown {
@@ -184,6 +215,7 @@ export enum AggregationKey {
   ANY = 'any',
   P50 = 'p50',
   P75 = 'p75',
+  P90 = 'p90',
   P95 = 'p95',
   P99 = 'p99',
   P100 = 'p100',
@@ -195,9 +227,60 @@ export enum AggregationKey {
   LAST_SEEN = 'last_seen',
 }
 
+export enum IsFieldValues {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  ARCHIVED = 'archived',
+  ESCALATING = 'escalating',
+  NEW = 'new',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  FOR_REVIEW = 'for_review',
+  LINKED = 'linked',
+  UNLINKED = 'unlinked',
+}
+
+export type AggregateColumnParameter = {
+  /**
+   * The types of columns that are valid for this parameter.
+   * Can pass a list of FieldValueTypes or a predicate function.
+   */
+  columnTypes:
+    | FieldValueType[]
+    | ((field: {key: string; valueType: FieldValueType}) => boolean);
+  kind: 'column';
+  name: string;
+  required: boolean;
+  defaultValue?: string;
+};
+
+export type AggregateValueParameter = {
+  dataType: FieldValueType;
+  kind: 'value';
+  name: string;
+  required: boolean;
+  defaultValue?: string;
+  options?: Array<{value: string; label?: string}>;
+  placeholder?: string;
+};
+
+export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
+  /**
+   * Allow all comparison operators to be used with this field.
+   * Useful for fields like `release.version` which accepts text, but
+   * can also be used with operators like `>=` or `<`.
+   */
+  allowComparisonOperators?: boolean;
+  /**
+   * Default value for the field
+   */
+  defaultValue?: string;
   /**
    * Is this field being deprecated
    */
@@ -214,6 +297,15 @@ export interface FieldDefinition {
    * Additional keywords used when filtering via autocomplete
    */
   keywords?: string[];
+  /**
+   * Only valid for aggregate fields.
+   * Defines the number and type of parameters that the function accepts.
+   */
+  parameters?: AggregateParameter[];
+  /**
+   * Potential values for the field
+   */
+  values?: string[];
 }
 
 export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -289,6 +381,11 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P90]: {
+    desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
@@ -439,6 +536,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
+  [WebVital.INP]: {
+    desc: t('Web Vital Interaction to Next Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
@@ -469,20 +571,95 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
+type TraceFields =
+  | SpanIndexedField.SPAN_ACTION
+  | SpanIndexedField.SPAN_DESCRIPTION
+  | SpanIndexedField.SPAN_DOMAIN
+  | SpanIndexedField.SPAN_DURATION
+  | SpanIndexedField.SPAN_GROUP
+  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_OP
+  // TODO: Remove self time field when it is deprecated
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.SPAN_STATUS
+  | SpanIndexedField.RESPONSE_CODE;
+
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+  /** Indexed Fields */
+  [SpanIndexedField.SPAN_ACTION]: {
+    desc: t(
+      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DESCRIPTION]: {
+    desc: t('Parameterized and scrubbed description of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DOMAIN]: {
+    desc: t(
+      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DURATION]: {
+    desc: t('The total time taken by the span'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_GROUP]: {
+    desc: t('Unique hash of the span’s description'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_MODULE]: {
+    desc: t(
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_OP]: {
+    desc: t('The operation of the span, e.g `http.client`, `middleware`'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_SELF_TIME]: {
+    desc: t('The duration of the span excluding the duration of its child spans'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_STATUS]: {
+    desc: t('Status of the operation the span represents'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.RESPONSE_CODE]: {
+    desc: t('The HTTP response status code'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELD_DEFINITIONS
   | FieldKey;
 
 const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...TRACE_FIELD_DEFINITIONS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.ASSIGNED]: {
     desc: t('Assignee of the issue as a user ID'),
@@ -701,6 +878,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
+    defaultValue: 'unresolved',
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
@@ -712,6 +890,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
+  },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['high', 'medium', 'low'],
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
@@ -801,21 +985,25 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.REPLAY_ID]: {
     desc: t('The ID of an associated Session Replay'),
@@ -928,6 +1116,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TRACE_CLIENT_SAMPLE_RATE]: {
+    desc: t('Sample rate of the trace in the SDK between 0 and 1'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
     kind: FieldKind.FIELD,
@@ -939,7 +1132,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_DURATION]: {
-    desc: t('Duration, in milliseconds, of the transaction'),
+    desc: t('Duration of the transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
@@ -983,18 +1176,44 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.USER_SEGMENT]: {
+    desc: t('Segment of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.APP_IN_FOREGROUND]: {
     desc: t('Indicates if the app is in the foreground or background'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
+  [FieldKey.FUNCTION_DURATION]: {
+    desc: t('Duration of the function'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
-export const ISSUE_FIELDS = [
+export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
-  FieldKey.ASSIGNED,
   FieldKey.ASSIGNED_OR_SUGGESTED,
+  FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
+  FieldKey.FIRST_RELEASE,
+  FieldKey.FIRST_SEEN,
+  FieldKey.HAS,
+  FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_TYPE,
+  FieldKey.ISSUE,
+  FieldKey.LAST_SEEN,
+  FieldKey.RELEASE_STAGE,
+  FieldKey.TIMES_SEEN,
+];
+
+// Should match Snuba columns defined in sentry/snuba/events.py
+export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
+  FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_CLASS,
@@ -1006,40 +1225,31 @@ export const ISSUE_FIELDS = [
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
   FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_TYPE,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_VALUE,
-  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.EVENT_TIMESTAMP,
   FieldKey.EVENT_TYPE,
-  FieldKey.FIRST_RELEASE,
-  FieldKey.FIRST_SEEN,
   FieldKey.GEO_CITY,
   FieldKey.GEO_COUNTRY_CODE,
   FieldKey.GEO_REGION,
   FieldKey.GEO_SUBDIVISION,
-  FieldKey.HAS,
   FieldKey.HTTP_METHOD,
   FieldKey.HTTP_REFERER,
   FieldKey.HTTP_STATUS_CODE,
   FieldKey.HTTP_URL,
   FieldKey.ID,
-  FieldKey.IS,
-  FieldKey.ISSUE,
-  FieldKey.ISSUE_CATEGORY,
-  FieldKey.ISSUE_TYPE,
-  FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
   FieldKey.PLATFORM,
-  FieldKey.RELEASE,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
-  FieldKey.RELEASE_STAGE,
   FieldKey.RELEASE_VERSION,
+  FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.STACK_ABS_PATH,
@@ -1049,7 +1259,6 @@ export const ISSUE_FIELDS = [
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
   FieldKey.TIMESTAMP,
-  FieldKey.TIMES_SEEN,
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
@@ -1058,7 +1267,11 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  FieldKey.APP_IN_FOREGROUND,
+];
+
+export const ISSUE_FIELDS: FieldKey[] = [
+  ...ISSUE_PROPERTY_FIELDS,
+  ...ISSUE_EVENT_PROPERTY_FIELDS,
 ];
 
 /**
@@ -1150,6 +1363,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+  FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
 
@@ -1173,6 +1387,8 @@ export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
+  COUNT_DEAD_CLICKS = 'count_dead_clicks',
+  COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
   COUNT_URLS = 'count_urls',
@@ -1180,7 +1396,9 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
+  VIEWED_BY_ME = 'viewed_by_me',
 }
 
 export enum ReplayClickFieldKey {
@@ -1190,10 +1408,13 @@ export enum ReplayClickFieldKey {
   CLICK_LABEL = 'click.label',
   CLICK_ROLE = 'click.role',
   CLICK_SELECTOR = 'click.selector',
+  DEAD_SELECTOR = 'dead.selector',
+  RAGE_SELECTOR = 'rage.selector',
   CLICK_TAG = 'click.tag',
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
+  CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
 /**
@@ -1208,6 +1429,8 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
+  ReplayFieldKey.COUNT_DEAD_CLICKS,
+  ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
@@ -1216,7 +1439,6 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1226,12 +1448,14 @@ export const REPLAY_FIELDS = [
   FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.VIEWED_BY_ME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1249,6 +1473,16 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
+    desc: t('Number of dead clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
+    desc: t('Number of rage clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
     desc: t('Number of errors in the replay'),
@@ -1285,10 +1519,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.SEEN_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the Replay'),
+    desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.VIEWED_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -1299,10 +1543,13 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_LABEL,
   ReplayClickFieldKey.CLICK_ROLE,
   ReplayClickFieldKey.CLICK_SELECTOR,
+  ReplayClickFieldKey.DEAD_SELECTOR,
+  ReplayClickFieldKey.RAGE_SELECTOR,
   ReplayClickFieldKey.CLICK_TAG,
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
+  ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -1339,6 +1586,20 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayClickFieldKey.DEAD_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.RAGE_SELECTOR]: {
+    desc: t(
+      'query using CSS selector-like syntax, supports class, id, and attribute selectors'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [ReplayClickFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
     kind: FieldKind.FIELD,
@@ -1359,11 +1620,114 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+    desc: t('the name of the frontend component that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+export enum FeedbackFieldKey {
+  BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
+  EMAIL = 'contact_email',
+  LOCALE_LANG = 'locale.lang',
+  LOCALE_TIMEZONE = 'locale.timezone',
+  MESSAGE = 'message',
+  NAME = 'name',
+  OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
+  URL = 'url',
+}
+
+export const FEEDBACK_FIELDS = [
+  FieldKey.ASSIGNED,
+  FeedbackFieldKey.BROWSER_NAME,
+  FeedbackFieldKey.BROWSER_VERSION,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DIST,
+  FeedbackFieldKey.EMAIL,
+  FieldKey.ENVIRONMENT,
+  FieldKey.ID,
+  FieldKey.IS,
+  FieldKey.LEVEL,
+  FeedbackFieldKey.LOCALE_LANG,
+  FeedbackFieldKey.LOCALE_TIMEZONE,
+  FeedbackFieldKey.MESSAGE,
+  FeedbackFieldKey.NAME,
+  FeedbackFieldKey.OS_NAME,
+  FeedbackFieldKey.OS_VERSION,
+  FieldKey.PLATFORM,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.TIMESTAMP,
+  FieldKey.TRANSACTION,
+  FeedbackFieldKey.URL,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
+];
+
+const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+  [FeedbackFieldKey.BROWSER_NAME]: {
+    desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.BROWSER_VERSION]: {
+    desc: t('Version number of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.EMAIL]: {
+    desc: t('Contact email of the user writing the feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_LANG]: {
+    desc: t('Language preference of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.LOCALE_TIMEZONE]: {
+    desc: t('Timezone the feedback was submitted from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.MESSAGE]: {
+    desc: t('Message written by the user providing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.NAME]: {
+    desc: t('Name of the user writing feedback'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_NAME]: {
+    desc: t('Name of the operating system'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.OS_VERSION]: {
+    desc: t('Version number of the operating system'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.URL]: {
+    desc: t('URL of the page that the feedback is triggered on'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -1374,6 +1738,14 @@ export const getFieldDefinition = (
         return REPLAY_CLICK_FIELD_DEFINITIONS[key];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
+    case 'feedback':
+      if (key in FEEDBACK_FIELD_DEFINITIONS) {
+        return FEEDBACK_FIELD_DEFINITIONS[key];
+      }
+      if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;

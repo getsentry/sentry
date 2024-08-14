@@ -1,17 +1,20 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationProvider, Organization, Project} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
@@ -24,15 +27,15 @@ type Props = {
   integrationSlug: string;
   organization: Organization;
 } & RouteComponentProps<{platform: string; projectId: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   installed: boolean;
   integrations: {providers: IntegrationProvider[]};
   project: Project | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
+class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -59,7 +62,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
     return providers.length ? providers[0] : null;
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, integrationSlug, params} = this.props;
 
     if (!integrationSlug) {

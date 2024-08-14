@@ -2,7 +2,8 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.reprocessing2 import CannotReprocess, pull_event_data
@@ -10,6 +11,11 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 @region_silo_endpoint
 class EventReprocessableEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve information about whether an event can be reprocessed.
@@ -41,21 +47,13 @@ class EventReprocessableEndpoint(ProjectEndpoint):
         * `attachment.not_found`: A required attachment, such as the original
           minidump, is missing.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :auth: required
         """
-
-        if not features.has(
-            "organizations:reprocessing-v2", project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the reprocessing v2 feature"},
-                status=404,
-            )
 
         try:
             pull_event_data(project.id, event_id)

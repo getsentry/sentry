@@ -1,27 +1,28 @@
 import {Fragment, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
 
 import FilterBar from '../../filterBar';
-import {Incident} from '../../types';
+import type {Incident} from '../../types';
 import {getQueryStatus, getTeamParams} from '../../utils';
 import AlertHeader from '../header';
 import Onboarding from '../onboarding';
@@ -49,8 +50,11 @@ type State = {
   hasAlertRule?: boolean;
 };
 
-class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class IncidentsList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
     const status = getQueryStatus(query.status);
@@ -107,7 +111,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     // Check if they have already seen the prompt for the alert stream
     const prompt = await promptsCheck(this.api, {
-      organizationId: organization.id,
+      organization,
       feature: 'alert_stream',
     });
 
@@ -117,8 +121,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       // Prompt has not been seen, mark the prompt as seen immediately so they
       // don't see it again
       promptsUpdate(this.api, {
+        organization,
         feature: 'alert_stream',
-        organizationId: organization.id,
         status: 'dismissed',
       });
     }
@@ -129,7 +133,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   get projectsFromIncidents() {
     const {incidentList} = this.state;
 
-    return [...new Set(incidentList?.map(({projects}) => projects).flat())];
+    return [...new Set(incidentList?.flatMap(({projects}) => projects))];
   }
 
   handleChangeSearch = (title: string) => {
@@ -181,9 +185,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     const actions = (
       <Fragment>
-        <Button size="sm" external href={DOCS_URL}>
+        <LinkButton size="sm" external href={DOCS_URL}>
           {t('View Features')}
-        </Button>
+        </LinkButton>
         <CreateAlertButton
           organization={organization}
           iconProps={{size: 'xs'}}
@@ -304,7 +308,7 @@ function IncidentsListContainer(props: Props) {
 
   return (
     <Feature
-      features={['incidents']}
+      features="incidents"
       hookName="feature-disabled:alerts-page"
       renderDisabled={renderDisabled}
     >

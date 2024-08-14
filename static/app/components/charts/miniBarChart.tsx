@@ -1,22 +1,143 @@
 // Import to ensure echarts components are loaded.
 import './components/markPoint';
 
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';
 
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import {BarChart, BarChartProps, BarChartSeries} from './barChart';
-import type BaseChart from './baseChart';
+import type {BarChartProps, BarChartSeries} from './barChart';
+import {BarChart} from './barChart';
+import type {BaseChartProps} from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+function makeBaseChartOptions({
+  animateBars,
+  height,
+  hideDelay,
+  tooltipFormatter,
+  labelYAxisExtents,
+  showMarkLineLabel,
+  markLineLabelSide,
+  grid,
+  yAxisOptions,
+  showXAxisLine,
+  xAxisLineColor,
+}: {
+  animateBars: boolean;
+  height: number;
+  markLineLabelSide: 'right' | 'left';
+  showXAxisLine: boolean;
+  xAxisLineColor: string;
+  grid?: GridComponentOption;
+  hideDelay?: number;
+  labelYAxisExtents?: boolean;
+  showMarkLineLabel?: boolean;
+  tooltipFormatter?: (value: number) => string;
+  yAxisOptions?: BarChartProps['yAxis'];
+}): Omit<BarChartProps, 'series' | 'barOpacity'> {
+  return {
+    tooltip: {
+      trigger: 'axis',
+      hideDelay,
+      valueFormatter: tooltipFormatter
+        ? (value: number) => tooltipFormatter(value)
+        : undefined,
+    },
+    yAxis: {
+      max: getYAxisMaxFn(height),
+      splitLine: {
+        show: false,
+      },
+      ...yAxisOptions,
+    },
+    grid: grid ?? {
+      // Offset to ensure there is room for the marker symbols at the
+      // default size.
+      top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
+      bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
+      left: markLineLabelSide === 'left' ? (showMarkLineLabel ? 35 : 4) : 0,
+      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 25 : 4) : 0,
+    },
+    xAxis: {
+      axisLine: showXAxisLine
+        ? {
+            show: true,
+            lineStyle: {
+              color: xAxisLineColor,
+            },
+            onZero: false, // Enables offset for x-axis line
+          }
+        : {show: false},
+      axisTick: {
+        show: false,
+        alignWithLabel: true,
+      },
+      offset: showXAxisLine ? -1 : 0,
+      axisLabel: {
+        show: false,
+      },
+      axisPointer: {
+        type: 'line' as const,
+        label: {
+          show: false,
+        },
+        lineStyle: {
+          width: 0,
+        },
+      },
+    },
+    options: animateBars
+      ? {
+          animation: true,
+          animationEasing: 'circularOut',
+        }
+      : {
+          animation: false,
+        },
+  };
+}
 
-interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> {
+function makeLabelYAxisOptions(tooltipFormatter: Props['tooltipFormatter']) {
+  return {
+    showMinLabel: true,
+    showMaxLabel: true,
+    interval: Infinity,
+    axisLabel: {
+      formatter(value: number) {
+        if (tooltipFormatter) {
+          return tooltipFormatter(value);
+        }
+        return formatAbbreviatedNumber(value);
+      },
+    },
+  };
+}
+
+const noLabelYAxisOptions = {
+  axisLabel: {
+    show: false,
+  },
+};
+
+interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'height'> {
   /**
    * Chart height
    */
   height: number;
+
+  /**
+   * Whether to animate the bars on initial render.
+   * If true, bars will rise from the x-axis to their final height.
+   */
+  animateBars?: boolean;
+
+  /**
+   * Opacity of each bar in the graph (0-1)
+   */
+  barOpacity?: number;
+
   /**
    * Colors to use on the chart.
    */
@@ -40,16 +161,35 @@ interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'>
   hideDelay?: number;
 
   /**
+   * Whether to hide the bar for zero values in the chart.
+   */
+  hideZeros?: boolean;
+
+  /**
    * Show max/min values on yAxis
    */
   labelYAxisExtents?: boolean;
 
+  /**
+   * Which side of the chart the mark line label shows on.
+   * Requires `showMarkLineLabel` to be true.
+   */
+  markLineLabelSide?: 'right' | 'left';
+
+  /**
+   * Series data to display
+   */
   series?: BarChartProps['series'];
 
   /**
    * Whether not we show a MarkLine label
    */
   showMarkLineLabel?: boolean;
+
+  /**
+   * Whether or not to show the x-axis line
+   */
+  showXAxisLine?: boolean;
 
   /**
    * Whether not the series should be stacked.
@@ -85,29 +225,38 @@ export function getYAxisMaxFn(height: number) {
 }
 
 function MiniBarChart({
+  animateBars = false,
+  barOpacity = 0.6,
   emphasisColors,
   series,
   hideDelay,
+  hideZeros = false,
   tooltipFormatter,
   colors,
   stacked = false,
   labelYAxisExtents = false,
   showMarkLineLabel = false,
+  markLineLabelSide = 'left',
+  showXAxisLine = false,
   height,
   grid,
   ...props
 }: Props) {
-  const {ref: _ref, ...barChartProps} = props;
   const theme = useTheme();
-  const colorList = Array.isArray(colors)
-    ? colors
-    : [theme.gray200, theme.purple300, theme.purple300];
+  const xAxisLineColor: string = theme.gray200;
+  const updatedSeries: BarChartSeries[] = useMemo(() => {
+    if (!series?.length) {
+      return [];
+    }
 
-  let chartSeries: BarChartSeries[] = [];
+    const chartSeries: BarChartSeries[] = [];
 
-  // Ensure bars overlap and that empty values display as we're disabling the axis lines.
-  if (series?.length) {
-    chartSeries = series.map((original, i: number) => {
+    const colorList = Array.isArray(colors)
+      ? colors
+      : [theme.gray200, theme.purple300, theme.purple300];
+
+    for (let i = 0; i < series.length; i++) {
+      const original = series[i];
       const updated: BarChartSeries = {
         ...original,
         cursor: 'normal',
@@ -124,85 +273,55 @@ function MiniBarChart({
         updated.stack = 'stack1';
       }
       set(updated, 'itemStyle.color', colorList[i]);
-      set(updated, 'itemStyle.opacity', 0.6);
-      set(updated, 'emphasis.itemStyle.opacity', 1.0);
+      set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
       set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
+      chartSeries.push(updated);
+    }
+    return chartSeries;
+  }, [series, emphasisColors, stacked, colors, theme.gray200, theme.purple300]);
 
-      return updated;
-    });
-  }
+  const chartOptions = useMemo(() => {
+    const yAxisOptions = labelYAxisExtents
+      ? makeLabelYAxisOptions(tooltipFormatter)
+      : noLabelYAxisOptions;
 
-  const yAxisOptions = labelYAxisExtents
-    ? {
-        showMinLabel: true,
-        showMaxLabel: true,
-        interval: Infinity,
-        axisLabel: {
-          formatter(value: number) {
-            if (tooltipFormatter) {
-              return tooltipFormatter(value);
-            }
-            return formatAbbreviatedNumber(value);
-          },
-        },
-      }
-    : {
-        axisLabel: {
-          show: false,
-        },
-      };
-
-  const chartOptions: Omit<BarChartProps, 'series'> = {
-    tooltip: {
-      trigger: 'axis',
+    const options = makeBaseChartOptions({
+      animateBars,
+      height,
       hideDelay,
-      valueFormatter: tooltipFormatter
-        ? (value: number) => tooltipFormatter(value)
-        : undefined,
-    },
-    yAxis: {
-      max: getYAxisMaxFn(height),
-      splitLine: {
-        show: false,
-      },
-      ...yAxisOptions,
-    },
-    grid: grid ?? {
-      // Offset to ensure there is room for the marker symbols at the
-      // default size.
-      top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
-      bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
-      left: showMarkLineLabel ? 35 : 4,
-      right: 0,
-    },
-    xAxis: {
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-        alignWithLabel: true,
-      },
-      axisLabel: {
-        show: false,
-      },
-      axisPointer: {
-        type: 'line' as const,
-        label: {
-          show: false,
-        },
-        lineStyle: {
-          width: 0,
-        },
-      },
-    },
-    options: {
-      animation: false,
-    },
-  };
+      tooltipFormatter,
+      labelYAxisExtents,
+      showMarkLineLabel,
+      markLineLabelSide,
+      grid,
+      yAxisOptions,
+      showXAxisLine,
+      xAxisLineColor,
+    });
+
+    return options;
+  }, [
+    animateBars,
+    grid,
+    height,
+    hideDelay,
+    labelYAxisExtents,
+    markLineLabelSide,
+    showMarkLineLabel,
+    showXAxisLine,
+    tooltipFormatter,
+    xAxisLineColor,
+  ]);
 
   return (
-    <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps} />
+    <BarChart
+      barOpacity={barOpacity}
+      hideZeros={hideZeros}
+      series={updatedSeries}
+      height={height}
+      {...chartOptions}
+      {...props}
+    />
   );
 }
 

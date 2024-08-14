@@ -1,13 +1,13 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 
-import {MetricRule, SavedMetricRule} from './types';
+import type {MetricRule, SavedMetricRule} from './types';
 
 function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
   return !!rule.id;
 }
 
 /**
- * Add a new rule or update an existing rule
+ * Add a new alert rule or update an existing alert rule
  *
  * @param api API Client
  * @param orgId Organization slug
@@ -16,15 +16,14 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
  */
 export function addOrUpdateRule(
   api: Client,
-  orgId: string,
-  projectId: string,
+  orgId: string, // organization slug
   rule: MetricRule,
   query?: object | any
 ) {
   const isExisting = isSavedRule(rule);
-  const endpoint = `/projects/${orgId}/${projectId}/alert-rules/${
-    isSavedRule(rule) ? `${rule.id}/` : ''
-  }`;
+  const endpoint = isExisting
+    ? `/organizations/${orgId}/alert-rules/${rule.id}/`
+    : `/organizations/${orgId}/alert-rules/`;
   const method = isExisting ? 'PUT' : 'POST';
 
   return api.requestPromise(endpoint, {
@@ -32,22 +31,5 @@ export function addOrUpdateRule(
     data: rule,
     query,
     includeAllArgs: true,
-  });
-}
-
-/**
- * Delete an existing rule
- *
- * @param api API Client
- * @param orgId Organization slug
- * @param rule Saved or Unsaved Metric Rule
- */
-export function deleteRule(
-  api: Client,
-  orgId: string,
-  rule: SavedMetricRule
-): Promise<void> {
-  return api.requestPromise(`/organizations/${orgId}/alert-rules/${rule.id}/`, {
-    method: 'DELETE',
   });
 }

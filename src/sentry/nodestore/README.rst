@@ -47,7 +47,7 @@ Getting Node Data
 `````````````````
 While Node Storage does not depend on any other component, it is rarely called directly.
 Events are bound to their node data by calling
-``eventstore.bind_nodes(event_list, 'data')``. The reason that we supply the ``bind_nodes``
+``eventstore.bind_nodes(event_list)``. The reason that we supply the ``bind_nodes``
 with a list is to utilize any backend that may support a "multiget" command, which heavily
 reduces the round trip time that it takes to receive data for multiple nodes.
 

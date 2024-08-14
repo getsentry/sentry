@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {space} from 'sentry/styles/space';
 
 export function ExperimentalFeatureBadge() {
@@ -9,9 +9,4 @@ export function ExperimentalFeatureBadge() {
 
 const CenteredFeatureBadge = styled(FeatureBadge)`
   height: ${space(2)};
-  span {
-    height: ${space(2)};
-    line-height: ${space(2)};
-    padding-top: 1px;
-  }
 `;

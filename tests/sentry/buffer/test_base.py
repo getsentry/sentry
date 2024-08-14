@@ -2,11 +2,18 @@ from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone
+from pytest import raises
 
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
+from sentry.db import models
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.team import Team
 from sentry.receivers import create_default_projects
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BufferTest(TestCase):
@@ -18,10 +25,10 @@ class BufferTest(TestCase):
     def test_incr_delays_task(self, process_incr):
         model = mock.Mock()
         columns = {"times_seen": 1}
-        filters = {"id": 1}
+        filters: dict[str, models.Model | str | int] = {"id": 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
-        process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
+        process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))
@@ -71,3 +78,9 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
+
+    def test_push_to_hash_bulk(self):
+        raises(NotImplementedError, self.buf.push_to_hash_bulk, Group, {"id": 1}, {"foo": "bar"})
+
+    def test_get_hash_length(self):
+        raises(NotImplementedError, self.buf.get_hash_length, Group, {"id": 1})

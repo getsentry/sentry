@@ -1,18 +1,19 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -21,7 +22,7 @@ import {removeTracingKeysFromSearch} from '../../utils';
 
 type Props = {
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   transaction: string;
   end?: string;
   start?: string;
@@ -29,15 +30,15 @@ type Props = {
 };
 
 class RelatedIssues extends Component<Props> {
-  getIssuesEndpoint() {
-    const {transaction, organization, start, end, statsPeriod, location} = this.props;
+  getIssuesEndpointQueryParams() {
+    const {transaction, start, end, statsPeriod, location} = this.props;
 
     const queryParams = {
       start,
       end,
       statsPeriod,
       limit: 5,
-      sort: 'new',
+      sort: 'trends',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
@@ -47,7 +48,6 @@ class RelatedIssues extends Component<Props> {
       .setFilterValues('transaction', [transaction]);
 
     return {
-      path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
         query: currentFilter.formatString(),
@@ -87,7 +87,7 @@ class RelatedIssues extends Component<Props> {
 
   render() {
     const {organization} = this.props;
-    const {path, queryParams} = this.getIssuesEndpoint();
+    const {queryParams} = this.getIssuesEndpointQueryParams();
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {referrer: 'performance-related-issues', ...queryParams},
@@ -109,10 +109,8 @@ class RelatedIssues extends Component<Props> {
 
         <TableWrapper>
           <GroupList
-            orgId={organization.slug}
-            endpointPath={path}
+            orgSlug={organization.slug}
             queryParams={queryParams}
-            query=""
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
             withChart={false}

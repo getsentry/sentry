@@ -9,8 +9,9 @@ from snuba_sdk.function import Function
 
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import InvalidField, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.snuba.outcomes import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidField
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.outcomes import Outcome
 
@@ -97,7 +98,7 @@ class OutcomesQueryDefinitionTests(TestCase):
             {"organization_id": 1},
             True,
         )
-        assert Function("count()", [Column("times_seen")], "times_seen") in query.select_params
+        assert Function("count", [], "times_seen") in query.select_params
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",

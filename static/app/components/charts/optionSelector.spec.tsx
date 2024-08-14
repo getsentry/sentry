@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
   const onChangeStub = jest.fn();
-  const organization = TestStubs.Organization({
+  const organization = OrganizationFixture({
     features: [...features],
   });
 
@@ -52,12 +53,12 @@ describe('Charts > OptionSelector (Multiple)', function () {
       projects: [],
     });
 
-    return render(<TestComponent />, {context: initialData.routerContext});
+    return render(<TestComponent />, {router: initialData.router});
   };
 
-  it('renders yAxisOptions with yAxisValue selected', function () {
+  it('renders yAxisOptions with yAxisValue selected', async function () {
     renderComponent();
-    expect(screen.getByRole('option', {name: 'count()'})).toHaveAttribute(
+    expect(await screen.findByRole('option', {name: 'count()'})).toHaveAttribute(
       'aria-selected',
       'true'
     );

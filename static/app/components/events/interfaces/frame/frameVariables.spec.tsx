@@ -1,5 +1,8 @@
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
@@ -7,19 +10,23 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('Frame Variables', function () {
   it('renders', async function () {
-    const project = TestStubs.Project({
-      id: '0',
-      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+    const project = ProjectFixture({id: '0'});
+    const projectDetails = ProjectFixture({
+      ...project,
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
+    });
+    ProjectsStore.loadInitialData([project]);
 
-    const {organization, router, routerContext} = initializeOrg({
+    const {organization, router} = initializeOrg({
       router: {
-        location: {query: {project: '0'}},
+        location: {query: {project: project.id}},
       },
       projects: [project],
     });
-
-    ProjectsStore.loadInitialData([project]);
 
     render(
       <FrameVariables
@@ -63,7 +70,7 @@ describe('Frame Variables', function () {
           },
         }}
       />,
-      {organization, router, context: routerContext}
+      {organization, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -91,5 +98,109 @@ describe('Frame Variables', function () {
       'href',
       '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
+  });
+
+  it('renders python variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'None',
+          bool: 'True',
+          str: "'string'",
+          number: '123.45',
+          other: '<Class at 0x12345>',
+        }}
+        platform="python"
+      />
+    );
+
+    expect(
+      within(screen.getByTestId('value-null')).getByText('None')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('True')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-string')).getByText('"string"')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('<Class at 0x12345>')
+    ).toBeInTheDocument();
+  });
+
+  it('renders node variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: '<null>',
+          undefined: '<undefined>',
+          bool: true,
+          number: 123.45,
+          str: 'string',
+        }}
+        platform="node"
+      />
+    );
+
+    const nullValues = screen.getAllByTestId('value-null');
+
+    expect(within(nullValues[0]).getByText('null')).toBeInTheDocument();
+    expect(within(nullValues[1]).getByText('undefined')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
+  });
+
+  it('renders ruby variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'nil',
+          bool: 'true',
+          str: 'string',
+        }}
+        platform="ruby"
+      />
+    );
+
+    expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
+  });
+
+  it('renders php variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'null',
+          bool: 'true',
+          str: 'string',
+        }}
+        platform="php"
+      />
+    );
+
+    expect(
+      within(screen.getByTestId('value-null')).getByText('null')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
   });
 });

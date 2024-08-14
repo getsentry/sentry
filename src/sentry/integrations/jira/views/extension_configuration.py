@@ -1,13 +1,18 @@
-from sentry.utils import json
-from sentry.utils.signing import unsign
-from sentry.web.frontend.integration_extension_configuration import (
+import orjson
+
+from sentry.integrations.web.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
+from sentry.utils.signing import unsign
+from sentry.web.frontend.base import control_silo_view
+
+from . import SALT
 
 # 24 hours to finish installation
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
+@control_silo_view
 class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
     """
     Handle the UI for adding the Jira integration to a Sentry org.
@@ -24,7 +29,8 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
             unsign(
                 signed_params,
                 max_age=INSTALL_EXPIRATION_TIME,
+                salt=SALT,
             )
         )
-        params["metadata"] = json.loads(params["metadata"])
+        params["metadata"] = orjson.loads(params["metadata"])
         return params

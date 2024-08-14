@@ -1,14 +1,17 @@
 from functools import cached_property
 
-from freezegun import freeze_time
-
 from sentry.api.serializers import serialize
-from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentStatus
+from sentry.silo.base import SiloMode
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-class BaseIncidentDetailsTest:
+class BaseIncidentDetailsTest(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):
@@ -40,8 +43,7 @@ class BaseIncidentDetailsTest:
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
-class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
     @freeze_time()
     def test_simple(self):
         incident = self.create_incident(seen_by=[self.user])
@@ -50,7 +52,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 
         expected = serialize(incident)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user_data = serialize(self.user)
         seen_by = [user_data]
 
@@ -63,8 +65,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert [item["id"] for item in resp.data["seenBy"]] == [item["id"] for item in seen_by]
 
 
-@region_silo_test(stable=True)
-class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
+class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
     method = "put"
 
     def get_success_response(self, *args, **params):

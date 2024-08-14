@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
@@ -18,20 +19,20 @@ const API_LIMIT = 1000;
 
 type Release = {date: string; version: string};
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
   query?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentReleases: Release[] | null;
   noReleaseEver: boolean;
   previousReleases: Release[] | null;
 };
 
-class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
+class ProjectVelocityScoreCard extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState() {
@@ -57,7 +58,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
       project: projects[0],
       query,
     };
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'currentReleases',
         `/organizations/${organization.slug}/releases/stats/`,

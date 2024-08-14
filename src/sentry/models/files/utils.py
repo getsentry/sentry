@@ -1,22 +1,27 @@
+from __future__ import annotations
+
 import os
 import time
-from contextlib import contextmanager
+from datetime import timedelta
 from hashlib import sha1
+from typing import IO, TYPE_CHECKING, TypeVar
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import Storage
+from django.utils import timezone
 
-from sentry.locks import locks
-from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.imports import import_string
+
+if TYPE_CHECKING:
+    from sentry.models.files.abstractfileblob import AbstractFileBlob
+
+FileModelT = TypeVar("FileModelT", bound="AbstractFileBlob")
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
-
-UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
+HALF_DAY = timedelta(hours=12)
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
-CHUNK_STATE_HEADER = "__state"
-
 MAX_FILE_SIZE = 2**31  # 2GB is the maximum offset supported by fileblob
 
 
@@ -30,8 +35,7 @@ class nooplogger:
     exception = staticmethod(lambda *a, **kw: None)
 
 
-def _get_size_and_checksum(fileobj, logger=nooplogger):
-    logger.debug("_get_size_and_checksum.start")
+def get_size_and_checksum(fileobj: IO[bytes]) -> tuple[int, str]:
     size = 0
     checksum = sha1()
     while True:
@@ -40,26 +44,30 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
             break
         size += len(chunk)
         checksum.update(chunk)
+    fileobj.seek(0)
 
-    logger.debug("_get_size_and_checksum.end")
     return size, checksum.hexdigest()
 
 
-@contextmanager
-def locked_blob(file_blob_model, checksum, logger=nooplogger):
-    logger.debug("_locked_blob.start", extra={"checksum": checksum})
-    lock = locks.get(
-        f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME, name="fileblob_upload_model"
-    )
-    with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
-        logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
-        # test for presence
-        try:
-            existing = file_blob_model.objects.get(checksum=checksum)
-        except file_blob_model.DoesNotExist:
-            existing = None
-        yield existing
-    logger.debug("_locked_blob.end", extra={"checksum": checksum})
+def get_and_optionally_update_blob(
+    file_blob_model: type[FileModelT], checksum: str
+) -> FileModelT | None:
+    """
+    Returns the `FileBlob` (actually generic `file_blob_model`) identified by its `checksum`.
+    This will also bump its `timestamp` in a debounced fashion,
+    in order to prevent it from being cleaned up.
+    """
+    try:
+        existing = file_blob_model.objects.get(checksum=checksum)
+
+        now = timezone.now()
+        threshold = now - HALF_DAY
+        if existing.timestamp <= threshold:
+            existing.update(timestamp=now)
+    except file_blob_model.DoesNotExist:
+        existing = None
+
+    return existing
 
 
 class AssembleChecksumMismatch(Exception):
@@ -67,7 +75,6 @@ class AssembleChecksumMismatch(Exception):
 
 
 def get_storage(config=None):
-
     if config is not None:
         backend = config["backend"]
         options = config["options"]
@@ -82,8 +89,23 @@ def get_storage(config=None):
     except KeyError:
         pass
 
-    storage = get_storage_class(backend)
+    storage = import_string(backend)
     return storage(**options)
+
+
+def get_relocation_storage(config=None) -> Storage:
+    from sentry import options as options_store
+
+    backend = options_store.get("filestore.relocation-backend")
+    relocation = options_store.get("filestore.relocation-options")
+
+    try:
+        backend = settings.SENTRY_FILESTORE_ALIASES[backend]
+    except KeyError:
+        pass
+
+    storage = import_string(backend)
+    return storage(**relocation)
 
 
 def clear_cached_files(cache_path):

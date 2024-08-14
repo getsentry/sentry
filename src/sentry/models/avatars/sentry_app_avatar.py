@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model
-from sentry.db.models.manager import BaseManager
+from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models.manager.base import BaseManager
 
 from . import ControlAvatarBase
 
 if TYPE_CHECKING:
-    from sentry.models import SentryApp
+    from sentry.models.integrations.sentry_app import SentryApp
 
 
 class SentryAppAvatarTypes(Enum):
@@ -24,8 +25,10 @@ class SentryAppAvatarTypes(Enum):
         return tuple((_.value, _.name.lower()) for _ in SentryAppAvatarTypes)
 
 
-class SentryAppAvatarManager(BaseManager):
-    def get_by_apps_as_dict(self, sentry_apps: List[SentryApp]):
+class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
+    def get_by_apps_as_dict(
+        self, sentry_apps: Iterable[SentryApp]
+    ) -> dict[int, set[SentryAppAvatar]]:
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """
@@ -36,14 +39,14 @@ class SentryAppAvatarManager(BaseManager):
         return avatar_to_app_map
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryAppAvatar(ControlAvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File
     and specifies which type of logo it is.
     """
 
-    objects = SentryAppAvatarManager()
+    objects: ClassVar[SentryAppAvatarManager] = SentryAppAvatarManager()
 
     AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
 
@@ -57,6 +60,8 @@ class SentryAppAvatar(ControlAvatarBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappavatar"
+
+    url_path = "sentry-app-avatar"
 
     def get_cache_key(self, size):
         color_identifier = "color" if self.color else "simple"

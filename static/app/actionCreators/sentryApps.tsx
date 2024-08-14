@@ -4,9 +4,9 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
 
 /**
  * Remove a Sentry Application

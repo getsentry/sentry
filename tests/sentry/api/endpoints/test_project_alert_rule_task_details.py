@@ -3,11 +3,9 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test
 class ProjectAlertRuleTaskDetailsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -21,8 +19,8 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-alert-rule-task-details",
             kwargs={
-                "organization_slug": project1.organization.slug,
-                "project_slug": project1.slug,
+                "organization_id_or_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
                 "task_uuid": self.uuid,
             },
         )

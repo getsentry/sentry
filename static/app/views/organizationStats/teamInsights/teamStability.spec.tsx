@@ -1,34 +1,43 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SessionStatusCountByProjectInPeriodFixture} from 'sentry-fixture/sessions';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  it('should comparse selected past crash rate with current week', async () => {
-    const sessionsApi = MockApiClient.addMockResponse({
+  let sessionsApi: jest.Mock;
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: TestStubs.SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriodFixture(),
     });
-    const project = TestStubs.Project({hasSessions: true, id: 123});
+  });
+
+  it('should compare selected past crash rate with current week', async () => {
+    const project = ProjectFixture({hasSessions: true, id: '123'});
     render(
       <TeamStability
         projects={[project]}
-        organization={TestStubs.Organization()}
+        organization={OrganizationFixture()}
         period="2w"
       />
     );
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
-    expect(await screen.findAllByText('90%')).toHaveLength(2);
+    expect(await screen.findAllByText('90.416%')).toHaveLength(2);
     expect(await screen.findByText('0%')).toBeInTheDocument();
     expect(sessionsApi).toHaveBeenCalledTimes(2);
   });
 
   it('should render no sessions', async () => {
-    const noSessionProject = TestStubs.Project({hasSessions: false, id: 321});
+    const noSessionProject = ProjectFixture({hasSessions: false, id: '321'});
     render(
       <TeamStability
         projects={[noSessionProject]}
-        organization={TestStubs.Organization()}
+        organization={OrganizationFixture()}
         period="7d"
       />
     );
@@ -38,7 +47,7 @@ describe('TeamStability', () => {
 
   it('should render no projects', () => {
     render(
-      <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
+      <TeamStability projects={[]} organization={OrganizationFixture()} period="7d" />
     );
 
     expect(

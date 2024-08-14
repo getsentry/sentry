@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, OrganizationMemberTeam, Team, User
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
+from sentry.silo.base import region_silo_function
+from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 
+@region_silo_function
 def extract_user_ids_from_mentions(organization_id, mentions):
     """
     Extracts user ids from a set of mentions. Mentions should be a list of
-    `ActorTuple` instances. Returns a dictionary with 'users' and 'team_users' keys.
-    'users' is the user ids for all explicitly mentioned users, and 'team_users'
+    `Actor` instances. Returns a dictionary with 'users', 'team_users', and 'teams' keys.
+    'users' is the user ids for all explicitly mentioned users, 'team_users'
     is all user ids from explicitly mentioned teams, excluding any already
-    mentioned users.
+    mentioned users, and 'teams' is the team ids for all explicitly mentioned teams.
     """
-    actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
+    actors: Sequence[RpcUser | Team] = Actor.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
     team_user_ids = set(
@@ -33,12 +38,13 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     return {
         "users": {user.id for user in actor_mentions["users"]},
         "team_users": set(mentioned_team_users),
+        "teams": {team.id for team in actor_mentions["teams"]},
     }
 
 
-def separate_actors(actors):
-    users = [actor for actor in actors if actor.type is User]
-    teams = [actor for actor in actors if actor.type is Team]
+def separate_actors(actors: Sequence[Actor]):
+    users = [actor for actor in actors if actor.is_user]
+    teams = [actor for actor in actors if actor.is_team]
 
     return {"users": users, "teams": teams}
 

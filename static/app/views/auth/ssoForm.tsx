@@ -1,11 +1,11 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 
 import {Alert} from 'sentry/components/alert';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type Props = {
   authConfig: AuthConfig;

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {PanelHeader} from 'sentry/components/panels';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {GroupListColumn} from './groupList';
+import type {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;
@@ -27,6 +27,9 @@ function GroupListHeader({
         <EventUserWrapper>{t('events')}</EventUserWrapper>
       )}
       {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
+      {withColumns.includes('priority') && (
+        <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
+      )}
       {withColumns.includes('assignee') && (
         <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
       )}
@@ -70,14 +73,24 @@ const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
   width: 160px;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+      p.narrowGroups ? p.theme.breakpoints.xxlarge : p.theme.breakpoints.xlarge}) {
+    display: none;
+  }
+`;
+
+const PriorityWrapper = styled(Heading)<{narrowGroups: boolean}>`
+  justify-content: flex-end;
+  width: 70px;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;
 
 const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
   justify-content: flex-end;
-  width: 80px;
+  width: 60px;
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {

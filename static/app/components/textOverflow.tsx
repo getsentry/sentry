@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
    */
   ellipsisDirection?: 'left' | 'right';
   isParagraph?: boolean;
+  style?: CSSProperties;
 };
 
 const TextOverflow = styled(
@@ -27,17 +29,18 @@ const TextOverflow = styled(
     ellipsisDirection,
     isParagraph,
     ['data-test-id']: dataTestId,
+    style,
   }: Props) => {
     const Component = isParagraph ? 'p' : 'div';
     if (ellipsisDirection === 'left') {
       return (
-        <Component className={className} data-test-id={dataTestId}>
+        <Component className={className} style={style} data-test-id={dataTestId}>
           <bdi>{children}</bdi>
         </Component>
       );
     }
     return (
-      <Component className={className} data-test-id={dataTestId}>
+      <Component className={className} style={style} data-test-id={dataTestId}>
         {children}
       </Component>
     );

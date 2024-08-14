@@ -1,9 +1,9 @@
-from sentry.models import Rule
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.rule import Rule
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class ProjectAlertSettingsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -47,7 +47,6 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
     def test_settings_load(self):
         self.browser.get(self.path1)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project alert settings")
         self.browser.wait_until(".ref-plugin-enable-webhooks")
         self.browser.click(".ref-plugin-enable-webhooks")
         self.browser.wait_until(".ref-plugin-config-webhooks")
@@ -57,4 +56,3 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         # click it to clear it before snapshotting
         self.browser.click_when_visible('[data-test-id="toast-success"]')
         self.browser.wait_until_not('[data-test-id="toast-success"]')
-        self.browser.snapshot("project alert settings webhooks enabled")

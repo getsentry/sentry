@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -19,21 +19,23 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events import builder
+from sentry.search.events.builder import discover
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DEVICE_CLASS_ALIAS,
-    EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    EVENT_TYPE_ALIAS,
     FUNCTION_ALIASES,
     HTTP_STATUS_CODE_ALIAS,
     ISSUE_ALIAS,
@@ -45,6 +47,8 @@ from sentry.search.events.constants import (
     MISERY_ALPHA,
     MISERY_BETA,
     NON_FAILURE_STATUS,
+    PRECISE_FINISH_TS,
+    PRECISE_START_TS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -66,7 +70,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -88,9 +92,10 @@ from sentry.search.events.fields import (
     normalize_percentile_alias,
     with_default,
 )
-from sentry.search.events.filter import to_list, translate_transaction_status
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
@@ -103,15 +108,15 @@ class DiscoverDatasetConfig(DatasetConfig):
     }
     non_nullable_keys = {"event.type"}
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
-        self.total_count: Optional[int] = None
-        self.total_sum_transaction_duration: Optional[float] = None
+        self.total_count: int | None = None
+        self.total_sum_transaction_duration: float | None = None
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "environment": self.builder._environment_filter_converter,
             "message": self._message_filter_converter,
@@ -130,6 +135,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
             "performance.issue_ids": self._performance_issue_ids_filter_converter,
+            EVENT_TYPE_ALIAS: self._event_type_filter_converter,
         }
 
     @property
@@ -155,6 +161,12 @@ class DiscoverDatasetConfig(DatasetConfig):
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
             TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
+            PRECISE_FINISH_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("finish_ts"), Column("finish_ms"), alias
+            ),
+            PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("start_ts"), Column("start_ms"), alias
+            ),
         }
 
     @property
@@ -195,9 +207,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
@@ -219,9 +233,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         },
                         {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
                     ],
@@ -322,6 +338,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
+                    "p90",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.90),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "p95",
                     optional_args=[
                         with_default("transaction.duration", NumericColumn("column")),
@@ -354,7 +380,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "to_other",
                     required_args=[
-                        ColumnArg("column", allowed_columns=["release", "trace.parent_span"]),
+                        ColumnArg("column", allowed_columns=["release", "trace.parent_span", "id"]),
                         SnQLStringArg("value", unquote=True, unescape_quotes=True),
                     ],
                     optional_args=[
@@ -623,7 +649,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         "divide", [Function("count", []), args["interval"]], alias
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
@@ -633,7 +659,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "compare_numeric_aggregate",
@@ -957,6 +983,65 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "performance_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "weighted_performance_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_weighted_web_vital_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "opportunity_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_opportunity_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count_scores",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_count_scores_function,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "examples",
+                    required_args=[NumericColumn("column")],
+                    optional_args=[with_default(1, NumberRange("count", 1, None))],
+                    snql_aggregate=self._resolve_random_samples,
+                    private=True,
+                ),
+                SnQLFunction(
+                    "rounded_timestamp",
+                    required_args=[IntervalDefault("interval", 1, None)],
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias
+                    ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "column_hash",
+                    # TODO: this supports only one column, but hash functions can support arbitrary parameters
+                    required_args=[ColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
             ]
         }
 
@@ -1145,7 +1230,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
         )
 
-        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
+        def _project_threshold_config(alias: str | None = None) -> SelectType:
             if project_threshold_config_keys and project_threshold_config_values:
                 return Function(
                     "if",
@@ -1235,7 +1320,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         """Given public aliases resolve division"""
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
@@ -1261,7 +1346,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         self.builder.requires_other_aggregates = True
         if self.total_count is not None:
             return Function("toUInt64", [self.total_count], alias)
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1283,7 +1368,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if self.total_sum_transaction_duration is not None:
             return Function("toFloat64", [self.total_sum_transaction_duration], alias)
         # TODO[Shruthi]: Figure out parametrization of the args to sum()
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1361,7 +1446,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "countIf", [Function("greaterOrEquals", [column, 0])]
         )
 
-        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+        return function_aliases.resolve_division(  # (satisfied + tolerable/2)/(total)
             Function(
                 "plus",
                 [
@@ -1559,9 +1644,9 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return (
             Function(
@@ -1577,26 +1662,205 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
         )
 
+    def _resolve_web_vital_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery(
+                "performance_score only supports performance score measurements"
+            )
+        weight_column = self.builder.column(
+            "measurements." + column.key.replace("score", "score.weight")
+        )
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "divide",
+                            [
+                                Function(
+                                    "sum",
+                                    [column],
+                                ),
+                                Function(
+                                    "sum",
+                                    [weight_column],
+                                ),
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_weighted_web_vital_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery(
+                "weighted_performance_score only supports performance score measurements"
+            )
+        total_score_column = self.builder.column("measurements.score.total")
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "divide",
+                            [
+                                Function(
+                                    "sum",
+                                    [column],
+                                ),
+                                Function(
+                                    "countIf",
+                                    [
+                                        Function(
+                                            "greaterOrEquals",
+                                            [
+                                                total_score_column,
+                                                0,
+                                            ],
+                                        )
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_opportunity_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+            "score.total",
+        ]:
+            raise InvalidSearchQuery(
+                "weighted_performance_score only supports performance score measurements"
+            )
+
+        weight_column = (
+            1
+            if column.key == "score.total"
+            else self.builder.column("measurements." + column.key.replace("score", "score.weight"))
+        )
+        return Function(
+            "sum",
+            [Function("minus", [weight_column, Function("least", [1, column])])],
+            alias,
+        )
+
+    def _resolve_count_scores_function(self, args: Mapping[str, Column], alias: str) -> SelectType:
+        column = args["column"]
+
+        if column.key not in [
+            "score.total",
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery("count_scores only supports performance score measurements")
+
+        return Function(
+            "countIf",
+            [
+                Function(
+                    "isNotNull",
+                    [
+                        column,
+                    ],
+                )
+            ],
+            alias,
+        )
+
+    def _resolve_random_samples(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_samples(
+            [
+                # DO NOT change the order of these columns as it
+                # changes the order of the tuple in the response
+                # which WILL cause errors where it assumes this
+                # order
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("span_id"),
+                args["column"],
+            ],
+            alias,
+            offset,
+            limit,
+            size=int(args["count"]),
+        )
+
     # Query Filters
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
-    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
 
-    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
 
-    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_filter_converter(self.builder, search_filter)
 
-    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
 
-    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
-    def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _issue_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
+            return None
+
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
@@ -1629,39 +1893,10 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         return None
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
-
-    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> WhereType | None:
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             return Condition(
                 Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
@@ -1669,31 +1904,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
         else:
-            return self.builder.get_default_converter()(search_filter)
+            return self.builder.default_filter_converter(search_filter)
 
-    def _transaction_status_filter_converter(
-        self, search_filter: SearchFilter
-    ) -> Optional[WhereType]:
-        # Handle "has" queries
-        if search_filter.value.raw_value == "":
-            return Condition(
-                self.builder.resolve_field(search_filter.key.name),
-                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
-            )
-        internal_value = (
-            [translate_transaction_status(val) for val in search_filter.value.raw_value]
-            if search_filter.is_in_filter
-            else translate_transaction_status(search_filter.value.raw_value)
-        )
-        return Condition(
-            self.builder.resolve_field(search_filter.key.name),
-            Op(search_filter.operator),
-            internal_value,
-        )
+    def _transaction_status_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.span_status_filter_converter(self.builder, search_filter)
 
     def _performance_issue_ids_filter_converter(
         self, search_filter: SearchFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = search_filter.key.name
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
@@ -1730,7 +1948,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
 
-    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         value = search_filter.value.value
 
@@ -1755,7 +1973,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _error_unhandled_filter_converter(
         self,
         search_filter: SearchFilter,
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         value = search_filter.value.value
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1772,7 +1990,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _error_handled_filter_converter(
         self,
         search_filter: SearchFilter,
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         value = search_filter.value.value
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1786,5 +2004,15 @@ class DiscoverDatasetConfig(DatasetConfig):
             "Invalid value for error.handled condition. Accepted values are 1, 0"
         )
 
-    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
+
+    def _event_type_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.dataset == Dataset.Transactions:
+            if search_filter.operator in ["=", "IN"] and search_filter.value.value in [
+                "transaction",
+                ["transaction"],
+            ]:
+                return None
+
+        return self.builder.default_filter_converter(search_filter)

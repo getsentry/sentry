@@ -6,25 +6,26 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import PagerdutyForm from 'sentry/components/notificationActions/forms/pagerdutyForm';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {
+import type {
   AvailableNotificationAction,
   NotificationAction,
-  NotificationActionService,
 } from 'sentry/types/notificationActions';
+import {NotificationActionService} from 'sentry/types/notificationActions';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -51,6 +52,10 @@ type NotificationActionItemProps = {
    */
   onUpdate: (actionId: number, editedAction: NotificationAction) => void;
   /**
+   * Map of opsgenie integration IDs to available actions for those IDs
+   */
+  opsgenieIntegrations: Record<number, AvailableNotificationAction[]>;
+  /**
    * Map of pagerduty integration IDs to available actions for those IDs
    */
   pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
@@ -73,6 +78,7 @@ function NotificationActionItem({
   availableActions,
   defaultEdit = false,
   pagerdutyIntegrations,
+  opsgenieIntegrations,
   project,
   recipientRoles,
   onDelete,
@@ -121,6 +127,14 @@ function NotificationActionItem({
             <div>{t('Send a notification to the')}</div>
             <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
             <div>{t('service')}</div>
+          </Fragment>
+        );
+      case NotificationActionService.OPSGENIE:
+        return (
+          <Fragment>
+            <div>{t('Send a notification to the')}</div>
+            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <div>{t('team')}</div>
           </Fragment>
         );
       default:
@@ -180,7 +194,7 @@ function NotificationActionItem({
     }
   };
 
-  // Only used for Pagerduty
+  // Used for PagerDuty/Opsgenie
   const handleChange = (names: string[], values: any[]) => {
     const updatedAction = {...editedAction};
     names.forEach((name, i) => {
@@ -284,12 +298,24 @@ function NotificationActionItem({
         );
       case NotificationActionService.PAGERDUTY:
         return (
-          <PagerdutyForm
+          <OnCallServiceForm
             action={editedAction}
             onChange={handleChange}
             onSave={handleSave}
             onCancel={handleCancel}
-            pagerdutyIntegrations={pagerdutyIntegrations}
+            Integrations={pagerdutyIntegrations}
+            onCallService="pagerduty"
+          />
+        );
+      case NotificationActionService.OPSGENIE:
+        return (
+          <OnCallServiceForm
+            action={editedAction}
+            onChange={handleChange}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            Integrations={opsgenieIntegrations}
+            onCallService="opsgenie"
           />
         );
       default:
@@ -353,7 +379,7 @@ export const NotificationActionFormContainer = styled('div')`
 
 const NotificationRecipient = styled(Badge)`
   border-radius: ${p => p.theme.borderRadius};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 export default NotificationActionItem;

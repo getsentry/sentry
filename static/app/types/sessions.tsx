@@ -1,4 +1,4 @@
-import {
+import type {
   AggregateParameter,
   AggregationOutputType,
   ColumnType,
@@ -24,7 +24,9 @@ export type SessionsOperation =
   | 'count_abnormal'
   | 'count_errored'
   | 'count_healthy'
-  | 'count_crashed';
+  | 'count_crashed'
+  | 'anr_rate'
+  | 'foreground_anr_rate';
 
 export type SessionAggregationColumn = {
   outputType: AggregationOutputType | null;

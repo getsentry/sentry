@@ -1,17 +1,29 @@
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.dashboard import DashboardDetailsModelSerializer
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.examples.dashboard_examples import DashboardExamples
+from sentry.apidocs.parameters import DashboardParams, GlobalParams
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 
 EDIT_FEATURE = "organizations:dashboards-edit"
@@ -19,10 +31,13 @@ READ_FEATURE = "organizations:dashboards-basic"
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+    def convert_args(
+        self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
+    ):
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["dashboard"] = self._get_dashboard(request, kwargs["organization"], dashboard_id)
@@ -32,25 +47,35 @@ class OrganizationDashboardBase(OrganizationEndpoint):
         return (args, kwargs)
 
     def _get_dashboard(self, request: Request, organization, dashboard_id):
-        prebuilt = Dashboard.get_prebuilt(dashboard_id)
+        prebuilt = Dashboard.get_prebuilt(organization, request.user, dashboard_id)
         sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:
             return prebuilt
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
 
+@extend_schema(tags=["Dashboards"])
 @region_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="Retrieve an Organization's Custom Dashboard",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
+        responses={
+            200: DashboardDetailsModelSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DashboardExamples.DASHBOARD_GET_RESPONSE,
+    )
     def get(self, request: Request, organization, dashboard) -> Response:
         """
-        Retrieve an Organization's Dashboard
-        ````````````````````````````````````
-
-        Return details on an individual organization's dashboard.
-
-        :pparam Organization organization: the organization the dashboard belongs to.
-        :pparam Dashboard dashboard: the dashboard object
-        :auth: required
+        Return details about an organization's custom dashboard.
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
@@ -60,20 +85,24 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(serialize(dashboard, request.user))
 
+    @extend_schema(
+        operation_id="Delete an Organization's Custom Dashboard",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, organization, dashboard) -> Response:
         """
-        Delete an Organization's Dashboard
-        ```````````````````````````````````
-
-        Delete an individual organization's dashboard, or tombstone
+        Delete an organization's custom dashboard, or tombstone
         a pre-built dashboard which effectively deletes it.
-
-        :pparam Organization organization: the organization the dashboard belongs to.
-        :pparam Dashboard dashboard: the dashboard object
-        :auth: required
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
+
+        self.check_object_permissions(request, dashboard)
 
         num_dashboards = Dashboard.objects.filter(organization=organization).count()
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
@@ -92,20 +121,29 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         return self.respond(status=204)
 
+    @extend_schema(
+        operation_id="Edit an Organization's Custom Dashboard",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
+        request=DashboardDetailsSerializer,
+        responses={
+            200: DashboardDetailsModelSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DashboardExamples.DASHBOARD_PUT_RESPONSE,
+    )
     def put(self, request: Request, organization, dashboard) -> Response:
         """
-        Edit an Organization's Dashboard
-        ```````````````````````````````````
-
-        Edit an individual organization's dashboard as well as
-        bulk edits on widgets (i.e. rearranging widget order).
-
-        :pparam Organization organization: the organization the dashboard belongs to.
-        :pparam Dashboard dashboard: the old dashboard object
-        :auth: required
+        Edit an organization's custom dashboard as well as any bulk
+        edits on widgets that may have been made. (For example, widgets
+        that have been rearranged, updated queries and fields, specific
+        display types, and so on.)
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
+
+        self.check_object_permissions(request, dashboard)
 
         tombstone = None
         if isinstance(dashboard, dict):
@@ -119,13 +157,14 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(
@@ -139,6 +178,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 @region_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
     def post(self, request: Request, organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter

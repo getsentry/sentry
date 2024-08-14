@@ -6,12 +6,16 @@ various backends to see if their external behavior makes sense, and that e.g.
 the mock indexer actually behaves the same as the postgres indexer.
 """
 
-from typing import Mapping, Set
+from collections.abc import Mapping
 
 import pytest
 
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
-from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.cache import (
+    BULK_RECORD_CACHE_NAMESPACE,
+    CachingIndexer,
+    StringIndexerCache,
+)
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
@@ -61,7 +65,7 @@ def writes_limiter_option_name(use_case_id):
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
@@ -146,7 +150,6 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
         {
             "sentry-metrics.writes-limiter.limits.spans.global": [],
             "sentry-metrics.writes-limiter.limits.spans.per-org": [],
-            "sentry-metrics.writes-limiter.apply-uca-limiting": True,
         },
     ):
         results = static_indexer.bulk_record(strings=strings)
@@ -179,7 +182,7 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
     assert_fetch_type_for_tag_string_set(
         meta[UseCaseID.TRANSACTIONS][3],
         FetchType.HARDCODED,
-        {},
+        set(),
     )
 
     assert_fetch_type_for_tag_string_set(
@@ -203,80 +206,92 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
 
 
 def test_indexer(indexer, indexer_cache, use_case_id):
-    org1_id = 1
-    org2_id = 2
-    strings = {"hello", "hey", "hi"}
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
+        org1_id = 1
+        org2_id = 2
+        strings = {"hello", "hey", "hi"}
 
-    raw_indexer = indexer
-    indexer = CachingIndexer(indexer_cache, indexer)
+        raw_indexer = indexer
+        indexer = CachingIndexer(indexer_cache, indexer)
 
-    use_case_strings = {use_case_id: {org1_id: strings, org2_id: {"sup"}}}
+        use_case_strings = {use_case_id: {org1_id: strings, org2_id: {"sup"}}}
 
-    # create a record with diff org_id but same string that we test against
-    indexer.record(use_case_id, 999, "hey")
+        # create a record with diff org_id but same string that we test against
+        indexer.record(use_case_id, 999, "hey")
 
-    assert list(
-        indexer_cache.get_many(
-            [f"{use_case_id}:{org1_id}:{string}" for string in strings],
-        ).values()
-    ) == [None, None, None]
+        assert list(
+            indexer_cache.get_many(
+                "br",
+                [f"{use_case_id}:{org1_id}:{string}" for string in strings],
+            ).values()
+        ) == [None, None, None]
 
-    results = indexer.bulk_record(use_case_strings).results
+        results = indexer.bulk_record(use_case_strings).results
 
-    org1_string_ids = {
-        raw_indexer.resolve(use_case_id, org1_id, "hello"),
-        raw_indexer.resolve(use_case_id, org1_id, "hey"),
-        raw_indexer.resolve(use_case_id, org1_id, "hi"),
-    }
+        org1_string_ids = {
+            raw_indexer.resolve(use_case_id, org1_id, "hello"),
+            raw_indexer.resolve(use_case_id, org1_id, "hey"),
+            raw_indexer.resolve(use_case_id, org1_id, "hi"),
+        }
 
-    assert None not in org1_string_ids
-    assert len(org1_string_ids) == 3  # no overlapping ids
+        assert None not in org1_string_ids
+        assert len(org1_string_ids) == 3  # no overlapping ids
 
-    org2_string_id = raw_indexer.resolve(use_case_id, org2_id, "sup")
-    assert org2_string_id not in org1_string_ids
+        org2_string_id = raw_indexer.resolve(use_case_id, org2_id, "sup")
+        assert org2_string_id not in org1_string_ids
 
-    # verify org1 results and cache values
-    for id_value in results[use_case_id].results[org1_id].values():
-        assert id_value in org1_string_ids
+        # verify org1 results and cache values
+        for id_value in results[use_case_id].results[org1_id].values():
+            assert id_value in org1_string_ids
 
-    for cache_value in indexer_cache.get_many(
-        [f"{use_case_id.value}:{org1_id}:{string}" for string in strings]
-    ).values():
-        assert cache_value in org1_string_ids
+        for cache_value in indexer_cache.get_many(
+            "br", [f"{use_case_id.value}:{org1_id}:{string}" for string in strings]
+        ).values():
+            assert cache_value in org1_string_ids
 
-    # verify org2 results and cache values
-    assert results[use_case_id][org2_id]["sup"] == org2_string_id
-    assert indexer_cache.get(f"{use_case_id.value}:{org2_id}:sup") == org2_string_id
+        # verify org2 results and cache values
+        assert results[use_case_id][org2_id]["sup"] == org2_string_id
+        assert indexer_cache.get("br", f"{use_case_id.value}:{org2_id}:sup") == org2_string_id
 
-    # we should have no results for org_id 999
-    assert not results[use_case_id].results.get(999)
+        # we should have no results for org_id 999
+        assert not results[use_case_id].results.get(999)
 
 
 def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
     """
     Test `resolve` and `reverse_resolve` methods
     """
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
+        org1_id = 1
+        strings = {"hello", "hey", "hi"}
 
-    org1_id = 1
-    strings = {"hello", "hey", "hi"}
+        indexer = CachingIndexer(indexer_cache, indexer)
 
-    indexer = CachingIndexer(indexer_cache, indexer)
+        org_strings = {org1_id: strings}
+        indexer.bulk_record({use_case_id: org_strings})
 
-    org_strings = {org1_id: strings}
-    indexer.bulk_record({use_case_id: org_strings})
+        # test resolve and reverse_resolve
+        id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
+        assert id is not None
+        assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
 
-    # test resolve and reverse_resolve
-    id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
-    assert id is not None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
+        # test record on a string that already exists
+        indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
+        assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
 
-    # test record on a string that already exists
-    indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
-    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
-
-    # test invalid values
-    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
-    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
+        # test invalid values
+        assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
+        assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
 def test_already_created_plus_written_results(indexer, indexer_cache, use_case_id) -> None:
@@ -284,45 +299,103 @@ def test_already_created_plus_written_results(indexer, indexer_cache, use_case_i
     Test that we correctly combine db read results with db write results
     for the same organization.
     """
-    org_id = 1234
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
+        org_id = 1234
 
-    raw_indexer = indexer
-    indexer = CachingIndexer(indexer_cache, indexer)
+        raw_indexer = indexer
+        indexer = CachingIndexer(indexer_cache, indexer)
 
-    v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0:xyz")
-    v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1:xyz")
-    v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2:xyz")
+        v0 = raw_indexer.record(use_case_id, org_id, "v1.2.0:xyz")
+        v1 = raw_indexer.record(use_case_id, org_id, "v1.2.1:xyz")
+        v2 = raw_indexer.record(use_case_id, org_id, "v1.2.2:xyz")
 
-    expected_mapping = {"v1.2.0:xyz": v0, "v1.2.1:xyz": v1, "v1.2.2:xyz": v2}
+        expected_mapping = {"v1.2.0:xyz": v0, "v1.2.1:xyz": v1, "v1.2.2:xyz": v2}
 
-    results = indexer.bulk_record(
-        {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"}}}
-    )
-    assert len(results[use_case_id][org_id]) == len(expected_mapping) == 3
+        results = indexer.bulk_record(
+            {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"}}}
+        )
+        assert len(results[use_case_id][org_id]) == len(expected_mapping) == 3
 
-    for string, id in results[use_case_id][org_id].items():
-        assert expected_mapping[string] == id
+        for string, id in results[use_case_id][org_id].items():
+            assert expected_mapping[string] == id
 
-    results = indexer.bulk_record(
-        {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz", "v1.2.3:xyz"}}},
-    )
-    v3 = raw_indexer.resolve(use_case_id, org_id, "v1.2.3:xyz")
-    expected_mapping["v1.2.3:xyz"] = v3
+        results = indexer.bulk_record(
+            {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz", "v1.2.3:xyz"}}},
+        )
+        v3 = raw_indexer.resolve(use_case_id, org_id, "v1.2.3:xyz")
+        expected_mapping["v1.2.3:xyz"] = v3
 
-    assert len(results[use_case_id][org_id]) == len(expected_mapping) == 4
+        assert len(results[use_case_id][org_id]) == len(expected_mapping) == 4
 
-    for string, id in results[use_case_id][org_id].items():
-        assert expected_mapping[string] == id
+        for string, id in results[use_case_id][org_id].items():
+            assert expected_mapping[string] == id
 
-    fetch_meta = results.get_fetch_metadata()
-    assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id],
-        FetchType.CACHE_HIT,
-        {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id], FetchType.FIRST_SEEN, {"v1.2.3:xyz"}
-    )
+        fetch_meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[use_case_id][org_id],
+            FetchType.CACHE_HIT,
+            {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz"},
+        )
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[use_case_id][org_id], FetchType.FIRST_SEEN, {"v1.2.3:xyz"}
+        )
+
+
+def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
+    """
+    Test that the caching indexer will incur a miss if the data is staying in the cache for too long
+    """
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        indexer = CachingIndexer(indexer_cache, indexer)
+
+        use_case_id = UseCaseID.SPANS
+        org_id = 1
+        s = "str"
+
+        res = indexer.bulk_record({use_case_id: {org_id: {s}}})
+        id = res.get_mapped_results()[use_case_id][org_id][s]
+        assert res.get_fetch_metadata()[use_case_id][org_id][s].fetch_type == FetchType.FIRST_SEEN
+
+        indexer.cache.cache.set(
+            indexer.cache._make_namespaced_cache_key(
+                BULK_RECORD_CACHE_NAMESPACE, f"{use_case_id.value}:{org_id}:{s}"
+            ),
+            indexer.cache._make_cache_val(id, 0),
+            version=indexer_cache.version,
+        )
+
+        assert (
+            indexer.bulk_record({use_case_id: {org_id: {s}}})
+            .get_fetch_metadata()[use_case_id][org_id][s]
+            .fetch_type
+            == FetchType.DB_READ
+        )
+
+        assert indexer.cache._validate_result(
+            indexer.cache.cache.get(
+                indexer.cache._make_namespaced_cache_key(
+                    BULK_RECORD_CACHE_NAMESPACE, f"{use_case_id.value}:{org_id}:{s}"
+                ),
+                version=indexer_cache.version,
+            )
+        )
+
+        assert (
+            indexer.bulk_record({use_case_id: {org_id: {s}}})
+            .get_fetch_metadata()[use_case_id][org_id][s]
+            .fetch_type
+            == FetchType.CACHE_HIT
+        )
 
 
 def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -> None:
@@ -330,58 +403,73 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
     Test that we correctly combine cached results with read results
     for the same organization.
     """
-    org_id = 8
-    cached = {f"{use_case_id.value}:{org_id}:beep": 10, f"{use_case_id.value}:{org_id}:boop": 11}
-    indexer_cache.set_many(cached)
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
+        org_id = 8
+        cached = {
+            f"{use_case_id.value}:{org_id}:beep": 10,
+            f"{use_case_id.value}:{org_id}:boop": 11,
+        }
+        indexer_cache.set_many("br", cached)
 
-    raw_indexer = indexer
-    indexer = CachingIndexer(indexer_cache, indexer)
+        raw_indexer = indexer
+        indexer = CachingIndexer(indexer_cache, indexer)
 
-    results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop"}}})
-    assert len(results[use_case_id][org_id]) == 2
-    assert results[use_case_id][org_id]["beep"] == 10
-    assert results[use_case_id][org_id]["boop"] == 11
+        results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop"}}})
+        assert len(results[use_case_id][org_id]) == 2
+        assert results[use_case_id][org_id]["beep"] == 10
+        assert results[use_case_id][org_id]["boop"] == 11
 
-    # confirm we did not write to the db if results were already cached
-    assert not raw_indexer.resolve(use_case_id, org_id, "beep")
-    assert not raw_indexer.resolve(use_case_id, org_id, "boop")
+        # confirm we did not write to the db if results were already cached
+        assert not raw_indexer.resolve(use_case_id, org_id, "beep")
+        assert not raw_indexer.resolve(use_case_id, org_id, "boop")
 
-    bam = raw_indexer.record(use_case_id, org_id, "bam")
-    assert bam is not None
+        bam = raw_indexer.record(use_case_id, org_id, "bam")
+        assert bam is not None
 
-    results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop", "bam"}}})
-    assert len(results[use_case_id][org_id]) == 3
-    assert results[use_case_id][org_id]["beep"] == 10
-    assert results[use_case_id][org_id]["boop"] == 11
-    assert results[use_case_id][org_id]["bam"] == bam
+        results = indexer.bulk_record({use_case_id: {org_id: {"beep", "boop", "bam"}}})
+        assert len(results[use_case_id][org_id]) == 3
+        assert results[use_case_id][org_id]["beep"] == 10
+        assert results[use_case_id][org_id]["boop"] == 11
+        assert results[use_case_id][org_id]["bam"] == bam
 
-    fetch_meta = results.get_fetch_metadata()
-    assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id], FetchType.CACHE_HIT, {"beep", "boop"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        fetch_meta[use_case_id][org_id], FetchType.DB_READ, {"bam"}
-    )
+        fetch_meta = results.get_fetch_metadata()
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[use_case_id][org_id], FetchType.CACHE_HIT, {"beep", "boop"}
+        )
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta[use_case_id][org_id], FetchType.DB_READ, {"bam"}
+        )
 
 
 def test_read_when_bulk_record(indexer, use_case_id):
-    strings = {
-        use_case_id: {
-            1: {"a"},
-            2: {"b", "c"},
-            3: {"d", "e", "f"},
-            4: {"g", "h", "i", "j"},
-            5: {"k", "l", "m", "n", "o"},
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
         }
-    }
-    indexer.bulk_record(strings)
-    results = indexer.bulk_record(strings)
-    assert all(
-        str_meta_data.fetch_type is FetchType.DB_READ
-        for key_result in results.results.values()
-        for metadata in key_result.meta.values()
-        for str_meta_data in metadata.values()
-    )
+    ):
+        strings = {
+            use_case_id: {
+                1: {"a"},
+                2: {"b", "c"},
+                3: {"d", "e", "f"},
+                4: {"g", "h", "i", "j"},
+                5: {"k", "l", "m", "n", "o"},
+            }
+        }
+        indexer.bulk_record(strings)
+        results = indexer.bulk_record(strings)
+        assert all(
+            str_meta_data.fetch_type is FetchType.DB_READ
+            for key_result in results.results.values()
+            for metadata in key_result.meta.values()
+            for str_meta_data in metadata.values()
+        )
 
 
 def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
@@ -436,6 +524,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
             f"{writes_limiter_option_name}.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
         }
     ):
         results = indexer.bulk_record({use_case_id: org_strings})
@@ -448,7 +537,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
             fetch_type_ext=FetchTypeExt(is_global=False),
         )
 
-    org_strings = {1: rate_limited_strings}
+    org_strings2 = {1: rate_limited_strings}
 
     # assert that if we reconfigure limits, the quota resets
     with override_options(
@@ -456,9 +545,10 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
             f"{writes_limiter_option_name}.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
         }
     ):
-        results = indexer.bulk_record({use_case_id: org_strings})
+        results = indexer.bulk_record({use_case_id: org_strings2})
 
     rate_limited_strings2 = set()
     for k, v in results[use_case_id][1].items():
@@ -474,29 +564,35 @@ def test_bulk_reverse_resolve(indexer):
     Tests reverse resolve properly returns the corresponding strings
     in the proper order when given a combination of shared and non-shared ids.
     """
-    org_id = 7
-    use_case_id = UseCaseID.SESSIONS  # any use case would do
-    static_indexer = StaticStringIndexer(indexer)
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": False,
+            "sentry-metrics.indexer.write-new-cache-namespace": False,
+        }
+    ):
+        org_id = 7
+        use_case_id = UseCaseID.SESSIONS  # any use case would do
+        static_indexer = StaticStringIndexer(indexer)
 
-    a = indexer.record(use_case_id, org_id, "aaa")
-    b = indexer.record(use_case_id, org_id, "bbb")
-    c = indexer.record(use_case_id, org_id, "ccc")
-    production = SHARED_STRINGS["production"]
-    release = SHARED_STRINGS["release"]
-    environment = SHARED_STRINGS["environment"]
-    unknown1 = 6666
-    unknown2 = 6667
+        a = indexer.record(use_case_id, org_id, "aaa")
+        b = indexer.record(use_case_id, org_id, "bbb")
+        c = indexer.record(use_case_id, org_id, "ccc")
+        production = SHARED_STRINGS["production"]
+        release = SHARED_STRINGS["release"]
+        environment = SHARED_STRINGS["environment"]
+        unknown1 = 6666
+        unknown2 = 6667
 
-    indexes = [a, production, b, unknown1, release, environment, c, unknown2]
-    # we expect the indexer to resolve the indexes to the original strings and return None for unknown indexes
-    expected_result = {
-        a: "aaa",
-        b: "bbb",
-        c: "ccc",
-        production: "production",
-        release: "release",
-        environment: "environment",
-    }
-    actual_result = static_indexer.bulk_reverse_resolve(use_case_id, org_id, indexes)
+        indexes = [a, production, b, unknown1, release, environment, c, unknown2]
+        # we expect the indexer to resolve the indexes to the original strings and return None for unknown indexes
+        expected_result = {
+            a: "aaa",
+            b: "bbb",
+            c: "ccc",
+            production: "production",
+            release: "release",
+            environment: "environment",
+        }
+        actual_result = static_indexer.bulk_reverse_resolve(use_case_id, org_id, indexes)
 
-    assert actual_result == expected_result
+        assert actual_result == expected_result

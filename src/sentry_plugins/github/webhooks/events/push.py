@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import logging
+from datetime import timezone
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import Http404
-from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Integration, Repository
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email
@@ -21,7 +28,7 @@ class PushEventWebhook(Webhook):
     def _handle(self, event, organization_id, is_apps):
         authors = {}
 
-        gh_username_cache = {}
+        gh_username_cache: dict[str, str | None] = {}
 
         try:
             repo = Repository.objects.get(
@@ -89,7 +96,9 @@ class PushEventWebhook(Webhook):
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
-                                            with transaction.atomic():
+                                            with transaction.atomic(
+                                                router.db_for_write(CommitAuthor)
+                                            ):
                                                 commit_author.update(
                                                     email=author_email, external_id=external_id
                                                 )
@@ -123,7 +132,7 @@ class PushEventWebhook(Webhook):
 
                 if update_kwargs:
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(CommitAuthor)):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
@@ -131,7 +140,7 @@ class PushEventWebhook(Webhook):
                 author = authors[author_email]
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization_id,
@@ -156,20 +165,26 @@ class PushEventWebhook(Webhook):
                 pass
 
     # https://developer.github.com/v3/activity/events/types/#pushevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization: Organization | None = None):
         is_apps = "installation" in event
         if organization is None:
             if "installation" not in event:
                 return
 
-            integration = Integration.objects.get(
+            integration = integration_service.get_integration(
                 external_id=event["installation"]["id"], provider="github_apps"
             )
-            organizations = list(
-                integration.organizationintegration_set.values_list("organization_id", flat=True)
+            if integration is None:
+                raise Integration.DoesNotExist
+
+            integration_orgs = integration_service.get_organization_integrations(
+                integration_id=integration.id
             )
+
+            organizations = [org.organization_id for org in integration_orgs]
+
         else:
-            organizations = [coerce_id_from(organization)]
+            organizations = [organization.id]
 
         for org_id in organizations:
             self._handle(event, org_id, is_apps)

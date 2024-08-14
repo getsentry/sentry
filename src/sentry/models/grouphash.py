@@ -1,17 +1,18 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupHash(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     class State:
         UNLOCKED = None

@@ -1,38 +1,45 @@
 from __future__ import annotations
 
-from django.db import transaction
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from django.db import router, transaction
+from django.db.models import Q
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
-from .index import OrganizationMemberSerializer
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -42,13 +49,25 @@ ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
-MEMBER_ID_PARAM = OpenApiParameter(
-    name="member_id",
-    description="The member ID.",
-    required=True,
-    type=str,
-    location="path",
-)
+_team_roles_description = """
+Configures the team role of the member. The two roles are:
+- `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
+- `admin` - Has full management access to their team's membership and projects.
+```json
+{
+    "teamRoles": [
+        {
+            "teamSlug": "ancient-gabelers",
+            "role": "admin"
+        },
+        {
+            "teamSlug": "powerful-abolitionist",
+            "role": "contributor"
+        }
+    ]
+}
+```
+"""
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -70,8 +89,13 @@ class RelaxedMemberPermission(OrganizationPermission):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
-    permission_classes = [RelaxedMemberPermission]
-    public = {"GET", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.ENTERPRISE
+    permission_classes = (RelaxedMemberPermission,)
 
     def _get_member(
         self,
@@ -90,8 +114,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -120,28 +144,56 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             )
         )
 
-    # TODO:
-    # @extend_schema(
-    #     operation_id="Update a Organization Member's details",
-    #     parameters=[
-    #         GLOBAL_PARAMS.ORG_SLUG,
-    #         MEMBER_ID_PARAM,
-    #     ],
-    #     responses={
-    #         200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOTFOUND,
-    #     },
-    # )
+    @extend_schema(
+        operation_id="Update an Organization Member's Roles",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.member_id("The ID of the member to update."),
+        ],
+        request=inline_serializer(
+            "UpdateOrgMemberRoles",
+            fields={
+                "orgRole": serializers.ChoiceField(
+                    help_text="The organization role of the member. The options are:",
+                    choices=ROLE_CHOICES,
+                    required=False,
+                ),
+                "teamRoles": serializers.ListField(
+                    help_text=_team_roles_description,
+                    required=False,
+                    allow_null=True,
+                    default=[],
+                    child=serializers.JSONField(),
+                ),
+            },
+        ),
+        responses={
+            200: OrganizationMemberWithRolesSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
+    )
     def put(
         self,
         request: Request,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
+        """
+        Update a member's [organization-level](https://docs.sentry.io/organization/membership/#organization-level-roles) and [team-level](https://docs.sentry.io/organization/membership/#team-level-roles) roles.
+
+        Note that for changing organization-roles, this endpoint is restricted to
+        [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
+        Additionally, both the original and desired organization role must have
+        the same or lower permissions than the role of the organization user making the request
+
+        For example, an organization Manager may change someone's role from
+        Member to Manager, but not to Owner.
+        """
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             partial=True,
             context={
@@ -151,15 +203,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(status=400)
+            raise ValidationError(serializer.errors)
 
-        try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-            auth_provider = auth_provider.get_provider()
-        except AuthProvider.DoesNotExist:
-            auth_provider = None
+        auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
+
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
@@ -181,7 +237,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
                     else:
@@ -195,24 +251,36 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
+        assigned_org_role = result.get("orgRole") or result.get("role")
+
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        if "teamRoles" in result or "teams" in result:
-            try:
-                if "teamRoles" in result:
-                    # If orgs do not have the flag, we'll set their team-roles to None
-                    team_roles = (
-                        result.get("teamRoles")
-                        if features.has("organizations:team-roles", organization)
-                        else [(team, None) for team, _ in result.get("teamRoles", [])]
-                    )
-                    save_team_assignments(member, None, team_roles)
-                elif "teams" in result:
-                    save_team_assignments(member, result.get("teams"))
-            except InvalidTeam:
-                return Response({"teams": "Invalid team"}, status=400)
+        team_roles = teams = None
+        if "teamRoles" in result:
+            # If orgs do not have the flag, we'll set their team-roles to None
+            team_roles = (
+                result.get("teamRoles")
+                if features.has("organizations:team-roles", organization)
+                else [(team, None) for team, _ in result.get("teamRoles", [])]
+            )
+        elif "teams" in result:
+            teams = result.get("teams")
 
-        assigned_org_role = result.get("orgRole") or result.get("role")
+        if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
+            new_role = assigned_org_role if assigned_org_role else member.role
+            if not organization_roles.get(new_role).is_team_roles_allowed:
+                return Response(
+                    {
+                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
+                    },
+                    status=400,
+                )
+
+        if team_roles:
+            save_team_assignments(member, None, team_roles)
+        else:
+            save_team_assignments(member, teams)
+
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
@@ -274,16 +342,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omt_update_count = OrganizationMemberTeam.objects.filter(
+            omts: list[OrganizationMemberTeam] = []
+            for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
-            ).update(role=None)
-
+            ):
+                omt.role = None
+            OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
+            omt_update_count = len(omts)
             member.role = role
             member.save()
         if omt_update_count > 0:
@@ -295,8 +366,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -315,6 +386,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Remove an organization member.
         """
 
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
@@ -327,12 +400,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
-                        can_manage = False
-                        # check org roles through teams
-                        for role in acting_member.get_all_org_roles():
-                            if roles.can_manage(role, member.role):
-                                can_manage = True
-                                break
+                        can_manage = roles.can_manage(acting_member.role, member.role)
 
                         if not can_manage:
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
@@ -350,22 +418,47 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 status=403,
             )
 
+        if getattr(member.flags, "partnership:restricted"):
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
+
         audit_data = member.get_audit_log_data()
 
-        with transaction.atomic():
+        proj_list = list(
+            Project.objects.filter(organization=organization).values_list("id", flat=True)
+        )
+
+        if member.user_id is None:
+            uos = ()
+        else:
+            uos = user_option_service.get_many(
+                filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+            )
+
+        with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = list(
-                Project.objects.filter(organization=organization).values_list("id", flat=True)
-            )
-            uos = [
-                uo
-                for uo in user_option_service.get_many(
-                    filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
-                )
-            ]
-            user_option_service.delete_options(option_ids=[uo.id for uo in uos])
+
             member.delete()
+            transaction.on_commit(
+                lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
+                using=router.db_for_write(Project),
+            )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            # Delete any invite requests and pending invites by the deleted member
+            existing_invites = OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(token__isnull=False),
+                inviter_id=member.user_id,
+                organization=organization,
+            )
+            for om in existing_invites:
+                om.delete()
 
         self.create_audit_entry(
             request=request,

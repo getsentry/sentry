@@ -1,11 +1,12 @@
-import {ReactNode, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import useRouter from 'sentry/utils/useRouter';
@@ -14,13 +15,13 @@ import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  Subtitle,
   WidgetContainer,
 } from './styles';
 
 interface ProfilesChartWidgetProps {
   chartHeight: number;
   referrer: string;
+  continuousProfilingCompat?: boolean;
   header?: ReactNode;
   selection?: PageFilters;
   userQuery?: string;
@@ -31,6 +32,7 @@ const SERIES_ORDER = ['p99()', 'p95()', 'p75()', 'p50()'] as const;
 
 export function ProfilesChartWidget({
   chartHeight,
+  continuousProfilingCompat,
   header,
   referrer,
   selection,
@@ -41,9 +43,11 @@ export function ProfilesChartWidget({
   const theme = useTheme();
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query: userQuery,
     referrer,
     yAxes: SERIES_ORDER,
+    continuousProfilingCompat,
   });
 
   const series: Series[] = useMemo(() => {
@@ -53,9 +57,9 @@ export function ProfilesChartWidget({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    return profileStats.data[0].data
+    return profileStats.data.data
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
@@ -103,6 +107,11 @@ export function ProfilesChartWidget({
       tooltip: {
         valueFormatter: value => tooltipFormatter(value, 'duration'),
       },
+      legend: {
+        right: 16,
+        top: 0,
+        data: SERIES_ORDER.slice(),
+      },
     };
   }, [chartHeight, theme.chartLabel]);
 
@@ -110,7 +119,6 @@ export function ProfilesChartWidget({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
-        <Subtitle>{t('Percentiles over time')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom router={router} {...selection?.datetime}>

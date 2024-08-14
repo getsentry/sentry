@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -11,29 +11,31 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import type {SourceMapsArchive} from 'sentry/types/release';
+import type {DebugIdBundle} from 'sentry/types/sourceMaps';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
-import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
+import {DebugIdBundleList} from 'sentry/views/settings/projectSourceMaps/debugIdBundleList';
+import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 enum SortBy {
   ASC_ADDED = 'date_added',
@@ -43,8 +45,8 @@ enum SortBy {
 }
 
 enum SourceMapsBundleType {
-  RELEASE,
-  DEBUG_ID,
+  RELEASE = 0,
+  DEBUG_ID = 1,
 }
 
 function SourceMapsTableRow({
@@ -210,7 +212,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       debugIdBundlesEndpoint,
       {
-        query: {query, cursor, sortBy},
+        query: {query, cursor, sortBy: SortBy.DESC_MODIFIED},
       },
     ],
     {
@@ -219,6 +221,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       enabled: tabDebugIdBundlesActive,
     }
   );
+
+  const {mutate: deleteDebugIdBundle} = useDeleteDebugIdBundle({
+    onSuccess: () => debugIdBundlesRefetch(),
+  });
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -257,31 +263,21 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     });
   }, [location, router, sortBy]);
 
-  const handleDelete = useCallback(
+  const handleDeleteReleaseArtifacts = useCallback(
     async (name: string) => {
       addLoadingMessage(t('Removing artifacts\u2026'));
       try {
-        await api.requestPromise(
-          tabDebugIdBundlesActive ? debugIdBundlesEndpoint : sourceMapsEndpoint,
-          {
-            method: 'DELETE',
-            query: tabDebugIdBundlesActive ? {bundleId: name} : {name},
-          }
-        );
-        tabDebugIdBundlesActive ? debugIdBundlesRefetch() : archivesRefetch();
+        await api.requestPromise(sourceMapsEndpoint, {
+          method: 'DELETE',
+          query: {name},
+        });
+        archivesRefetch();
         addSuccessMessage(t('Artifacts removed.'));
       } catch {
         addErrorMessage(t('Unable to remove artifacts. Please try again.'));
       }
     },
-    [
-      api,
-      sourceMapsEndpoint,
-      tabDebugIdBundlesActive,
-      debugIdBundlesRefetch,
-      archivesRefetch,
-      debugIdBundlesEndpoint,
-    ]
+    [api, sourceMapsEndpoint, archivesRefetch]
   );
 
   const currentBundleType = tabDebugIdBundlesActive
@@ -379,10 +375,23 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: debugIdsUrl,
+            query: location.query,
+          }}
+          index
+          isActive={() => tabDebugIdBundlesActive}
+        >
           {t('Artifact Bundles')}
         </ListLink>
-        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: releaseBundlesUrl,
+            query: location.query,
+          }}
+          isActive={() => !tabDebugIdBundlesActive}
+        >
           {t('Release Bundles')}
         </ListLink>
       </NavTabs>
@@ -395,67 +404,48 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         onSearch={handleSearch}
         query={query}
       />
-      <Table
-        headers={tableHeaders
-          .filter(header => header.enabledFor.includes(currentBundleType))
-          .map(header => header.component)}
-        emptyMessage={
-          query
-            ? tct('No [tabName] match your search query.', {
-                tabName: tabDebugIdBundlesActive
-                  ? t('artifact bundles')
-                  : t('release bundles'),
-              })
-            : tct('No [tabName] found for this project.', {
-                tabName: tabDebugIdBundlesActive
-                  ? t('artifact bundles')
-                  : t('release bundles'),
-              })
-        }
-        isEmpty={
-          (tabDebugIdBundlesActive ? debugIdBundlesData ?? [] : archivesData ?? [])
-            .length === 0
-        }
-        isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : archivesLoading}
-      >
-        {tabDebugIdBundlesActive
-          ? debugIdBundlesData?.map(data => (
-              <SourceMapsTableRow
-                key={data.bundleId}
-                bundleType={SourceMapsBundleType.DEBUG_ID}
-                dateModified={data.dateModified}
-                date={data.date}
-                fileCount={data.fileCount}
-                name={data.bundleId}
-                onDelete={handleDelete}
-                link={`/settings/${organization.slug}/projects/${
-                  project.slug
-                }/source-maps/artifact-bundles/${encodeURIComponent(data.bundleId)}`}
-                idColumnDetails={
-                  // TODO(Pri): Move the loading to the component once fully transitioned to associations.
-                  !debugIdBundlesLoading &&
-                  (data.associations ? (
-                    <Associations associations={data.associations} />
-                  ) : (
-                    <DebugIdBundlesTags dist={data.dist} release={data.release} />
-                  ))
-                }
-              />
-            ))
-          : archivesData?.map(data => (
-              <SourceMapsTableRow
-                key={data.name}
-                bundleType={SourceMapsBundleType.RELEASE}
-                date={data.date}
-                fileCount={data.fileCount}
-                name={data.name}
-                onDelete={handleDelete}
-                link={`/settings/${organization.slug}/projects/${
-                  project.slug
-                }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
-              />
-            ))}
-      </Table>
+      {tabDebugIdBundlesActive ? (
+        <DebugIdBundleList
+          isLoading={debugIdBundlesLoading}
+          debugIdBundles={debugIdBundlesData}
+          project={project}
+          onDelete={bundleId =>
+            deleteDebugIdBundle({bundleId, projectSlug: project.slug})
+          }
+          emptyMessage={
+            query
+              ? t('No artifact bundles match your search query.')
+              : t('No artifact bundles found for this project.')
+          }
+        />
+      ) : (
+        <Table
+          headers={tableHeaders
+            .filter(header => header.enabledFor.includes(currentBundleType))
+            .map(header => header.component)}
+          emptyMessage={
+            query
+              ? t('No release bundles match your search query.')
+              : t('No release bundles found for this project.')
+          }
+          isEmpty={(archivesData ?? []).length === 0}
+          isLoading={archivesLoading}
+        >
+          {archivesData?.map(data => (
+            <SourceMapsTableRow
+              key={data.name}
+              bundleType={SourceMapsBundleType.RELEASE}
+              date={data.date}
+              fileCount={data.fileCount}
+              name={data.name}
+              onDelete={handleDeleteReleaseArtifacts}
+              link={`/settings/${organization.slug}/projects/${
+                project.slug
+              }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
+            />
+          ))}
+        </Table>
+      )}
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive

@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
-import {CommitRowProps, formatCommitMessage} from 'sentry/components/commitRow';
+import type {CommitRowProps} from 'sentry/components/commitRow';
+import {formatCommitMessage} from 'sentry/components/commitRow';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -14,7 +15,7 @@ import {space} from 'sentry/styles/space';
 function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
-  const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
+  const hasPullRequestURL = commit.pullRequest?.externalUrl;
   const commitMessage = formatCommitMessage(commit.message);
 
   return (

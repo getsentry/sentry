@@ -1,33 +1,84 @@
+import type React from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {MenuProps} from './menu';
 import Menu from './menu';
 
-type MenuProps = React.ComponentProps<typeof Menu>;
+function makeActorProps(
+  renderProps,
+  options: {
+    lazy: boolean;
+    allowActorToggle?: boolean;
+    onLazyOpen?: (fn: (e: React.MouseEvent) => void) => void;
+  }
+) {
+  const {isOpen, actions, getActorProps} = renderProps;
+  // Don't pass `onClick` from `getActorProps`
+  const {onClick: _onClick, ...actorProps} = getActorProps();
+  const onOpen =
+    options.lazy && options.onLazyOpen ? options.onLazyOpen(actions.open) : actions.open;
 
-type Props = {
+  return {
+    role: 'button',
+    tabIndex: 0,
+    isOpen,
+    onClick: isOpen && options.allowActorToggle ? actions.close : onOpen,
+    ...actorProps,
+  };
+}
+
+interface BaseProps extends Omit<MenuProps, 'items'> {
   // Should clicking the actor toggle visibility
   allowActorToggle?: boolean;
-} & MenuProps;
+}
+interface LazyDropdownAutoCompleteProps extends BaseProps {
+  lazyItems: () => MenuProps['items'];
+  items?: never;
+}
 
-function DropdownAutoComplete({allowActorToggle = false, children, ...props}: Props) {
+export interface StaticDropdownAutoCompleteProps extends BaseProps {
+  items: MenuProps['items'];
+  lazyItems?: never;
+}
+
+export type DropdownAutoCompleteProps =
+  | LazyDropdownAutoCompleteProps
+  | StaticDropdownAutoCompleteProps;
+
+function DropdownAutoComplete(
+  props: LazyDropdownAutoCompleteProps | StaticDropdownAutoCompleteProps
+) {
+  const {allowActorToggle, children, items, lazyItems, ...rest} = props;
+  const [maybeLazyItems, setMaybeLazyItems] = useState<MenuProps['items']>(
+    items ? items : null
+  );
+
+  const onLazyOpen = useCallback(
+    (onActionOpen: (e: React.MouseEvent) => void) => {
+      return (e: React.MouseEvent) => {
+        if (typeof lazyItems !== 'function') {
+          onActionOpen(e);
+          return;
+        }
+        setMaybeLazyItems(lazyItems());
+        onActionOpen(e);
+      };
+    },
+    [lazyItems]
+  );
+
+  const isLazy = typeof props.lazyItems === 'function';
+
   return (
-    <Menu {...props}>
-      {renderProps => {
-        const {isOpen, actions, getActorProps} = renderProps;
-        // Don't pass `onClick` from `getActorProps`
-        const {onClick: _onClick, ...actorProps} = getActorProps<HTMLDivElement>();
-        return (
-          <Actor
-            isOpen={isOpen}
-            role="button"
-            tabIndex={0}
-            onClick={isOpen && allowActorToggle ? actions.close : actions.open}
-            {...actorProps}
-          >
-            {children(renderProps)}
-          </Actor>
-        );
-      }}
+    <Menu {...rest} items={isLazy ? maybeLazyItems : items === undefined ? null : items}>
+      {renderProps => (
+        <Actor
+          {...makeActorProps(renderProps, {lazy: isLazy, onLazyOpen, allowActorToggle})}
+        >
+          {children(renderProps)}
+        </Actor>
+      )}
     </Menu>
   );
 }

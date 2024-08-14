@@ -1,19 +1,12 @@
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
-interface InternalConfigStore {
-  config: Config;
-}
-
-interface ConfigStoreDefinition
-  extends CommonStoreDefinition<Config>,
-    InternalConfigStore {
+interface ConfigStoreDefinition extends StrictStoreDefinition<Config> {
   get<K extends keyof Config>(key: K): Config[K];
-  init(): void;
   loadInitialData(config: Config): void;
   set<K extends keyof Config>(key: K, value: Config[K]): void;
 }
@@ -21,28 +14,28 @@ interface ConfigStoreDefinition
 const storeConfig: ConfigStoreDefinition = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensuring this is not empty.
-  config: {} as Config,
+  state: {} as Config,
 
   init(): void {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.config = {} as Config;
+    this.state = {} as Config;
   },
 
   get(key) {
-    return this.config[key];
+    return this.state[key];
   },
 
   set(key, value) {
-    this.config = {...this.config, [key]: value};
+    this.state = {...this.state, [key]: value};
     this.trigger({[key]: value});
   },
 
   loadInitialData(config): void {
     const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
-    this.config = {
+    this.state = {
       ...config,
       features: new Set(config.features || []),
       theme: shouldUseDarkMode ? 'dark' : 'light',
@@ -58,7 +51,7 @@ const storeConfig: ConfigStoreDefinition = {
   },
 
   getState() {
-    return this.config;
+    return this.state;
   },
 };
 

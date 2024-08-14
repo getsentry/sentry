@@ -1,12 +1,14 @@
 import {useCallback, useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
@@ -20,6 +22,7 @@ type Props = {
  */
 function IncidentRedirect({organization, params}: Props) {
   const api = useApi();
+  const location = useLocation();
   const [hasError, setHasError] = useState(false);
 
   const track = useCallback(() => {
@@ -37,13 +40,13 @@ function IncidentRedirect({organization, params}: Props) {
       browserHistory.replace(
         normalizeUrl({
           pathname: alertDetailsLink(organization, incident),
-          query: {alert: incident.identifier},
+          query: {...location.query, alert: incident.identifier},
         })
       );
     } catch (err) {
       setHasError(true);
     }
-  }, [setHasError, api, params.alertId, organization]);
+  }, [setHasError, api, params.alertId, organization, location.query]);
 
   useEffect(() => {
     fetchData();

@@ -4,11 +4,12 @@ import os
 import re
 from typing import Any
 
+import orjson
 import sentry_sdk
 
 from sentry.lang.java.utils import deobfuscation_template
-from sentry.models import Project, ProjectDebugFile
-from sentry.utils import json
+from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.project import Project
 from sentry.utils.safe import get_path
 
 # Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
@@ -59,8 +60,8 @@ def generate_dart_symbols_map(uuid: str, project: Project):
             dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
             span.set_tag("dart_symbols_file_size_in_mb", dart_symbols_file_size_in_mb)
 
-            with open(debug_file_path) as f:
-                debug_array = json.loads(f.read())
+            with open(debug_file_path, "rb") as f:
+                debug_array = orjson.loads(f.read())
 
             if len(debug_array) % 2 != 0:
                 raise Exception("Debug array contains an odd number of elements")

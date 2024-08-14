@@ -1,15 +1,14 @@
 from functools import cached_property
 
+import orjson
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.plugins.bases.issue2 import PluginError
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.exceptions import PluginError
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.github.plugin import GitHubPlugin
-from social_auth.models import UserSocialAuth
 
 
 class GitHubPluginTest(PluginTestCase):
@@ -37,9 +36,9 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.get_issue_url(group, 1) == "https://github.com/getsentry/sentry/issues/1"
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -60,14 +59,14 @@ class GitHubPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 
         assert self.plugin.create_issue(request, group, form_data) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"title": "Hello", "body": "Fix this.", "assignee": None}
 
     @responses.activate
@@ -94,12 +93,12 @@ class GitHubPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
         )
 
         assert self.plugin.link_issue(request, group, form_data) == {"title": "Hello world"}
         request = responses.calls[-1].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "Hello"}

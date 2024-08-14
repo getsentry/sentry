@@ -3,18 +3,19 @@ import styled from '@emotion/styled';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChat, IconMute, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {BaseGroup, Organization} from 'sentry/types';
+import type {BaseGroup} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
-import {Aliases} from 'sentry/utils/theme';
+import type {Aliases} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -39,7 +40,7 @@ function CompactIssueHeader({data, organization, eventId}: HeaderProps) {
   return (
     <Fragment>
       <IssueHeaderMetaWrapper>
-        <StyledErrorLevel size="12px" level={data.level} title={data.level} />
+        <StyledErrorLevel size="12px" level={data.level} />
         <h3 className="truncate">
           <IconLink to={issueLink || ''}>
             {data.status === 'ignored' && <IconMute size="xs" />}

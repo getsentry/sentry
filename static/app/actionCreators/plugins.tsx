@@ -3,10 +3,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client, RequestOptions} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import PluginsStore from 'sentry/stores/pluginsStore';
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
@@ -45,14 +46,14 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParam
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
     .then(() => {
-      PluginsStore.onUpdateSuccess(pluginId, update);
+      PluginsStore.onUpdateSuccess(pluginId);
     })
     .catch(resp => {
       const err =
-        resp && resp.responseJSON && typeof resp.responseJSON.detail === 'string'
+        typeof resp?.responseJSON?.detail === 'string'
           ? new Error(resp.responseJSON.detail)
           : new Error('Unable to update plugin');
-      PluginsStore.onUpdateError(pluginId, update, err);
+      PluginsStore.onUpdateError(pluginId, err);
     });
 
   return request;

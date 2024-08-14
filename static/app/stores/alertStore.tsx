@@ -1,10 +1,10 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import {createStore} from 'reflux';
 
 import {defined} from 'sentry/utils';
 import localStorage from 'sentry/utils/localStorage';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type Alert = {
   message: React.ReactNode;
@@ -20,31 +20,29 @@ type Alert = {
 };
 
 interface InternalAlertStoreDefinition {
-  alerts: Alert[];
   count: number;
 }
 interface AlertStoreDefinition
-  extends CommonStoreDefinition<Alert[]>,
+  extends StrictStoreDefinition<Alert[]>,
     InternalAlertStoreDefinition {
   addAlert(alert: Alert): void;
   closeAlert(alert: Alert, duration?: number): void;
-  init(): void;
 }
 
 const storeConfig: AlertStoreDefinition = {
-  alerts: [],
+  state: [],
   count: 0,
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.alerts = [];
+    this.state = [];
     this.count = 0;
   },
 
   addAlert(alert) {
-    const alertAlreadyExists = this.alerts.some(a => a.id === alert.id);
+    const alertAlreadyExists = this.state.some(a => a.id === alert.id);
     if (alertAlreadyExists && alert.noDuplicates) {
       return;
     }
@@ -84,8 +82,8 @@ const storeConfig: AlertStoreDefinition = {
     // intentionally recreate array via concat because of Reflux
     // "bug" where React components are given same reference to tracked
     // data objects, and don't *see* that values have changed
-    this.alerts = this.alerts.concat([alert]);
-    this.trigger(this.alerts);
+    this.state = this.state.concat([alert]);
+    this.trigger(this.state);
   },
 
   closeAlert(alert, duration = 60 * 60 * 7 * 24) {
@@ -102,12 +100,12 @@ const storeConfig: AlertStoreDefinition = {
     }
 
     // TODO(dcramer): we need some animations here for closing alerts
-    this.alerts = this.alerts.filter(item => alert !== item);
-    this.trigger(this.alerts);
+    this.state = this.state.filter(item => alert !== item);
+    this.trigger(this.state);
   },
 
   getState() {
-    return this.alerts;
+    return this.state;
   },
 };
 

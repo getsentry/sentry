@@ -1,11 +1,9 @@
 from django.urls import reverse
 
 from sentry.plugins.base import plugins
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationPluginsTest(APITestCase):
     def setUp(self):
         self.projectA = self.create_project()
@@ -19,7 +17,7 @@ class OrganizationPluginsTest(APITestCase):
     def test_exposes_all_plugins_available_no_enabled_state(self):
         url = reverse(
             "sentry-api-0-organization-plugins",
-            kwargs={"organization_slug": self.projectA.organization.slug},
+            kwargs={"organization_id_or_slug": self.projectA.organization.slug},
         )
 
         url = f"{url}?plugins=_all"
@@ -39,7 +37,7 @@ class OrganizationPluginsTest(APITestCase):
     def test_exposes_plugins_across_all_org_projects(self):
         url = reverse(
             "sentry-api-0-organization-plugins",
-            kwargs={"organization_slug": self.projectA.organization.slug},
+            kwargs={"organization_id_or_slug": self.projectA.organization.slug},
         )
 
         url = f"{url}?plugins=slack&plugins=webhooks"
@@ -58,7 +56,7 @@ class OrganizationPluginsTest(APITestCase):
     def test_exposes_specific_plugins_across_all_org_projects(self):
         url = reverse(
             "sentry-api-0-organization-plugins",
-            kwargs={"organization_slug": self.projectA.organization.slug},
+            kwargs={"organization_id_or_slug": self.projectA.organization.slug},
         )
 
         url = f"{url}?plugins=slack"
@@ -76,7 +74,7 @@ class OrganizationPluginsTest(APITestCase):
     def test_ignore_plugins_that_dont_exist(self):
         url = reverse(
             "sentry-api-0-organization-plugins",
-            kwargs={"organization_slug": self.projectA.organization.slug},
+            kwargs={"organization_id_or_slug": self.projectA.organization.slug},
         )
 
         url = f"{url}?plugins=nope&plugins=beep&plugins=slack"

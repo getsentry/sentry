@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
 const layout = (theme: Theme, scrollbarWidth?: number) => `
 display: grid;

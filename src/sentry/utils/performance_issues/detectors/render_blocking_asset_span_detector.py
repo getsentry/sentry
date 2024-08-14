@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,
@@ -28,7 +29,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems = {}
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
@@ -51,23 +54,19 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp = fcp
                 self.fcp_value = fcp_value
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return features.has(
-            "organizations:performance-issues-render-blocking-assets-detector",
-            organization,
-            actor=None,
-        )
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         if not self.fcp:
             return
 
         op = span.get("op", None)
         if op not in ["resource.link", "resource.script"]:
-            return False
+            return
 
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
@@ -125,7 +124,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         return (end - start) * 1000
 
-    def _is_blocking_render(self, span):
+    def _is_blocking_render(self, span: Span) -> bool:
+        assert self.fcp is not None
+
         data = span.get("data", None)
         render_blocking_status = data and data.get("resource.render_blocking_status")
         if render_blocking_status == "non-blocking":
@@ -151,6 +152,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
         return span_duration / self.fcp > fcp_ratio_threshold
 
-    def _fingerprint(self, span: Span):
+    def _fingerprint(self, span: Span) -> str:
         resource_url_hash = fingerprint_resource_span(span)
         return f"1-{PerformanceRenderBlockingAssetSpanGroupType.type_id}-{resource_url_hash}"

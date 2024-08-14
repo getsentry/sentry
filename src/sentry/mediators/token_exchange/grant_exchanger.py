@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
+from django.db import router
+from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -8,10 +9,14 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
-from sentry.models import ApiApplication, ApiGrant, ApiToken, SentryApp, User
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
-from sentry.utils.cache import memoize
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
 
 
 class GrantExchanger(Mediator):
@@ -23,6 +28,7 @@ class GrantExchanger(Mediator):
     code = Param(str)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate()
@@ -57,10 +63,12 @@ class GrantExchanger(Mediator):
         return self.grant.application.owner == self.user
 
     def _grant_is_active(self):
-        return self.grant.expires_at > datetime.now(pytz.UTC)
+        return self.grant.expires_at > datetime.now(timezone.utc)
 
     def _delete_grant(self):
-        self.grant.delete()
+        # This will cause a set null to trigger which does not need to cascade an outbox
+        with unguarded_write(router.db_for_write(ApiGrant)):
+            self.grant.delete()
 
     def _create_token(self):
         self.token = ApiToken.objects.create(
@@ -69,9 +77,12 @@ class GrantExchanger(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=self.token)
+        try:
+            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=self.token)
+        except SentryAppInstallation.DoesNotExist:
+            pass
 
-    @memoize
+    @cached_property
     def grant(self):
         try:
             return (

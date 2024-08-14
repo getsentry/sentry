@@ -5,11 +5,13 @@ from oauthlib.oauth1 import SIGNATURE_RSA
 from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
-from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.models.repository import Repository
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -40,7 +42,8 @@ class BitbucketServerSetupClient(ApiClient):
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "bitbucket_server_setup"
 
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
+    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
@@ -77,6 +80,7 @@ class BitbucketServerSetupClient(ApiClient):
             rsa_key=self.private_key,
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         url = self.access_token_url.format(self.base_url)
         resp = self.post(url, auth=auth, allow_text=True)
@@ -92,11 +96,12 @@ class BitbucketServerSetupClient(ApiClient):
                 rsa_key=self.private_key,
                 signature_method=SIGNATURE_RSA,
                 signature_type="auth_header",
+                decoding=None,
             )
         return self._request(*args, **kwargs)
 
 
-class BitbucketServerClient(IntegrationProxyClient):
+class BitbucketServerClient(ApiClient, RepositoryClient):
     """
     Contains the BitBucket Server specifics in order to communicate with bitbucket
 
@@ -110,30 +115,32 @@ class BitbucketServerClient(IntegrationProxyClient):
     def __init__(
         self,
         integration: RpcIntegration,
-        identity_id: int,
-        org_integration_id: int,
+        identity: RpcIdentity,
     ):
         self.base_url = integration.metadata["base_url"]
-        self.identity_id = identity_id
+        self.identity = identity
+
         super().__init__(
-            org_integration_id=org_integration_id,
             verify_ssl=integration.metadata["verify_ssl"],
+            integration_id=integration.id,
             logging_context=None,
         )
 
-    @control_silo_function
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        return self.authorize_request(prepared_request=prepared_request)
+
     def authorize_request(self, prepared_request: PreparedRequest):
         """Bitbucket Server authorizes with RSA-signed OAuth1 scheme"""
-        identity = Identity.objects.filter(id=self.identity_id).first()
-        if not identity:
+        if not self.identity:
             return prepared_request
         auth_scheme = OAuth1(
-            client_key=identity.data["consumer_key"],
-            rsa_key=identity.data["private_key"],
-            resource_owner_key=identity.data["access_token"],
-            resource_owner_secret=identity.data["access_token_secret"],
+            client_key=self.identity.data["consumer_key"],
+            rsa_key=self.identity.data["private_key"],
+            resource_owner_key=self.identity.data["access_token"],
+            resource_owner_secret=self.identity.data["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
@@ -222,12 +229,13 @@ class BitbucketServerClient(IntegrationProxyClient):
             new_params = dict.copy(params)
             new_params["start"] = start
             logger.debug(
-                f"Loading values for paginated uri starting from {start}",
+                "Loading values for paginated uri starting from %s",
+                start,
                 extra={"uri": uri, "params": new_params},
             )
             data = self.get(uri, params=new_params)
             logger.debug(
-                f'{len(data["values"])} values loaded', extra={"uri": uri, "params": new_params}
+                "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
             )
 
             values += data["values"]
@@ -247,3 +255,9 @@ class BitbucketServerClient(IntegrationProxyClient):
             },
         )
         return values
+
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+        raise IntegrationFeatureNotImplementedError
+
+    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+        raise IntegrationFeatureNotImplementedError

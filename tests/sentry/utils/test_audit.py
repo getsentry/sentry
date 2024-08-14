@@ -1,19 +1,16 @@
 from django.contrib.auth.models import AnonymousUser
+from django.http.request import HttpRequest
 
 from sentry import audit_log
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import (
-    AuditLogEntry,
-    DeletedOrganization,
-    DeletedProject,
-    DeletedTeam,
-    Organization,
-    OrganizationStatus,
-)
-from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.audit import (
     create_audit_entry,
     create_audit_entry_from_user,
@@ -23,23 +20,24 @@ from sentry.utils.audit import (
 username = "hello" * 20
 
 
-class FakeHttpRequest:
-    def __init__(self, user):
-        self.user = user
-        self.META = {"REMOTE_ADDR": "127.0.0.1"}
+def fake_http_request(user):
+    request = HttpRequest()
+    request.user = user
+    request.META["REMOTE_ADDR"] = "127.0.0.1"
+    return request
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username=username)
-        self.req = FakeHttpRequest(self.user)
+        self.req = fake_http_request(self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(teams=[self.team], platform="java")
 
     def assert_no_delete_log_created(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
             assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
@@ -48,10 +46,10 @@ class CreateAuditEntryTest(TestCase):
         org = self.create_organization()
         apikey = self.create_api_key(org, allowed_origins="*")
 
-        req = FakeHttpRequest(AnonymousUser())
+        req = fake_http_request(AnonymousUser())
         req.auth = apikey
 
-        entry = create_audit_entry(req)
+        entry = create_audit_entry(req, organization_id=org.id)
         assert entry.actor_key == apikey
         assert entry.actor is None
         assert entry.ip_address == req.META["REMOTE_ADDR"]
@@ -59,8 +57,10 @@ class CreateAuditEntryTest(TestCase):
         self.assert_no_delete_log_created()
 
     def test_audit_entry_frontend(self):
-        req = FakeHttpRequest(self.create_user())
-        entry = create_audit_entry(req)
+        org = self.create_organization()
+
+        req = fake_http_request(self.create_user())
+        entry = create_audit_entry(req, organization_id=org.id)
 
         assert entry.actor == req.user
         assert entry.actor_key is None
@@ -91,20 +91,20 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
-            Organization.objects.filter(id=self.organization.id).update(
+        with assume_test_silo_mode(SiloMode.REGION):
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )
 
             org = Organization.objects.get(id=self.organization.id)
 
-            Organization.objects.filter(id=self.organization.id).update(
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.DELETION_IN_PROGRESS
             )
 
             org2 = Organization.objects.get(id=self.organization.id)
 
-            Organization.objects.filter(id=self.organization.id).update(
+            Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.ACTIVE
             )
 
@@ -181,7 +181,7 @@ class CreateAuditEntryTest(TestCase):
                 event=audit_log.get_event_id("PROJECT_ADD"),
             )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
                 AuditLogEntry.objects.get(event=audit_log.get_event_id("PROJECT_ADD")).actor_label
                 == key.key
@@ -263,6 +263,145 @@ class CreateAuditEntryTest(TestCase):
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
         assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
+
+    def test_audit_entry_project_performance_setting_disable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": False},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to disable detection of File IO on Main Thread issue"
+        )
+
+    def test_audit_entry_project_performance_setting_enable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": True},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
+        )
+
+    def test_audit_entry_project_ownership_rule_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
+        assert audit_log_event.render(entry) == "modified ownership rules"
+
+    def test_audit_entry_project_key_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert audit_log_event.render(entry) == "edited project key KEY"
+
+    def test_audit_entry_project_key_rate_limit_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "prev_rate_limit_count": None,
+                "prev_rate_limit_window": None,
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project key KEY: rate limit count from None to 6, rate limit window from None to 60"
+        )
+
+    def test_audit_entry_project_key_rate_limit_window_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "prev_rate_limit_window": None,
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project key KEY: rate limit window from None to 60"
+        )
+
+    def test_audit_entry_project_key_rate_limit_count_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data={
+                "public_key": "KEY",
+                "prev_rate_limit_count": None,
+                "rate_limit_count": 6,
+                "rate_limit_window": 60,
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECTKEY_EDIT")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project key KEY: rate limit count from None to 6"
+        )
 
     def test_audit_entry_integration_log(self):
         project = self.create_project()

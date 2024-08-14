@@ -4,12 +4,14 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.relay import projectconfig_cache
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-internal-project-config"
+
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
@@ -31,9 +33,9 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         self.p1_pk = self.create_project_key(self.proj1)
         self.p2_pk = self.create_project_key(self.proj2)
 
-        projectconfig_cache.set_many(
+        projectconfig_cache.backend.set_many(
             {
-                self.p1_pk.public_key: "proj1 config",
+                self.p1_pk.public_key: {"proj1": "config"},
             }
         )
 
@@ -72,7 +74,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        expected = {"configs": {self.p1_pk.public_key: {"proj1": "config"}}}
         actual = response.json()
         assert actual == expected
 
@@ -87,7 +89,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        expected = {"configs": {self.p1_pk.public_key: {"proj1": "config"}}}
         actual = response.json()
         assert actual == expected
 
@@ -137,3 +139,12 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         expected = {"configs": {str(inexsitent_key): None}}
         actual = response.json()
         assert actual == expected
+
+    def test_invalidate_project_config(self):
+        response = self.get_response(method="post", project_id=self.project.id)
+        assert response.status_code == 401
+
+        self.login_as(self.superuser, superuser=True)
+
+        response = self.get_response(method="post", project_id=self.project.id)
+        assert response.status_code == 204

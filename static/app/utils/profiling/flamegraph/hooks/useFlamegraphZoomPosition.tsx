@@ -1,9 +1,7 @@
 import {useContext} from 'react';
 
-import {
-  FlamegraphState,
-  FlamegraphStateValueContext,
-} from '../flamegraphStateProvider/flamegraphContext';
+import type {FlamegraphState} from '../flamegraphStateProvider/flamegraphContext';
+import {FlamegraphStateValueContext} from '../flamegraphStateProvider/flamegraphContext';
 
 export function useFlamegraphZoomPosition(): FlamegraphState['position'] {
   const context = useContext(FlamegraphStateValueContext);

@@ -1,18 +1,21 @@
 from django.db.models import DateTimeField, Index
+from django.db.models.fields import UUIDField
 from django.utils import timezone
 
-from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleFireHistory(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     rule = FlexibleForeignKey("sentry.Rule")
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     event_id = CharField("event_id", max_length=32, null=True)
     date_added = DateTimeField(default=timezone.now, db_index=True)
+    notification_uuid = UUIDField("notification_uuid", null=True)
 
     class Meta:
         db_table = "sentry_rulefirehistory"

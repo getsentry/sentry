@@ -2,10 +2,9 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
-
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURE_NAMES = ["organizations:performance-view"]
@@ -15,6 +14,7 @@ def make_span_id() -> str:
     return uuid4().hex[:16]
 
 
+@no_silo_test
 class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
     def create_error(self, platform, trace_id, span_id, project_id, timestamp):
         data = load_data(platform, timestamp=timestamp)
@@ -189,7 +189,7 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now()
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
@@ -197,4 +197,3 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             row_title = self.browser.elements('[data-test-id="transaction-row-title"]')[1]
             # HACK: Use JavaScript to execute click to avoid click intercepted issues
             self.browser.driver.execute_script("arguments[0].click()", row_title)
-            self.browser.snapshot("performance trace view - with data")

@@ -1,51 +1,106 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-  ListRowProps,
-} from 'react-virtualized';
-import {css} from '@emotion/react';
+import React, {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
+import type {ListProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {
+import type {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
-import {PanelTable} from 'sentry/components/panels';
+import type {PanelTableProps} from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {isEventId} from './breadcrumb/data/default';
+import type {BreadcrumbProps} from './breadcrumb';
 import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
-const PANEL_INITIAL_HEIGHT = 400;
+export const PANEL_INITIAL_HEIGHT = 400;
+
+const noop = () => void 0;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
   defaultHeight: 38,
 });
 
-type Props = Pick<
-  React.ComponentProps<typeof Breadcrumb>,
-  'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
-> & {
+interface SharedListProps extends ListProps {
+  breadcrumbs: BreadcrumbWithMeta[];
+  displayRelativeTime: boolean;
+  event: BreadcrumbProps['event'];
+  index: number;
+  organization: Organization;
+  relativeTime: string;
+  searchTerm: string;
+  transactionEvents: BreadcrumbTransactionEvent[] | undefined;
+}
+
+interface BreadCrumbListClass extends Omit<List, 'props'> {
+  props: SharedListProps;
+}
+
+interface RenderBreadCrumbRowProps {
+  index: number;
+  key: string;
+  parent: BreadCrumbListClass;
+  style: React.CSSProperties;
+}
+
+function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowProps) {
+  return (
+    <CellMeasurer
+      columnIndex={0}
+      key={key}
+      cache={cache}
+      parent={parent}
+      rowIndex={index}
+    >
+      <BreadcrumbRow
+        style={style}
+        error={parent.props.breadcrumbs[index].breadcrumb.type === BreadcrumbType.ERROR}
+      >
+        <Breadcrumb
+          index={index}
+          cache={cache}
+          style={style}
+          parent={parent}
+          meta={parent.props.breadcrumbs[index].meta}
+          breadcrumb={parent.props.breadcrumbs[index].breadcrumb}
+          organization={parent.props.organization}
+          searchTerm={parent.props.searchTerm}
+          event={parent.props.event}
+          relativeTime={parent.props.relativeTime}
+          displayRelativeTime={parent.props.displayRelativeTime}
+          transactionEvents={parent.props.transactionEvents}
+          isLastItem={index === parent.props.breadcrumbs.length - 1}
+        />
+      </BreadcrumbRow>
+    </CellMeasurer>
+  );
+}
+
+interface Props
+  extends Pick<
+    BreadcrumbProps,
+    'event' | 'organization' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
+  > {
   breadcrumbs: BreadcrumbWithMeta[];
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
     'emptyMessage' | 'emptyAction'
   >;
   onSwitchTimeFormat: () => void;
-};
+}
 
 function Breadcrumbs({
   breadcrumbs,
@@ -57,7 +112,6 @@ function Breadcrumbs({
   relativeTime,
   emptyMessage,
 }: Props) {
-  const [scrollbarSize, setScrollbarSize] = useState(0);
   const {projects, fetching: loadingProjects} = useProjects();
 
   const maybeProject = !loadingProjects
@@ -67,18 +121,24 @@ function Breadcrumbs({
     : null;
 
   const listRef = useRef<List>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  const sentryTransaction = breadcrumbs.filter(
-    crumb =>
-      crumb.breadcrumb.category === 'sentry.transaction' &&
-      defined(crumb.breadcrumb.message) &&
-      isEventId(crumb.breadcrumb.message)
-  );
+  const sentryTransactionIds = useMemo(() => {
+    const crumbs: string[] = [];
 
-  const sentryTransactionIds = sentryTransaction
-    .map(crumb => crumb.breadcrumb.message)
-    .filter(defined);
+    for (const crumb of breadcrumbs) {
+      if (
+        crumb.breadcrumb.category !== 'sentry.transaction' ||
+        !defined(crumb.breadcrumb.message) ||
+        !isEventId(crumb.breadcrumb.message)
+      ) {
+        continue;
+      }
+
+      crumbs.push(crumb.breadcrumb.message);
+    }
+
+    return crumbs;
+  }, [breadcrumbs]);
 
   const {data: transactionEvents} = useApiQuery<{
     data: BreadcrumbTransactionEvent[];
@@ -89,7 +149,7 @@ function Breadcrumbs({
       {
         query: {
           query: `id:[${sentryTransactionIds}]`,
-          field: ['title'],
+          field: ['title', 'trace', 'timestamp'],
           project: [maybeProject?.id],
         },
       },
@@ -107,10 +167,6 @@ function Breadcrumbs({
     }
   }, []);
 
-  useEffect(() => {
-    updateGrid();
-  }, [breadcrumbs, updateGrid]);
-
   const {
     size: containerSize,
     isHeld,
@@ -118,114 +174,82 @@ function Breadcrumbs({
     onDoubleClick,
   } = useResizableDrawer({
     direction: 'down',
-    onResize: () => void 0,
+    onResize: noop,
     initialSize: PANEL_INITIAL_HEIGHT,
     min: PANEL_MIN_HEIGHT,
   });
 
-  function renderRow({index, key, parent, style}: ListRowProps) {
-    const {breadcrumb, meta} = breadcrumbs[index];
-    const isLastItem = index === breadcrumbs.length - 1;
+  const panelHeaders: PanelTableProps['headers'] = useMemo(() => {
+    return [
+      t('Type'),
+      t('Category'),
+      t('Description'),
+      t('Level'),
+      <Time key="time" onClick={onSwitchTimeFormat}>
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          title={displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')}
+        >
+          <StyledIconSort size="xs" rotated />
+        </Tooltip>
 
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={key}
-        parent={parent}
-        rowIndex={index}
-      >
-        {({measure}) => (
-          <BreadcrumbRow style={style} error={breadcrumb.type === BreadcrumbType.ERROR}>
-            <Breadcrumb
-              index={index}
-              cache={cache}
-              isLastItem={isLastItem}
-              style={style}
-              onResize={measure}
-              organization={organization}
-              searchTerm={searchTerm}
-              breadcrumb={breadcrumb}
-              meta={meta}
-              event={event}
-              relativeTime={relativeTime}
-              displayRelativeTime={displayRelativeTime}
-              scrollbarSize={
-                (contentRef?.current?.offsetHeight ?? 0) < containerSize
-                  ? scrollbarSize
-                  : 0
-              }
-              transactionEvents={transactionEvents?.data}
-            />
-          </BreadcrumbRow>
-        )}
-      </CellMeasurer>
-    );
-  }
+        {t('Time')}
+      </Time>,
+    ];
+  }, [displayRelativeTime, onSwitchTimeFormat]);
+
+  // Force update the grid whenever updateGrid, breadcrumbs or transactionEvents changes.
+  // This will recompute cell sizes so which might change as a consequence of having more
+  // data, which affects how cells are rendered (e.g. links might become internal transaction links).
+  useEffect(() => {
+    updateGrid();
+  }, [breadcrumbs, updateGrid, transactionEvents?.data]);
 
   return (
-    <Wrapper>
-      <StyledPanelTable
-        scrollbarSize={scrollbarSize}
-        headers={[
-          t('Type'),
-          t('Category'),
-          t('Description'),
-          t('Level'),
-          <Time key="time" onClick={onSwitchTimeFormat}>
-            <Tooltip
-              containerDisplayMode="inline-flex"
-              title={
-                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
-              }
-            >
-              <StyledIconSort size="xs" rotated />
-            </Tooltip>
-
-            {t('Time')}
-          </Time>,
-          // Space for the scrollbar
-          '',
-        ]}
+    <Fragment>
+      <StyledBreadcrumbPanelTable
+        headers={panelHeaders}
         isEmpty={!breadcrumbs.length}
         {...emptyMessage}
       >
-        <Content ref={contentRef}>
-          <AutoSizer disableHeight onResize={updateGrid}>
-            {({width}) => (
-              <StyledList
-                ref={listRef}
-                deferredMeasurementCache={cache}
-                height={containerSize}
-                overscanRowCount={5}
-                rowCount={breadcrumbs.length}
-                rowHeight={cache.rowHeight}
-                rowRenderer={renderRow}
-                width={width}
-                onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-              />
-            )}
-          </AutoSizer>
-        </Content>
-      </StyledPanelTable>
+        <AutoSizer disableHeight onResize={updateGrid}>
+          {({width}) => (
+            <VirtualizedList
+              ref={listRef}
+              deferredMeasurementCache={cache}
+              height={containerSize}
+              overscanRowCount={5}
+              organization={organization}
+              rowCount={breadcrumbs.length}
+              rowHeight={cache.rowHeight}
+              rowRenderer={renderBreadCrumbRow}
+              searchTerm={searchTerm}
+              width={width}
+              event={event}
+              breadcrumbs={breadcrumbs}
+              relativeTime={relativeTime}
+              displayRelativeTime={displayRelativeTime}
+              transactionEvents={transactionEvents?.data}
+            />
+          )}
+        </AutoSizer>
+      </StyledBreadcrumbPanelTable>
       <PanelDragHandle
         onMouseDown={onMouseDown}
         onDoubleClick={onDoubleClick}
         className={isHeld ? 'is-held' : undefined}
       />
-    </Wrapper>
+    </Fragment>
   );
 }
 
 export default Breadcrumbs;
 
-const Wrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
+export const StyledBreadcrumbPanelTable = styled(PanelTable)`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px ${p => `${p.scrollbarSize}px`};
+  overflow: hidden;
+  grid-template-columns: 64px 140px 1fr 106px 100px;
+  margin-bottom: 1px;
 
   > * {
     :nth-child(-n + 6) {
@@ -257,7 +281,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   }
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template-columns: 48px 1fr 74px 82px ${p => `${p.scrollbarSize}px`};
+    grid-template-columns: 48px 1fr 74px 82px;
     > * {
       :nth-child(-n + 6) {
         /* Type, Category & Level */
@@ -290,14 +314,10 @@ const StyledIconSort = styled(IconSort)`
   }
 `;
 
-const Content = styled('div')`
-  overflow: hidden;
-`;
-
 const PanelDragHandle = styled('div')`
   position: absolute;
   bottom: -1px;
-  left: 1px;
+  left: 0px;
   right: 1px;
   height: 10px;
   cursor: ns-resize;
@@ -322,28 +342,28 @@ const PanelDragHandle = styled('div')`
 //
 // It gives the list have a dynamic height; otherwise, in the case of filtered
 // options, a list will be displayed with an empty space
-const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
+
+const VirtualizedList = React.forwardRef<any, SharedListProps>((props, ref) => {
+  return <StyledList ref={ref} {...props} />;
+});
+const StyledList = styled(List as any)<SharedListProps>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;
 `;
 
-const BreadcrumbRow = styled('div')<{error: boolean}>`
+export const BreadcrumbRow = styled('div')<{error: boolean}>`
   :not(:last-child) {
     border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }
 
-  ${p =>
-    p.error &&
-    css`
-      :after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        left: 0;
-        height: 1px;
-        width: 100%;
-        background: ${p.theme.red300};
-      }
-    `}
+  :after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    background-color: ${p => (p.error ? p.theme.red300 : 'transparent')};
+  }
 `;

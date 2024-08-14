@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import {
-  TimeRangeSelector,
-  TimeRangeSelectorProps,
-} from 'sentry/components/timeRangeSelector';
+import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -34,6 +32,7 @@ export function DatePageFilter({
   menuWidth,
   triggerProps = {},
   resetParamsOnChange,
+  storageNamespace,
   ...selectProps
 }: DatePageFilterProps) {
   const router = useRouter();
@@ -58,6 +57,7 @@ export function DatePageFilter({
         updateDateTime(newTimePeriod, router, {
           save: true,
           resetParams: resetParamsOnChange,
+          storageNamespace,
         });
       }}
       menuTitle={menuTitle ?? t('Filter Time Range')}

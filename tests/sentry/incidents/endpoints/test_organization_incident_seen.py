@@ -2,12 +2,10 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.incidents.models import IncidentSeen
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.incidents.models.incident import IncidentSeen
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentSeenTest(APITestCase):
     method = "post"
     endpoint = "sentry-api-0-organization-incident-seen"
@@ -56,7 +54,7 @@ class OrganizationIncidentSeenTest(APITestCase):
             url = reverse(
                 "sentry-api-0-organization-incident-details",
                 kwargs={
-                    "organization_slug": incident.organization.slug,
+                    "organization_id_or_slug": incident.organization.slug,
                     "incident_identifier": incident.identifier,
                 },
             )

@@ -1,17 +1,17 @@
-import {browserHistory} from 'react-router';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
-import {usingCustomerDomain} from 'sentry/constants';
+import type {Client} from 'sentry/api';
+import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 type RedirectRemainingOrganizationParams = {
   /**
@@ -48,7 +48,7 @@ export function redirectToRemainingOrganization({
   const firstRemainingOrg = allOrgs[0];
 
   const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
-  if (usingCustomerDomain) {
+  if (USING_CUSTOMER_DOMAIN) {
     const {organizationUrl} = firstRemainingOrg.links;
     window.location.assign(`${organizationUrl}${normalizeUrl(route)}`);
     return;
@@ -187,7 +187,11 @@ export async function fetchOrganizationDetails(
   orgId: string,
   {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
 ) {
-  const data = await api.requestPromise(`/organizations/${orgId}/`);
+  const data = await api.requestPromise(`/organizations/${orgId}/`, {
+    query: {
+      include_feature_flags: 1,
+    },
+  });
 
   if (setActive) {
     setActiveOrganization(data);
@@ -202,4 +206,34 @@ export async function fetchOrganizationDetails(
   }
 
   return data;
+}
+
+/**
+ * Get all organizations for the current user.
+ *
+ * Will perform a fan-out across all multi-tenant regions,
+ * and single-tenant regions the user has membership in.
+ *
+ * This function is challenging to type as the structure of the response
+ * from /organizations can vary based on query parameters
+ */
+export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
+  const regions = ConfigStore.get('memberRegions');
+  const results = await Promise.all(
+    regions.map(region =>
+      api.requestPromise(`/organizations/`, {
+        host: region.url,
+        query,
+        // Authentication errors can happen as we span regions.
+        allowAuthError: true,
+      })
+    )
+  );
+  return results.reduce((acc, response) => {
+    // Don't append error results to the org list.
+    if (response[0]) {
+      acc = acc.concat(response);
+    }
+    return acc;
+  }, []);
 }

@@ -1,13 +1,12 @@
 from rest_framework.exceptions import NotFound
 
-from sentry.models import (
-    Commit,
-    Organization,
-    ProjectCodeOwners,
-    ProjectOwnership,
-    RepositoryProjectPathConfig,
-)
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.commit import Commit
+from sentry.models.organization import Organization
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 
@@ -16,12 +15,15 @@ from sentry.tasks.base import instrumented_task, retry
     queue="code_owners",
     default_retry_delay=60 * 5,
     max_retries=1,
+    silo_mode=SiloMode.REGION,
 )
 @retry(on=(Commit.DoesNotExist,))
 def code_owners_auto_sync(commit_id: int, **kwargs):
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
-    from sentry.api.endpoints.organization_code_mapping_codeowners import get_codeowner_contents
+    from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
+        get_codeowner_contents,
+    )
 
     commit = Commit.objects.get(id=commit_id)
 

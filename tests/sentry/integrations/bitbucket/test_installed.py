@@ -1,11 +1,20 @@
+from __future__ import annotations
+
+from typing import Any
+
 import responses
 
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
-from sentry.models import Integration, Project, Repository
+from sentry.integrations.models.integration import Integration
+from sentry.models.project import Project
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.testutils import APITestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class BitbucketPlugin(IssueTrackingPlugin2):
@@ -14,6 +23,7 @@ class BitbucketPlugin(IssueTrackingPlugin2):
     conf_key = slug
 
 
+@control_silo_test
 class BitbucketInstalledEndpointTest(APITestCase):
     def setUp(self):
         self.provider = "bitbucket"
@@ -64,7 +74,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.user_metadata["type"] = self.user_data["type"]
         self.user_metadata["domain_name"] = self.user_display_name
 
-        self.team_data_from_bitbucket = {
+        self.team_data_from_bitbucket: dict[str, Any] = {
             "key": "sentry-bitbucket",
             "eventType": "installed",
             "baseUrl": self.base_url,
@@ -130,23 +140,24 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     @responses.activate
     def test_plugin_migration(self):
-        accessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="sentryuser/repo",
-            url="https://bitbucket.org/sentryuser/repo",
-            provider="bitbucket",
-            external_id="123456",
-            config={"name": "sentryuser/repo"},
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="sentryuser/repo",
+                url="https://bitbucket.org/sentryuser/repo",
+                provider="bitbucket",
+                external_id="123456",
+                config={"name": "sentryuser/repo"},
+            )
 
-        inaccessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="otheruser/otherrepo",
-            url="https://bitbucket.org/otheruser/otherrepo",
-            provider="bitbucket",
-            external_id="654321",
-            config={"name": "otheruser/otherrepo"},
-        )
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="otheruser/otherrepo",
+                url="https://bitbucket.org/otheruser/otherrepo",
+                provider="bitbucket",
+                external_id="654321",
+                config={"name": "otheruser/otherrepo"},
+            )
 
         self.client.post(self.path, data=self.team_data_from_bitbucket)
 
@@ -159,32 +170,42 @@ class BitbucketInstalledEndpointTest(APITestCase):
         )
 
         with self.tasks():
-            BitbucketIntegrationProvider().post_install(integration, self.organization)
-
-            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-
-            assert (
-                Repository.objects.get(id=accessible_repo.id).provider == "integrations:bitbucket"
+            with assume_test_silo_mode(SiloMode.REGION):
+                org = serialize_rpc_organization(self.organization)
+            BitbucketIntegrationProvider().post_install(
+                integration=integration,
+                organization=org,
             )
 
-            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert (
+                    Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+                )
+
+                assert (
+                    Repository.objects.get(id=accessible_repo.id).provider
+                    == "integrations:bitbucket"
+                )
+
+                assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
-        project = Project.objects.create(organization_id=self.organization.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            project = Project.objects.create(organization_id=self.organization.id)
 
-        plugin = plugins.get("bitbucket")
-        plugin.enable(project)
+            plugin = plugins.get("bitbucket")
+            plugin.enable(project)
 
-        # Accessible to new Integration
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="sentryuser/repo",
-            url="https://bitbucket.org/sentryuser/repo",
-            provider="bitbucket",
-            external_id="123456",
-            config={"name": "sentryuser/repo"},
-        )
+            # Accessible to new Integration
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="sentryuser/repo",
+                url="https://bitbucket.org/sentryuser/repo",
+                provider="bitbucket",
+                external_id="123456",
+                config={"name": "sentryuser/repo"},
+            )
 
         self.client.post(self.path, data=self.team_data_from_bitbucket)
 
@@ -199,6 +220,8 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert "bitbucket" in [p.slug for p in plugins.for_project(project)]
 
         with self.tasks():
-            BitbucketIntegrationProvider().post_install(integration, self.organization)
+            with assume_test_silo_mode(SiloMode.REGION):
+                org = serialize_rpc_organization(self.organization)
+            BitbucketIntegrationProvider().post_install(integration=integration, organization=org)
 
             assert "bitbucket" not in [p.slug for p in plugins.for_project(project)]

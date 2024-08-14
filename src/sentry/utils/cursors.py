@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterator, Protocol, Sequence, Tuple, TypeVar, Union
-
-from sentry.utils.json import JSONData
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Protocol, TypeVar, Union
 
 T = TypeVar("T")
 CursorValue = Union[float, int, str]
@@ -13,7 +12,7 @@ class KeyCallable(Protocol):
         ...
 
 
-OnResultCallable = Callable[[Sequence[T]], JSONData]
+OnResultCallable = Callable[[Sequence[T]], Any]
 
 
 class Cursor:
@@ -48,9 +47,6 @@ class Cursor:
 
     def __bool__(self) -> bool:
         return bool(self.has_results)
-
-    # python2 compatibility
-    __nonzero__ = __bool__
 
     @classmethod
     def from_string(cls, cursor_str: str) -> Cursor:
@@ -114,7 +110,7 @@ class CursorResult(Sequence[T]):
 
 def _build_next_values(
     cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
-) -> Tuple[CursorValue, int, bool]:
+) -> tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev
@@ -162,8 +158,8 @@ def _build_next_values(
     for result in result_iter:
         result_value = key(result)
 
-        is_larger = result_value >= next_value  # type: ignore
-        is_smaller = result_value <= next_value  # type: ignore
+        is_larger = result_value >= next_value  # type: ignore[operator]
+        is_smaller = result_value <= next_value  # type: ignore[operator]
 
         if (is_desc and is_smaller) or (not is_desc and is_larger):
             next_offset += 1
@@ -175,7 +171,7 @@ def _build_next_values(
 
 def _build_prev_values(
     cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
-) -> Tuple[CursorValue, int, bool]:
+) -> tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev
@@ -231,8 +227,8 @@ def _build_prev_values(
     for result in result_iter:
         result_value = key(result, for_prev=True)
 
-        is_larger = result_value >= prev_value  # type: ignore
-        is_smaller = result_value <= prev_value  # type: ignore
+        is_larger = result_value >= prev_value  # type: ignore[operator]
+        is_smaller = result_value <= prev_value  # type: ignore[operator]
 
         # Note that the checks are reversed here as a prev query has
         # it's ordering reversed.
@@ -252,8 +248,8 @@ def build_cursor(
     cursor: Cursor | None = None,
     hits: int | None = None,
     max_hits: int | None = None,
-    on_results: None | OnResultCallable[T] = None,
-) -> CursorResult[T | JSONData]:
+    on_results: OnResultCallable[T] | None = None,
+) -> CursorResult[T | Any]:
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 

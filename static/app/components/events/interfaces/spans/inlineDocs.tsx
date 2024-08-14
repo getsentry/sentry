@@ -3,16 +3,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
-
   orgSlug: string;
   platform: string;
   projectSlug: string;
@@ -51,7 +49,7 @@ class InlineDocs extends Component<Props, State> {
 
     this.setState({loading: true});
 
-    let tracingPlatform: PlatformKey;
+    let tracingPlatform: 'python-tracing' | 'node-tracing' | 'react-native-tracing';
 
     if (platform.startsWith('sentry.python')) {
       tracingPlatform = 'python-tracing';

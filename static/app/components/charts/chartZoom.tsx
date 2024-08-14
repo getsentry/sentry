@@ -1,26 +1,25 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import {DateString} from 'sentry/types';
-import {
+import type {DateString} from 'sentry/types/core';
+import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
@@ -41,7 +40,7 @@ const ZoomPropKeys = [
   'onFinished',
 ] as const;
 
-export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
+export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -49,7 +48,7 @@ export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
   start?: Date;
   toolBox?: ToolboxComponentOption;
   utc?: boolean;
-};
+}
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
@@ -63,6 +62,7 @@ type Props = {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
@@ -126,7 +126,7 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory = false) => {
-    const {router, onZoom, usePageDate} = this.props;
+    const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -172,7 +172,8 @@ class ChartZoom extends Component<Props> {
               : startFormatted,
             end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
           },
-          router
+          router,
+          {save: saveOnZoom}
         );
       }
 
@@ -244,7 +245,7 @@ class ChartZoom extends Component<Props> {
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -254,7 +255,9 @@ class ChartZoom extends Component<Props> {
       });
     }
 
-    callIfFunction(this.props.onFinished);
+    if (typeof this.props.onFinished === 'function') {
+      this.props.onFinished(_props, chart);
+    }
   };
 
   render() {

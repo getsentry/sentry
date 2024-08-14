@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/types/project';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -62,6 +62,8 @@ export type GrowthEventParameters = {
   'assistant.guide_finished': {
     guide: string;
   };
+  'github_invite_banner.snoozed': {};
+  'github_invite_banner.viewed': {members_shown: number; total_members: number};
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;
@@ -153,6 +155,8 @@ type GrowthAnalyticsKey = keyof GrowthEventParameters;
 export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'assistant.guide_finished': 'Assistant Guide Finished',
   'assistant.guide_dismissed': 'Assistant Guide Dismissed',
+  'github_invite_banner.snoozed': 'Github Invite Banner Snoozed',
+  'github_invite_banner.viewed': 'Github Invite Banner Viewed',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':

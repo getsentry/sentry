@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 type Props = {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ function TeamDetails({children}: Props) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
-  const {teams, initiallyLoaded} = useTeams({slugs: [params.teamId]});
+  const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
   function handleRequestAccess(teamSlug: string) {
@@ -75,11 +75,11 @@ function TeamDetails({children}: Props) {
     </ListLink>,
   ];
 
-  if (!initiallyLoaded) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (!team) {
+  if (!team || isError) {
     return (
       <Alert type="warning">
         <div>{t('This team does not exist, or you do not have access to it.')}</div>
@@ -93,7 +93,7 @@ function TeamDetails({children}: Props) {
       {team.hasAccess ? (
         <div>
           <h3>
-            <IdBadge hideAvatar team={team} avatarSize={36} />
+            <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
           </h3>
 
           <NavTabs underlined>{navigationTabs}</NavTabs>

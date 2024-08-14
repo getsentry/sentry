@@ -1,24 +1,3 @@
-from django.db import models
-from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from sentry.users.models.email import Email
 
-from sentry.db.models import CIEmailField, Model, control_silo_only_model, sane_repr
-
-
-@control_silo_only_model
-class Email(Model):
-    """
-    Email represents a unique email. Email settings (unsubscribe state) should be associated here.
-    UserEmail represents whether a given user account has access to that email.
-    """
-
-    __include_in_export__ = True
-
-    email = CIEmailField(_("email address"), unique=True, max_length=75)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_email"
-
-    __repr__ = sane_repr("email")
+__all__ = ("Email",)

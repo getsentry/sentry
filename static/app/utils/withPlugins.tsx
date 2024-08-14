@@ -2,7 +2,9 @@ import {Component} from 'react';
 
 import {fetchPlugins} from 'sentry/actionCreators/plugins';
 import PluginsStore from 'sentry/stores/pluginsStore';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -25,7 +27,7 @@ type State = {
 function withPlugins<P extends WithPluginProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithPlugins extends Component<Omit<P, keyof 'plugins'> & WithPluginProps, State> {
+  class WithPlugins extends Component<Omit<P, 'plugins'> & WithPluginProps, State> {
     static displayName = `withPlugins(${getDisplayName(WrappedComponent)})`;
     state = {plugins: [], loading: true};
 

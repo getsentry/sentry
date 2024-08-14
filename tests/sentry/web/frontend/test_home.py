@@ -2,12 +2,12 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationStatus
-from sentry.testutils import TestCase
+from sentry.models.organization import OrganizationStatus
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HomeTest(TestCase):
     @cached_property
     def path(self):
@@ -49,7 +49,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -66,7 +66,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -76,7 +76,7 @@ class HomeTest(TestCase):
             assert response.redirect_chain == [
                 (f"http://{org.slug}.testserver/restore/", 302),
             ]
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session
 
     def test_customer_domain_org_deletion_in_progress(self):
         org = self.create_organization(
@@ -85,7 +85,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -95,4 +95,4 @@ class HomeTest(TestCase):
             assert response.redirect_chain == [
                 ("http://testserver/organizations/new/", 302),
             ]
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session

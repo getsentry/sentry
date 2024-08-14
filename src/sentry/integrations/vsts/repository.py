@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+import logging
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
-from sentry.models import Commit, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 
 MAX_COMMIT_DATA_REQUESTS = 90
+
+logger = logging.getLogger(__name__)
 
 
 class VstsRepositoryProvider(IntegrationRepositoryProvider):
@@ -17,17 +24,16 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
     ) -> Mapping[str, str]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
-        instance = installation.instance
 
         repo_id = config["identifier"]
 
         try:
-            repo = client.get_repo(instance, repo_id)
+            repo = client.get_repo(repo_id)
         except Exception as e:
             raise installation.raise_error(e)
         config.update(
             {
-                "instance": instance,
+                "instance": installation.instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
                 "external_id": str(repo["id"]),
@@ -37,7 +43,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, str]
+        self, organization: RpcOrganization, data: Mapping[str, str]
     ) -> Mapping[str, Any]:
         return {
             "name": data["name"],
@@ -77,15 +83,11 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
             # This is important because issue refs could be anywhere in the commit
             # message.
             if commit.get("commentTruncated", False):
-                full_commit = client.get_commit(
-                    repo.config["instance"], repo.external_id, commit["commitId"]
-                )
+                full_commit = client.get_commit(repo.external_id, commit["commitId"])
                 commit["comment"] = full_commit["comment"]
 
             commit["patch_set"] = self.transform_changes(
-                client.get_commit_filechanges(
-                    repo.config["instance"], repo.external_id, commit["commitId"]
-                )
+                client.get_commit_filechanges(repo.external_id, commit["commitId"])
             )
             # We only fetch patch data for 90 commits.
             n += 1
@@ -100,13 +102,12 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         """TODO(mgaeta): This function is kinda a mess."""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
-        instance = repo.config["instance"]
 
         try:
             if start_sha is None:
-                res = client.get_commits(instance, repo.external_id, commit=end_sha, limit=10)
+                res = client.get_commits(repo.external_id, commit=end_sha, limit=10)
             else:
-                res = client.get_commit_range(instance, repo.external_id, start_sha, end_sha)
+                res = client.get_commit_range(repo.external_id, start_sha, end_sha)
         except Exception as e:
             raise installation.raise_error(e)
 

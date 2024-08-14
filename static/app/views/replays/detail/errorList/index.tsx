@@ -1,12 +1,15 @@
-import {useMemo, useRef} from 'react';
-import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import {useMemo, useRef, useState} from 'react';
+import type {GridCellProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
 import ErrorHeaderCell, {
   COLUMN_COUNT,
@@ -19,12 +22,7 @@ import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
 
 const HEADER_HEIGHT = 25;
-const BODY_HEIGHT = 28;
-
-type Props = {
-  errorFrames: undefined | ErrorFrame[];
-  startTimestampMs: number;
-};
+const BODY_HEIGHT = 25;
 
 const cellMeasurer = {
   defaultHeight: BODY_HEIGHT,
@@ -32,16 +30,20 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function ErrorList({errorFrames, startTimestampMs}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+function ErrorList() {
+  const {currentTime, replay} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const errorFrames = replay?.getErrorFrames();
+  const startTimestampMs = replay?.getReplay().started_at.getTime() ?? 0;
+
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useErrorFilters({errorFrames: errorFrames || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortErrors({items: filteredItems});
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
 
   const gridRef = useRef<MultiGrid>(null);
   const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
@@ -53,6 +55,18 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
       dynamicColumnIndex: 1,
       deps,
     });
+
+  const {
+    handleClick: onClickToJump,
+    onSectionRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: filteredItems,
+    isTable: true,
+    setScrollToRow,
+  });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
     const error = items[rowIndex - 1];
@@ -85,13 +99,13 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClickTimestamp={handleClick}
+              frame={error}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
+              onClickTimestamp={onClickTimestamp}
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              frame={error}
               startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
@@ -104,7 +118,7 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
   return (
     <FluidHeight>
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
-      <ErrorTable>
+      <ErrorTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
           <OverflowHidden>
             <AutoSizer onResize={onWrapperResize}>
@@ -128,14 +142,28 @@ function ErrorList({errorFrames, startTimestampMs}: Props) {
                     </NoRowRenderer>
                   )}
                   onScrollbarPresenceChange={onScrollbarPresenceChange}
+                  onScroll={() => {
+                    if (scrollToRow !== undefined) {
+                      setScrollToRow(undefined);
+                    }
+                  }}
+                  onSectionRendered={onSectionRendered}
                   overscanColumnCount={COLUMN_COUNT}
                   overscanRowCount={5}
                   rowCount={items.length + 1}
                   rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
+                  scrollToRow={scrollToRow}
                   width={width}
                 />
               )}
             </AutoSizer>
+            {sortConfig.by === 'timestamp' && items.length ? (
+              <JumpButtons
+                jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+                onClick={onClickToJump}
+                tableHeaderHeight={HEADER_HEIGHT}
+              />
+            ) : null}
           </OverflowHidden>
         ) : (
           <Placeholder height="100%" />
@@ -149,6 +177,7 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
 `;
 
 const ErrorTable = styled(FluidHeight)`

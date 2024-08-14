@@ -1,8 +1,6 @@
 from collections import defaultdict
-from enum import Enum
-from typing import Mapping, Set
+from collections.abc import Mapping
 from unittest import TestCase
-from unittest.mock import patch
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -15,21 +13,13 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyResult,
     UseCaseKeyResults,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
-
-
-class MockUseCaseID(Enum):
-    TRANSACTIONS = "transactions"
-    SESSIONS = "sessions"
-    USE_CASE_1 = "uc_1"
-    USE_CASE_2 = "uc_2"
-    USE_CASE_3 = "uc_3"
-    USE_CASE_4 = "uc_4"
 
 
 class KeyCollectionTest(TestCase):
@@ -54,7 +44,6 @@ class KeyCollectionTest(TestCase):
         assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 
 
-@patch("sentry.sentry_metrics.indexer.base.UseCaseID", MockUseCaseID)
 class UseCaseCollectionTest(TestCase):
     def test_no_data(self) -> None:
         collection = UseCaseKeyCollection({})
@@ -66,37 +55,37 @@ class UseCaseCollectionTest(TestCase):
 
     def test_basic(self) -> None:
         org_strings = {
-            MockUseCaseID.USE_CASE_1: {1: {"a", "b", "c"}, 2: {"e", "f"}},
-            MockUseCaseID.USE_CASE_2: {1: {"a", "b", "c"}, 4: {"g", "f"}},
-            MockUseCaseID.USE_CASE_3: {5: {"k"}},
+            UseCaseID.SPANS: {1: {"a", "b", "c"}, 2: {"e", "f"}},
+            UseCaseID.TRANSACTIONS: {1: {"a", "b", "c"}, 4: {"g", "f"}},
+            UseCaseID.SESSIONS: {5: {"k"}},
         }
 
         collection = UseCaseKeyCollection(org_strings)
         collection_tuples = [
-            (MockUseCaseID.USE_CASE_1, 1, "a"),
-            (MockUseCaseID.USE_CASE_1, 1, "b"),
-            (MockUseCaseID.USE_CASE_1, 1, "c"),
-            (MockUseCaseID.USE_CASE_1, 2, "e"),
-            (MockUseCaseID.USE_CASE_1, 2, "f"),
-            (MockUseCaseID.USE_CASE_2, 1, "a"),
-            (MockUseCaseID.USE_CASE_2, 1, "b"),
-            (MockUseCaseID.USE_CASE_2, 1, "c"),
-            (MockUseCaseID.USE_CASE_2, 4, "g"),
-            (MockUseCaseID.USE_CASE_2, 4, "f"),
-            (MockUseCaseID.USE_CASE_3, 5, "k"),
+            (UseCaseID.SPANS, 1, "a"),
+            (UseCaseID.SPANS, 1, "b"),
+            (UseCaseID.SPANS, 1, "c"),
+            (UseCaseID.SPANS, 2, "e"),
+            (UseCaseID.SPANS, 2, "f"),
+            (UseCaseID.TRANSACTIONS, 1, "a"),
+            (UseCaseID.TRANSACTIONS, 1, "b"),
+            (UseCaseID.TRANSACTIONS, 1, "c"),
+            (UseCaseID.TRANSACTIONS, 4, "g"),
+            (UseCaseID.TRANSACTIONS, 4, "f"),
+            (UseCaseID.SESSIONS, 5, "k"),
         ]
         collection_strings = [
-            "uc_1:1:a",
-            "uc_1:1:b",
-            "uc_1:1:c",
-            "uc_1:2:e",
-            "uc_1:2:f",
-            "uc_2:1:a",
-            "uc_2:1:b",
-            "uc_2:1:c",
-            "uc_2:4:g",
-            "uc_2:4:f",
-            "uc_3:5:k",
+            "spans:1:a",
+            "spans:1:b",
+            "spans:1:c",
+            "spans:2:e",
+            "spans:2:f",
+            "transactions:1:a",
+            "transactions:1:b",
+            "transactions:1:c",
+            "transactions:4:g",
+            "transactions:4:f",
+            "sessions:5:k",
         ]
 
         assert collection.size == 11
@@ -221,7 +210,6 @@ class KeyResultsTest(TestCase):
         )
 
 
-@patch("sentry.sentry_metrics.indexer.base.UseCaseID", MockUseCaseID)
 class UseCaseResultsTest(TestCase):
     def test_basic(self) -> None:
         use_case_key_results = UseCaseKeyResults()
@@ -232,9 +220,9 @@ class UseCaseResultsTest(TestCase):
 
         use_case_collection = UseCaseKeyCollection(
             {
-                MockUseCaseID.USE_CASE_1: {1: {"a", "b", "c"}, 2: {"e", "f"}},
-                MockUseCaseID.USE_CASE_2: {1: {"a", "j"}},
-                MockUseCaseID.USE_CASE_3: {5: {"a", "c"}},
+                UseCaseID.SPANS: {1: {"a", "b", "c"}, 2: {"e", "f"}},
+                UseCaseID.TRANSACTIONS: {1: {"a", "j"}},
+                UseCaseID.SESSIONS: {5: {"a", "c"}},
             }
         )
         assert (
@@ -244,22 +232,18 @@ class UseCaseResultsTest(TestCase):
         results_with_meta = [
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="a", id=1
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="c", id=2
+                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="a", id=3
                     ),
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_2, org_id=1, string="a", id=3
-                    ),
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_2, org_id=1, string="j", id=4
+                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="j", id=4
                     ),
                 ],
                 FetchType.CACHE_HIT,
@@ -267,7 +251,7 @@ class UseCaseResultsTest(TestCase):
             (
                 [
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_4, org_id=2, string="j", id=5
+                        use_case_id=UseCaseID.ESCALATING_ISSUES, org_id=2, string="j", id=5
                     ),
                 ],
                 FetchType.FIRST_SEEN,
@@ -277,15 +261,15 @@ class UseCaseResultsTest(TestCase):
             use_case_key_results.add_use_case_key_results(results, meta)
 
         assert use_case_key_results.get_mapped_results() == {
-            MockUseCaseID.USE_CASE_1: {1: {"a": 1, "c": 2}},
-            MockUseCaseID.USE_CASE_2: {1: {"a": 3, "j": 4}},
-            MockUseCaseID.USE_CASE_4: {2: {"j": 5}},
+            UseCaseID.SPANS: {1: {"a": 1, "c": 2}},
+            UseCaseID.TRANSACTIONS: {1: {"a": 3, "j": 4}},
+            UseCaseID.ESCALATING_ISSUES: {2: {"j": 5}},
         }
         assert use_case_key_results.get_fetch_metadata() == {
-            MockUseCaseID.USE_CASE_1: defaultdict(
+            UseCaseID.SPANS: defaultdict(
                 dict, {1: {"c": Metadata(id=2, fetch_type=FetchType.CACHE_HIT)}}
             ),
-            MockUseCaseID.USE_CASE_2: defaultdict(
+            UseCaseID.TRANSACTIONS: defaultdict(
                 dict,
                 {
                     1: {
@@ -294,7 +278,7 @@ class UseCaseResultsTest(TestCase):
                     }
                 },
             ),
-            MockUseCaseID.USE_CASE_4: defaultdict(
+            UseCaseID.ESCALATING_ISSUES: defaultdict(
                 dict, {2: {"j": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)}}
             ),
         }
@@ -302,16 +286,16 @@ class UseCaseResultsTest(TestCase):
             use_case_collection
         ) == UseCaseKeyCollection(
             {
-                MockUseCaseID.USE_CASE_1: {1: {"b"}, 2: {"e", "f"}},
-                MockUseCaseID.USE_CASE_3: {5: {"a", "c"}},
+                UseCaseID.SPANS: {1: {"b"}, 2: {"e", "f"}},
+                UseCaseID.SESSIONS: {5: {"a", "c"}},
             }
         )
         assert use_case_key_results.get_mapped_strings_to_ints() == {
-            "uc_1:1:a": 1,
-            "uc_1:1:c": 2,
-            "uc_2:1:a": 3,
-            "uc_2:1:j": 4,
-            "uc_4:2:j": 5,
+            "spans:1:a": 1,
+            "spans:1:c": 2,
+            "transactions:1:a": 3,
+            "transactions:1:j": 4,
+            "escalating_issues:2:j": 5,
         }
 
     def test_merge(self) -> None:
@@ -324,31 +308,23 @@ class UseCaseResultsTest(TestCase):
         results_with_meta_1 = [
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="a", id=1
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="c", id=2
+                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="a", id=3
                     ),
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_2, org_id=1, string="a", id=3
-                    ),
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_3, org_id=1, string="e", id=4
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=1, string="e", id=4),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_3, org_id=2, string="e", id=5
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=2, string="e", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
@@ -356,34 +332,26 @@ class UseCaseResultsTest(TestCase):
         results_with_meta_2 = [
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="a", id=1
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="d", id=3),
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="c", id=2
+                        use_case_id=UseCaseID.TRANSACTIONS, org_id=2, string="a", id=4
                     ),
                     UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_1, org_id=1, string="d", id=3
-                    ),
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_2, org_id=2, string="a", id=4
-                    ),
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_4, org_id=1, string="e", id=5
+                        use_case_id=UseCaseID.ESCALATING_ISSUES, org_id=1, string="e", id=5
                     ),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseKeyResult(
-                        use_case_id=MockUseCaseID.USE_CASE_3, org_id=2, string="e", id=5
-                    ),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=2, string="e", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
@@ -404,13 +372,13 @@ class UseCaseResultsTest(TestCase):
             use_case_key_results_1
         )
         assert use_case_key_results_1.merge(use_case_key_results_2).get_mapped_results() == {
-            MockUseCaseID.USE_CASE_1: {1: {"a": 1, "c": 2, "d": 3}},
-            MockUseCaseID.USE_CASE_2: {1: {"a": 3}, 2: {"a": 4}},
-            MockUseCaseID.USE_CASE_3: {1: {"e": 4}, 2: {"e": 5}},
-            MockUseCaseID.USE_CASE_4: {1: {"e": 5}},
+            UseCaseID.SPANS: {1: {"a": 1, "c": 2, "d": 3}},
+            UseCaseID.TRANSACTIONS: {1: {"a": 3}, 2: {"a": 4}},
+            UseCaseID.SESSIONS: {1: {"e": 4}, 2: {"e": 5}},
+            UseCaseID.ESCALATING_ISSUES: {1: {"e": 5}},
         }
         assert use_case_key_results_1.merge(use_case_key_results_2).get_fetch_metadata() == {
-            MockUseCaseID.USE_CASE_1: defaultdict(
+            UseCaseID.SPANS: defaultdict(
                 dict,
                 {
                     1: {
@@ -419,21 +387,21 @@ class UseCaseResultsTest(TestCase):
                     }
                 },
             ),
-            MockUseCaseID.USE_CASE_2: defaultdict(
+            UseCaseID.TRANSACTIONS: defaultdict(
                 dict,
                 {
                     1: {"a": Metadata(id=3, fetch_type=FetchType.CACHE_HIT)},
                     2: {"a": Metadata(id=4, fetch_type=FetchType.CACHE_HIT)},
                 },
             ),
-            MockUseCaseID.USE_CASE_3: defaultdict(
+            UseCaseID.SESSIONS: defaultdict(
                 dict,
                 {
                     1: {"e": Metadata(id=4, fetch_type=FetchType.CACHE_HIT)},
                     2: {"e": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)},
                 },
             ),
-            MockUseCaseID.USE_CASE_4: defaultdict(
+            UseCaseID.ESCALATING_ISSUES: defaultdict(
                 dict, {1: {"e": Metadata(id=5, fetch_type=FetchType.CACHE_HIT)}}
             ),
         }

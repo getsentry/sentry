@@ -1,4 +1,4 @@
-import {Layout} from 'react-grid-layout';
+import type {Layout} from 'react-grid-layout';
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -8,9 +8,11 @@ import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {NUM_DESKTOP_COLS} from './dashboard';
-import {DisplayType, Widget, WidgetLayout} from './types';
+import type {Widget, WidgetLayout} from './types';
+import {DisplayType} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
+export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 2};
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -184,7 +186,12 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 
     return {
       ...widget,
-      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
+      layout: {
+        ...nextPosition,
+        h: height,
+        minH: height,
+        w: DEFAULT_WIDGET_WIDTH,
+      },
     };
   });
   return newWidgets;
@@ -219,4 +226,8 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
     }
     return {...widget, layout};
   });
+}
+
+export function isValidLayout(layout: Layout) {
+  return !isNaN(layout.x) && !isNaN(layout.y) && layout.w > 0 && layout;
 }

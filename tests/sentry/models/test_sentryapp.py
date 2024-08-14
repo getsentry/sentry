@@ -1,10 +1,13 @@
 from sentry.constants import SentryAppStatus
-from sentry.models import ApiApplication, SentryApp
-from sentry.testutils import TestCase
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -37,6 +40,8 @@ class SentryAppTest(TestCase):
 
     def test_related_names(self):
         self.sentry_app.save()
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
 
@@ -69,3 +74,13 @@ class SentryAppTest(TestCase):
             organization=other_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
         assert not self.sentry_app.is_installed_on(self.org)
+
+    def test_save_outbox_update(self):
+        # Clear the outbox created in setup()
+        ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).delete()
+
+        self.sentry_app.update(name="NoneDB")
+        outboxes = ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).all()
+        assert len(outboxes) == 1
+        assert outboxes[0].shard_identifier == self.sentry_app.id
+        assert outboxes[0].region_name

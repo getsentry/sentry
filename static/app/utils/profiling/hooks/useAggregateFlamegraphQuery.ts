@@ -1,36 +1,105 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function useAggregateFlamegraphQuery({transaction}: {transaction: string}) {
+interface BaseAggregateFlamegraphQueryParameters {
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
+  environments?: PageFilters['environments'];
+  projects?: PageFilters['projects'];
+}
+
+interface FunctionsAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  query: string;
+  dataSource?: 'functions';
+  fingerprint?: string;
+}
+
+interface TransactionsAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  query: string;
+  dataSource?: 'transactions';
+}
+
+interface ProfilesAggregateFlamegraphQueryParameters
+  extends BaseAggregateFlamegraphQueryParameters {
+  dataSource: 'profiles';
+}
+
+export type AggregateFlamegraphQueryParameters =
+  | FunctionsAggregateFlamegraphQueryParameters
+  | TransactionsAggregateFlamegraphQueryParameters
+  | ProfilesAggregateFlamegraphQueryParameters;
+
+export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
+  Profiling.Schema,
+  RequestError
+>;
+
+export function useAggregateFlamegraphQuery(
+  props: AggregateFlamegraphQueryParameters
+): UseAggregateFlamegraphQueryResult {
+  const {dataSource, datetime, enabled, environments, projects} = props;
+
+  let fingerprint: string | undefined = undefined;
+  let query: string | undefined = undefined;
+
+  if (isDataSourceFunctions(props)) {
+    fingerprint = props.fingerprint;
+    query = props.query;
+  } else if (isDataSourceTransactions(props)) {
+    query = props.query;
+  }
+
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/profiling/flamegraph/`;
+  const endpointOptions = useMemo(() => {
+    const params = {
+      query: {
+        project: projects ?? selection.projects,
+        environment: environments ?? selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        dataSource,
+        fingerprint,
+        query,
+      },
+    };
 
-  const query = useMemo(() => {
-    // TODO: this should contain the user query
-    // wait util we fully switch over to the transactions dataset
-    const conditions = new MutableSearch([]);
-    conditions.setFilterValues('transaction', [transaction]);
-    return conditions.formatString();
-  }, [transaction]);
+    return params;
+  }, [dataSource, datetime, environments, projects, fingerprint, query, selection]);
 
-  const endpointOptions = {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
-      query,
-    },
-  };
+  return useApiQuery<Profiling.Schema>(
+    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    {
+      staleTime: 0,
+      retry: false,
+      enabled,
+    }
+  );
+}
 
-  return useApiQuery<Profiling.Schema>([path, endpointOptions], {
-    staleTime: 0,
-    retry: false,
-  });
+function isDataSourceProfiles(
+  props: AggregateFlamegraphQueryParameters
+): props is ProfilesAggregateFlamegraphQueryParameters {
+  return 'dataSource' in props && props.dataSource === 'profiles';
+}
+
+function isDataSourceFunctions(
+  props: AggregateFlamegraphQueryParameters
+): props is FunctionsAggregateFlamegraphQueryParameters {
+  return 'fingerprint' in props;
+}
+
+function isDataSourceTransactions(
+  props: AggregateFlamegraphQueryParameters
+): props is TransactionsAggregateFlamegraphQueryParameters {
+  return !isDataSourceProfiles(props) && !isDataSourceFunctions(props);
 }

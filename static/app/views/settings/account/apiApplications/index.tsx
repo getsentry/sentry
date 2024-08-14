@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -7,93 +7,101 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ApiApplication} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import type {ApiApplication} from 'sentry/types/user';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import Row from 'sentry/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
 type Props = RouteComponentProps<{}, {}>;
-type State = {
-  appList: ApiApplication[];
-} & AsyncView['state'];
 
-class ApiApplications extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['appList', '/api-applications/']];
+function ApiApplications({router}: Props) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const ENDPOINT = '/api-applications/';
+
+  const {
+    data: appList,
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<ApiApplication[]>([ENDPOINT], {
+    staleTime: 0,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    return t('API Applications');
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  handleCreateApplication = async () => {
+  const handleCreateApplication = async () => {
     addLoadingMessage();
 
     try {
-      const app = await this.api.requestPromise('/api-applications/', {
+      const app = await api.requestPromise(ENDPOINT, {
         method: 'POST',
       });
 
       addSuccessMessage(t('Created a new API Application'));
-      this.props.router.push(`${ROUTE_PREFIX}applications/${app.id}/`);
+      router.push(`${ROUTE_PREFIX}applications/${app.id}/`);
     } catch {
       addErrorMessage(t('Unable to remove application. Please try again.'));
     }
   };
 
-  handleRemoveApplication = (app: ApiApplication) => {
-    this.setState({
-      appList: this.state.appList.filter(a => a.id !== app.id),
-    });
+  const handleRemoveApplication = (app: ApiApplication) => {
+    setApiQueryData<any>(queryClient, [ENDPOINT], oldAppList =>
+      oldAppList.filter(a => a.id !== app.id)
+    );
   };
 
-  renderBody() {
-    const isEmpty = this.state.appList.length === 0;
+  const isEmpty = appList.length === 0;
 
-    return (
-      <div>
-        <SettingsPageHeader
-          title="API Applications"
-          action={
-            <Button
-              priority="primary"
-              size="sm"
-              onClick={this.handleCreateApplication}
-              icon={<IconAdd size="xs" isCircled />}
-            >
-              {t('Create New Application')}
-            </Button>
-          }
-        />
+  return (
+    <SentryDocumentTitle title={t('API Applications')}>
+      <SettingsPageHeader
+        title="API Applications"
+        action={
+          <Button
+            priority="primary"
+            size="sm"
+            onClick={handleCreateApplication}
+            icon={<IconAdd isCircled />}
+          >
+            {t('Create New Application')}
+          </Button>
+        }
+      />
 
-        <Panel>
-          <PanelHeader>{t('Application Name')}</PanelHeader>
+      <Panel>
+        <PanelHeader>{t('Application Name')}</PanelHeader>
 
-          <PanelBody>
-            {!isEmpty ? (
-              this.state.appList.map(app => (
-                <Row
-                  api={this.api}
-                  key={app.id}
-                  app={app}
-                  onRemove={this.handleRemoveApplication}
-                />
-              ))
-            ) : (
-              <EmptyMessage>
-                {t("You haven't created any applications yet.")}
-              </EmptyMessage>
-            )}
-          </PanelBody>
-        </Panel>
-      </div>
-    );
-  }
+        <PanelBody>
+          {!isEmpty ? (
+            appList.map(app => (
+              <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
+            ))
+          ) : (
+            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
+    </SentryDocumentTitle>
+  );
 }
 
 export default ApiApplications;

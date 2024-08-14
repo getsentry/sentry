@@ -1,11 +1,9 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
-
 import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
-import type {Deploy, Release} from './release';
-import type {DynamicSamplingBias, DynamicSamplingRule} from './sampling';
+import type {Deploy} from './release';
+import type {DynamicSamplingBias} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -16,6 +14,7 @@ export type AvatarProject = {
 
 export type Project = {
   access: Scope[];
+  allowedDomains: string[];
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
@@ -24,13 +23,26 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  extrapolateMetrics: boolean;
   features: string[];
-  firstEvent: 'string' | null;
+  firstEvent: string | null;
   firstTransactionEvent: boolean;
-  groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasCustomMetrics: boolean;
+  hasFeedbacks: boolean;
+  hasInsightsAppStart: boolean;
+  hasInsightsAssets: boolean;
+  hasInsightsCaches: boolean;
+  hasInsightsDb: boolean;
+  hasInsightsHttp: boolean;
+  hasInsightsLlmMonitoring: boolean;
+  hasInsightsQueues: boolean;
+  hasInsightsScreenLoad: boolean;
+  hasInsightsVitals: boolean;
   hasMinifiedStackTrace: boolean;
+  hasMonitors: boolean;
+  hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
@@ -40,26 +52,41 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
+
   plugins: Plugin[];
-
   processingIssues: number;
+  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
-
+  resolveAge: number;
+  safeFields: string[];
+  scrapeJavaScript: boolean;
+  scrubIPAddresses: boolean;
+  sensitiveFields: string[];
   subjectTemplate: string;
   team: Team;
   teams: Team[];
+  verifySSL: boolean;
   builtinSymbolSources?: string[];
-  dynamicSamplingRules?: DynamicSamplingRule[] | null;
+  defaultEnvironment?: string;
   hasUserReports?: boolean;
+  highlightContext?: Record<string, string[]>;
+  highlightPreset?: {
+    context: Record<string, string[]>;
+    tags: string[];
+  };
+  highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
-  latestRelease?: Release;
+  latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  securityToken?: string;
+  securityTokenHeader?: string;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
     previousCrashFreeRate: number | null;
   };
   stats?: TimeseriesValue[];
+  subjectPrefix?: string;
   symbolSources?: string;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -71,10 +98,11 @@ export type ProjectKey = {
   browserSdk: {
     choices: [key: string, value: string][];
   };
-  browserSdkVersion: string;
+  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
   dsn: {
     cdn: string;
+    crons: string;
     csp: string;
     minidump: string;
     public: string;
@@ -91,13 +119,14 @@ export type ProjectKey = {
   isActive: boolean;
   label: string;
   name: string;
-  projectId: string;
+  projectId: number;
   public: string;
   rateLimit: {
     count: number;
-    window: string;
+    window: number;
   } | null;
   secret: string;
+  useCase?: string;
 };
 
 export type ProjectSdkUpdates = {
@@ -119,6 +148,151 @@ export type Environment = {
 export interface TeamWithProjects extends Team {
   projects: Project[];
 }
+
+/**
+ * The type of all platform keys.
+ * Also includes platforms that cannot be created in the UI anymore.
+ */
+export type PlatformKey =
+  | 'android'
+  | 'apple'
+  | 'apple-ios'
+  | 'apple-macos'
+  | 'bun'
+  | 'c'
+  | 'capacitor'
+  | 'cfml'
+  | 'cocoa'
+  | 'cocoa-objc'
+  | 'cocoa-swift'
+  | 'cordova'
+  | 'csharp'
+  | 'csharp-aspnetcore'
+  | 'dart'
+  | 'dart-flutter'
+  | 'deno'
+  | 'django'
+  | 'dotnet'
+  | 'dotnet-aspnet'
+  | 'dotnet-aspnetcore'
+  | 'dotnet-awslambda'
+  | 'dotnet-gcpfunctions'
+  | 'dotnet-google-cloud-functions'
+  | 'dotnet-maui'
+  | 'dotnet-uwp'
+  | 'dotnet-winforms'
+  | 'dotnet-wpf'
+  | 'dotnet-xamarin'
+  | 'electron'
+  | 'elixir'
+  | 'flutter'
+  | 'go'
+  | 'go-echo'
+  | 'go-fasthttp'
+  | 'go-fiber'
+  | 'go-gin'
+  | 'go-http'
+  | 'go-iris'
+  | 'go-martini'
+  | 'go-negroni'
+  | 'groovy'
+  | 'ionic'
+  | 'java'
+  | 'java-android'
+  | 'java-appengine'
+  | 'java-log4j'
+  | 'java-log4j2'
+  | 'java-logback'
+  | 'java-logging'
+  | 'java-spring'
+  | 'java-spring-boot'
+  | 'javascript'
+  | 'javascript-angular'
+  | 'javascript-angularjs'
+  | 'javascript-astro'
+  | 'javascript-backbone'
+  | 'javascript-browser'
+  | 'javascript-capacitor'
+  | 'javascript-cordova'
+  | 'javascript-electron'
+  | 'javascript-ember'
+  | 'javascript-gatsby'
+  | 'javascript-nextjs'
+  | 'javascript-react'
+  | 'javascript-remix'
+  | 'javascript-solid'
+  | 'javascript-svelte'
+  | 'javascript-sveltekit'
+  | 'javascript-vue'
+  | 'kotlin'
+  | 'minidump'
+  | 'native'
+  | 'native-crashpad'
+  | 'native-breakpad'
+  | 'native-minidump'
+  | 'native-qt'
+  | 'nintendo-switch'
+  | 'node'
+  | 'node-awslambda'
+  | 'node-azurefunctions'
+  | 'node-connect'
+  | 'node-express'
+  | 'node-fastify'
+  | 'node-gcpfunctions'
+  | 'node-hapi'
+  | 'node-koa'
+  | 'node-nestjs'
+  | 'node-nodeawslambda'
+  | 'node-nodegcpfunctions'
+  | 'objc'
+  | 'other'
+  | 'perl'
+  | 'php'
+  | 'PHP'
+  | 'php-laravel'
+  | 'php-monolog'
+  | 'php-symfony'
+  | 'php-symfony2'
+  | 'powershell'
+  | 'python'
+  | 'python-aiohttp'
+  | 'python-asgi'
+  | 'python-awslambda'
+  | 'python-azurefunctions'
+  | 'python-bottle'
+  | 'python-celery'
+  | 'python-chalice'
+  | 'python-django'
+  | 'python-falcon'
+  | 'python-fastapi'
+  | 'python-flask'
+  | 'python-gcpfunctions'
+  | 'python-pylons'
+  | 'python-pymongo'
+  | 'python-pyramid'
+  | 'python-pythonawslambda'
+  | 'python-pythonazurefunctions'
+  | 'python-pythongcpfunctions'
+  | 'python-pythonserverless'
+  | 'python-quart'
+  | 'python-rq'
+  | 'python-sanic'
+  | 'python-serverless'
+  | 'python-starlette'
+  | 'python-tornado'
+  | 'python-tryton'
+  | 'python-wsgi'
+  | 'rails'
+  | 'react'
+  | 'react-native'
+  | 'ruby'
+  | 'ruby-rack'
+  | 'ruby-rails'
+  | 'rust'
+  | 'swift'
+  | 'switt'
+  | 'unity'
+  | 'unreal';
 
 export type PlatformIntegration = {
   id: PlatformKey;

@@ -18,14 +18,34 @@ export const VALUE_MAPPING = {
   committed_only: 40,
 };
 
+export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
+
 export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
 export const MIN_PROJECTS_FOR_PAGINATION = 100;
+export type ProviderValue = 'always' | 'never';
 
-export type NotificationSettingsByProviderObject = {[key: string]: string};
-export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
-};
+interface NotificationBaseObject {
+  id: string;
+  scopeIdentifier: string;
+  scopeType: string;
+  type: string;
+}
+
+export interface NotificationOptionsObject extends NotificationBaseObject {
+  value: ProviderValue | 'subscribe_only' | 'committed_only';
+}
+
+export interface NotificationProvidersObject extends NotificationBaseObject {
+  provider: SupportedProviders;
+  value: ProviderValue;
+}
+
+export interface DefaultSettings {
+  providerDefaults: SupportedProviders[];
+  typeDefaults: Record<string, ProviderValue>;
+}
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
@@ -36,6 +56,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'reports',
   'email',
   'spikeProtection',
+  'brokenMonitors',
 ] as const;
 
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
@@ -55,6 +76,7 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
   reports: 'reports',
   email: 'email',
   spikeProtection: 'spike-protection',
+  brokenMonitors: 'broken-monitors',
 };
 
 export const CONFIRMATION_MESSAGE = (
@@ -70,8 +92,9 @@ export const CONFIRMATION_MESSAGE = (
   </div>
 );
 
-export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
-  {
-    quota: 'slack-overage-notifications',
-    spikeProtection: 'spike-projections',
-  };
+export const NOTIFICATION_FEATURE_MAP: Partial<
+  Record<NotificationSettingsType, string | Array<string>>
+> = {
+  quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
+  spikeProtection: 'spike-projections',
+};

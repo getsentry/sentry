@@ -6,14 +6,13 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
     get_event,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.consecutive_db_detector import (
     ConsecutiveDBSpanDetector,
 )
@@ -26,7 +25,6 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 SECOND = 1000
 
 
-@region_silo_test
 @pytest.mark.django_db
 class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):

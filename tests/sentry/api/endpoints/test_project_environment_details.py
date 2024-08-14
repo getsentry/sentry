@@ -2,12 +2,10 @@ from urllib.parse import quote
 
 from django.urls import reverse
 
-from sentry.models import Environment, EnvironmentProject
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test
 class ProjectEnvironmentsTest(APITestCase):
     def test_get(self):
         project = self.create_project()
@@ -22,8 +20,8 @@ class ProjectEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-environment-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "environment": "production",
             },
         )
@@ -42,8 +40,8 @@ class ProjectEnvironmentsTest(APITestCase):
                 reverse(
                     "sentry-api-0-project-environment-details",
                     kwargs={
-                        "organization_slug": project.organization.slug,
-                        "project_slug": project.slug,
+                        "organization_id_or_slug": project.organization.slug,
+                        "project_id_or_slug": project.slug,
                         "environment": "invalid",
                     },
                 ),
@@ -65,8 +63,8 @@ class ProjectEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-environment-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "environment": "production",
             },
         )
@@ -83,8 +81,8 @@ class ProjectEnvironmentsTest(APITestCase):
                 reverse(
                     "sentry-api-0-project-environment-details",
                     kwargs={
-                        "organization_slug": project.organization.slug,
-                        "project_slug": project.slug,
+                        "organization_id_or_slug": project.organization.slug,
+                        "project_id_or_slug": project.slug,
                         "environment": "invalid",
                     },
                 ),
@@ -109,8 +107,8 @@ class ProjectEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-environment-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "environment": quote(env_name, safe=""),
             },
         )

@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 /**
@@ -24,6 +24,7 @@ export const Meter = styled('div')`
 export const Value = styled('span')<{
   style: {width: string} & CSSProperties;
 }>`
+  max-width: 100%;
   position: absolute;
   height: 100%;
   pointer-events: none;

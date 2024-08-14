@@ -1,10 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.pagerduty_service import PagerDutyService
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -13,12 +12,14 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.testutils import APITestCase
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 
-@region_silo_test(stable=True)
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
@@ -47,6 +48,26 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             target_type=ActionTarget.get_value(data["targetType"]),
         )
         self.login_as(user=self.user)
+
+    def mock_msg_schedule_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            body = {"ok": False, "error": "channel_not_found"}
+        else:
+            body = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return mock_slack_response("chat_scheduleMessage", body=body)
+
+    def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            body = {"ok": False, "error": "channel_not_found"}
+        else:
+            body = {
+                "ok": True,
+            }
+        return mock_slack_response("chat_deleteScheduledMessage", body=body)
 
     def test_requires_organization_access(self):
         for method in ["GET", "PUT", "DELETE"]:
@@ -93,7 +114,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     def test_put_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
@@ -212,8 +233,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert error_message in str(response.data)
 
     @patch.dict(NotificationAction._registry, {})
-    @responses.activate
-    def test_post_with_slack_validation(self):
+    def test_put_with_slack_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -231,37 +251,19 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="PUT",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
-        )
-        response = self.get_success_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_202_ACCEPTED,
-            method="PUT",
-            **data,
-        )
-        assert response.data["targetIdentifier"] == channel_id
+        with self.mock_msg_schedule_response(channel_id):
+            with self.mock_msg_delete_scheduled_response(channel_id):
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.notif_action.id,
+                    status_code=status.HTTP_202_ACCEPTED,
+                    method="PUT",
+                    **data,
+                )
+                assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_PUT_with_pagerduty_validation(self):
+    def test_put_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -293,12 +295,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             **data,
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="abc",
-            organization_integration_id=second_integration.organizationintegration_set.first().id,
-        )
-        data["targetIdentifier"] = service.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = second_integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
+                service_name=service_name,
+                integration_key="abc",
+            )
+        data["targetIdentifier"] = service["id"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
@@ -307,12 +311,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             **data,
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
-        service = PagerDutyService.objects.create(
-            service_name=service_name,
-            integration_key="def",
-            organization_integration_id=integration.organizationintegration_set.first().id,
-        )
-        data["targetIdentifier"] = service.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
+                service_name=service_name,
+                integration_key="def",
+            )
+        data["targetIdentifier"] = service["id"]
         response = self.get_success_response(
             self.organization.slug,
             self.notif_action.id,
@@ -320,8 +326,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="PUT",
             **data,
         )
-        assert response.data["targetIdentifier"] == service.id
-        assert response.data["targetDisplay"] == service.service_name
+        assert response.data["targetIdentifier"] == service["id"]
+        assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
     def test_put_simple(self):
@@ -347,6 +353,40 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data == serialize(self.notif_action)
         # Relation table has been updated
         assert not NotificationActionProject.objects.filter(action_id=self.notif_action.id).exists()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_member(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[self.team])
+        self.login_as(user)
+
+        data = {**self.base_data}
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="PUT",
+            **data,
+        )
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_put_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_put_simple()
 
     def test_delete_invalid_action(self):
         self.get_error_response(
@@ -374,15 +414,38 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
 
-    def test_delete_success_as_manager(self):
+    def test_delete_manager(self):
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="manager")
         self.login_as(user)
-        assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
-        self.get_success_response(
+
+        self.test_delete_simple()
+
+    def test_delete_org_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
-            status_code=status.HTTP_204_NO_CONTENT,
+            status_code=status.HTTP_403_FORBIDDEN,
             method="DELETE",
         )
-        assert not NotificationAction.objects.filter(id=self.notif_action.id).exists()
+
+    def test_delete_org_admin(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user)
+
+        self.test_delete_simple()
+
+    def test_delete_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_delete_simple()

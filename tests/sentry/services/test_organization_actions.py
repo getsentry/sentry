@@ -1,22 +1,18 @@
+import re
+
 import pytest
 
-from sentry.models import (
-    Organization,
-    OrganizationStatus,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
-from sentry.services.hybrid_cloud.organization_actions.impl import (
-    create_organization_with_outbox_message,
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.organizations.services.organization_actions.impl import (
+    generate_deterministic_organization_slug,
     mark_organization_as_pending_deletion_with_outbox_message,
     unmark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
 
 
 def assert_outbox_update_message_exists(org: Organization, expected_count: int):
@@ -32,28 +28,6 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
         assert org_update_outbox.category == OutboxCategory.ORGANIZATION_UPDATE
 
 
-@region_silo_test(stable=True)
-class OrganizationUpdateTest(TestCase):
-    def setUp(self):
-        self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
-
-    def test_create_organization_with_outbox_message(self):
-        with outbox_context(flush=False):
-            org: Organization = create_organization_with_outbox_message(
-                create_options={
-                    "slug": "santry",
-                    "name": "santry",
-                    "status": OrganizationStatus.ACTIVE,
-                }
-            )
-
-        assert org.id
-        assert org.slug == "santry"
-        assert org.name == "santry"
-        assert_outbox_update_message_exists(org=org, expected_count=1)
-
-
-@region_silo_test(stable=True)
 class OrganizationUpdateWithOutboxTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
@@ -74,7 +48,6 @@ class OrganizationUpdateWithOutboxTest(TestCase):
             update_organization_with_outbox_message(org_id=1234, update_data={"name": "foobar"})
 
 
-@region_silo_test(stable=True)
 class OrganizationUpsertWithOutboxTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
@@ -137,7 +110,6 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         assert_outbox_update_message_exists(org=db_created_org, expected_count=1)
 
 
-@region_silo_test(stable=True)
 class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(
@@ -181,7 +153,6 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert_outbox_update_message_exists(self.org, 0)
 
 
-@region_silo_test(stable=True)
 class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(
@@ -241,3 +212,52 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
         assert self.org.name == org_before_update.name
         assert self.org.slug == org_before_update.slug
         assert_outbox_update_message_exists(self.org, 0)
+
+
+class TestGenerateDeterministicOrganizationSlug(TestCase):
+    def test_slug_under_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="santry", desired_org_name="santry", owning_user_id=42
+        )
+
+        assert slug == "santry-095a9012d"
+
+    def test_slug_above_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="areallylongsentryorgnamethatiswaytoolong",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert len(slug) == 30
+        assert slug == "areallylongsentryorg-945bda148"
+
+    def test_slug_with_mixed_casing(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="A mixed CASING str",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert slug == "a-mixed-casing-str-9e9173167"
+
+    def test_slug_with_unicode_chars(self):
+        unicoded_str = "Sí Señtry 😅"
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        assert slug == "si-sentry-3471b1b85"
+
+    def test_slug_with_0_length(self):
+        unicoded_str = "😅"
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        random_slug_regex = re.compile(r"^[a-f0-9]{10}-[a-f0-9]{9}")
+        assert random_slug_regex.match(slug)
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
+        )
+        assert random_slug_regex.match(slug)

@@ -1,17 +1,13 @@
-import freezegun
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.models import ProjectKey
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.models.projectkey import ProjectKey
+from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.outcomes import Outcome
 
 
-@freezegun.freeze_time("2022-01-01 03:30:00")
-@region_silo_test
+@freeze_time("2022-01-01 03:30:00")
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -20,6 +16,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.login_as(user=self.user)
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
+    @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/54520")
     def test_simple(self):
         # This outcome should not be included.
         other_key = ProjectKey.objects.create(project=self.project)
@@ -82,7 +79,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         # Find the bucket with data.
         # The index of this bucket can shift when we run tests at UTC midnight
         result = [bucket for bucket in response.data if bucket["total"] > 0][0]
-        assert type(result["ts"]) == int
+        assert isinstance(result["ts"], int)
         assert result["total"] == 8, response.data
         assert result["filtered"] == 1, response.data
         assert result["dropped"] == 5, response.data
@@ -159,14 +156,14 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         response = self.client.get(
             self.path,
             data={
-                "since": before_now(days=1).timestamp(),
-                "until": before_now().timestamp(),
+                "since": int(before_now(days=1).timestamp()),
+                "until": int(before_now().timestamp()),
             },
         )
         assert response.status_code == 200, response.content
 
         result = [bucket for bucket in response.data if bucket["total"] > 0][0]
-        assert type(result["ts"]) == int
+        assert isinstance(result["ts"], int)
         assert result["total"] == 2, response.data
         assert result["filtered"] == 0, response.data
         assert result["dropped"] == 0, response.data

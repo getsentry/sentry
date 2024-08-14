@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 # This static list is the first step towards a smarter implementation of the latest release boosting. The idea behind
 # this implementation is to obtain a list of time to adoptions per platform and use that as the boost duration.
@@ -60,6 +59,7 @@ LATEST_RELEASE_TTAS = {
     "javascript": 11035,
     "javascript-angular": 5156,
     "javascript-angularjs": 11592,
+    "javascript-astro": 5943,
     "javascript-backbone": 3463,
     "javascript-browser": 3552,
     "javascript-ember": 10246,
@@ -85,13 +85,11 @@ LATEST_RELEASE_TTAS = {
     "node-gcpfunctions": 3728,
     "node-koa": 4214,
     "node-nodeawslambda": 3639,
-    "node-serverlesscloud": 11155,
     "objc": 4000209,
     "other": 12019,
     "php": 12112,
     "php-laravel": 12382,
     "php-symfony": 13781,
-    "php-symfony2": 3817,
     "python": 4358,
     "python-aiohttp": 4048,
     "python-asgi": 3999,
@@ -132,7 +130,7 @@ DEFAULT_TTA = 3600
 
 @dataclass(frozen=True)
 class Platform:
-    name: Optional[str] = None
+    name: str | None = None
 
     @property
     def time_to_adoption(self) -> int:

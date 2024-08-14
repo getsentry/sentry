@@ -1,9 +1,10 @@
-import {browserHistory} from 'react-router';
+import {IncidentFixture} from 'sentry-fixture/incident';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import IncidentRedirect from './incidentRedirect';
 
@@ -11,12 +12,12 @@ jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};
-  const {organization, project, routerContext, routerProps} = initializeOrg({
+  const {organization, project, router, routerProps} = initializeOrg({
     router: {
       params,
     },
   });
-  const mockIncident = TestStubs.Incident({projects: [project.slug]});
+  const mockIncident = IncidentFixture({projects: [project.slug]});
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -32,7 +33,7 @@ describe('IncidentRedirect', () => {
 
   it('redirects to alert details page', async () => {
     render(<IncidentRedirect organization={organization} {...routerProps} />, {
-      context: routerContext,
+      router,
     });
 
     expect(trackAnalytics).toHaveBeenCalledWith(

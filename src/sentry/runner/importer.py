@@ -1,120 +1,55 @@
-import sys
+import importlib.metadata
+import os.path
 import types
+from typing import Any
 
-import click
-
-
-def install(name, config_path, default_settings, callback=None):
-    sys.meta_path.append(Importer(name, config_path, default_settings, callback))
+DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
+SENTRY_CONF_PY = os.path.expanduser("~/.sentry/sentry.conf.py")
 
 
-class ConfigurationError(ValueError, click.ClickException):
-    def show(self, file=None):
-        if file is None:
-            from click._compat import get_text_stderr
+def populate_module(settings_mod: types.ModuleType) -> None:
+    default_settings_mod = importlib.import_module(DEFAULT_SETTINGS_MODULE)
 
-            file = get_text_stderr()
-        click.secho(f"!! Configuration error: {self!r}", file=file, fg="red")
+    # install the default settings for this app
+    _add_settings(default_settings_mod, settings=settings_mod)
 
+    # install the custom settings for this app
+    _load_settings(SENTRY_CONF_PY, settings=settings_mod)
 
-class Importer:
-    def __init__(self, name, config_path, default_settings=None, callback=None):
-        self.name = name
-        self.config_path = config_path
-        self.default_settings = default_settings
-        self.callback = callback
-
-    def __repr__(self):
-        return f"<{type(self)} for '{self.name}' ({self.config_path})>"
-
-    def find_module(self, fullname, path=None):
-        if fullname != self.name:
-            return
-        return self
-
-    def load_module(self, fullname):
-        # Check to make sure it's not already in sys.modules in case of a reload()
-        if fullname in sys.modules:
-            return sys.modules[fullname]  # pragma: no cover
-
-        try:
-            mod = self._load_module(fullname)
-        except Exception as e:
-            msg = str(e)
-            if msg:
-                msg = f"{type(e).__name__}: {msg}"
-            else:
-                msg = type(e).__name__
-            raise ConfigurationError(msg).with_traceback(e.__traceback__)
-        else:
-            # Install into sys.modules explicitly
-            sys.modules[fullname] = mod
-            if self.callback is not None:
-                self.callback(mod)
-            return mod
-
-    def _load_module(self, fullname):
-        if self.default_settings:
-            from importlib import import_module
-
-            default_settings_mod = import_module(self.default_settings)
-        else:
-            default_settings_mod = None
-
-        settings_mod = types.ModuleType(self.name)
-
-        # Django doesn't play too nice without the config file living as a real
-        # file, so let's fake it.
-        settings_mod.__file__ = self.config_path
-
-        # install the default settings for this app
-        load_settings(default_settings_mod, settings=settings_mod)
-
-        # install the custom settings for this app
-        load_settings(self.config_path, settings=settings_mod, silent=True)
-
-        install_plugin_apps("sentry.apps", settings_mod)
-
-        return settings_mod
+    install_plugin_apps("sentry.apps", settings_mod)
 
 
-def load_settings(mod_or_filename, settings, silent=False):
-    if isinstance(mod_or_filename, str):
-        conf = types.ModuleType("temp_config")
-        conf.__file__ = mod_or_filename
+def _load_settings(filename: str, settings: types.ModuleType) -> None:
+    conf = types.ModuleType("temp_config")
+    conf.__file__ = filename
 
-        try:
-            with open(mod_or_filename, mode="rb") as source_file:
-                exec(source_file.read(), conf.__dict__)
-        except OSError as e:
-            import errno
+    try:
+        with open(filename, mode="rb") as source_file:
+            exec(source_file.read(), conf.__dict__)
+    except (FileNotFoundError, IsADirectoryError):
+        return
 
-            if silent and e.errno in (errno.ENOENT, errno.EISDIR):
-                return settings
-            e.strerror = "Unable to load configuration file (%s)" % e.strerror
-            raise
-    else:
-        conf = mod_or_filename
-
-    add_settings(conf, settings=settings)
+    _add_settings(conf, settings=settings)
 
 
-def install_plugin_apps(entry_point, settings):
+def install_plugin_apps(entry_point: str, settings: Any) -> None:
     # entry_points={
     #    'sentry.apps': [
     #         'phabricator = sentry_phabricator'
     #     ],
     # },
-    from pkg_resources import iter_entry_points
-
     installed_apps = list(settings.INSTALLED_APPS)
-    for ep in iter_entry_points(entry_point):
-        if ep.module_name not in installed_apps:
-            installed_apps.append(ep.module_name)
+    for dist in importlib.metadata.distributions():
+        for ep in dist.entry_points:
+            if ep.group == entry_point:
+                assert ":" not in ep.value, ep.value
+                if ep.value not in installed_apps:
+                    installed_apps.append(ep.value)
+
     settings.INSTALLED_APPS = tuple(installed_apps)
 
 
-def add_settings(mod, settings):
+def _add_settings(mod: types.ModuleType, settings: types.ModuleType) -> None:
     """
     Adds all settings that are part of ``mod`` to the global settings object.
     Special cases ``EXTRA_APPS`` to append the specified applications to the
@@ -126,7 +61,7 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in ("INSTALLED_APPS",) and isinstance(setting_value, str):
+        if setting == "INSTALLED_APPS" and isinstance(setting_value, str):
             setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple

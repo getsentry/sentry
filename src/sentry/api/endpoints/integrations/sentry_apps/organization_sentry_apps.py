@@ -1,22 +1,38 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint, add_integration_platform_metric_tag
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases import add_integration_platform_metric_tag
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 
 
-@region_silo_endpoint
-class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @add_integration_platform_metric_tag
-    def get(self, request: Request, organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         queryset = SentryApp.objects.filter(owner_id=organization.id, application__isnull=False)
 
-        if SentryAppStatus.as_int(request.GET.get("status")) is not None:
-            queryset = queryset.filter(status=SentryAppStatus.as_int(request.GET.get("status")))
+        status = request.GET.get("status")
+        if status is not None:
+            queryset = queryset.filter(status=SentryAppStatus.as_int(status))
 
         return self.paginate(
             request=request,

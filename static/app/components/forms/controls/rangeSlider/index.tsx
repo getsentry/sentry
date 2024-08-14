@@ -27,6 +27,8 @@ type SliderProps = {
    */
   allowedValues?: number[];
 
+  'aria-label'?: string;
+
   className?: string;
 
   disabled?: boolean;
@@ -199,6 +201,7 @@ function RangeSlider({
             value={sliderValue}
             hasLabel={!showCustomInput}
             aria-valuetext={labelText}
+            aria-label={props['aria-label']}
           />
           {showCustomInput && (
             <Input

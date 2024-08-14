@@ -3,12 +3,12 @@ from functools import cached_property
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationAbstractDetailViewPage,
 )
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
     @cached_property
     def plugin(self):
@@ -30,7 +30,6 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
 
     def test_opsgenie_add_to_project(self):
         self.load_page("opsgenie")
-        self.browser.snapshot("integrations - plugin detail overview")
 
         detail_view_page = OrganizationAbstractDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
@@ -39,14 +38,12 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         # check if we got to the configuration page with the form
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("plugin-config")
-        self.browser.snapshot("integrations - plugin config form")
 
     def test_uninstallation(self):
         self.plugin.set_option("api_key", "7c8951d1", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)
 
         self.load_page("opsgenie", configuration_tab=True)
-        self.browser.snapshot("integrations - plugin detail one configuration")
 
         detail_view_page = OrganizationAbstractDetailViewPage(browser=self.browser)
 
@@ -55,4 +52,3 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         detail_view_page.uninstall()
         self.browser.wait_until('[data-test-id="toast-success"]')
         assert not self.browser.element_exists('[aria-label="Configure"]')
-        self.browser.snapshot("integrations - plugin detail no configurations")

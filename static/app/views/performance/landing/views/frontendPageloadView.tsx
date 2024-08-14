@@ -1,9 +1,6 @@
-import {
-  canUseMetricsData,
-  MetricsEnhancedSettingContext,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -13,7 +10,7 @@ import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartR
 import {filterAllowedChartsMetrics} from '../widgets/utils';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 function getAllowedChartsSmall(
   props: BasePerformanceViewProps,
@@ -32,23 +29,16 @@ function getAllowedChartsSmall(
 
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
+  const {setPageError} = usePageAlert();
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.WORST_LCP_VITALS,
     PerformanceWidgetSetting.WORST_FCP_VITALS,
     PerformanceWidgetSetting.WORST_FID_VITALS,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_BROWSER_OPS,
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
-  }
   return (
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND}}
@@ -62,7 +52,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         <Table
           {...props}
           columnTitles={FRONTEND_PAGELOAD_COLUMN_TITLES}
-          setError={usePageError().setPageError}
+          setError={setPageError}
         />
       </div>
     </PerformanceDisplayProvider>

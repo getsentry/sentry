@@ -2,12 +2,13 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 interface OptionRecord {
   label: string;
@@ -36,10 +37,10 @@ class MemberTeamFields extends Component<Props> {
       ...ruleData,
       [attribute]: newValue,
     };
-    /**
-     * TargetIdentifiers between the targetTypes are not unique, and may wrongly map to something that has not been
-     * selected. E.g. A member and project can both have the `targetIdentifier`, `'2'`. Hence we clear the identifier.
-     **/
+    // TargetIdentifiers between the targetTypes are not unique, and may
+    // wrongly map to something that has not been selected. E.g. A member and
+    // project can both have the `targetIdentifier`, `'2'`. Hence we clear the
+    // identifier.
     if (attribute === 'targetType') {
       newData.targetIdentifier = '';
     }
@@ -106,7 +107,6 @@ class MemberTeamFields extends Component<Props> {
               <SelectMembers
                 disabled={disabled}
                 key={teamSelected ? teamValue : memberValue}
-                project={project}
                 organization={organization}
                 // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
                 value={`${ruleData.targetIdentifier}`}

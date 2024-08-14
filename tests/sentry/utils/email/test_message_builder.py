@@ -5,8 +5,13 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 from sentry import options
-from sentry.models import GroupEmailThread, User, UserEmail, UserOption
-from sentry.testutils import TestCase
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.options.user_option import UserOption
+from sentry.models.useremail import UserEmail
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
@@ -85,15 +90,18 @@ class MessageBuilderTest(TestCase):
     def test_with_users(self):
         project = self.project
 
-        user_a = User.objects.create(email="foo@example.com")
-        user_b = User.objects.create(email="bar@example.com")
-        user_c = User.objects.create(email="baz@example.com")
+        assert len(mail.outbox) == 0
 
-        alternate_email = "bazzer@example.com"
-        UserEmail.objects.create(user=user_c, email=alternate_email)
-        UserOption.objects.create(
-            user=user_c, project_id=project.id, key="mail:email", value=alternate_email
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_a = User.objects.create(email="foo@example.com")
+            user_b = User.objects.create(email="bar@example.com")
+            user_c = User.objects.create(email="baz@example.com")
+
+            alternate_email = "bazzer@example.com"
+            UserEmail.objects.create(user=user_c, email=alternate_email)
+            UserOption.objects.create(
+                user=user_c, project_id=project.id, key="mail:email", value=alternate_email
+            )
 
         msg = MessageBuilder(
             subject="Test", body="hello world", html_body="<!DOCTYPE html>\n<b>hello world</b>"
@@ -112,16 +120,17 @@ class MessageBuilderTest(TestCase):
     def test_fake_dont_send(self):
         project = self.project
 
-        user_a = User.objects.create(email=create_fake_email("foo", "fake"))
-        user_b = User.objects.create(email=create_fake_email("bar", "fake"))
-        user_c = User.objects.create(email=create_fake_email("baz", "fake"))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_a = User.objects.create(email=create_fake_email("foo", "fake"))
+            user_b = User.objects.create(email=create_fake_email("bar", "fake"))
+            user_c = User.objects.create(email=create_fake_email("baz", "fake"))
 
-        UserOption.objects.create(
-            user=user_c,
-            project_id=project.id,
-            key="mail:email",
-            value=create_fake_email("bazzer", "fake"),
-        )
+            UserOption.objects.create(
+                user=user_c,
+                project_id=project.id,
+                key="mail:email",
+                value=create_fake_email("bazzer", "fake"),
+            )
 
         msg = MessageBuilder(
             subject="Test", body="hello world", html_body="<!DOCTYPE html>\n<b>hello world</b>"

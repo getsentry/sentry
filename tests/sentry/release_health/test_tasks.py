@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from unittest import mock
 
@@ -5,18 +7,24 @@ import pytest
 from django.db.models import F
 from django.utils import timezone
 
-from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
+from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
-from sentry.testutils import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class BaseTestReleaseMonitor:
-    backend_class = None
+class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         super().setUp()
@@ -144,8 +152,8 @@ class BaseTestReleaseMonitor:
             },
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
-        self.project1.refresh_from_db()
-        assert self.project1.flags.has_sessions
+        project1 = Project.objects.get(id=self.project1.id)
+        assert project1.flags.has_sessions
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -534,9 +542,5 @@ class BaseTestReleaseMonitor:
         assert not no_env_project.flags.has_releases
 
 
-class TestSessionReleaseMonitor(BaseTestReleaseMonitor, TestCase, SnubaTestCase):
-    backend_class = SessionReleaseMonitorBackend
-
-
-class TestMetricReleaseMonitor(BaseTestReleaseMonitor, TestCase, BaseMetricsTestCase):
+class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend

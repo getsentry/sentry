@@ -10,7 +10,7 @@ from sentry.incidents.logic import (
     rewrite_trigger_action_fields,
     update_alert_rule_trigger,
 )
-from sentry.incidents.models import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 

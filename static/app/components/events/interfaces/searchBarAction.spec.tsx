@@ -70,7 +70,7 @@ describe('SearchBarAction', () => {
   });
 
   it('default render', async () => {
-    const {container} = render(
+    render(
       <SearchBarAction
         filterOptions={options}
         onFilterChange={handleFilter}
@@ -96,11 +96,9 @@ describe('SearchBarAction', () => {
     expect(screen.getByText('Levels')).toBeInTheDocument();
     expect(screen.getByText('info')).toBeInTheDocument();
     expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
-
-    expect(container).toSnapshot();
   });
 
-  it('Without Options', () => {
+  it('Without Options', async () => {
     render(
       <SearchBarAction
         filterOptions={[]}
@@ -111,6 +109,7 @@ describe('SearchBarAction', () => {
       />
     );
 
+    expect(await screen.findByTestId('input-trailing-items')).toBeInTheDocument();
     expect(screen.queryByText('Types')).not.toBeInTheDocument();
     expect(screen.queryByText('Levels')).not.toBeInTheDocument();
   });

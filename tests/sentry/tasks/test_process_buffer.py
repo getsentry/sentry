@@ -3,8 +3,14 @@ from unittest import mock
 from django.test import override_settings
 
 from sentry.models.group import Group
-from sentry.tasks.process_buffer import buffer_incr, process_incr, process_pending
-from sentry.testutils import TestCase
+from sentry.tasks.process_buffer import (
+    buffer_incr,
+    get_process_lock,
+    process_incr,
+    process_pending,
+    process_pending_batch,
+)
+from sentry.testutils.cases import TestCase
 
 
 class ProcessIncrTest(TestCase):
@@ -23,11 +29,28 @@ class ProcessPendingTest(TestCase):
         # this effectively just says "does the code run"
         process_pending()
         assert len(mock_process_pending.mock_calls) == 1
-        mock_process_pending.assert_any_call(partition=None)
+        mock_process_pending.assert_any_call()
 
-        process_pending(partition=1)
-        assert len(mock_process_pending.mock_calls) == 2
-        mock_process_pending.assert_any_call(partition=1)
+
+class ProcessPendingBatchTest(TestCase):
+    @mock.patch("sentry.buffer.backend.process_batch")
+    def test_process_pending_batch(self, mock_process_pending_batch):
+        process_pending_batch()
+        assert len(mock_process_pending_batch.mock_calls) == 1
+        mock_process_pending_batch.assert_any_call()
+
+    @mock.patch("sentry.buffer.backend.process_batch")
+    def test_process_pending_batch_locked_out(self, mock_process_pending_batch):
+        with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
+            lock = get_process_lock("process_pending_batch")
+            with lock.acquire():
+                process_pending_batch()
+                self.assertEqual(len(logger.output), 1)
+                assert len(mock_process_pending_batch.mock_calls) == 0
+
+        with self.assertNoLogs("sentry.tasks.process_buffer", level="WARNING"):
+            process_pending_batch()
+            assert len(mock_process_pending_batch.mock_calls) == 1
 
 
 class BufferIncrTest(TestCase):

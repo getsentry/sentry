@@ -7,10 +7,13 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
+from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.utils import get_query_hash
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
+from sentry.models.repository import Repository
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
@@ -42,8 +45,10 @@ class BitbucketAPIPath:
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
     repository_hooks = "/2.0/repositories/{repo}/hooks"
 
+    source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
-class BitbucketApiClient(IntegrationProxyClient):
+
+class BitbucketApiClient(ApiClient, RepositoryClient):
     """
     The API Client for the Bitbucket Integration
 
@@ -52,22 +57,19 @@ class BitbucketApiClient(IntegrationProxyClient):
 
     integration_name = "bitbucket"
 
-    def __init__(self, integration: RpcIntegration, org_integration_id: int | None = None):
+    def __init__(self, integration: RpcIntegration):
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
         self.subject = integration.external_id
 
-        if not org_integration_id:
-            org_integration_id = infer_org_integration(
-                integration_id=integration.id, ctx_logger=logger
-            )
         super().__init__(
-            org_integration_id=org_integration_id, verify_ssl=True, logging_context=None
+            integration_id=integration.id,
+            verify_ssl=True,
+            logging_context=None,
         )
 
-    @control_silo_function
-    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
@@ -169,3 +171,17 @@ class BitbucketApiClient(IntegrationProxyClient):
                 break
 
         return self.zip_commit_data(repo, commits)
+
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
+        return self.head_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=version,
+                path=path,
+            ),
+        )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        raise IntegrationFeatureNotImplementedError

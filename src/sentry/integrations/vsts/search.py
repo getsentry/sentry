@@ -1,15 +1,27 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration, Organization
-from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganization
 
 
 @control_silo_endpoint
 class VstsSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
+    owner = ApiOwner.UNOWNED
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = Integration.objects.get(
                 organizationintegration__organization_id=coerce_id_from(organization),

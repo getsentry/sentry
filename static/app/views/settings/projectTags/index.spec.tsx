@@ -1,10 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
   screen,
   userEvent,
-  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectTags from 'sentry/views/settings/projectTags';
@@ -15,9 +17,14 @@ describe('ProjectTags', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: TagsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
@@ -26,51 +33,52 @@ describe('ProjectTags', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
-      <ProjectTags {...routerProps} organization={org} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<ProjectTags {...routerProps} />);
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
       body: [],
     });
 
-    render(<ProjectTags {...routerProps} organization={org} project={project} />);
-    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+    render(<ProjectTags {...routerProps} />);
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
-  it('disables delete button for users without access', function () {
-    render(<ProjectTags {...routerProps} organization={org} project={project} />, {
-      organization: TestStubs.Organization({access: []}),
+  it('disables delete button for users without access', async function () {
+    render(<ProjectTags {...routerProps} />, {
+      organization: OrganizationFixture({access: []}),
     });
 
-    screen
-      .getAllByRole('button', {name: 'Remove tag'})
-      .forEach(button => expect(button).toBeDisabled());
+    (await screen.findAllByRole('button', {name: 'Remove tag'})).forEach(button =>
+      expect(button).toBeDisabled()
+    );
   });
 
   it('deletes tag', async function () {
-    render(<ProjectTags {...routerProps} organization={org} project={project} />);
+    render(<ProjectTags {...routerProps} />);
 
     // First tag exists
-    const tagCount = screen.getAllByTestId('tag-row').length;
+    const tagCount = (await screen.findAllByTestId('tag-row')).length;
+
+    expect(tagCount).toBe(5);
 
     // Remove the first tag
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
 
     // Press confirm in modal
     renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(await screen.findByTestId('confirm-button'));
 
     // Wait for the tag to have been removed in the store
-    await waitFor(() =>
-      expect(screen.getAllByTestId('tag-row')).toHaveLength(tagCount - 1)
-    );
+    expect(await screen.findAllByTestId('tag-row')).toHaveLength(tagCount - 1);
   });
 });

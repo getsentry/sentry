@@ -11,14 +11,15 @@ import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
@@ -110,12 +111,12 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
 
   if (isError) {
     return (
-      <EventDataSection type="attachments" title="Attachments">
+      <InterimSection type={FoldSectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
         />
-      </EventDataSection>
+      </InterimSection>
     );
   }
 
@@ -137,7 +138,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <EventDataSection type="attachments" title={title}>
+    <InterimSection type={FoldSectionKey.ATTACHMENTS} title={title}>
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}
@@ -156,7 +157,9 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <Name>{attachment.name}</Name>
+              <FlexCenter>
+                <Name>{attachment.name}</Name>
+              </FlexCenter>
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
@@ -203,7 +206,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
           ))}
         </StyledPanelTable>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
@@ -221,12 +224,22 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;
 `;
 
+const FlexCenter = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  align-items: center;
+`;
+
 const Name = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
 `;
 
 const Size = styled('div')`
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
 `;
 
 const AttachmentPreviewWrapper = styled('div')`

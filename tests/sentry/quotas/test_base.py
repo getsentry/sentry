@@ -1,13 +1,15 @@
 import pytest
 
-from sentry.constants import DataCategory
-from sentry.models import OrganizationOption, ProjectKey
-from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.constants import DataCategory, ObjectStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.projectkey import ProjectKey
+from sentry.monitors.constants import PermitCheckInStatus
+from sentry.monitors.models import Monitor, MonitorType
+from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
+from sentry.testutils.cases import TestCase
+from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test(stable=True)
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()
@@ -90,6 +92,33 @@ class QuotaTest(TestCase):
         org = self.create_organization()
         assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
+    def test_assign_monitor_seat(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=ObjectStatus.ACTIVE,
+            type=MonitorType.CRON_JOB,
+        )
+        assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
+
+    def test_check_accept_monitor_checkin(self):
+        monitor = Monitor.objects.create(
+            slug="test-monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="test monitor",
+            status=ObjectStatus.ACTIVE,
+            type=MonitorType.CRON_JOB,
+        )
+        assert (
+            self.backend.check_accept_monitor_checkin(
+                monitor_slug=monitor.slug, project_id=monitor.project_id
+            )
+            == PermitCheckInStatus.ACCEPT
+        )
+
 
 @pytest.mark.parametrize(
     "obj,json",
@@ -128,7 +157,22 @@ class QuotaTest(TestCase):
                 "reasonCode": "go_away",
             },
         ),
+        (
+            QuotaConfig(limit=0, scope=QuotaScope.GLOBAL, reason_code="come back!"),
+            {
+                "limit": 0,
+                "scope": "global",
+                "reasonCode": "come back!",
+            },
+        ),
     ],
 )
 def test_quotas_to_json(obj, json):
     assert obj.to_json() == json
+
+
+def test_seat_assignable_must_have_reason():
+    with pytest.raises(ValueError):
+        SeatAssignmentResult(assignable=False)
+    SeatAssignmentResult(assignable=False, reason="because I said so")
+    SeatAssignmentResult(assignable=True)

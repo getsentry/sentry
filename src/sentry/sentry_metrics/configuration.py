@@ -3,11 +3,18 @@
 # sentry.sentry_metrics.configuration` should work.
 #
 # If not, the parallel indexer breaks.
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import Any
 
 import sentry_sdk
+
+from sentry.conf.types.kafka_definition import Topic
+
+# The maximum length of a column that is indexed in postgres. It is important to keep this in
+# sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
+MAX_INDEXED_COLUMN_LENGTH = 200
 
 
 class UseCaseKey(Enum):
@@ -23,6 +30,13 @@ PERFORMANCE_PG_NAMESPACE = "performance"
 RELEASE_HEALTH_CS_NAMESPACE = "releasehealth.cs"
 PERFORMANCE_CS_NAMESPACE = "performance.cs"
 
+RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
+    "sentry-metrics.indexer.release-health.schema-validation-rules"
+)
+GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME = (
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules"
+)
+
 
 class IndexerStorage(Enum):
     POSTGRES = "postgres"
@@ -33,21 +47,19 @@ class IndexerStorage(Enum):
 class MetricsIngestConfiguration:
     db_backend: IndexerStorage
     db_backend_options: Mapping[str, Any]
-    input_topic: str
-    output_topic: str
+    output_topic: Topic
     use_case_id: UseCaseKey
-    internal_metrics_tag: Optional[str]
+    internal_metrics_tag: str | None
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
-    cardinality_limiter_cluster_options: Mapping[str, Any]
-    cardinality_limiter_namespace: str
 
-    index_tag_values_option_name: Optional[str] = None
-    is_output_sliced: Optional[bool] = False
+    should_index_tag_values: bool
+    schema_validation_rule_option_name: str | None = None
+    is_output_sliced: bool | None = False
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
-    Tuple[UseCaseKey, IndexerStorage], MetricsIngestConfiguration
+    tuple[UseCaseKey, IndexerStorage], MetricsIngestConfiguration
 ] = dict()
 
 
@@ -65,14 +77,13 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=settings.KAFKA_SNUBA_METRICS,
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
+                schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
@@ -80,32 +91,44 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
-                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                should_index_tag_values=False,
+                schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
-    if db_backend == IndexerStorage.MOCK:
+    if (use_case_key, db_backend) == (UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK):
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
                 db_backend_options={},
-                input_topic="topic",
-                output_topic="output-topic",
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=use_case_key,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
-                writes_limiter_namespace="test-namespace",
-                cardinality_limiter_cluster_options={},
-                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                writes_limiter_namespace="test-namespace-rh",
+                should_index_tag_values=True,
+                schema_validation_rule_option_name=RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
+            )
+        )
+
+    if (use_case_key, db_backend) == (UseCaseKey.PERFORMANCE, IndexerStorage.MOCK):
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=IndexerStorage.MOCK,
+                db_backend_options={},
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
+                use_case_id=use_case_key,
+                internal_metrics_tag="perf",
+                writes_limiter_cluster_options={},
+                writes_limiter_namespace="test-namespace-perf",
+                should_index_tag_values=False,
+                schema_validation_rule_option_name=GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
             )
         )
 
@@ -124,9 +147,9 @@ def initialize_subprocess_state(config: MetricsIngestConfiguration) -> None:
 
     This function should ideally be kept minimal and not contain too much
     logic. Commonly reusable bits should be added to
-    sentry.utils.arroyo.RunTaskWithMultiprocessing.
+    sentry.utils.arroyo.run_task_with_multiprocessing.
 
-    We already rely on sentry.utils.arroyo.RunTaskWithMultiprocessing to copy
+    We already rely on sentry.utils.arroyo.run_task_with_multiprocessing to copy
     statsd tags into the subprocess, eventually we should do the same for
     Sentry tags.
     """
@@ -149,3 +172,23 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
     global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
 
     add_global_tags(_all_threads=True, **global_tag_map)
+
+
+HARD_CODED_UNITS = {"span.duration": "millisecond"}
+ALLOWED_TYPES = {"c", "d", "s", "g"}
+
+# METRICS_AGGREGATES specifies the aggregates that are available for a metric type - AGGREGATES_TO_METRICS reverses this,
+# and provides a map from the aggregate to the metric type in the form {'count': 'c', 'avg':'g', ...}. This is needed
+# when the UI lets the user select the aggregate, and the backend infers the metric_type from it. It is programmatic
+# and not hard-coded, so that in case of a change, the two mappings are aligned.
+METRIC_TYPE_TO_AGGREGATE = {
+    "c": ["count"],
+    "g": ["avg", "min", "max", "sum"],
+    "d": ["p50", "p75", "p90", "p95", "p99"],
+    "s": ["count_unique"],
+}
+AGGREGATE_TO_METRIC_TYPE = {
+    aggregate: metric_type
+    for metric_type, aggregate_list in METRIC_TYPE_TO_AGGREGATE.items()
+    for aggregate in aggregate_list
+}

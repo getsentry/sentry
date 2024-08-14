@@ -3,29 +3,35 @@ from __future__ import annotations
 import abc
 import contextlib
 import logging
-import re
+from collections import defaultdict
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django import forms
 from django.core.cache import cache
+from django.db.models import QuerySet
+from django.db.models.enums import TextChoices
 from django.utils import timezone
 
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.models.group import Group
 from sentry.rules import EventState
-from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.base import EventCondition, GenericCondition
+from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
     ConditionActivity,
     round_to_five_minute,
 )
 from sentry.utils import metrics
-from sentry.utils.snuba import options_override
+from sentry.utils.iterators import chunked
+from sentry.utils.snuba import RateLimitExceeded, options_override
 
-standard_intervals = {
+STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
@@ -34,7 +40,7 @@ standard_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
-comparison_intervals = {
+COMPARISON_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
@@ -42,16 +48,39 @@ comparison_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
-COMPARISON_TYPE_COUNT = "count"
-COMPARISON_TYPE_PERCENT = "percent"
-comparison_types = {
-    COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
-    COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
-}
+SNUBA_LIMIT = 10000
+
+
+DEFAULT_COMPARISON_INTERVAL = "5m"
+
+
+class ComparisonType(TextChoices):
+    COUNT = "count"
+    PERCENT = "percent"
+
+
+class EventFrequencyConditionData(GenericCondition):
+    """
+    The base typed dict for all condition data representing EventFrequency issue
+    alert rule conditions
+    """
+
+    # Either the count or percentage.
+    value: int | float
+    # The interval to compare the value against such as 5m, 1h, 3w, etc.
+    # e.g. # of issues is more than {value} in {interval}.
+    interval: str
+    # NOTE: Some of the earliest COUNT conditions were created without the
+    # comparisonType field, although modern rules will always have it.
+    comparisonType: NotRequired[Literal[ComparisonType.COUNT, ComparisonType.PERCENT]]
+    # The previous interval to compare the curr interval against. This is only
+    # present in PERCENT conditions.
+    # e.g. # of issues is 50% higher in {interval} compared to {comparisonInterval}
+    comparisonInterval: NotRequired[str]
 
 
 class EventFrequencyForm(forms.Form):
-    intervals = standard_intervals
+    intervals = STANDARD_INTERVALS
     interval = forms.ChoiceField(
         choices=[
             (key, label)
@@ -62,24 +91,27 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        choices=ComparisonType,
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
         choices=[
             (key, label)
-            for key, (label, _) in sorted(comparison_intervals.items(), key=lambda item: item[1][1])
+            for key, (label, _) in sorted(COMPARISON_INTERVALS.items(), key=lambda item: item[1][1])
         ],
         required=False,
     )
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
+
         # Don't store an empty string here if the value isn't passed
         if cleaned_data.get("comparisonInterval") == "":
             del cleaned_data["comparisonInterval"]
-        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or COMPARISON_TYPE_COUNT
-        if cleaned_data["comparisonType"] == COMPARISON_TYPE_PERCENT and not cleaned_data.get(
+        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or ComparisonType.COUNT
+        if cleaned_data["comparisonType"] == ComparisonType.PERCENT and not cleaned_data.get(
             "comparisonInterval"
         ):
             msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
@@ -88,12 +120,25 @@ class EventFrequencyForm(forms.Form):
         return cleaned_data
 
 
-class BaseEventFrequencyCondition(EventCondition, abc.ABC):
-    intervals = standard_intervals
-    form_cls = EventFrequencyForm
-    label: str
+class _QSTypedDict(TypedDict):
+    id: int
+    type: int
+    project_id: int
+    project__organization_id: int
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+
+class BaseEventFrequencyCondition(EventCondition, abc.ABC):
+    intervals = STANDARD_INTERVALS
+    form_cls = EventFrequencyForm
+
+    def __init__(
+        self,
+        # Data specifically takes on this typeddict form for the
+        # Event Frequency condition classes.
+        data: EventFrequencyConditionData | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
         self.form_fields = {
             "value": {"type": "number", "placeholder": 100},
@@ -108,10 +153,11 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 ],
             },
         }
+        kwargs["data"] = data
 
         super().__init__(*args, **kwargs)
 
-    def _get_options(self) -> Tuple[str | None, float | None]:
+    def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
         try:
             interval = self.get_option("interval")
@@ -125,31 +171,48 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if not (interval and value is not None):
             return False
 
-        # TODO(mgaeta): Bug: Rule is optional.
-        current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
-        logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
+        # Assumes that the first event in a group will always be below the threshold.
+        if state.is_new and value > 1:
+            return False
+
+        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
+        comparison_interval_option = self.get_option(
+            "comparisonInterval", DEFAULT_COMPARISON_INTERVAL
+        )
+        if comparison_interval_option == "":
+            return False
+        comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
+        _, duration = self.intervals[interval]
+        try:
+            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[union-attr]
+        # XXX(CEO): once inc-666 work is concluded, rm try/except
+        except RateLimitExceeded:
+            metrics.incr("rule.event_frequency.snuba_query_limit")
+            return False
+
+        logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
             return False
         interval_delta = self.intervals[interval][1]
-        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+        comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
 
         # extrapolate if interval less than bucket size
         # if comparing percent increase, both intervals will be increased, so do not extrapolate value
         if interval_delta < FREQUENCY_CONDITION_BUCKET_SIZE:
-            if comparison_type != COMPARISON_TYPE_PERCENT:
+            if comparison_type != ComparisonType.PERCENT:
                 value *= int(FREQUENCY_CONDITION_BUCKET_SIZE / interval_delta)
             interval_delta = FREQUENCY_CONDITION_BUCKET_SIZE
 
         result = bucket_count(activity.timestamp - interval_delta, activity.timestamp, buckets)
 
-        if comparison_type == COMPARISON_TYPE_PERCENT:
-            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+        if comparison_type == ComparisonType.PERCENT:
+            comparison_interval = COMPARISON_INTERVALS[self.get_option("comparisonInterval")][1]
             comparison_end = activity.timestamp - comparison_interval
 
             comparison_result = bucket_count(
@@ -159,65 +222,195 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result > value
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
-    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
-        query_result = self.query_hook(event, start, end, environment_id)
-        metrics.incr(
-            "rules.conditions.queried_snuba",
-            tags={
-                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
-                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
-            },
-        )
-        return query_result
+    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: int) -> int:
+        """
+        Queries Snuba for a unique condition for a single group.
+        """
+        return self.query_hook(event, start, end, environment_id)
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
-        """ """
-        raise NotImplementedError  # subclass must implement
+        """
+        Abstract method that specifies how to query Snuba for a single group
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
 
-    def get_rate(self, event: GroupEvent, interval: str, environment_id: str) -> int:
-        _, duration = self.intervals[interval]
-        end = timezone.now()
-        # For conditions with interval >= 1 hour we don't need to worry about read your writes
-        # consistency. Disable it so that we can scale to more nodes.
-        option_override_cm = contextlib.nullcontext()
+    def batch_query(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        """
+        Queries Snuba for a unique condition for multiple groups.
+        """
+        return self.batch_query_hook(group_ids, start, end, environment_id)
+
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        """
+        Abstract method that specifies how to query Snuba for multiple groups
+        depending on the condition. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    def disable_consistent_snuba_mode(
+        self, duration: timedelta
+    ) -> contextlib.AbstractContextManager[object]:
+        """For conditions with interval >= 1 hour we don't need to worry about read your writes
+        consistency. Disable it so that we can scale to more nodes.
+        """
+        option_override_cm: contextlib.AbstractContextManager[object] = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
             option_override_cm = options_override({"consistent": False})
-        with option_override_cm:
-            result: int = self.query(event, end - duration, end, environment_id=environment_id)
-            comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
-            if comparison_type == COMPARISON_TYPE_PERCENT:
-                comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
-                comparison_end = end - comparison_interval
+        return option_override_cm
+
+    def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
+        """
+        Calculate the start and end times for the query.
+        "duration" is the length of the window we're querying over.
+        """
+        start = end - duration
+        return (start, end)
+
+    def get_rate(
+        self,
+        duration: timedelta,
+        comparison_interval: timedelta,
+        event: GroupEvent,
+        environment_id: int,
+        comparison_type: str,
+    ) -> int:
+        current_time = timezone.now()
+        start, end = self.get_query_window(end=current_time, duration=duration)
+        with self.disable_consistent_snuba_mode(duration):
+            result = self.query(event, start, end, environment_id=environment_id)
+            if comparison_type == ComparisonType.PERCENT:
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                comparison_result = self.query(
-                    event, comparison_end - duration, comparison_end, environment_id=environment_id
-                )
+                current_time -= comparison_interval
+                start, end = self.get_query_window(end=current_time, duration=duration)
+                comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
         return result
 
-    @property
-    def is_guessed_to_be_created_on_project_creation(self) -> bool:
+    def get_rate_bulk(
+        self,
+        duration: timedelta,
+        group_ids: set[int],
+        environment_id: int,
+        current_time: datetime,
+        comparison_interval: timedelta | None,
+    ) -> dict[int, int]:
         """
-        Best effort approximation on whether a rule with this condition was
-        created on project creation based on how closely the rule and project
-        are created; and if the label matches the default name used on project
-        creation.
+        Make a batch query for multiple groups. The return value is a dictionary
+        of group_id to the result for that group.
 
-        :return:
-            bool: True if rule is approximated to be created on project creation, False otherwise.
+        If comparison_interval is not None, we're making the second query in a
+        percent comparison condition. For example, if the condition is:
+            - num of issues is {}% higher in 1 hr compared to 5 min ago
+        The second query would be querying for num of events from:
+            -  5 min ago to 1 hr 5 min ago
         """
-        # TODO(mgaeta): Bug: Rule is optional.
-        delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
-        return guess
+        if comparison_interval:
+            current_time -= comparison_interval
+        start, end = self.get_query_window(end=current_time, duration=duration)
+
+        with self.disable_consistent_snuba_mode(duration):
+            result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+            )
+        return result
+
+    def get_snuba_query_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        keys: list[int],
+        group_id: int,
+        organization_id: int,
+        model: TSDBModel,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+    ) -> Mapping[int, int]:
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group_id,
+            tenant_ids={"organization_id": organization_id},
+            referrer_suffix=referrer_suffix,
+        )
+        return result
+
+    def get_chunked_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        model: TSDBModel,
+        group_ids: list[int],
+        organization_id: int,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        group_id = group_ids[0]
+        for group_chunk in chunked(group_ids, SNUBA_LIMIT):
+            result = self.get_snuba_query_result(
+                tsdb_function=tsdb_function,
+                model=model,
+                keys=[group_id for group_id in group_chunk],
+                group_id=group_id,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+            )
+            batch_totals.update(result)
+        return batch_totals
+
+    def get_error_and_generic_group_ids(
+        self,
+        groups: QuerySet[Group, _QSTypedDict],
+    ) -> tuple[list[int], list[int]]:
+        """
+        Separate group ids into error group ids and generic group ids
+        """
+        generic_issue_ids = []
+        error_issue_ids = []
+
+        for group in groups:
+            issue_type = get_group_type_by_type_id(group["type"])
+            if GroupCategory(issue_type.category) == GroupCategory.ERROR:
+                error_issue_ids.append(group["id"])
+            else:
+                generic_issue_ids.append(group["id"])
+        return (error_issue_ids, generic_issue_ids)
+
+    def get_value_from_groups(
+        self,
+        groups: QuerySet[Group, _QSTypedDict] | None,
+        value: Literal["id", "project_id", "project__organization_id"],
+    ) -> int | None:
+        result = None
+        if groups:
+            group = groups[0]
+            result = group.get(value)
+        return result
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -225,22 +418,61 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
-        sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=get_issue_tsdb_group_model(event.group.issue_category),
+        sums: Mapping[int, int] = self.get_snuba_query_result(
+            tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
+            group_id=event.group.id,
+            organization_id=event.group.project.organization_id,
+            model=get_issue_tsdb_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_frequency",
         )
         return sums[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        batch_sums: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if error_issue_ids and organization_id:
+            error_sums = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_sums,
+                model=get_issue_tsdb_group_model(GroupCategory.ERROR),
+                group_ids=error_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_frequency",
+            )
+            batch_sums.update(error_sums)
+
+        if generic_issue_ids and organization_id:
+            generic_sums = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_sums,
+                # this isn't necessarily performance, just any non-error category
+                model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
+                group_ids=generic_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_frequency",
+            )
+            batch_sums.update(generic_sums)
+
+        return batch_sums
+
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "count", "roundedTime"
 
 
@@ -249,26 +481,65 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
-        totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(event.group.issue_category),
+        totals: Mapping[int, int] = self.get_snuba_query_result(
+            tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
+            group_id=event.group.id,
+            organization_id=event.group.project.organization_id,
+            model=get_issue_tsdb_user_group_model(event.group.issue_category),
             start=start,
             end=end,
             environment_id=environment_id,
-            use_cache=True,
-            jitter_value=event.group_id,
-            tenant_ids={"organization_id": event.group.project.organization_id},
             referrer_suffix="alert_event_uniq_user_frequency",
         )
         return totals[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if error_issue_ids and organization_id:
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
+                group_ids=error_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(error_totals)
+
+        if generic_issue_ids and organization_id:
+            generic_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                # this isn't necessarily performance, just any non-error category
+                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
+                group_ids=generic_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(generic_totals)
+
+        return batch_totals
+
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
 
 
-percent_intervals = {
+PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("1 minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
@@ -276,7 +547,7 @@ percent_intervals = {
     "1h": ("1 hour", timedelta(minutes=60)),
 }
 
-percent_intervals_to_display = {
+PERCENT_INTERVALS_TO_DISPLAY: dict[str, tuple[str, timedelta]] = {
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
@@ -286,12 +557,12 @@ MIN_SESSIONS_TO_FIRE = 50
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
-    intervals = percent_intervals_to_display
+    intervals = PERCENT_INTERVALS_TO_DISPLAY
     interval = forms.ChoiceField(
         choices=[
             (key, label)
             for key, (label, duration) in sorted(
-                percent_intervals_to_display.items(),
+                PERCENT_INTERVALS_TO_DISPLAY.items(),
                 key=lambda key____label__duration: key____label__duration[1][1],
             )
         ]
@@ -302,7 +573,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
         cleaned_data = super().clean()
         if (
             cleaned_data
-            and cleaned_data["comparisonType"] == COMPARISON_TYPE_COUNT
+            and cleaned_data["comparisonType"] == ComparisonType.COUNT
             and cleaned_data.get("value", 0) > 100
         ):
             self.add_error(
@@ -319,7 +590,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     logger = logging.getLogger("sentry.rules.event_frequency")
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.intervals = percent_intervals
+        self.intervals = PERCENT_INTERVALS
         self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
 
@@ -330,21 +601,20 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             "choices": [
                 (key, label)
                 for key, (label, duration) in sorted(
-                    percent_intervals_to_display.items(),
+                    PERCENT_INTERVALS_TO_DISPLAY.items(),
                     key=lambda key____label__duration: key____label__duration[1][1],
                 )
             ],
         }
 
-    def query_hook(
-        self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
+    def get_session_count(
+        self, project_id: int, environment_id: int, start: datetime, end: datetime
     ) -> int:
-        project_id = event.project_id
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
             with options_override({"consistent": False}):
-                session_count_last_hour = release_health.get_project_sessions_count(  # type: ignore
+                session_count_last_hour = release_health.backend.get_project_sessions_count(
                     project_id=project_id,
                     environment_id=environment_id,
                     rollup=60,
@@ -353,24 +623,35 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 )
 
             cache.set(cache_key, session_count_last_hour, 600)
+        return session_count_last_hour
 
-        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
-            interval_in_minutes = (
-                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
-            )
-            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+    def get_session_interval(self, session_count: int, interval: str) -> int | None:
+        if session_count >= MIN_SESSIONS_TO_FIRE:
+            interval_in_minutes = PERCENT_INTERVALS[interval][1].total_seconds() // 60
+            return int(session_count / (60 / interval_in_minutes))
+        return None
 
-            issue_count = self.tsdb.get_sums(
-                model=get_issue_tsdb_group_model(event.group.issue_category),
+    def query_hook(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
+    ) -> int:
+        project_id = event.project_id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+        if avg_sessions_in_interval:
+            issue_count = self.get_snuba_query_result(
+                tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
+                group_id=event.group.id,
+                organization_id=event.group.project.organization_id,
+                model=get_issue_tsdb_group_model(event.group.issue_category),
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                use_cache=True,
-                jitter_value=event.group_id,
-                tenant_ids={"organization_id": event.group.project.organization_id},
                 referrer_suffix="alert_event_frequency_percent",
             )[event.group_id]
+
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now
                 self.logger.info(
@@ -381,18 +662,65 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            percent: int = 100 * round(issue_count / avg_sessions_in_interval, 4)
+            percent: int = int(100 * round(issue_count / avg_sessions_in_interval, 4))
             return percent
 
         return 0
 
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        project_id = self.get_value_from_groups(groups, "project_id")
+
+        if not project_id:
+            return {group["id"]: 0 for group in groups}
+
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+
+        if not avg_sessions_in_interval:
+            return {group["id"]: 0 for group in groups}
+
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not (error_issue_ids and organization_id):
+            return {group["id"]: 0 for group in groups}
+
+        error_issue_count = self.get_chunked_result(
+            tsdb_function=self.tsdb.get_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
+            group_ids=error_issue_ids,
+            organization_id=organization_id,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            referrer_suffix="batch_alert_event_frequency_percent",
+        )
+
+        batch_percents: dict[int, int] = {}
+        for group_id, count in error_issue_count.items():
+            percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+            batch_percents[group_id] = percent
+
+        # We do not have sessions for non-error issue types
+        for group in generic_issue_ids:
+            batch_percents[group] = 0
+
+        return batch_percents
+
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
 
-def bucket_count(start: datetime, end: datetime, buckets: Dict[datetime, int]) -> int:
+def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
     rounded_end = round_to_five_minute(end)
     rounded_start = round_to_five_minute(start)
     count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)

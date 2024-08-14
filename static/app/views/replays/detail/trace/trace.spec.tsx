@@ -1,16 +1,26 @@
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
+jest.mock('screenfull', () => ({
+  enabled: true,
+  get isFullscreen() {
+    return false;
+  },
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
 jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
-const mockUseTransactionData = useTransactionData as jest.MockedFunction<
-  typeof useTransactionData
->;
-
-const mockTraceFullDetailed = {} as TraceFullDetailed;
+const mockUseTransactionData = jest.mocked(useTransactionData);
 
 function setMockTransactionState({
   didInit = false,
@@ -18,7 +28,7 @@ function setMockTransactionState({
   isFetching = false,
   traces = undefined,
 }: Partial<ReturnType<typeof useTransactionData>['state']>) {
-  const eventView = null;
+  const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   mockUseTransactionData.mockReturnValue({
     state: {didInit, errors, isFetching, traces},
     eventView,
@@ -27,6 +37,10 @@ function setMockTransactionState({
 
 describe('trace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      body: {},
+    });
     mockUseTransactionData.mockReset();
   });
 
@@ -43,7 +57,7 @@ describe('trace', () => {
   it('should show the blank screen if the hook has not initialized yet', () => {
     setMockTransactionState({});
 
-    render(<Trace replayRecord={TestStubs.ReplayRecord()} />);
+    render(<Trace replayRecord={ReplayRecordFixture()} />);
 
     const placeholder = screen.getByTestId('loading-placeholder');
     expect(placeholder).toBeInTheDocument();
@@ -53,7 +67,7 @@ describe('trace', () => {
   it('should show a loading spinner if the hook is fetching, but there are no traces returned yet', () => {
     setMockTransactionState({didInit: true, isFetching: true});
 
-    render(<Trace replayRecord={TestStubs.ReplayRecord()} />);
+    render(<Trace replayRecord={ReplayRecordFixture()} />);
 
     const placeholder = screen.getByTestId('loading-placeholder');
     expect(placeholder).toBeInTheDocument();
@@ -64,11 +78,11 @@ describe('trace', () => {
     setMockTransactionState({
       didInit: true,
       isFetching: true,
-      traces: [mockTraceFullDetailed],
+      traces: [],
       errors: [new Error('Something went wrong')],
     });
 
-    render(<Trace replayRecord={TestStubs.ReplayRecord()} />);
+    render(<Trace replayRecord={ReplayRecordFixture()} />);
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toHaveTextContent('Unable to retrieve traces');
@@ -82,7 +96,7 @@ describe('trace', () => {
       errors: [],
     });
 
-    render(<Trace replayRecord={TestStubs.ReplayRecord()} />);
+    render(<Trace replayRecord={ReplayRecordFixture()} />);
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState).toHaveTextContent('No traces found');

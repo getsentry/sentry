@@ -1,58 +1,68 @@
-import logging
-from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence, Set, Tuple
+from __future__ import annotations
 
-import pytz
-from django.db import router
+import logging
+from collections.abc import Iterable
+from typing import NotRequired, TypedDict
+
+from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import options, ratelimits
+from sentry import ratelimits
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
 from sentry.auth.system import is_system_auth
-from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import (
-    ArtifactBundle,
-    DebugIdArtifactBundle,
-    Distribution,
-    Project,
-    ProjectArtifactBundle,
-    Release,
-    ReleaseArtifactBundle,
-    ReleaseFile,
+from sentry.debug_files.artifact_bundles import (
+    MAX_BUNDLES_QUERY,
+    query_artifact_bundles_containing_file,
 )
+from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle
+from sentry.models.distribution import Distribution
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.utils import metrics
-from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
 
 # The marker for "release" bundles
 RELEASE_BUNDLE_TYPE = "release.bundle"
-# The number of bundles ("artifact" or "release") that we query
-MAX_BUNDLES_QUERY = 5
 # The number of files returned by the `get_releasefiles` query
 MAX_RELEASEFILES_QUERY = 10
-# Number of days that determine whether an artifact bundle is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
+
+
+class _Artifact(TypedDict):
+    id: str
+    type: str
+    url: str
+    resolved_with: str
+    abs_path: NotRequired[str]
+    headers: NotRequired[dict[str, object]]
 
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download_file(self, download_id, project: Project):
         split = download_id.split("/")
         if len(split) < 2:
             raise Http404
-        ty, ty_id = split
+        ty, ty_id, *_rest = split
 
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:ArtifactLookupEndpoint:download:{download_id}:{project.id}",
             limit=10,
@@ -64,9 +74,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file = None
+        file_m: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file = (
+            file_m = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
                     projectartifactbundle__project_id=project.id,
@@ -74,18 +84,20 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .select_related("file")
                 .first()
             )
+            metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
             # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
             # be always empty, so using the `organization_id` instead.
-            file = (
+            file_m = (
                 ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
                 .select_related("file")
                 .first()
             )
+            metrics.incr("sourcemaps.download.release_file")
 
-        if file is None:
+        if file_m is None:
             raise Http404
-        file = file.file
+        file = file_m.file
 
         try:
             fp = file.getfile()
@@ -105,8 +117,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         Retrieve a list of individual artifacts or artifact bundles for a given project.
 
-        :pparam string organization_slug: the slug of the organization to query.
-        :pparam string project_slug: the slug of the project to query.
+        :pparam string organization_id_or_slug: the id or slug of the organization to query.
+        :pparam string project_id_or_slug: the id or slug of the project to query.
         :qparam string debug_id: if set, will query and return the artifact
                                  bundle that matches the given `debug_id`.
         :qparam string url: if set, will query and return all the individual
@@ -128,48 +140,35 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             debug_id = normalize_debug_id(debug_id)
         except SymbolicError:
             pass
-        url = request.GET.get("url")
-        release_name = request.GET.get("release")
-        dist_name = request.GET.get("dist")
+        url = request.GET.get("url") or NULL_STRING
+        release_name = request.GET.get("release") or NULL_STRING
+        dist_name = request.GET.get("dist") or NULL_STRING
 
-        used_artifact_bundles = dict()
-        bundle_file_ids = set()
+        # First query all the files:
+        # We first do that using the `ArtifactBundle` infrastructure.
+        artifact_bundles = query_artifact_bundles_containing_file(
+            project, release_name, dist_name, url, debug_id
+        )
+        all_bundles: dict[str, str] = {
+            f"artifact_bundle/{bundle_id}": resolved for bundle_id, resolved in artifact_bundles
+        }
 
-        def update_bundles(inner_bundles: Set[Tuple[int, datetime]], resolved: str):
-            for (bundle_id, date_added) in inner_bundles:
-                used_artifact_bundles[bundle_id] = date_added
-                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", resolved))
-
-        if debug_id:
-            bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
-            update_bundles(bundles, "debug-id")
-
-        individual_files = set()
-        if url and release_name and not bundle_file_ids:
-            # Get both the newest X release artifact bundles,
-            # and also query the legacy artifact bundles. One of those should have the
-            # file we are looking for. We want to return more here, even bundles that
-            # do *not* contain the file, rather than opening up each bundle. We want to
-            # avoid opening up bundles at all cost.
-            bundles = get_release_artifacts(project, release_name, dist_name)
-            update_bundles(bundles, "release")
-
+        # If no `ArtifactBundle`s were found matching the file, we fall back to
+        # looking up the file using the legacy `ReleaseFile` infrastructure.
+        individual_files: Iterable[ReleaseFile] = []
+        if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
+                metrics.incr("sourcemaps.lookup.release_file")
                 for releasefile_id in get_legacy_release_bundles(release, dist):
-                    bundle_file_ids.add((f"release_file/{releasefile_id}", "release-old"))
+                    all_bundles[f"release_file/{releasefile_id}"] = "release-old"
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
-
-        if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
-            with metrics.timer("artifact_lookup.get.renew_artifact_bundles"):
-                # Before constructing the response, we want to update the artifact bundles renewal date.
-                renew_artifact_bundles(used_artifact_bundles)
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
-        found_artifacts = []
-        for (download_id, resolved_with) in bundle_file_ids:
+        found_artifacts: list[_Artifact] = []
+        for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {
                     "id": download_id,
@@ -196,13 +195,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
 
         # make sure we have a stable sort order for tests
-        def natural_sort(key: str) -> Tuple[str, int]:
+        def natural_sort(key: str) -> tuple[str, int]:
             split = key.split("/")
             if len(split) > 1:
                 ty, ty_id = split
                 return (ty, int(ty_id))
             else:
-                return int(split[0])
+                return ("", int(split[0]))
 
         found_artifacts.sort(key=lambda x: natural_sort(x["id"]))
 
@@ -210,85 +209,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         return Response(serialize(found_artifacts, request.user))
 
 
-def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
-    # We take a snapshot in time that MUST be consistent across all updates.
-    now = datetime.now(tz=pytz.UTC)
-    # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
-
-    for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
-        metrics.incr("artifact_lookup.get.renew_artifact_bundles.should_be_renewed")
-        # We perform the condition check also before running the query, in order to reduce the amount of queries to the
-        # database.
-        if date_added <= threshold_date:
-            # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(ArtifactBundle),
-                    router.db_for_write(ProjectArtifactBundle),
-                    router.db_for_write(ReleaseArtifactBundle),
-                    router.db_for_write(DebugIdArtifactBundle),
-                )
-            ):
-                # We check again for the date_added condition in order to achieve consistency, this is done because
-                # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-                updated_rows_count = ArtifactBundle.objects.filter(
-                    id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                # We want to make cascading queries only if there were actual changes in the db.
-                if updated_rows_count > 0:
-                    ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-                    ReleaseArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-                    DebugIdArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-
-            # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
-            if updated_rows_count > 0:
-                metrics.incr("artifact_lookup.get.renew_artifact_bundles.renewed")
-
-
-def get_artifact_bundles_containing_debug_id(
-    debug_id: str, project: Project
-) -> Set[Tuple[int, datetime]]:
-    # We want to have the newest `File` for each `debug_id`.
-    return set(
-        ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
-            debugidartifactbundle__debug_id=debug_id,
-        )
-        .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:1]
-    )
-
-
-def get_release_artifacts(
-    project: Project,
-    release_name: str,
-    dist_name: Optional[str],
-) -> Set[Tuple[int, datetime]]:
-    return set(
-        ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
-            releaseartifactbundle__release_name=release_name,
-            # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
-            # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
-            releaseartifactbundle__dist_name=dist_name or "",
-        )
-        .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
-    )
-
-
 def try_resolve_release_dist(
-    project: Project, release_name: str, dist_name: Optional[str]
-) -> Tuple[Optional[Release], Optional[Distribution]]:
+    project: Project, release_name: str, dist_name: str
+) -> tuple[Release | None, Distribution | None]:
     release = None
     dist = None
     try:
@@ -303,13 +226,13 @@ def try_resolve_release_dist(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except (Release.DoesNotExist, Distribution.DoesNotExist):
         pass
-    except Exception as exc:
-        logger.error("Failed to read", exc_info=exc)
+    except Exception:
+        logger.exception("Failed to read")
 
     return release, dist
 
 
-def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> Set[int]:
+def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -332,8 +255,8 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Optional[Distribution], url: List[str]
-) -> Sequence[ReleaseFile]:
+    release: Release, dist: Distribution | None, url: str
+) -> QuerySet[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (
         ReleaseFile.public_objects.filter(

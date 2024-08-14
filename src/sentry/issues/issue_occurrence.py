@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Type, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
+from sentry.types.actor import Actor
 from sentry.utils.dates import parse_timestamp
 
 DEFAULT_LEVEL = "info"
@@ -32,8 +35,14 @@ class IssueOccurrenceData(TypedDict):
     evidence_display: Sequence[IssueEvidenceData]
     type: int
     detection_time: float
-    level: Optional[str]
-    culprit: Optional[str]
+    level: str | None
+    culprit: str | None
+    initial_issue_priority: NotRequired[int | None]
+    assignee: NotRequired[str | None]
+    """
+    Who to assign the issue to when creating a new issue. Has no effect on existing issues.
+    In the format of an Actor identifier, as defined in `Actor.from_identifier`
+    """
 
 
 @dataclass(frozen=True)
@@ -81,10 +90,12 @@ class IssueOccurrence:
     # This should be human-readable. One of these entries should be marked as `important` for use
     # in more space restricted integrations.
     evidence_display: Sequence[IssueEvidence]
-    type: Type[GroupType]
+    type: type[GroupType]
     detection_time: datetime
     level: str
     culprit: str
+    initial_issue_priority: int | None = None
+    assignee: Actor | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -107,10 +118,14 @@ class IssueOccurrence:
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
             "culprit": self.culprit,
+            "initial_issue_priority": self.initial_issue_priority,
+            "assignee": self.assignee.identifier if self.assignee else None,
         }
 
     @classmethod
     def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
+        from sentry.api.serializers.rest_framework import ValidationError
+
         # Backwards compatibility - we used to not require this field, so set a default when `None`
         level = data.get("level")
         if not level:
@@ -118,6 +133,18 @@ class IssueOccurrence:
         culprit = data.get("culprit")
         if not culprit:
             culprit = ""
+
+        assignee = None
+        try:
+            # Note that this can cause IO, but in practice this will happen only the first time that
+            # the occurrence is sent to the issue platform. We then translate to the id and store
+            # that, so subsequent fetches won't cause IO.
+            assignee = Actor.from_identifier(data.get("assignee"))
+        except ValidationError:
+            logging.exception("Failed to parse assignee actor identifier")
+        except Exception:
+            # We never want this to cause parsing an occurrence to fail
+            logging.exception("Unexpected error parsing assignee")
         return cls(
             data["id"],
             data["project_id"],
@@ -136,10 +163,12 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
+            data.get("initial_issue_priority"),
+            assignee,
         )
 
     @property
-    def important_evidence_display(self) -> Optional[IssueEvidence]:
+    def important_evidence_display(self) -> IssueEvidence | None:
         """
         Returns the most important piece of evidence for display in space constrained integrations.
         If multiple pieces of evidence are marked as important, returns the first one seen.
@@ -163,21 +192,26 @@ class IssueOccurrence:
         return f"i-o:{identifier}"
 
     def save(self) -> None:
-        nodestore.set(self.build_storage_identifier(self.id, self.project_id), self.to_dict())
+        nodestore.backend.set(
+            self.build_storage_identifier(self.id, self.project_id), self.to_dict()
+        )
 
     @classmethod
-    def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:
-        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
+    def fetch(cls, id_: str, project_id: int) -> IssueOccurrence | None:
+        results = nodestore.backend.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
 
     @classmethod
-    def fetch_multi(
-        cls, ids: Sequence[str], project_id: int
-    ) -> Sequence[Optional[IssueOccurrence]]:
+    def fetch_multi(cls, ids: Sequence[str], project_id: int) -> list[IssueOccurrence | None]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.get_multi(ids)
-        return [
-            IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
-        ]
+        results = nodestore.backend.get_multi(ids)
+        ret: list[IssueOccurrence | None] = []
+        for _id in ids:
+            result = results.get(_id)
+            if result:
+                ret.append(IssueOccurrence.from_dict(result))
+            else:
+                ret.append(None)
+        return ret

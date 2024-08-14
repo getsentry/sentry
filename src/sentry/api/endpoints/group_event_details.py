@@ -1,40 +1,45 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Sequence
+from collections.abc import Sequence
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import eventstore, features
+from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.group_index import ValidationError, parse_and_convert_issue_search_query
+from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Environment, User
-from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.search.events.filter import (
+    FilterConvertParams,
+    convert_search_filter_to_snuba_query,
+    format_search_filter,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.models.group import Group
 
 
 def issue_search_query_to_conditions(
-    query: str, group: Group, user: User, environments: Sequence[Environment]
+    query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
 ) -> Sequence[Condition]:
     from sentry.utils.snuba import resolve_column, resolve_conditions
 
     dataset = (
-        Dataset.Events
-        if group.issue_category == GroupCategory.ERROR.value
-        else Dataset.IssuePlatform
+        Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
     )
 
     # syntactically correct search filters
@@ -49,10 +54,10 @@ def issue_search_query_to_conditions(
             from sentry.api.serializers import GroupSerializerSnuba
 
             if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
-                filter_keys = {
-                    "organization_id": [group.project.organization.id],
+                filter_keys: FilterConvertParams = {
+                    "organization_id": group.project.organization.id,
                     "project_id": [group.project.id],
-                    "environment_id": [env.id for env in environments],
+                    "environment": [env.name for env in environments],
                 }
                 legacy_condition, projects_to_filter, group_ids = format_search_filter(
                     search_filter, params=filter_keys
@@ -64,7 +69,8 @@ def issue_search_query_to_conditions(
                     new_condition = legacy_condition[0]
                 elif group_ids:
                     new_condition = convert_search_filter_to_snuba_query(
-                        search_filter, params=filter_keys
+                        search_filter,
+                        params=filter_keys,
                     )
 
                 if new_condition:
@@ -95,12 +101,15 @@ def issue_search_query_to_conditions(
 
 @region_silo_endpoint
 class GroupEventDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(15, 1),
-            RateLimitCategory.USER: RateLimit(15, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(15, 1),
+            RateLimitCategory.IP: RateLimit(limit=15, window=1),
+            RateLimitCategory.USER: RateLimit(limit=15, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
         }
     }
 
@@ -118,52 +127,47 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         if event_id == "latest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
-                event = group.get_latest_event_for_environments(environment_names)
+                event: Event | GroupEvent | None = group.get_latest_event_for_environments(
+                    environment_names
+                )
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id == "helpful":
-            if features.has(
-                "organizations:issue-details-most-helpful-event",
-                group.project.organization,
-                actor=request.user,
-            ):
-                query = request.GET.get("query")
-                if query:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "helpful", "query": True},
-                    ):
-                        try:
-                            conditions = issue_search_query_to_conditions(
-                                query, group, request.user, environments
-                            )
-                            event = group.get_helpful_event_for_environments(
-                                environments, conditions
-                            )
-                        except ValidationError:
-                            return Response(status=400)
-                        except Exception:
-                            logging.error(
-                                "group_event_details:get_helpful",
-                                exc_info=True,
-                            )
-                            return Response(status=500)
-                else:
-                    with metrics.timer(
-                        "api.endpoints.group_event_details.get",
-                        tags={"type": "helpful", "query": False},
-                    ):
-                        event = group.get_helpful_event_for_environments(environments)
+        elif event_id in ("helpful", "recommended"):
+            query = request.GET.get("query")
+            if query:
+                with metrics.timer(
+                    "api.endpoints.group_event_details.get",
+                    tags={"type": "helpful", "query": True},
+                ):
+                    try:
+                        conditions = issue_search_query_to_conditions(
+                            query, group, request.user, environments
+                        )
+                        event = group.get_recommended_event_for_environments(
+                            environments, conditions
+                        )
+                    except ValidationError:
+                        return Response(status=400)
+                    except Exception:
+                        logging.exception(
+                            "group_event_details:get_helpful",
+                        )
+                        return Response(status=500)
             else:
-                return Response(status=404)
+                with metrics.timer(
+                    "api.endpoints.group_event_details.get",
+                    tags={"type": "helpful", "query": False},
+                ):
+                    event = group.get_recommended_event_for_environments(environments)
         else:
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(
                     group.project.id, event_id, group_id=group.id
                 )
             # TODO: Remove `for_group` check once performance issues are moved to the issue platform
-            if hasattr(event, "for_group") and event.group:
+
+            if event is not None and hasattr(event, "for_group") and event.group:
                 event = event.for_group(event.group)
 
         if event is None:

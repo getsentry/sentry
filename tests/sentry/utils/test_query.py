@@ -1,9 +1,13 @@
+import pytest
+
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
 from sentry.models.userreport import UserReport
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user import User
 from sentry.utils.query import (
+    InvalidQuerySetError,
     RangeQuerySetWrapper,
     RangeQuerySetWrapperWithProgressBar,
     RangeQuerySetWrapperWithProgressBarApprox,
@@ -22,7 +26,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
-@control_silo_test(stable=True)
+@no_silo_test
 class RangeQuerySetWrapperTest(TestCase):
     range_wrapper = RangeQuerySetWrapper
 
@@ -53,13 +57,27 @@ class RangeQuerySetWrapperTest(TestCase):
         qs = User.objects.all()
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
+    def test_order_by_non_unique_fails(self):
+        qs = User.objects.all()
+        with pytest.raises(InvalidQuerySetError):
+            self.range_wrapper(qs, order_by="name")
 
-@control_silo_test(stable=True)
+        # Shouldn't error if the safety check is disabled
+        self.range_wrapper(qs, order_by="name", override_unique_safety_check=True)
+
+    def test_order_by_unique(self):
+        self.create_user()
+        qs = User.objects.all()
+        self.range_wrapper(qs, order_by="username")
+        assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
+
+
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
-@control_silo_test(stable=True)
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 
@@ -67,16 +85,35 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 class BulkDeleteObjectsTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.group = self.create_group(project=self.project, message="Foo bar")
         UserReport.objects.all().delete()
 
     def test_basic(self):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
+    def test_basic_tuple(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in=tuple([r.id for r in records]))
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
+    def test_basic_set(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in={r.id for r in records})
         assert result, "Could be more work to do"
         assert len(UserReport.objects.all()) == 0
 
@@ -84,7 +121,7 @@ class BulkDeleteObjectsTest(TestCase):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"

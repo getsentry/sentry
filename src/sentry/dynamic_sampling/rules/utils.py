@@ -1,9 +1,13 @@
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union
 
+import orjson
 from django.conf import settings
+from rediscluster import RedisCluster
 
-from sentry.utils import json, redis
+from sentry.models.dynamicsampling import CUSTOM_RULE_START
+from sentry.relay.types import RuleCondition
+from sentry.utils import redis
 
 BOOSTED_RELEASES_LIMIT = 10
 
@@ -11,7 +15,6 @@ LATEST_RELEASES_BOOST_FACTOR = 1.5
 LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 
 IGNORE_HEALTH_CHECKS_FACTOR = 5
-
 
 ProjectId = int
 DecisionDropCount = int
@@ -41,9 +44,10 @@ class RuleType(Enum):
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
     BOOST_LOW_VOLUME_TRANSACTIONS_RULE = "boostLowVolumeTransactions"
     BOOST_REPLAY_ID_RULE = "boostReplayId"
+    CUSTOM_RULE = "customRule"
 
 
-DEFAULT_BIASES: List[ActivatableBias] = [
+DEFAULT_BIASES: list[ActivatableBias] = [
     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
@@ -64,16 +68,21 @@ RESERVED_IDS = {
     RuleType.BOOST_REPLAY_ID_RULE: 1005,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
+    RuleType.CUSTOM_RULE: CUSTOM_RULE_START,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
 
-SamplingValueType = Literal["sampleRate", "factor"]
+SamplingValueType = Literal["sampleRate", "factor", "reservoir"]
 
 
+# (RaduW) Maybe we can split in two types, one for reservoir and one for sampleRate and factor
+# Wanted to do this but couldn't think of three good names for the types (SamplingValue, ReservoirSamplingValue and ?
+# some type name for the old SamplingValue type)
 class SamplingValue(TypedDict):
     type: SamplingValueType
-    value: float
+    value: NotRequired[float]
+    limit: NotRequired[int]
 
 
 class TimeRange(TypedDict):
@@ -81,50 +90,28 @@ class TimeRange(TypedDict):
     end: str
 
 
-class EqConditionOptions(TypedDict):
-    ignoreCase: bool
-
-
-class EqCondition(TypedDict):
-    op: Literal["eq"]
-    name: str
-    value: Union[List[str], None]
-    options: EqConditionOptions
-
-
-class GlobCondition(TypedDict):
-    op: Literal["glob"]
-    name: str
-    value: List[str]
-
-
-class Condition(TypedDict):
-    op: Literal["and", "or", "not"]
-    inner: Union[Union[EqCondition, GlobCondition], List[Union[EqCondition, GlobCondition]]]
-
-
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition
+    condition: RuleCondition
     id: int
 
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: Optional[str]
+    decayedValue: NotRequired[str | None]
 
 
 class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFn
+    decayingFn: NotRequired[DecayingFn]  # const decaying doesn't require a decayingFn
 
 
 # Type defining the all the possible rules types that can exist.
 PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: Rule) -> Optional[RuleType]:
+def get_rule_type(rule: Rule) -> RuleType | None:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -149,30 +136,31 @@ def get_rule_type(rule: Rule) -> Optional[RuleType]:
 def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
-    return json.dumps(
-        _deep_sorted(
+    return (
+        orjson.dumps(
             {
                 "id": rule["id"],
                 "type": rule["type"],
                 "condition": rule["condition"],
-            }
+            },
+            option=orjson.OPT_SORT_KEYS,
         )
-    ).__hash__()
+        .decode()
+        .__hash__()
+    )
 
 
-def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
+def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
     sampling = rule["samplingValue"]
-    return sampling["type"], float(sampling["value"])
-
-
-def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
-    if isinstance(value, dict):
-        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
+    if sampling["type"] == "reservoir":
+        return sampling["type"], float(sampling["limit"])
+    elif sampling["type"] in ("sampleRate", "factor"):
+        return sampling["type"], float(sampling["value"])
     else:
-        return value
+        return None
 
 
-def get_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> List[ActivatableBias]:
+def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
 
@@ -187,13 +175,13 @@ def get_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> List[Ac
     return returned_biases
 
 
-def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) -> Set[str]:
+def get_enabled_user_biases(user_set_biases: list[ActivatableBias] | None) -> set[str]:
     users_biases = get_user_biases(user_set_biases)
     return {bias["id"] for bias in users_biases if bias["active"]}
 
 
-def get_supported_biases_ids() -> Set[str]:
-    return {bias["id"] for bias in DEFAULT_BIASES}
+def get_supported_biases_ids() -> list[str]:
+    return sorted({bias["id"] for bias in DEFAULT_BIASES})
 
 
 def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
@@ -215,6 +203,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> Any:
+def get_redis_client_for_ds() -> RedisCluster:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

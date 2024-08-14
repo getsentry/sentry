@@ -2,11 +2,9 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import SCIMTestCase
 
 
-@region_silo_test
 class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +15,7 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
         )
         self.url = reverse(
             "sentry-api-0-organization-scim-team-details",
-            kwargs={"organization_slug": self.organization.slug, "team_id": self.team.id},
+            kwargs={"organization_id_or_slug": self.organization.slug, "team_id": self.team.id},
         )
 
     def test_get(self):

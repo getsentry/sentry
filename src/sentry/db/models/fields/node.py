@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import logging
 import pickle
 from base64 import b64encode
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
+from typing import Any
 from uuid import uuid4
 
+from django.db.models import Model
 from django.db.models.signals import post_delete
+from django.utils.functional import cached_property
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.cache import memoize
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.strings import decompress
 
 from .gzippeddict import GzippedDictField
@@ -24,7 +27,7 @@ class NodeIntegrityFailure(Exception):
     pass
 
 
-class NodeData(MutableMapping):
+class NodeData(MutableMapping[str, Any]):
     """
     A wrapper for nodestore data that fetches the underlying data
     from nodestore.
@@ -49,21 +52,12 @@ class NodeData(MutableMapping):
 
     def __getstate__(self):
         data = dict(self.__dict__)
-        # downgrade this into a normal dict in case it's a shim dict.
-        # This is needed as older workers might not know about newer
-        # collection types.  For instance we have events where this is a
-        # CanonicalKeyDict
         data.pop("data", None)
-        data["_node_data_CANONICAL"] = isinstance(data["_node_data"], CANONICAL_TYPES)
+        # downgrade this into a normal dict in case it's a shim dict.
         data["_node_data"] = dict(data["_node_data"].items())
         return data
 
     def __setstate__(self, state):
-        # If there is a legacy pickled version that used to have data as a
-        # duplicate, reject it.
-        state.pop("data", None)
-        if state.pop("_node_data_CANONICAL", False):
-            state["_node_data"] = CanonicalKeyDict(state["_node_data"])
         self.__dict__ = state
 
     def __getitem__(self, key):
@@ -95,7 +89,7 @@ class NodeData(MutableMapping):
     def copy(self):
         return self.data.copy()
 
-    @memoize
+    @cached_property
     def data(self):
         """
         Get the current data object, fetching from nodestore if necessary.
@@ -105,10 +99,10 @@ class NodeData(MutableMapping):
             return self._node_data
 
         elif self.id:
-            self.bind_data(nodestore.get(self.id) or {})
+            self.bind_data(nodestore.backend.get(self.id) or {})
             return self._node_data
 
-        rv = {}
+        rv: dict[str, Any] = {}
         if self.wrapper is not None:
             rv = self.wrapper(rv)
         return rv
@@ -147,13 +141,13 @@ class NodeData(MutableMapping):
         # We can't put our wrappers into the nodestore, so we need to
         # ensure that the data is converted into a plain old dict
         to_write = self._node_data
-        if isinstance(to_write, CANONICAL_TYPES):
+        if not isinstance(to_write, dict):
             to_write = dict(to_write.items())
 
         subkeys = subkeys or {}
         subkeys[None] = to_write
 
-        nodestore.set_subkeys(self.id, subkeys)
+        nodestore.backend.set_subkeys(self.id, subkeys)
 
 
 class NodeField(GzippedDictField):
@@ -162,15 +156,20 @@ class NodeField(GzippedDictField):
     to an external node.
     """
 
-    def __init__(self, *args, **kwargs):
-        self.ref_func = kwargs.pop("ref_func", None)
-        self.ref_version = kwargs.pop("ref_version", None)
-        self.wrapper = kwargs.pop("wrapper", None)
-        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *,
+        blank: bool,
+        null: bool,
+        ref_func: Callable[..., int] | None = None,
+        ref_version: int | None = None,
+    ) -> None:
+        self.ref_func = ref_func
+        self.ref_version = ref_version
+        super().__init__(blank=blank, null=null)
 
-    def contribute_to_class(self, cls, name):
-        super().contribute_to_class(cls, name)
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
         post_delete.connect(self.on_delete, sender=self.model, weak=False)
 
@@ -179,7 +178,7 @@ class NodeField(GzippedDictField):
         if not value.id:
             return
 
-        nodestore.delete(value.id)
+        nodestore.backend.delete(value.id)
 
     def to_python(self, value):
         node_id = None
@@ -198,7 +197,7 @@ class NodeField(GzippedDictField):
                     # empty value under a new key, potentially orphaning an
                     # original value in nodestore. OTOH if we can't decode the info
                     # here, the node was already effectively orphaned.
-                    logger.exception(e)
+                    logger.exception(str(e))
                     value = None
 
         if value:
@@ -220,7 +219,6 @@ class NodeField(GzippedDictField):
         return NodeData(
             node_id,
             value,
-            wrapper=self.wrapper,
             ref_version=self.ref_version,
             ref_func=self.ref_func,
         )
@@ -237,7 +235,7 @@ class NodeField(GzippedDictField):
             return None
 
         if value.id is None:
-            value.id = self.id_func()
+            value.id = b64encode(uuid4().bytes).decode()
 
         value.save()
 

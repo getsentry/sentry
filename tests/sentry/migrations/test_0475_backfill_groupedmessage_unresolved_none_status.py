@@ -1,9 +1,12 @@
 import datetime
-from typing import Any, Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 import pytest
 
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
 from sentry.types.group import GroupSubStatus
 
@@ -14,8 +17,8 @@ class BackfillGroupUnresolvedNoneStatus(TestMigrations):
     migrate_to = "0475_backfill_groupedmessage_unresolved_none_status"
 
     def _create_unresolved_none_group(
-        self, project: Project, group_history_kwargs: Optional[Sequence[Dict[str, Any]]] = None
-    ) -> Tuple[Group, Sequence[GroupHistory]]:
+        self, project: Project, group_history_kwargs: Sequence[dict[str, Any]] | None = None
+    ) -> tuple[Group, Sequence[GroupHistory]]:
         group = self.create_group(project=project, status=GroupStatus.UNRESOLVED)
         updated = Group.objects.filter(id=group.id).update(substatus=None)
         if updated:

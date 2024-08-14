@@ -1,56 +1,35 @@
-from unittest.mock import patch
-from uuid import uuid4
+from unittest.mock import patch, sentinel
 
+import orjson
 import pytest
 from django.urls import reverse
-from sentry_relay.auth import generate_key_pair
 
-from sentry.models.relay import Relay
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
-from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
-@pytest.fixture
-def key_pair():
-    return generate_key_pair()
-
-
-@pytest.fixture
-def public_key(key_pair):
-    return key_pair[1]
-
-
-@pytest.fixture
-def private_key(key_pair):
-    return key_pair[0]
-
-
-@pytest.fixture
-def relay_id():
-    return str(uuid4())
-
-
-@pytest.fixture
-def relay(relay_id, public_key):
-    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
+@pytest.fixture(autouse=True)
+def disable_auto_on_commit():
+    simulated_transaction_watermarks.state["default"] = -1
+    with in_test_hide_transaction_boundary():
+        yield
 
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None):
+    def inner(public_keys=None, global_=False):
         path = reverse("sentry-api-0-relay-projectconfigs") + "?version=3"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
 
-        if full_config is None:
-            raw_json, signature = private_key.pack({"publicKeys": public_keys, "no_cache": False})
-        else:
-            raw_json, signature = private_key.pack(
-                {"publicKeys": public_keys, "fullConfig": full_config, "no_cache": False}
-            )
+        body = {"publicKeys": public_keys, "no_cache": False}
+        if global_ is not None:
+            body.update({"global": global_})
+        raw_json, signature = private_key.pack(body)
 
         resp = client.post(
             path,
@@ -60,7 +39,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     return inner
 
@@ -95,7 +74,7 @@ def projectconfig_debounced_cache(monkeypatch):
 def project_config_get_mock(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig("mock_project", is_mock_config=True),
+        lambda *args, **kwargs: ProjectConfig(sentinel.mock_project, is_mock_config=True),
     )
 
 
@@ -103,7 +82,7 @@ def project_config_get_mock(monkeypatch):
 def test_return_full_config_if_in_cache(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
@@ -112,33 +91,10 @@ def test_return_full_config_if_in_cache(
 
 
 @django_db_all
-def test_return_partial_config_if_in_cache(
-    monkeypatch,
-    call_endpoint,
-    default_projectkey,
-    default_project,
-):
-    # Partial configs are handled as ``v2``, even if the param is ``v3``
-    monkeypatch.setattr(
-        "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig(default_project, is_mock_config=True),
-    )
-
-    result, status_code = call_endpoint(full_config=False)
-    assert status_code < 400
-    expected = {
-        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
-    }
-    assert result == expected
-
-
-@django_db_all
 def test_proj_in_cache_and_another_pending(
     call_endpoint, default_projectkey, single_mock_proj_cached
 ):
-    result, status_code = call_endpoint(
-        full_config=True, public_keys=["must_exist", default_projectkey.public_key]
-    )
+    result, status_code = call_endpoint(public_keys=["must_exist", default_projectkey.public_key])
     assert status_code < 400
     assert result == {
         "configs": {"must_exist": {"is_mock_config": True}},
@@ -153,7 +109,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
     call_endpoint,
     default_projectkey,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert schedule_mock.call_count == 1
@@ -167,7 +123,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     default_projectkey,
     projectconfig_debounced_cache,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert task_mock.call_count == 0
@@ -190,3 +146,23 @@ def test_task_writes_config_into_cache(
     assert cache_set_many_mock.call_args.args == (
         {default_projectkey.public_key: {"is_mock_config": True}},
     )
+
+
+@patch(
+    "sentry.api.endpoints.relay.project_configs.get_global_config",
+    lambda *args, **kargs: {"global_mock_config": True},
+)
+@django_db_all
+def test_return_project_and_global_config(
+    call_endpoint,
+    default_projectkey,
+    projectconfig_cache_get_mock_config,
+):
+    result, status_code = call_endpoint(global_=True)
+    assert status_code == 200
+    assert result == {
+        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
+        "pending": [],
+        "global": {"global_mock_config": True},
+        "global_status": "ready",
+    }

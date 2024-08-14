@@ -16,7 +16,7 @@ defaults:
 jobs:
   did-migration-change:
     name: check if any migration changes
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -24,31 +24,18 @@ jobs:
       modified: ${{ steps.changes.outputs.migrations_modified }}
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Match migration files
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-  modified-migration:
-    name: check if modified migration
-    runs-on: ubuntu-20.04
-    timeout-minutes: 4
-    needs: did-migration-change
-    if: needs.did-migration-change.outputs.modified == 'true'
-
-    steps:
-      - name: Failure because of modified migration
-        run: |
-          echo "If you have a valid reason to modify a migration please get approval"
-          echo "from @getsentry/owners-migrations." && exit 1
-
   sql:
     name: Generate SQL
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 8
     strategy:
       matrix:
@@ -59,13 +46,12 @@ jobs:
 
     steps:
       # Checkout master to run all merged migrations.
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: master
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
-        id: setup
         with:
           pg-version: ${{ matrix.pg-version }}
 
@@ -74,7 +60,7 @@ jobs:
           sentry upgrade --noinput
 
       # Checkout the current ref
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           clean: false
 
@@ -82,11 +68,11 @@ jobs:
         id: file
         run: |
           echo 'added<<EOF' >> "$GITHUB_OUTPUT"
-          git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/' >> "$GITHUB_OUTPUT"
+          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
-        uses: getsentry/action-migrations@f1dc34590460c0fe06ec11c00fec6c16a2159977 # main
+        uses: getsentry/action-migrations@4d8ed0388dfc0774302bbfd5204e518f9ac4f066 # main
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:

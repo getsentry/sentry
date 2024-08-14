@@ -1,10 +1,11 @@
-import {Project} from 'sentry/types';
-import GenericDiscoverQuery, {
+import type {Project} from 'sentry/types/project';
+import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withProjects from 'sentry/utils/withProjects';
-import {
+import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import useProjects from 'sentry/utils/useProjects';
+import type {
   TrendChangeType,
   TrendFunctionField,
   TrendsData,
@@ -13,10 +14,11 @@ import {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 import {
-  generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
+  getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
 export type TrendsRequest = {
   eventView: Partial<TrendView>;
@@ -63,14 +65,25 @@ export function getTrendsRequestPayload(props: RequestProps) {
   apiPayload.trendType = eventView?.trendType || props.trendChangeType;
   apiPayload.interval = eventView?.interval;
   apiPayload.middle = eventView?.middle;
+
+  // This enables configuring the top event count for trend analysis
+  // It's not necessary to set top event count unless
+  // it's done for experimentation
+  const topEventsCountAsString = getTopTrendingEvents(props.location);
+  if (topEventsCountAsString) {
+    apiPayload.topEvents = parseInt(topEventsCountAsString, 10);
+  }
+
   return apiPayload;
 }
 
-function TrendsDiscoverQuery(props: Props) {
+export default function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
+  const {projects} = useProjects();
   const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
+      projects={projects}
       route={route}
       getRequestPayload={getTrendsRequestPayload}
     >
@@ -81,10 +94,12 @@ function TrendsDiscoverQuery(props: Props) {
   );
 }
 
-function EventsDiscoverQuery(props: EventProps) {
+export function TrendsEventsDiscoverQuery(props: Omit<EventProps, 'projects'>) {
+  const {projects} = useProjects();
   return (
     <GenericDiscoverQuery<TrendsDataEvents, TrendsRequest>
       {...props}
+      projects={projects}
       route="events-trends"
       getRequestPayload={getTrendsRequestPayload}
     >
@@ -94,7 +109,3 @@ function EventsDiscoverQuery(props: EventProps) {
     </GenericDiscoverQuery>
   );
 }
-
-export const TrendsEventsDiscoverQuery = withProjects(EventsDiscoverQuery);
-
-export default withProjects(TrendsDiscoverQuery);

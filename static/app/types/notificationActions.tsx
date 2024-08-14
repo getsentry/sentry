@@ -3,6 +3,8 @@ export enum NotificationActionService {
   PAGERDUTY = 'pagerduty',
   SLACK = 'slack',
   MSTEAMS = 'msteams',
+  OPSGENIE = 'opsgenie',
+  DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
   SENTRY_NOTIFICATION = 'sentry_notification',
 }

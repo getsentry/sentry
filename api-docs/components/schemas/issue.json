@@ -78,11 +78,7 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "filename",
-              "type",
-              "value"
-            ],
+            "required": ["filename", "type", "value"],
             "properties": {
               "filename": {
                 "type": "string"
@@ -97,9 +93,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "title"
-            ],
+            "required": ["title"],
             "properties": {
               "title": {
                 "type": "string"
@@ -151,11 +145,7 @@
       },
       "status": {
         "type": "string",
-        "enum": [
-          "resolved",
-          "unresolved",
-          "ignored"
-        ]
+        "enum": ["resolved", "unresolved", "ignored"]
       },
       "statusDetails": {
         "type": "object"
@@ -243,7 +233,15 @@
       "annotations": {
         "type": "array",
         "items": {
-          "type": "string"
+          "type": "object",
+          "properties": {
+            "displayName": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
         }
       },
       "assignedTo": {
@@ -370,11 +368,7 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "filename",
-              "type",
-              "value"
-            ],
+            "required": ["filename", "type", "value"],
             "properties": {
               "filename": {
                 "type": "string"
@@ -389,9 +383,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "title"
-            ],
+            "required": ["title"],
             "properties": {
               "title": {
                 "type": "string"
@@ -485,11 +477,7 @@
       },
       "status": {
         "type": "string",
-        "enum": [
-          "resolved",
-          "unresolved",
-          "ignored"
-        ]
+        "enum": ["resolved", "unresolved", "ignored"]
       },
       "statusDetails": {
         "type": "object"
@@ -596,11 +584,7 @@
         "oneOf": [
           {
             "type": "object",
-            "required": [
-              "filename",
-              "type",
-              "value"
-            ],
+            "required": ["filename", "type", "value"],
             "properties": {
               "filename": {
                 "type": "string"
@@ -615,9 +599,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "title"
-            ],
+            "required": ["title"],
             "properties": {
               "title": {
                 "type": "string"
@@ -655,11 +637,7 @@
       },
       "status": {
         "type": "string",
-        "enum": [
-          "resolved",
-          "unresolved",
-          "ignored"
-        ]
+        "enum": ["resolved", "unresolved", "ignored"]
       },
       "statusDetails": {
         "type": "object"

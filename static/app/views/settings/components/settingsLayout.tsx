@@ -1,5 +1,5 @@
-import {isValidElement, useEffect, useRef, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {isValidElement, useCallback, useEffect, useRef, useState} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,6 +8,7 @@ import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
@@ -31,7 +32,9 @@ function SettingsLayout(props: Props) {
 
   const headerRef = useRef<HTMLDivElement>(null);
 
-  function toggleNav(visible: boolean) {
+  const location = useLocation();
+
+  const toggleNav = useCallback((visible: boolean) => {
     const bodyElement = document.getElementsByTagName('body')[0];
 
     window.scrollTo?.(0, 0);
@@ -39,10 +42,10 @@ function SettingsLayout(props: Props) {
 
     setMobileNavVisible(visible);
     setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
-  }
+  }, []);
 
   // Close menu when navigating away
-  useEffect(() => browserHistory.listen(() => toggleNav(false)), []);
+  useEffect(() => toggleNav(false), [toggleNav, location.pathname]);
 
   const {renderNavigation, children, params, routes, route} = props;
 

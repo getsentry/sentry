@@ -1,22 +1,22 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of events bound to a project.",
-    "operationId": "List a Project's Events",
+    "description": "Return a list of error events bound to a project.",
+    "operationId": "List a Project's Error Events",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the groups belong to.",
+        "description": "The id or slug of the organization the events belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the groups belong to.",
+        "description": "The id or slug of the project the events belong to.",
         "required": true,
         "schema": {
           "type": "string"

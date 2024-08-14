@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {axisLabelFormatter, getDurationUnit} from 'sentry/utils/discover/charts';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 type Props = React.ComponentPropsWithoutRef<typeof AreaChart>;
 

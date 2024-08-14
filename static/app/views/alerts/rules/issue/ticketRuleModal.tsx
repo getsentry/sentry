@@ -1,16 +1,17 @@
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import AbstractExternalIssueForm, {
-  ExternalIssueFormErrors,
-} from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import {FormProps} from 'sentry/components/forms/form';
+import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import type {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Choices, IssueConfigField, Organization} from 'sentry/types';
-import {IssueAlertRuleAction} from 'sentry/types/alerts';
-import AsyncView from 'sentry/views/asyncView';
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {Choices} from 'sentry/types/core';
+import type {IssueConfigField} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -20,13 +21,13 @@ type Props = {
   index: number;
   // The AlertRuleAction from DB.
   instance: IssueAlertRuleAction;
+  link: string | null;
   onSubmitAction: (
     data: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
-  link?: string;
-  ticketType?: string;
+  ticketType: string;
 } & AbstractExternalIssueForm['props'];
 
 type State = {
@@ -39,14 +40,18 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
     return {
       ...super.getDefaultState(),
+      // fetchedFieldOptionsCache should contain async fields so we
+      // need to filter beforehand. Only async fields have a `url` property.
       fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
+        issueConfigFieldsCache
+          .filter(field => field.url)
+          .map(field => [field.name, field.choices as Choices])
       ),
       issueConfigFieldsCache,
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {instance} = this.props;
     const query = (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
@@ -58,6 +63,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         },
         {action: 'create'}
       );
+
     return [['integrationDetails', this.getEndPointString(), {query}]];
   }
 
@@ -161,24 +167,43 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       } as IssueConfigField,
     ];
 
-    return fields.concat(
-      this.getCleanedFields()
-        // Skip fields if they already exist.
-        .filter(field => !fields.map(f => f.name).includes(field.name))
-        .map(field => {
-          // Overwrite defaults from cache.
-          if (instance.hasOwnProperty(field.name)) {
-            field.default = instance[field.name] || field.default;
-          }
-          return field;
-        })
-    );
+    const cleanedFields = this.loadAsyncThenFetchAllFields()
+      // Don't overwrite the default values for title and description.
+      .filter(field => !fields.map(f => f.name).includes(field.name))
+      .map(field => {
+        // Overwrite defaults with previously selected values if they exist.
+        // Certain fields such as priority (for Jira) have their options change
+        // because they depend on another field such as Project, so we need to
+        // check if the last selected value is in the list of available field choices.
+        const prevChoice = instance?.[field.name];
+        // Note that field.choices is an array of tuples, where each tuple
+        // contains a numeric id and string label, eg. ("10000", "EX") or ("1", "Bug")
+        if (
+          prevChoice && field.choices && Array.isArray(prevChoice)
+            ? // Multi-select fields have an array of values, eg: ['a', 'b'] so we
+              // check that every value exists in choices
+              prevChoice.every(value => field.choices?.some(tuple => tuple[0] === value))
+            : // Single-select fields have a single value, eg: 'a'
+              field.choices?.some(item => item[0] === prevChoice)
+        ) {
+          field.default = prevChoice;
+        }
+        return field;
+      });
+    return [...fields, ...cleanedFields];
   };
 
   getErrors() {
     const errors: ExternalIssueFormErrors = {};
     for (const field of this.cleanFields()) {
-      if (field.type === 'select' && field.default) {
+      // If the field is a select and has a default value, make sure that the
+      // default value exists in the choices. Skip check if the default is not
+      // set, an empty string, or an empty array.
+      if (
+        field.type === 'select' &&
+        field.default &&
+        !(Array.isArray(field.default) && !field.default.length)
+      ) {
         const fieldChoices = (field.choices || []) as Choices;
         const found = fieldChoices.find(([value, _]) =>
           Array.isArray(field.default)
@@ -199,17 +224,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   renderBodyText = () => {
     // `ticketType` already includes indefinite article.
     const {ticketType, link} = this.props;
-    return (
-      <BodyText>
-        {tct(
-          'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs] with the new Sentry Issue.',
-          {
-            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            ticketType,
-          }
-        )}
-      </BodyText>
-    );
+
+    let body: React.ReactNode;
+    if (link) {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
+        {
+          linkToDocs: <ExternalLink href={link} />,
+          ticketType,
+        }
+      );
+    } else {
+      body = tct(
+        'When this alert is triggered [ticketType] will be created with the following fields.',
+        {
+          ticketType,
+        }
+      );
+    }
+
+    return <BodyText>{body}</BodyText>;
   };
 
   render() {

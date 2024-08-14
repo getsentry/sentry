@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {
   searchFrameFzf,
@@ -14,7 +14,7 @@ const f = (name: string) => {
 };
 
 describe('fzf', () => {
-  it('matches only first occurence', () => {
+  it('matches only first occurrence', () => {
     expect(searchFrameFzf(f('foofoo'), new Map(), 'foo')).toMatchObject({
       start: 0,
       end: 3,

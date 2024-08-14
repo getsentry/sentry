@@ -1,9 +1,15 @@
-from typing import Sequence
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
 
 from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
+from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
+from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 
 ISSUE_TYPES = (
     ("bug", "Bug"),
@@ -22,17 +28,22 @@ PRIORITIES = (
 
 
 class BitbucketIssueBasicMixin(IssueBasicMixin):
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["repo"]
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    @all_silo_function
+    def get_create_issue_config(
+        self, group: Group | None, user: User, **kwargs
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
+
         fields = super().get_create_issue_config(group, user, **kwargs)
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -67,8 +78,9 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             },
         ]
 
-    def get_link_issue_config(self, group, **kwargs):
-        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(

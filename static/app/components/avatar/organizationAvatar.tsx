@@ -1,24 +1,23 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
-import {OrganizationSummary} from 'sentry/types';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-type Props = {
+interface Props extends BaseAvatarProps {
   organization?: OrganizationSummary;
-} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+}
 
 function OrganizationAvatar({organization, ...props}: Props) {
   if (!organization) {
     return null;
   }
-  const slug = (organization && organization.slug) || '';
+  const slug = organization?.slug || '';
   const title = explodeSlug(slug);
 
   return (
     <BaseAvatar
       {...props}
-      type={(organization.avatar && organization.avatar.avatarType) || 'letter_avatar'}
-      uploadPath="organization-avatar"
-      uploadId={organization.avatar && organization.avatar.avatarUuid}
+      type={organization.avatar?.avatarType || 'letter_avatar'}
+      uploadUrl={organization.avatar?.avatarUrl}
       letterId={slug}
       tooltip={slug}
       title={title}

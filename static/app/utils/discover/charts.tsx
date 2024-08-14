@@ -1,22 +1,22 @@
-import {captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
-import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {
   DAY,
   formatAbbreviatedNumber,
-  formatPercentage,
   formatRate,
-  getDuration,
   HOUR,
   MINUTE,
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
@@ -66,7 +66,7 @@ export function axisLabelFormatter(
   outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number,
-  rateUnit?: 's' | 'min' | 'hr'
+  rateUnit?: RateUnit
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -85,7 +85,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
   type: string,
   abbreviation: boolean = false,
   durationUnit?: number,
-  rateUnit?: 's' | 'min' | 'hr'
+  rateUnit?: RateUnit
 ): string {
   switch (type) {
     case 'integer':
@@ -177,7 +177,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
           scope.setTag('seriesName', seriesName);
           scope.setExtra('min', min);
           scope.setExtra('max', min);
-          captureMessage('Found negative min value in multiseries');
+          Sentry.captureMessage('Found negative min value in multiseries');
         });
       }
     }

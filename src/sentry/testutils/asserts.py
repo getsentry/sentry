@@ -1,6 +1,9 @@
-from typing import Optional
+from django.http import StreamingHttpResponse
 
-from sentry.models import AuditLogEntry, CommitFileChange
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
@@ -16,9 +19,6 @@ def assert_mock_called_once_with_partial(mock, *args, **kwargs):
         assert m_kwargs[kwarg] == kwargs[kwarg], (m_kwargs[kwarg], kwargs[kwarg])
 
 
-commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
-
-
 def assert_commit_shape(commit):
     assert commit["id"]
     assert commit["repository"]
@@ -29,16 +29,20 @@ def assert_commit_shape(commit):
     assert commit["patch_set"]
     patches = commit["patch_set"]
     for patch in patches:
-        assert patch["type"] in commit_file_type_choices
+        assert CommitFileChange.is_valid_type(patch["type"])
         assert patch["path"]
 
 
-def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
+def assert_status_code(response, minimum: int, maximum: int | None = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
-    assert minimum <= response.status_code < maximum, (response.status_code, response.content)
+    assert minimum <= response.status_code < maximum, (
+        response.status_code,
+        response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
+    )
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def org_audit_log_exists(**kwargs):
     assert kwargs
     if "organization" in kwargs:

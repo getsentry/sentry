@@ -1,15 +1,21 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.models import Environment, UserReport
+from sentry.models.environment import Environment
+from sentry.models.userreport import UserReport
 
 
 @region_silo_endpoint
 class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         List User Reports

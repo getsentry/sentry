@@ -1,11 +1,9 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
@@ -19,8 +17,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -44,8 +42,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -73,8 +71,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -101,8 +99,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )

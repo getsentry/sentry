@@ -1,11 +1,13 @@
+import logging
+from collections.abc import Sequence
 from itertools import islice
-from typing import Any, Sequence
+from typing import Any
 
 import sentry_sdk
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -13,6 +15,8 @@ from . import ClustererNamespace, rules
 from .datasource import redis
 from .meta import track_clusterer_run
 from .tree import TreeClusterer
+
+logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tasks")
 
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See ``TreeClusterer`` for more information.
@@ -22,6 +26,10 @@ from .tree import TreeClusterer
 #: NOTE: We could make this configurable through django settings or even per-project in the future.
 MERGE_THRESHOLD = 200
 
+#: We're only using span clustering for resource spans right now, where we expect path segments to be either
+#: very low-cardinality or very high-cardinality, so we can use a more aggressive threshold.
+MERGE_THRESHOLD_SPANS = 50
+
 #: Number of projects to process in one celery task
 #: The number 100 was chosen at random and might still need tweaking.
 PROJECTS_PER_TASK = 100
@@ -29,7 +37,7 @@ PROJECTS_PER_TASK = 100
 #: Estimated limit for a clusterer run per project, in seconds.
 #: NOTE: using this in a per-project basis may not be enough. Consider using
 #: this estimation for project batches instead.
-CLUSTERING_TIMEOUT_PER_PROJECT = 0.1
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 
 
 @instrumented_task(
@@ -59,6 +67,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
 )
 def cluster_projects(projects: Sequence[Project]) -> None:
+    pending = set(projects)
     num_clustered = 0
     try:
         for project in projects:
@@ -86,12 +95,30 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 # Clear transaction names to prevent the set from picking up
                 # noise over a long time range.
                 redis.clear_samples(ClustererNamespace.TRANSACTIONS, project)
+            pending.remove(project)
             num_clustered += 1
     finally:
+        metrics.incr(
+            "txcluster.cluster_projects",
+            amount=num_clustered,
+            tags={"clustered": True},
+            sample_rate=1.0,
+        )
         unclustered = len(projects) - num_clustered
         if unclustered > 0:
             metrics.incr(
-                "txcluster.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0
+                "txcluster.cluster_projects",
+                amount=unclustered,
+                tags={"clustered": False},
+                sample_rate=1.0,
+            )
+            logger_transactions.error(
+                "Transaction clusterer missed projects",
+                extra={
+                    "projects.total": len(projects),
+                    "projects.unclustered.number": unclustered,
+                    "projects.unclustered.ids": [p.id for p in pending],
+                },
             )
 
 
@@ -117,7 +144,7 @@ def spawn_clusterers_span_descs(**kwargs: Any) -> None:
 
 
 @instrumented_task(
-    name="sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs",
+    name="sentry.ingest.span_clusterer.tasks.cluster_projects_span_descs",
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer
@@ -132,8 +159,8 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                 span.set_data("project_id", project.id)
                 descriptions = list(redis.get_span_descriptions(project))
                 new_rules = []
-                if len(descriptions) >= MERGE_THRESHOLD:
-                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                if len(descriptions) >= MERGE_THRESHOLD_SPANS:
+                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD_SPANS)
                     clusterer.add_input(descriptions)
                     new_rules = clusterer.get_rules()
                     # Span description rules must match a prefix in the string
@@ -141,7 +168,7 @@ def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
                     # the clusterer to avoid scrubbing other tokens. The prefix
                     # `**` in the glob ensures we match the prefix but we don't
                     # scrub it.
-                    new_rules = [ReplacementRule(f"**{r}") for r in new_rules]
+                    new_rules = [ReplacementRule(r) for r in new_rules]
 
                 track_clusterer_run(ClustererNamespace.SPANS, project)
 

@@ -1,6 +1,5 @@
 from copy import deepcopy
 from functools import cached_property
-from unittest import mock
 from uuid import uuid4
 
 from arroyo.utils import metrics
@@ -8,9 +7,8 @@ from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
-from django.test.utils import override_settings
-from freezegun import freeze_time
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
     generate_incident_trigger_email_context,
@@ -20,32 +18,30 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
-from sentry.incidents.models import (
-    AlertRuleTriggerAction,
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_subscriptions.constants import topic_to_dataset
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
-from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
+
+pytestmark = [requires_kafka]
 
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.override_settings_cm = override_settings(
-            KAFKA_TOPICS={self.topic: {"cluster": "default"}}
-        )
-        self.override_settings_cm.__enter__()
+        self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
@@ -53,16 +49,18 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
-        create_topics(kafka_cluster, [self.topic])
+        topic_defn = kafka_config.get_topic_definition(self.topic)
+        self.real_topic = topic_defn["real_topic_name"]
+        self.cluster = topic_defn["cluster"]
+
+        create_topics(self.cluster, [self.real_topic])
 
     def tearDown(self):
         super().tearDown()
-        self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-        self.admin_client.delete_topics([self.topic])
+        self.admin_client.delete_topics([self.real_topic])
         metrics._metrics_backend = None
 
     @cached_property
@@ -99,9 +97,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @cached_property
     def producer(self):
-        cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[self.cluster]["common"][
                 "bootstrap.servers"
             ],
             "session.timeout.ms": 6000,
@@ -135,7 +132,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
-        self.producer.produce(self.topic, json.dumps(message))
+        self.producer.produce(self.real_topic, json.dumps(message))
         self.producer.flush()
 
         def active_incident():
@@ -161,36 +158,40 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        message = handler.build_message(
+        incident_activity = IncidentActivity.objects.filter(incident=handler.incident).order_by(
+            "-id"
+        )[0]
+        message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,
                 handler.incident,
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
+                notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
             self.user.id,
         )
 
         out = mail.outbox[0]
+        assert isinstance(out, mail.EmailMultiAlternatives)
         assert out.to == [self.user.email]
-        assert out.subject == message.subject
-        built_message = message.build(self.user.email)
+        assert out.subject == message_builder.subject
+        built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
     def test_arroyo(self):
-        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
-            consumer = get_query_subscription_consumer(
-                self.topic,
-                "hi",
-                True,
-                "earliest",
-                1,
-                1,
-                1,
-                DEFAULT_BLOCK_SIZE,
-                DEFAULT_BLOCK_SIZE,
-                multi_proc=False,
-            )
-            self.run_test(consumer)
+        from sentry.consumers import get_stream_processor
+
+        consumer = get_stream_processor(
+            "metrics-subscription-results",
+            consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
+            topic=None,
+            cluster=None,
+            group_id="hi",
+            strict_offset_reset=True,
+            auto_offset_reset="earliest",
+            enforce_schema=True,
+        )
+        self.run_test(consumer)

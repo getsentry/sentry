@@ -1,11 +1,11 @@
 import {useState} from 'react';
 
 import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
-import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
-import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 
-import {RouteWithName} from './types';
+import Crumb from './crumb';
+import Divider from './divider';
+import type {RouteWithName} from './types';
 
 interface AdditionalDropdownProps
   extends Pick<

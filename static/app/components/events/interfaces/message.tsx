@@ -1,9 +1,12 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import {EntryType, Event} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
   data: {
@@ -14,7 +17,7 @@ type Props = {
 };
 
 function renderParams(params: Props['data']['params'], meta: any) {
-  if (!params || objectIsEmpty(params)) {
+  if (!params || isEmptyObject(params)) {
     return null;
   }
 
@@ -50,15 +53,16 @@ function renderParams(params: Props['data']['params'], meta: any) {
 export function Message({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
+  const messageData = data.formatted
+    ? renderLinksInText({exceptionText: data.formatted})
+    : null;
 
   return (
-    <EventDataSection type="message" title={t('Message')}>
-      {meta?.data?.formatted?.[''] ? (
-        <AnnotatedText value={data.formatted} meta={meta?.data?.formatted?.['']} />
-      ) : (
-        <pre className="plain">{data.formatted}</pre>
-      )}
+    <InterimSection title={t('Message')} type={FoldSectionKey.MESSAGE}>
+      <pre className="plain">
+        {<AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />}
+      </pre>
       {renderParams(data.params, meta)}
-    </EventDataSection>
+    </InterimSection>
   );
 }

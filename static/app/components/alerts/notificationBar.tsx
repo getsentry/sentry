@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 const StyledNotificationBarIconInfo = styled(IconInfo)`
   margin-right: ${space(1)};
-  color: ${p => p.theme.alert.info.iconColor};
+  color: ${p => p.theme.alert.info.color};
 `;
 
 export const NotificationBar = styled('div')`
@@ -18,6 +18,6 @@ export const NotificationBar = styled('div')`
   font-size: 14px;
   line-height: normal;
   ${StyledNotificationBarIconInfo} {
-    color: ${p => p.theme.alert.info.iconColor};
+    color: ${p => p.theme.alert.info.color};
   }
 `;

@@ -1,23 +1,18 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import Random
 
-from django.utils import timezone
 from django.utils.text import slugify
 
-from sentry.models import Group, Organization, Project
-from sentry.tasks.weekly_reports import (
-    ONE_DAY,
-    OrganizationReportContext,
-    ProjectContext,
-    render_template_context,
-)
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
+from sentry.tasks.summaries.weekly_reports import render_template_context
 from sentry.utils import loremipsum
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 
 from .mail import MailPreviewView
-
-DEBUG_ISSUE_STATES = True
 
 
 def get_random(request):
@@ -32,20 +27,18 @@ class DebugWeeklyReportView(MailPreviewView):
         random = get_random(request)
 
         duration = 60 * 60 * 24 * 7
-        timestamp = to_timestamp(
-            floor_to_utc_day(
-                to_datetime(
-                    random.randint(
-                        to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                        to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                    )
+        timestamp = floor_to_utc_day(
+            to_datetime(
+                random.randint(
+                    datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
+                    datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
                 )
             )
-        )
+        ).timestamp()
         ctx = OrganizationReportContext(timestamp, duration, organization)
-        ctx.projects.clear()
+        ctx.projects_context_map.clear()
 
-        start_timestamp = to_timestamp(ctx.start)
+        start_timestamp = ctx.start.timestamp()
 
         daily_maximum = random.randint(1000, 10000)
 
@@ -89,32 +82,20 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_replay_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
-            project_context.key_errors = [
-                (g, None, random.randint(0, 1000)) for g in Group.objects.all()[:3]
+            project_context.key_errors_by_group = [
+                (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
 
-            if DEBUG_ISSUE_STATES:
-                # For organizations:escalating-issues
-                project_context.new_substatus_count = random.randint(5, 200)
-                project_context.escalating_substatus_count = random.randint(5, 200)
-                project_context.regression_substatus_count = random.randint(5, 200)
-                project_context.ongoing_substatus_count = random.randint(20, 3000)
-                project_context.total_substatus_count = (
-                    project_context.new_substatus_count
-                    + project_context.escalating_substatus_count
-                    + project_context.regression_substatus_count
-                    + project_context.ongoing_substatus_count
-                )
-            else:
-                # Removed after organizations:escalating-issues GA
-                project_context.existing_issue_count = random.randint(0, 10000)
-                project_context.reopened_issue_count = random.randint(0, 1000)
-                project_context.new_issue_count = random.randint(0, 1000)
-                project_context.all_issue_count = (
-                    project_context.existing_issue_count
-                    + project_context.reopened_issue_count
-                    + project_context.new_issue_count
-                )
+            project_context.new_substatus_count = random.randint(5, 200)
+            project_context.escalating_substatus_count = random.randint(5, 200)
+            project_context.regression_substatus_count = random.randint(5, 200)
+            project_context.ongoing_substatus_count = random.randint(20, 3000)
+            project_context.total_substatus_count = (
+                project_context.new_substatus_count
+                + project_context.escalating_substatus_count
+                + project_context.regression_substatus_count
+                + project_context.ongoing_substatus_count
+            )
 
             # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
             project_context.key_transactions = [
@@ -132,7 +113,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
             ]
 
-            ctx.projects[project.id] = project_context
+            ctx.projects_context_map[project.id] = project_context
 
         return render_template_context(ctx, None)
 

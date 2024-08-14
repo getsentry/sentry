@@ -7,13 +7,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember, outbox_context
+from sentry.auth.services.auth import auth_service
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -49,14 +51,17 @@ def create_organization_join_request(organization, email, ip_address=None):
 
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(5, 86400),
-            RateLimitCategory.USER: RateLimit(5, 86400),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 86400),
+            RateLimitCategory.IP: RateLimit(limit=5, window=86400),
+            RateLimitCategory.USER: RateLimit(limit=5, window=86400),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=86400),
         }
     }
 
@@ -68,13 +73,13 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
 
         # users can already join organizations with SSO enabled without an invite
         # so they should join that way and not through a request to the admins
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if len(providers) != 0:
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider is not None:
             return Response(status=403)
 
         ip_address = request.META["REMOTE_ADDR"]
 
-        if ratelimiter.is_limited(
+        if ratelimiter.backend.is_limited(
             f"org-join-request:ip:{ip_address}",
             limit=5,
             window=86400,  # 5 per day, 60 x 60 x 24

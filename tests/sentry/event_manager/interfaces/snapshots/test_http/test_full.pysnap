@@ -1,6 +1,4 @@
 ---
-created: '2023-06-27T15:08:54.308629Z'
-creator: sentry
 source: tests/sentry/event_manager/interfaces/test_http.py
 ---
 errors: null

@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useUser} from 'sentry/utils/useUser';
 
 import useMedia from './useMedia';
 
@@ -27,8 +27,8 @@ function setFaviconTheme(theme: 'dark' | 'light'): void {
 }
 
 export function useColorscheme() {
-  const {user} = useLegacyStore(ConfigStore);
-  const configuredTheme = user?.options.theme ?? 'system';
+  const user = useUser();
+  const configuredTheme = user?.options?.theme ?? 'system';
 
   const preferDark = useMedia('(prefers-color-scheme: dark)');
   const preferredTheme = preferDark ? 'dark' : 'light';

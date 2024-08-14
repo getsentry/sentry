@@ -1,36 +1,30 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest import mock
 
-import pytz
 from django.utils import timezone
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models import (
-    Group,
-    GroupEnvironment,
-    GroupLink,
-    GroupResolution,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    NotificationSetting,
-    UserOption,
-)
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.user_option import UserOption
+from sentry.notifications.types import NotificationSettingsOptionEnum
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
-from sentry.types.integrations import ExternalProviders
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test(stable=True)
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -49,6 +43,25 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
+
+    def test_priority_high(self):
+        outside_user = self.create_user()
+        group = self.create_group(priority=PriorityLevel.HIGH)
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result["priority"] == "high"
+
+    def test_priority_medium(self):
+        outside_user = self.create_user()
+        group = self.create_group(priority=PriorityLevel.MEDIUM)
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result["priority"] == "medium"
+
+    def test_priority_none(self):
+        outside_user = self.create_user()
+        group = self.create_group()
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result["priority"] is None
+        assert result["priorityLockedAt"] is None
 
     def test_is_ignored_with_expired_snooze(self):
         now = timezone.now()
@@ -141,9 +154,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age, mock_record):
+    @mock.patch("sentry.models.Group.is_over_resolve_age")
+    def test_auto_resolved(self, mock_is_over_resolve_age):
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -152,16 +164,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
-        mock_record.assert_called_with(
-            "issue.resolved",
-            default_user_id=self.project.organization.get_default_owner().id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            group_id=group.id,
-            resolution_type="automatic",
-            issue_type="error",
-            issue_category="error",
-        )
 
     def test_subscribed(self):
         user = self.create_user()
@@ -194,120 +196,110 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         combinations = (
             # (default, project, subscribed, has_details)
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.DEFAULT,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.ALWAYS,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.ALWAYS,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.DEFAULT,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.DEFAULT,
+                NotificationSettingsOptionEnum.DEFAULT,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.DEFAULT,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.DEFAULT,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.DEFAULT,
                 False,
                 True,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.ALWAYS,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.ALWAYS,
                 True,
                 False,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 False,
                 False,
             ),
             (
-                NotificationSettingOptionValues.NEVER,
-                NotificationSettingOptionValues.NEVER,
+                NotificationSettingsOptionEnum.NEVER,
+                NotificationSettingsOptionEnum.NEVER,
                 False,
                 True,
             ),
         )
 
         for default_value, project_value, is_subscribed, has_details in combinations:
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 UserOption.objects.clear_local_cache()
+                NotificationSettingOption.objects.all().delete()
 
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.WORKFLOW,
-                    default_value,
-                    user_id=user.id,
-                )
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.EMAIL,
-                    NotificationSettingTypes.WORKFLOW,
-                    project_value,
-                    user_id=user.id,
-                    project=group.project.id,
-                )
+                if default_value != NotificationSettingsOptionEnum.DEFAULT:
+                    NotificationSettingOption.objects.create(
+                        user_id=user.id,
+                        scope_type="user",
+                        scope_identifier=user.id,
+                        value=default_value.value,
+                        type="workflow",
+                    )
 
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.WORKFLOW,
-                    default_value,
-                    user_id=user.id,
-                )
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.WORKFLOW,
-                    project_value,
-                    user_id=user.id,
-                    project=group.project.id,
-                )
+                if project_value != NotificationSettingsOptionEnum.DEFAULT:
+                    NotificationSettingOption.objects.create(
+                        user_id=user.id,
+                        scope_type="project",
+                        scope_identifier=group.project.id,
+                        value=project_value.value,
+                        type="workflow",
+                    )
 
             result = serialize(group, user, serializer=GroupSerializerSnuba())
             subscription_details = result.get("subscriptionDetails")
-
             assert result["isSubscribed"] is is_subscribed
             assert (
                 subscription_details == {"disabled": True}
@@ -323,14 +315,14 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        with exempt_from_silo_limits():
-            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=user.id,
-                )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(
+                user_id=user.id,
+                scope_type="user",
+                scope_identifier=user.id,
+                value="never",
+                type="workflow",
+            )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -343,16 +335,14 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         GroupSubscription.objects.create(
             user_id=user.id, group=group, project=group.project, is_active=True
         )
-
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            with exempt_from_silo_limits():
-                NotificationSetting.objects.update_settings(
-                    provider,
-                    NotificationSettingTypes.WORKFLOW,
-                    NotificationSettingOptionValues.NEVER,
-                    user_id=user.id,
-                    project=group.project.id,
-                )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(
+                user_id=user.id,
+                scope_type="project",
+                scope_identifier=group.project.id,
+                value="never",
+                type="workflow",
+            )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -436,8 +426,17 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
-            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
-            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+            last_seen = None if days is None else before_now(days=days)
+            start = GroupSerializerSnuba._get_start_from_seen_stats(
+                {
+                    mock.sentinel.group: {
+                        "last_seen": last_seen,
+                        "first_seen": None,
+                        "times_seen": 0,
+                        "user_count": 0,
+                    }
+                }
+            )
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
@@ -448,22 +447,22 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=pytz.UTC)),
+                    SearchValue(before_now(seconds=1)),
                 ),
             ]
         )
@@ -472,11 +471,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["id"] == str(group.id)
 
 
-@region_silo_test
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
     PerformanceIssueTestCase,
 ):
     def test_perf_seen_stats(self):
@@ -524,7 +521,6 @@ class PerformanceGroupSerializerSnubaTest(
         assert result["count"] == str(times + 1)
 
 
-@region_silo_test
 class ProfilingGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
@@ -555,6 +551,7 @@ class ProfilingGroupSerializerSnubaTest(
             environment.name,
             timestamp + timedelta(minutes=5),
         )
+        assert group_info is not None
 
         first_group = group_info.group
 

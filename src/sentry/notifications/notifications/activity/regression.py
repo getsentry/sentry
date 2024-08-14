@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from html import escape
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
+from urllib.parse import urlencode
 
-from sentry_relay import parse_release
+import orjson
+from sentry_relay.processing import parse_release
 
-from sentry.models import Activity
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.types import ExternalProviders
+from sentry.models.activity import Activity
 
 from .base import GroupActivityNotification
 
@@ -18,21 +20,26 @@ class RegressionActivityNotification(GroupActivityNotification):
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
-        self.version_parsed = parse_release(self.version)["description"]
+        self.version_parsed = parse_release(self.version, json_loads=orjson.loads)["description"]
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        message, params, html_params = "{author} marked {an issue} as a regression", {}, {}
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
+        text_message, html_message, params = "{author} marked {an issue} as a regression", None, {}
 
         if self.version:
             version_url = self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/"
+                f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
 
-            message += " in {version}"
-            params["version"] = self.version_parsed
-            html_params["version"] = f'<a href="{version_url}">{escape(self.version_parsed)}</a>'
+            html_message = text_message + ' in <a href="{url}">{version}</a>'
+            text_message += " in {version}"
 
-        return message, params, html_params
+            params["url"] = version_url
+            params["version"] = self.version_parsed
+
+        return text_message, html_message, params
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -40,7 +47,10 @@ class RegressionActivityNotification(GroupActivityNotification):
         text = "Issue marked as regression"
         if self.version:
             version_url = self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/releases/{self.version}/"
+                f"/organizations/{self.organization.slug}/releases/{self.version}/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             )
             text += f" in release {self.format_url(text=self.version_parsed, url=version_url, provider=provider)}"
         return text

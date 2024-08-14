@@ -1,8 +1,8 @@
-import {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {useEffect, useMemo, useState} from 'react';
+import type {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import {
   fetchDashboard,
@@ -10,31 +10,34 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
+import type {
   DashboardDetails,
   DashboardListItem,
-  DisplayType,
-  MAX_WIDGETS,
   Widget,
 } from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboards/utils';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type DataSet,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -47,10 +50,16 @@ type WidgetAsQueryParams = Query<{
   environment: string[];
   project: number[];
   source: string;
+  dataset?: DataSet;
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
 }>;
+
+type AddToDashboardModalActions =
+  | 'add-and-open-dashboard'
+  | 'add-and-stay-on-current-page'
+  | 'open-in-widget-builder';
 
 export type AddToDashboardModalProps = {
   location: Location;
@@ -59,11 +68,18 @@ export type AddToDashboardModalProps = {
   selection: PageFilters;
   widget: Widget;
   widgetAsQueryParams: WidgetAsQueryParams;
+  actions?: AddToDashboardModalActions[];
+  allowCreateNewDashboard?: boolean;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
+
+const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
+  'add-and-stay-on-current-page',
+  'open-in-widget-builder',
+];
 
 function AddToDashboardModal({
   Header,
@@ -76,6 +92,8 @@ function AddToDashboardModal({
   selection,
   widget,
   widgetAsQueryParams,
+  actions = DEFAULT_ACTIONS,
+  allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -124,11 +142,13 @@ function AddToDashboardModal({
     };
   }, [api, organization.slug, selectedDashboardId]);
 
-  function handleGoToBuilder() {
-    const pathname =
+  function goToDashboard(page: 'builder' | 'preview') {
+    const dashboardsPath =
       selectedDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
-        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
+        ? `/organizations/${organization.slug}/dashboards/new/`
+        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
+
+    const pathname = page === 'builder' ? `${dashboardsPath}widget/new/` : dashboardsPath;
 
     router.push(
       normalizeUrl({
@@ -142,7 +162,7 @@ function AddToDashboardModal({
     closeModal();
   }
 
-  async function handleAddAndStayInDiscover() {
+  async function handleAddWidget() {
     if (selectedDashboard === null) {
       return;
     }
@@ -153,9 +173,15 @@ function AddToDashboardModal({
     }
     const query = widget.queries[0];
 
+    const title =
+      // Metric widgets have their default title derived from the query
+      widget.title === '' && widget.widgetType !== WidgetType.METRICS
+        ? t('All Events')
+        : widget.title;
+
     const newWidget = {
       ...widget,
-      title: widget.title === '' ? t('All Events') : widget.title,
+      title,
       queries: [{...query, orderby}],
     };
 
@@ -165,12 +191,46 @@ function AddToDashboardModal({
     };
 
     await updateDashboard(api, organization.slug, newDashboard);
+  }
+
+  async function handleAddAndStayOnCurrentPage() {
+    await handleAddWidget();
 
     closeModal();
     addSuccessMessage(t('Successfully added widget to dashboard'));
   }
 
+  async function handleAddAndOpenDashboard() {
+    await handleAddWidget();
+
+    goToDashboard('preview');
+  }
+
   const canSubmit = selectedDashboardId !== null;
+
+  const options = useMemo(() => {
+    if (dashboards === null) {
+      return null;
+    }
+
+    return [
+      allowCreateNewDashboard && {
+        label: t('+ Create New Dashboard'),
+        value: 'new',
+      },
+      ...dashboards.map(({title, id, widgetDisplay}) => ({
+        label: title,
+        value: id,
+        disabled: widgetDisplay.length >= MAX_WIDGETS,
+        tooltip:
+          widgetDisplay.length >= MAX_WIDGETS &&
+          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+            maxWidgets: MAX_WIDGETS,
+          }),
+        tooltipOptions: {position: 'right'},
+      })),
+    ].filter(Boolean) as SelectValue<string>[];
+  }, [allowCreateNewDashboard, dashboards]);
 
   return (
     <OrganizationContext.Provider value={organization}>
@@ -185,22 +245,7 @@ function AddToDashboardModal({
             name="dashboard"
             placeholder={t('Select Dashboard')}
             value={selectedDashboardId}
-            options={
-              dashboards && [
-                {label: t('+ Create New Dashboard'), value: 'new'},
-                ...dashboards.map(({title, id, widgetDisplay}) => ({
-                  label: title,
-                  value: id,
-                  disabled: widgetDisplay.length >= MAX_WIDGETS,
-                  tooltip:
-                    widgetDisplay.length >= MAX_WIDGETS &&
-                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                      maxWidgets: MAX_WIDGETS,
-                    }),
-                  tooltipOptions: {position: 'right'},
-                })),
-              ]
-            }
+            options={options}
             onChange={(option: SelectValue<string>) => {
               if (option.disabled) {
                 return;
@@ -217,12 +262,7 @@ function AddToDashboardModal({
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventViewFromWidget(
-              widget.title,
-              widget.queries[0],
-              selection,
-              widget.displayType
-            )}
+            eventView={eventViewFromWidget(widget.title, widget.queries[0], selection)}
             location={location}
             hideLoadingIndicator
           >
@@ -233,7 +273,8 @@ function AddToDashboardModal({
               >
                 <WidgetCard
                   organization={organization}
-                  isEditing={false}
+                  isEditingDashboard={false}
+                  showContextMenu={false}
                   widgetLimitReached={false}
                   selection={
                     selectedDashboard
@@ -245,6 +286,7 @@ function AddToDashboardModal({
                   }
                   widget={widget}
                   showStoredAlert
+                  shouldResize={false}
                 />
               </MEPSettingProvider>
             )}
@@ -254,21 +296,34 @@ function AddToDashboardModal({
 
       <Footer>
         <StyledButtonBar gap={1.5}>
-          <Button
-            onClick={handleAddAndStayInDiscover}
-            disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
-          >
-            {t('Add + Stay in Discover')}
-          </Button>
-          <Button
-            priority="primary"
-            onClick={handleGoToBuilder}
-            disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
-          >
-            {t('Open in Widget Builder')}
-          </Button>
+          {actions.includes('add-and-stay-on-current-page') && (
+            <Button
+              onClick={handleAddAndStayOnCurrentPage}
+              disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Add + Stay on this Page')}
+            </Button>
+          )}
+          {actions.includes('add-and-open-dashboard') && (
+            <Button
+              onClick={handleAddAndOpenDashboard}
+              disabled={!canSubmit}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Add + Open Dashboard')}
+            </Button>
+          )}
+          {actions.includes('open-in-widget-builder') && (
+            <Button
+              priority="primary"
+              onClick={() => goToDashboard('builder')}
+              disabled={!canSubmit}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Open in Widget Builder')}
+            </Button>
+          )}
         </StyledButtonBar>
       </Footer>
     </OrganizationContext.Provider>

@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    GroupSubscription,
-    Project,
-    User,
-    record_group_history_from_activity_type,
-)
+from django.db.models.signals import post_save
+
+from sentry import options
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils import json
 
 ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
@@ -25,24 +25,27 @@ ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: Dict[int, Project],
-    new_status: GroupStatus,
-    new_substatus: GroupSubStatus | None,
+    project_lookup: dict[int, Project],
+    new_status: int,
+    new_substatus: int | None,
     is_bulk: bool,
-    status_details: Dict[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | None,
-    activity_type: str | None,
     sender: Any,
 ) -> ActivityInfo:
     """
     Update the status for a list of groups and create entries for Activity and GroupHistory.
+    This currently handles unresolving or ignoring groups.
 
     Returns a tuple of (activity_type, activity_data) for the activity that was created.
     """
     activity_data = {}
+    activity_type = (
+        ActivityType.SET_IGNORED.value
+        if new_status == GroupStatus.IGNORED
+        else ActivityType.SET_UNRESOLVED.value
+    )
     if new_status == GroupStatus.UNRESOLVED:
-        activity_type = ActivityType.SET_UNRESOLVED.value
-
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
                 issue_unignored.send_robust(
@@ -60,11 +63,11 @@ def handle_status_update(
                     transition_type="manual",
                     sender=sender,
                 )
+
     elif new_status == GroupStatus.IGNORED:
         ignore_duration = (
             status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
         ) or None
-        activity_type = ActivityType.SET_IGNORED.value
         activity_data = {
             "ignoreCount": status_details.get("ignoreCount", None),
             "ignoreDuration": ignore_duration,
@@ -110,7 +113,7 @@ def handle_status_update(
         if not is_bulk:
             if acting_user:
                 GroupSubscription.objects.subscribe(
-                    user=acting_user,
+                    subscriber=acting_user,
                     group=group,
                     reason=GroupSubscriptionReason.status_change,
                 )
@@ -119,6 +122,14 @@ def handle_status_update(
         if new_status == GroupStatus.UNRESOLVED:
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
+
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
             )
 
     return ActivityInfo(activity_type, activity_data)

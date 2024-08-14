@@ -1,12 +1,9 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
-
-type Output = {
-  subject: string;
-  value: React.ReactNode | null;
-};
+import type {OperatingSystemKnownData} from './types';
+import {OperatingSystemKnownDataType} from './types';
 
 type Props = {
   data: OperatingSystemKnownData;
@@ -16,7 +13,7 @@ type Props = {
 export function getOperatingSystemKnownDataDetails({
   data,
   type,
-}: Props): Output | undefined {
+}: Props): KnownDataDetails {
   switch (type) {
     case OperatingSystemKnownDataType.NAME:
       return {

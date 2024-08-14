@@ -1,39 +1,3 @@
-// The add/edit widget modal is currently being ported to the widget builder full-page and
-// this will be removed once that is done.
-type DashboardsEventParametersAddWidgetModal = {
-  'dashboards_views.add_widget_modal.change': {
-    field: string;
-    from: string;
-    value: string;
-    widget_type: string;
-  };
-  'dashboards_views.add_widget_modal.confirm': {
-    data_set: string;
-  };
-  'dashboards_views.add_widget_modal.opened': {};
-  'dashboards_views.add_widget_modal.save': {
-    data_set: string;
-  };
-  'dashboards_views.edit_widget_modal.confirm': {};
-  'dashboards_views.edit_widget_modal.opened': {};
-};
-
-const dashboardsEventMapAddWidgetModal: Record<
-  keyof DashboardsEventParametersAddWidgetModal,
-  string | null
-> = {
-  'dashboards_views.edit_widget_modal.confirm':
-    'Dashboards2: Edit Dashboard Widget modal form submitted',
-  'dashboards_views.edit_widget_modal.opened': 'Dashboards2: Edit Widget Modal Opened',
-  'dashboards_views.add_widget_modal.opened': 'Dashboards2: Add Widget Modal opened',
-  'dashboards_views.add_widget_modal.change':
-    'Dashboards2: Field changed in Add Widget Modal',
-  'dashboards_views.add_widget_modal.confirm':
-    'Dashboards2: Add Widget to Dashboard modal form submitted',
-  'dashboards_views.add_widget_modal.save':
-    'Dashboards2: Widget saved directly to Dashboard from Add Widget to Dashboard modal',
-};
-
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
   'dashboards_views.widget_builder.change': {
@@ -68,6 +32,8 @@ export type DashboardsEventParameters = {
   'dashboards2.edit.cancel': {};
   'dashboards2.edit.complete': {};
   'dashboards2.edit.start': {};
+  'dashboards2.filter.cancel': {};
+  'dashboards2.filter.save': {};
   'dashboards_manage.change_sort': {
     sort: string;
   };
@@ -96,16 +62,19 @@ export type DashboardsEventParameters = {
   'dashboards_views.query_selector.selected': {
     widget_type: string;
   };
-  'dashboards_views.widget_library.add': {
-    num_widgets: number;
+  'dashboards_views.widget.delete': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.duplicate': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.edit': {
+    widget_type: string;
   };
   'dashboards_views.widget_library.add_widget': {
     title: string;
   };
   'dashboards_views.widget_library.opened': {};
-  'dashboards_views.widget_library.switch_tab': {
-    to: string;
-  };
   'dashboards_views.widget_viewer.edit': {
     display_type: string;
     widget_type: string;
@@ -140,8 +109,7 @@ export type DashboardsEventParameters = {
     display_type: string;
     widget_type: string;
   };
-} & DashboardsEventParametersAddWidgetModal &
-  DashboardsEventParametersWidgetBuilder;
+} & DashboardsEventParametersWidgetBuilder;
 
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
@@ -152,16 +120,18 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.edit.cancel': 'Dashboards2: Edit cancel',
   'dashboards2.edit.complete': 'Dashboards2: Edit complete',
   'dashboards2.edit.start': 'Dashboards2: Edit start',
+  'dashboards2.filter.save': 'Dashboards2: Filter bar save',
+  'dashboards2.filter.cancel': 'Dashboards2: Filter bar cancel',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
     'Dashboards2: Query selected in Query Selector',
+  'dashboards_views.widget.edit': 'Dashboards2: dashboard widget edited',
+  'dashboards_views.widget.duplicate': 'Dashboards2: dashboard widget duplicated',
+  'dashboards_views.widget.delete': 'Dashboards2: dashboard widget deleted',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
-  'dashboards_views.widget_library.add': 'Dashboards2: Number of prebuilt widgets added',
   'dashboards_views.widget_library.add_widget':
     'Dashboards2: Title of prebuilt widget added',
-  'dashboards_views.widget_library.switch_tab':
-    'Dashboards2: Widget Library tab switched',
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
@@ -181,6 +151,5 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_viewer.sort': 'Widget Viewer: Table Sorted',
   'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
   'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
-  ...dashboardsEventMapAddWidgetModal,
   ...dashboardsEventMapWidgetBuilder,
 };

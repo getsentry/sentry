@@ -1,8 +1,8 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
-import {DateString} from 'sentry/types';
+
+import type {TableDataRow} from './discover/discoverQuery';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -32,6 +32,31 @@ export function isValidTime(str: string): boolean {
  */
 export function getUtcDateString(dateObj: moment.MomentInput): string {
   return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
+}
+
+/**
+ * Given a date field from a table row, return a timestamp
+ * given: '2024-04-01T20:15:18+00:00'
+ * returns: 1712002518
+ */
+export function getTimeStampFromTableDateField(
+  date: keyof TableDataRow | undefined
+): number | undefined {
+  if (!date) {
+    return undefined;
+  }
+
+  if (typeof date === 'number') {
+    return date;
+  }
+
+  const timestamp = new Date(date).getTime();
+
+  if (isNaN(timestamp)) {
+    throw new Error('Invalid timestamp: NaN');
+  }
+
+  return timestamp / 1000;
 }
 
 export function getFormattedDate(
@@ -159,77 +184,6 @@ export function getStartOfPeriodAgo(
 }
 
 /**
- * Convert an interval string into a number of seconds.
- * This allows us to create end timestamps from starting ones
- * enabling us to find events in narrow windows.
- *
- * @param {String} interval The interval to convert.
- * @return {Integer}
- */
-export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)(d|h|m)$/;
-  const matches = pattern.exec(interval);
-  if (!matches) {
-    return 0;
-  }
-  const [, value, unit] = matches;
-  const multipliers = {
-    d: 60 * 60 * 24,
-    h: 60 * 60,
-    m: 60,
-  };
-  return parseInt(value, 10) * multipliers[unit] * 1000;
-}
-
-/**
- * This parses our period shorthand strings (e.g. <int><unit>)
- * and converts it into hours
- */
-export function parsePeriodToHours(str: string): number {
-  const result = parseStatsPeriod(str);
-
-  if (!result) {
-    return -1;
-  }
-
-  const {period, periodLength} = result;
-
-  const periodNumber = parseInt(period, 10);
-
-  switch (periodLength) {
-    case 's':
-      return periodNumber / (60 * 60);
-    case 'm':
-      return periodNumber / 60;
-    case 'h':
-      return periodNumber;
-    case 'd':
-      return periodNumber * 24;
-    case 'w':
-      return periodNumber * 24 * 7;
-    default:
-      return -1;
-  }
-}
-
-export function statsPeriodToDays(
-  statsPeriod?: string | null,
-  start?: DateString,
-  end?: DateString
-) {
-  if (statsPeriod && statsPeriod.endsWith('d')) {
-    return parseInt(statsPeriod.slice(0, -1), 10);
-  }
-  if (statsPeriod && statsPeriod.endsWith('h')) {
-    return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-  }
-  if (start && end) {
-    return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
-  }
-  return 0;
-}
-
-/**
  * Does the user prefer a 24 hour clock?
  */
 export function shouldUse24Hours() {
@@ -349,4 +303,21 @@ export function getDateWithTimezoneInUtc(date?: Date, utc?: boolean | null) {
     )
     .utc()
     .toDate();
+}
+
+/**
+ * Converts a string or timestamp in milliseconds to a Date
+ */
+export function getDateFromTimestamp(value: unknown): Date | null {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const dateObj = new Date(value);
+
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
+
+  return dateObj;
 }

@@ -1,49 +1,74 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
+from slack_sdk.errors import SlackApiError
 
 from sentry import analytics, features
-from sentry.api.base import region_silo_endpoint
-from sentry.integrations.slack.client import SlackClient
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import all_silo_endpoint
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
+    SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
-from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
+from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
-from sentry.utils.urls import parse_link
-from sentry.web.decorators import transaction_start
+from sentry.organizations.services.organization import organization_service
+from sentry.utils import metrics
 
-from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
+_logger = logging.getLogger(__name__)
 
-@region_silo_endpoint
+
+@all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     """
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
+
+    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
+    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
 
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackEventRequest
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
-        payload = {"channel": slack_request.channel_id, "text": message}
-        client = SlackClient(integration_id=slack_request.integration.id)
+        logger_params = {
+            "integration_id": slack_request.integration.id,
+            "team_id": slack_request.team_id,
+            "channel_id": slack_request.channel_id,
+            "user_id": slack_request.user_id,
+            "channel": slack_request.channel_id,
+            "message": message,
+        }
+
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", data=payload, json=True)
-        except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+            client.chat_postMessage(channel=slack_request.channel_id, text=message)
+        except SlackApiError:
+            _logger.exception("reply.post-message-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".reply.post_message", sample_rate=1.0)
 
         return self.respond()
 
@@ -64,6 +89,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             response_url=slack_request.response_url,
         )
         if not slack_request.channel_id:
+            metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.no_channel_id", sample_rate=1.0)
             return
 
         payload = {
@@ -73,11 +99,26 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
         }
 
-        client = SlackClient(integration_id=slack_request.integration.id)
+        logger_params = {
+            "integration_id": slack_request.integration.id,
+            "team_id": slack_request.team_id,
+            "channel_id": slack_request.channel_id,
+            "user_id": slack_request.user_id,
+            "channel": slack_request.channel_id,
+            **payload,
+        }
+
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postEphemeral", data=payload)
-        except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            client.chat_postEphemeral(
+                channel=slack_request.channel_id,
+                user=slack_request.user_id,
+                text=payload["text"],
+                **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
+            )
+        except SlackApiError:
+            _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.post_ephemeral", sample_rate=1.0)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -88,11 +129,24 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "channel": slack_request.channel_id,
             **SlackHelpMessageBuilder(command).as_payload(),
         }
-        client = SlackClient(integration_id=slack_request.integration.id)
+        logger_params = {
+            "integration_id": slack_request.integration.id,
+            "team_id": slack_request.team_id,
+            "channel_id": slack_request.channel_id,
+            "user_id": slack_request.user_id,
+            "channel": slack_request.channel_id,
+            **payload,
+        }
+
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.postMessage", data=payload, json=True)
-        except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": str(e)})
+            client.chat_postMessage(
+                channel=slack_request.channel_id,
+                **SlackHelpMessageBuilder(command).as_payload(),
+            )
+        except SlackApiError:
+            _logger.exception("on_message.post-message-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".on_message.post_message", sample_rate=1.0)
 
         return self.respond()
 
@@ -103,19 +157,23 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         data = slack_request.data.get("event", {})
 
+        logger_params = {
+            "integration_id": slack_request.integration.id,
+            "team_id": slack_request.team_id,
+            "channel_id": slack_request.channel_id,
+            "user_id": slack_request.user_id,
+            "channel": slack_request.channel_id,
+            **data,
+        }
+
         # An unfurl may have multiple links to unfurl
         for item in data.get("links", []):
             try:
                 url = item["url"]
-                slack_shared_link = parse_link(url)
-            except Exception as e:
-                logger.error("slack.parse-link-error", extra={"error": str(e)})
+            except Exception:
+                _logger.exception("parse-link-error", extra={**logger_params, "url": url})
                 continue
 
-            # We would like to track what types of links users are sharing, but
-            # it's a little difficult to do in Sentry because we filter requests
-            # from Slack bots. Instead we just log to Kibana.
-            logger.info("slack.link-shared", extra={"slack_shared_link": slack_shared_link})
             link_type, args = match_link(url)
 
             # Link can't be unfurled
@@ -127,11 +185,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
             organization_id = ois[0].organization_id if len(ois) > 0 else None
             organization_context = (
-                organization_service.get_organization_by_id(id=organization_id, user_id=None)
+                organization_service.get_organization_by_id(
+                    id=organization_id, user_id=None, include_projects=False, include_teams=False
+                )
                 if organization_id
                 else None
             )
             organization = organization_context.organization if organization_context else None
+            logger_params["organization_id"] = organization_id
 
             if (
                 organization
@@ -148,7 +209,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args)))
+            seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
             if seen_marker in links_seen:
                 continue
 
@@ -173,22 +234,33 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        # XXX(isabella): we use our message builders to create the blocks for each link to be
+        # unfurled, so the original result will include the fallback text string, however, the
+        # unfurl endpoint does not accept fallback text.
+        for link_info in results.values():
+            if "text" in link_info:
+                del link_info["text"]
+
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
+            "unfurls": orjson.dumps(results).decode(),
         }
 
-        client = SlackClient(integration_id=slack_request.integration.id)
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            client.post("/chat.unfurl", data=payload)
-        except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            client.chat_unfurl(
+                channel=data["channel"],
+                ts=data["message_ts"],
+                unfurls=payload["unfurls"],
+            )
+        except SlackApiError:
+            _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".unfurl", sample_rate=1.0)
 
         return True
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
-    @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

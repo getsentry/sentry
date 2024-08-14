@@ -1,9 +1,10 @@
 from rest_framework import serializers
 
 from sentry.api.fields.user import UserField
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import CommitSerializer
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
-from sentry.models import OrganizationMember, Release, ReleaseStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.release import Release, ReleaseStatus
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -51,11 +52,29 @@ class ReleaseHeadCommitSerializer(serializers.Serializer):
 
 class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(
-        max_length=MAX_VERSION_LENGTH, required=False, allow_null=True, allow_blank=True
+        max_length=MAX_VERSION_LENGTH,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="An optional commit reference. This is useful if a tagged version has been provided.",
     )
-    url = serializers.URLField(required=False, allow_null=True, allow_blank=True)
-    dateReleased = serializers.DateTimeField(required=False, allow_null=True)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+    url = serializers.URLField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="A URL that points to the release. For instance, this can be the path to an online interface to the source code, such as a GitHub URL.",
+    )
+    dateReleased = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="An optional date that indicates when the release went live.  If not provided the current time is used.",
+    )
+    commits = serializers.ListField(
+        child=CommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="An optional list of commit data to be associated.",
+    )
 
     status = serializers.CharField(required=False, allow_null=False)
 

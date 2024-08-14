@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any
 
 from django.utils import timezone
 
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models import Group, Organization, Project
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.rules import RuleBase, rules
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,
@@ -15,7 +18,7 @@ from sentry.rules.history.preview_strategy import (
     get_update_kwargs_for_group,
     get_update_kwargs_for_groups,
 )
-from sentry.rules.processor import get_match_function
+from sentry.rules.processing.processor import get_match_function
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -25,9 +28,9 @@ from sentry.types.condition_activity import (
 )
 from sentry.utils.snuba import SnubaQueryParams, bulk_raw_query, parse_snuba_datetime, raw_query
 
-Conditions = Sequence[Dict[str, Any]]
+Conditions = Sequence[dict[str, Any]]
 ConditionFunc = Callable[[Sequence[bool]], bool]
-GroupActivityMap = Dict[int, List[ConditionActivity]]
+GroupActivityMap = dict[int, list[ConditionActivity]]
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -38,12 +41,22 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
 ]
 FREQUENCY_CONDITIONS = [
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
 ]
+
+# Most of the ISSUE_STATE_CONDITIONS are mutually exclusive, except for the following pairs.
+VALID_CONDITION_PAIRS = {
+    "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+}
 
 
 def preview(
@@ -54,18 +67,32 @@ def preview(
     filter_match: str,
     frequency_minutes: int,
     end: datetime | None = None,
-) -> Dict[int, datetime] | None:
+) -> dict[int, datetime] | None:
     """
     Returns groups that would have triggered the given conditions and filters in the past 2 weeks
     """
     issue_state_conditions, frequency_conditions = categorize_conditions(conditions)
-
     # must have at least one condition to filter activity
     if not issue_state_conditions and not frequency_conditions:
         return None
-    # all the issue state conditions are mutually exclusive
     elif len(issue_state_conditions) > 1 and condition_match == "all":
-        return {}
+        # Of the supported conditions, any more than two would be mutually exclusive
+        if len(issue_state_conditions) > 2:
+            return {}
+
+        condition_ids = {condition["id"] for condition in issue_state_conditions}
+
+        # all the issue state conditions are mutually exclusive
+        if not any(condition in VALID_CONDITION_PAIRS for condition in condition_ids):
+            return {}
+
+        # if there are multiple issue state conditions, they must be one of the valid pairs
+        for condition in condition_ids:
+            if (
+                condition in VALID_CONDITION_PAIRS
+                and VALID_CONDITION_PAIRS[condition] not in condition_ids
+            ):
+                return {}
 
     if end is None:
         end = timezone.now()
@@ -109,7 +136,7 @@ def preview(
         return None
 
 
-def categorize_conditions(conditions: Conditions) -> Tuple[Conditions, Conditions]:
+def categorize_conditions(conditions: Conditions) -> tuple[Conditions, Conditions]:
     """
     Categorizes conditions into issue state conditions or frequency conditions.
     These two types of conditions are processed separately.
@@ -142,7 +169,7 @@ def get_issue_state_activity(
         if condition_cls is None:
             raise PreviewException
         # instantiates a EventCondition subclass and retrieves activities related to it
-        condition_inst = condition_cls(project, data=condition)
+        condition_inst = condition_cls(project=project, data=condition)
         try:
             activities = condition_inst.get_activity(start, end, CONDITION_ACTIVITY_LIMIT)
             for activity in activities:
@@ -158,7 +185,7 @@ def get_issue_state_activity(
 
 def get_filters(
     project: Project, filters: Conditions, filter_match: str
-) -> Tuple[Sequence[RuleBase], ConditionFunc, Dict[Dataset, List[str]]]:
+) -> tuple[Sequence[RuleBase], ConditionFunc, dict[Dataset, list[str]]]:
     """
     Returns instantiated filter objects, the filter match function, and relevant snuba columns used for answering event filters
     """
@@ -189,8 +216,8 @@ def get_fired_groups(
     filter_func: ConditionFunc,
     start: datetime,
     frequency: timedelta,
-    event_map: Dict[str, Any],
-) -> Dict[int, datetime]:
+    event_map: dict[str, Any],
+) -> dict[int, datetime]:
     """
     Applies filter objects to the condition activity.
     Returns the group ids of activities that pass the filters and the last fire of each group
@@ -215,7 +242,7 @@ def get_top_groups(
     start: datetime,
     end: datetime,
     condition_activity: GroupActivityMap,
-    dataset_map: Dict[int, Dataset],
+    dataset_map: dict[int, Dataset],
     has_issue_state_condition: bool = True,
 ) -> GroupActivityMap:
     """
@@ -271,7 +298,7 @@ def get_top_groups(
     }
 
 
-def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
+def get_group_dataset(group_ids: Sequence[int]) -> dict[int, Dataset]:
     """
     Returns a dict that maps each group to its dataset. Assumes each group is mapped to a single dataset.
     If the dataset is not found/supported, it is mapped to None.
@@ -290,10 +317,10 @@ def get_group_dataset(group_ids: Sequence[int]) -> Dict[int, Dataset]:
 def get_events(
     project: Project,
     group_activity: GroupActivityMap,
-    columns: Dict[Dataset, List[str]],
+    columns: dict[Dataset, list[str]],
     start: datetime,
     end: datetime,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Returns events that have caused issue state changes.
     """
@@ -389,7 +416,7 @@ def apply_frequency_conditions(
     group_activity: GroupActivityMap,
     frequency_conditions: Conditions,
     condition_match: str,
-    dataset_map: Dict[int, Dataset],
+    dataset_map: dict[int, Dataset],
     has_issue_state_condition: bool,
 ) -> GroupActivityMap:
     """
@@ -400,7 +427,9 @@ def apply_frequency_conditions(
         condition_cls = rules.get(condition_data["id"])
         if condition_cls is None:
             raise PreviewException
-        condition_types[condition_data["id"]].append(condition_cls(project, data=condition_data))
+        condition_types[condition_data["id"]].append(
+            condition_cls(project=project, data=condition_data)
+        )
 
     filtered_activity = defaultdict(list)
     if condition_match == "all":
@@ -500,8 +529,8 @@ def get_frequency_buckets(
     end: datetime,
     group_id: int,
     dataset: Dataset,
-    aggregate: Tuple[str, str],
-) -> Dict[datetime, int]:
+    aggregate: tuple[str, str],
+) -> dict[datetime, int]:
     """
     Puts the events of a group into buckets, and returns the bucket counts.
     """

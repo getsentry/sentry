@@ -3,34 +3,28 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.buffer.base import Buffer
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Group,
-    GroupAssignee,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupInbox,
-    GroupInboxReason,
-    GroupLink,
-    GroupStatus,
-    GroupSubscription,
-    OrganizationMember,
-    Release,
-    ReleaseProject,
-    Repository,
-    UserEmail,
-    UserOption,
-    add_group_to_inbox,
-)
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.options.user_option import UserOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
+from sentry.models.useremail import UserEmail
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
-from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
@@ -43,7 +37,6 @@ class ResolveGroupResolutionsTest(TestCase):
         mock_delay.assert_called_once_with(release_id=release.id)
 
 
-@region_silo_test(stable=True)
 class ResolvedInCommitTest(TestCase):
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
@@ -165,14 +158,14 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
         OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
 
         author = CommitAuthor.objects.create(
@@ -207,17 +200,14 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email = UserEmail.objects.get_primary_email(user=user)
             email.is_verified = True
             email.save()
-            repo = Repository.objects.create(
-                name="example", organization_id=self.group.organization.id
-            )
-            OrganizationMember.objects.create(
-                organization=group.project.organization, user_id=user.id
-            )
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
+
+        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
+        OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
@@ -238,7 +228,6 @@ class ResolvedInCommitTest(TestCase):
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
 
-@region_silo_test(stable=True)
 class ProjectHasReleasesReceiverTest(TestCase):
     @receivers_raise_on_send()
     def test(self):

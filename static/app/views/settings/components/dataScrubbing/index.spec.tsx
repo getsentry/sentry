@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
-const relayPiiConfig = JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig());
+const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 
 describe('Data Scrubbing', function () {
   beforeEach(() => {

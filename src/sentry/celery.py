@@ -1,19 +1,14 @@
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import gc
+from datetime import datetime
 from itertools import chain
+from typing import Any
 
-import celery
+from celery import Celery, Task, signals
+from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
 
 from sentry.utils import metrics
-
-if celery.version_info >= (5, 2):
-    from celery import Celery, Task
-else:
-    from celery import Celery
-    from celery.app.task import Task
-
-from celery.worker.request import Request
 
 LEGACY_PICKLE_TASKS = frozenset(
     [
@@ -21,14 +16,11 @@ LEGACY_PICKLE_TASKS = frozenset(
         "sentry.tasks.process_buffer.process_incr",
         "sentry.tasks.process_resource_change_bound",
         "sentry.tasks.sentry_apps.send_alert_event",
-        "sentry.tasks.store.symbolicate_event",
-        "sentry.tasks.store.symbolicate_event_low_priority",
         "sentry.tasks.unmerge",
         "src.sentry.notifications.utils.async_send_notification",
         # basic tasks that can already deal with primary keys passed
         "sentry.tasks.update_code_owners_schema",
         # integration tasks that must be passed models still
-        "sentry.integrations.slack.post_message",
         "sentry.integrations.slack.link_users_identities",
     ]
 )
@@ -80,10 +72,36 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
             )
 
 
+@signals.worker_before_create_process.connect
+def celery_prefork_freeze_gc(**kwargs: object) -> None:
+    # prefork: move all current objects to "permanent" gc generation (usually
+    # modules / functions / etc.) preventing them from being paged in during
+    # garbage collection (which writes to objects)
+    #
+    # docs suggest disabling gc up until this point (to reduce holes in
+    # allocated blocks).  that can be a future improvement if this helps
+    gc.freeze()
+
+
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
+    @classmethod
+    def _add_metadata(cls, kwargs: dict[str, Any] | None) -> None:
+        """
+        Helper method that adds relevant metadata
+        """
+        if kwargs is None:
+            return None
+        # Add the start time when the task was kicked off for async processing by the calling code
+        kwargs["__start_time"] = datetime.now().timestamp()
+
+    def delay(self, *args, **kwargs):
+        self._add_metadata(kwargs)
+        return super().delay(*args, **kwargs)
+
     def apply_async(self, *args, **kwargs):
+        self._add_metadata(kwargs)
         # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
         # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
         if (

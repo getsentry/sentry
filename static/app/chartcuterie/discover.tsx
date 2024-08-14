@@ -1,25 +1,17 @@
 import type {SeriesOption} from 'echarts';
-import isArray from 'lodash/isArray';
-import max from 'lodash/max';
 
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import BarSeries from 'sentry/components/charts/series/barSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-import MapSeries from 'sentry/components/charts/series/mapSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
-import * as countryCodesMap from 'sentry/data/countryCodesMap';
 import {t} from 'sentry/locale';
-import {EventsGeoData, EventsStats} from 'sentry/types';
+import type {EventsStats} from 'sentry/types/organization';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
-import {
-  DEFAULT_FONT_FAMILY,
-  slackChartDefaults,
-  slackChartSize,
-  slackGeoChartSize,
-} from './slack';
-import {ChartType, RenderDescriptor} from './types';
+import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import type {RenderDescriptor} from './types';
+import {ChartType} from './types';
 
 const discoverxAxis = XAxis({
   theme,
@@ -37,7 +29,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
       const areaSeries = AreaSeries({
         name: data.seriesName,
@@ -95,7 +87,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const barSeries = BarSeries({
@@ -155,7 +147,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const areaSeries = AreaSeries({
@@ -212,7 +204,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const lineSeries = LineSeries({
@@ -268,7 +260,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const areaSeries = AreaSeries({
@@ -326,7 +318,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const dataMiddleIndex = Math.floor(data.stats.data.length / 2);
       const current = data.stats.data.slice(dataMiddleIndex);
       const previous = data.stats.data.slice(0, dataMiddleIndex);
@@ -411,54 +403,4 @@ discoverCharts.push({
     };
   },
   ...slackChartSize,
-});
-
-discoverCharts.push({
-  key: ChartType.SLACK_DISCOVER_WORLDMAP,
-  getOption: (data: {seriesName: string; stats: {data: EventsGeoData}}) => {
-    const mapSeries = MapSeries({
-      map: 'sentryWorld',
-      name: data.seriesName,
-      data: data.stats.data.map(country => ({
-        name: country['geo.country_code'],
-        value: country.count,
-      })),
-      nameMap: countryCodesMap.default,
-      aspectScale: 0.85,
-      zoom: 1.1,
-      center: [10.97, 9.71],
-      itemStyle: {
-        areaColor: theme.gray200,
-        borderColor: theme.backgroundSecondary,
-      },
-    });
-
-    // For absolute values, we want min/max to based on min/max of series
-    // Otherwise it should be 0-100
-    const maxValue = max(data.stats.data.map(value => value.count)) || 1;
-
-    return {
-      backgroundColor: theme.background,
-      visualMap: [
-        {
-          left: 'right',
-          min: 0,
-          max: maxValue,
-          inRange: {
-            color: [theme.purple200, theme.purple300],
-          },
-          text: ['High', 'Low'],
-          textStyle: {
-            color: theme.textColor,
-          },
-
-          // Whether show handles, which can be dragged to adjust "selected range".
-          // False because the handles are pretty ugly
-          calculable: false,
-        },
-      ],
-      series: [mapSeries],
-    };
-  },
-  ...slackGeoChartSize,
 });

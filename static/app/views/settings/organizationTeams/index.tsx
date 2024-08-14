@@ -1,83 +1,102 @@
-import {RouteComponentProps} from 'react-router';
+import {useCallback, useEffect, useMemo} from 'react';
+import type {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {AccessRequest, Organization, Team} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import type {AccessRequest} from 'sentry/types/organization';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationTeams from './organizationTeams';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  teams: Team[];
-} & RouteComponentProps<{}, {}>;
+export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
+  const api = useApi();
+  const organization = useOrganization({allowNull: true});
+  const queryClient = useQueryClient();
 
-type State = AsyncView['state'] & {
-  requestList: AccessRequest[];
-};
+  const queryKey: ApiQueryKey = useMemo(
+    () => [`/organizations/${organization?.slug}/access-requests/`],
+    [organization?.slug]
+  );
 
-class OrganizationTeamsContainer extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization} = this.props;
+  const {
+    isLoading,
+    isError,
+    data: requestList = [],
+  } = useApiQuery<AccessRequest[]>(queryKey, {
+    staleTime: 0,
+    retry: false,
+    enabled: !!organization?.slug,
+  });
 
-    return [['requestList', `/organizations/${organization.slug}/access-requests/`]];
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.fetchStats();
-  }
-
-  fetchStats() {
-    const {organization} = this.props;
-    loadStats(this.props.api, {
-      orgId: organization.slug,
+  useEffect(() => {
+    if (!organization?.slug) {
+      return;
+    }
+    loadStats(api, {
+      orgId: organization?.slug,
       query: {
         since: (new Date().getTime() / 1000 - 3600 * 24).toString(),
         stat: 'generated',
         group: 'project',
       },
     });
+  }, [organization?.slug, api]);
+
+  const handleRemoveAccessRequest = useCallback(
+    (id: string, isApproved: boolean) => {
+      const requestToRemove = requestList.find(request => request.id === id);
+      const newRequestList = requestList.filter(request => request.id !== id);
+
+      // Update the cache with the new value
+      setApiQueryData(queryClient, queryKey, newRequestList);
+
+      // To be safer, trigger a refetch to ensure data is correct
+      queryClient.invalidateQueries(queryKey);
+
+      if (isApproved && requestToRemove) {
+        const team = requestToRemove.team;
+        TeamStore.onUpdateSuccess(team.slug, {
+          ...team,
+          memberCount: team.memberCount + 1,
+        });
+      }
+    },
+    [requestList, queryKey, queryClient]
+  );
+
+  // Can't do anything if we don't have an organization
+  if (!organization) {
+    return <LoadingError message={t('Organization not found')} />;
   }
 
-  removeAccessRequest = (id: string, isApproved: boolean) => {
-    const requestToRemove = this.state.requestList.find(request => request.id === id);
-    this.setState(state => ({
-      requestList: state.requestList.filter(request => request.id !== id),
-    }));
-    if (isApproved && requestToRemove) {
-      const team = requestToRemove.team;
-      TeamStore.onUpdateSuccess(team.slug, {
-        ...team,
-        memberCount: team.memberCount + 1,
-      });
-    }
-  };
-
-  renderBody() {
-    const {organization} = this.props;
-
-    if (!organization) {
-      return null;
-    }
-
-    return (
-      <OrganizationTeams
-        {...this.props}
-        access={new Set(organization.access)}
-        features={new Set(organization.features)}
-        organization={organization}
-        requestList={this.state.requestList}
-        onRemoveAccessRequest={this.removeAccessRequest}
-      />
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  return (
+    <OrganizationTeams
+      {...props}
+      access={new Set(organization?.access)}
+      features={new Set(organization?.features)}
+      organization={organization}
+      requestList={requestList}
+      onRemoveAccessRequest={handleRemoveAccessRequest}
+    />
+  );
 }
 
-export {OrganizationTeamsContainer};
-
-export default withApi(withOrganization(OrganizationTeamsContainer));
+export default OrganizationTeamsContainer;

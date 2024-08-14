@@ -1,28 +1,27 @@
-from enum import Enum, IntEnum
-from typing import Sequence, Tuple
+from __future__ import annotations
 
+from collections.abc import Sequence
+from enum import Enum, IntEnum
+from typing import Any, ClassVar, Self
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
+from sentry.types.actor import Actor
 from sentry.utils.cache import cache
-
-
-# TODO(dcramer): pull in enum library
-class RuleStatus:
-    ACTIVE = 0
-    INACTIVE = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
 
 
 class RuleSource(IntEnum):
@@ -30,16 +29,16 @@ class RuleSource(IntEnum):
     CRON_MONITOR = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ISSUE, "issue"),
             (cls.CRON_MONITOR, "cron_monitor"),
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Rule(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all
     DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
@@ -47,12 +46,12 @@ class Rule(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
-    label = models.CharField(max_length=64)
+    label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
-    data = GzippedDictField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField()
     status = BoundedPositiveIntegerField(
-        default=RuleStatus.ACTIVE,
-        choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
+        default=ObjectStatus.ACTIVE,
+        choices=((ObjectStatus.ACTIVE, "Active"), (ObjectStatus.DISABLED, "Disabled")),
         db_index=True,
     )
     # source is currently used as a way to distinguish rules created specifically
@@ -61,16 +60,30 @@ class Rule(Model):
         default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
-    owner = FlexibleForeignKey("sentry.Actor", null=True, on_delete=models.SET_NULL)
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("pk",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("pk",))
 
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        index_together = ("project", "status", "owner")
+        indexes = (
+            models.Index(fields=("project", "status", "owner_team")),
+            models.Index(fields=("project", "status", "owner_user_id")),
+        )
+        constraints = (
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
+                    | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
+                    | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)
+                ),
+                name="rule_owner_user_or_team_check",
+            ),
+        )
 
     __repr__ = sane_repr("project_id", "label")
 
@@ -79,7 +92,7 @@ class Rule(Model):
         cache_key = f"project:{project_id}:rules"
         rules_list = cache.get(cache_key)
         if rules_list is None:
-            rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
+            rules_list = list(cls.objects.filter(project=project_id, status=ObjectStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
         return rules_list
 
@@ -95,17 +108,34 @@ class Rule(Model):
 
         return None
 
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        self.owner_team_id = None
+        self.owner_user_id = None
+        if actor and actor.is_user:
+            self.owner_user_id = actor.id
+        if actor and actor.is_team:
+            self.owner_team_id = actor.id
+
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
-        cache_key = f"project:{self.project_id}:rules"
-        cache.delete(cache_key)
+        self._clear_project_rule_cache()
         return rv
 
     def save(self, *args, **kwargs):
         rv = super().save(*args, **kwargs)
+        self._clear_project_rule_cache()
+        return rv
+
+    def _clear_project_rule_cache(self) -> None:
         cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
-        return rv
 
     def get_audit_log_data(self):
         return {
@@ -114,6 +144,22 @@ class Rule(Model):
             "status": self.status,
             "environment": self.environment_id,
         }
+
+    def get_rule_action_details_by_uuid(self, rule_action_uuid: str) -> dict[str, Any] | None:
+        actions = self.data.get("actions", None)
+        if not actions:
+            return None
+
+        for action in actions:
+            action_uuid = action.get("uuid", None)
+            if action_uuid is None:
+                # This should not happen, but because the data object is a dictionary, it's better to be safe
+                continue
+
+            if action_uuid == rule_action_uuid:
+                return action
+
+        return None
 
 
 class RuleActivityType(Enum):
@@ -124,9 +170,9 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleActivity(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     rule = FlexibleForeignKey("sentry.Rule")
     user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
@@ -136,3 +182,15 @@ class RuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_ruleactivity"
+
+
+@region_silo_model
+class NeglectedRule(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    rule = FlexibleForeignKey("sentry.Rule")
+    organization = FlexibleForeignKey("sentry.Organization")
+    disable_date = models.DateTimeField()
+    opted_out = models.BooleanField(default=False)
+    sent_initial_email_date = models.DateTimeField(null=True)
+    sent_final_email_date = models.DateTimeField(null=True)

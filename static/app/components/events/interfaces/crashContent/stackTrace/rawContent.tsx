@@ -1,7 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {ExceptionValue, Frame} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
-import {defined, trim} from 'sentry/utils';
+import type {ExceptionValue, Frame} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
   let result = '';
@@ -72,7 +72,7 @@ export function getPythonFrame(frame: Frame): string {
   if (defined(frame.context)) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
-        result += '\n    ' + trim(item[1]);
+        result += '\n    ' + item[1].trim();
       }
     });
   }
@@ -81,6 +81,7 @@ export function getPythonFrame(frame: Frame): string {
 
 export function getJavaFrame(frame: Frame): string {
   let result = '    at';
+
   if (defined(frame.module)) {
     result += ' ' + frame.module + '.';
   }
@@ -94,6 +95,33 @@ export function getJavaFrame(frame: Frame): string {
     }
     result += ')';
   }
+  return result;
+}
+
+export function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
+  let result = `  #${frameIdxFromEnd}`;
+
+  if (frame.function === '<asynchronous suspension>') {
+    return `${result}      ${frame.function}`;
+  }
+
+  if (defined(frame.function)) {
+    result += '      ' + frame.function;
+  }
+  if (defined(frame.absPath)) {
+    result += ' (';
+
+    result += frame.absPath;
+    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+      result += ':' + frame.lineNo;
+    }
+    if (defined(frame.colNo) && frame.colNo >= 0) {
+      result += ':' + frame.colNo;
+    }
+
+    result += ')';
+  }
+
   return result;
 }
 
@@ -137,7 +165,12 @@ function getPreamble(exception: ExceptionValue, platform: string | undefined): s
   }
 }
 
-function getFrame(frame: Frame, frameIdx: number, platform: string | undefined): string {
+function getFrame(
+  frame: Frame,
+  frameIdx: number,
+  frameIdxFromEnd: number,
+  platform: string | undefined
+): string {
   if (frame.platform) {
     platform = frame.platform;
   }
@@ -152,6 +185,8 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
       return getPythonFrame(frame);
     case 'java':
       return getJavaFrame(frame);
+    case 'dart':
+      return getDartFrame(frame, frameIdxFromEnd);
     case 'objc':
     // fallthrough
     case 'cocoa':
@@ -166,13 +201,21 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
 export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
-  exception?: ExceptionValue
+  exception?: ExceptionValue,
+  hasSimilarityEmbeddingsFeature: boolean = false
 ) {
-  const frames: string[] = [];
+  const rawFrames = data?.frames || [];
 
-  (data?.frames ?? []).forEach((frame, frameIdx) => {
-    frames.push(getFrame(frame, frameIdx, platform));
-  });
+  const hasInAppFrames = rawFrames.some(frame => frame.inApp);
+  const shouldFilterOutSystemFrames = hasSimilarityEmbeddingsFeature && hasInAppFrames;
+
+  const framesToUse = shouldFilterOutSystemFrames
+    ? rawFrames.filter(frame => frame.inApp)
+    : rawFrames;
+
+  const frames = framesToUse.map((frame, frameIdx) =>
+    getFrame(frame, frameIdx, framesToUse.length - frameIdx - 1, platform)
+  );
 
   if (platform !== 'python') {
     frames.reverse();

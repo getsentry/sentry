@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -9,7 +9,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project, UserReport} from 'sentry/types';
+import type {Group, UserReport} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
@@ -57,14 +59,15 @@ class GroupUserFeedback extends Component<Props, State> {
   }
 
   fetchData = () => {
+    const {group, location, organization, params} = this.props;
     this.setState({
       loading: true,
       error: false,
     });
 
-    fetchGroupUserReports(this.props.group.id, {
-      ...this.props.params,
-      cursor: this.props.location.query.cursor || '',
+    fetchGroupUserReports(organization.slug, group.id, {
+      ...params,
+      cursor: location.query.cursor || '',
     })
       .then(([data, _, resp]) => {
         this.setState({
@@ -102,7 +105,7 @@ class GroupUserFeedback extends Component<Props, State> {
               <StyledEventUserFeedback
                 key={idx}
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={group.id}
               />
             ))}
@@ -115,7 +118,7 @@ class GroupUserFeedback extends Component<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <UserFeedbackEmpty projectIds={[group.project.id]} />
+          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
         </Layout.Main>
       </Layout.Body>
     );

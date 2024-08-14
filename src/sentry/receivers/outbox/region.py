@@ -5,34 +5,29 @@ These receivers are triggered on the region silo as outbox messages
 are drained. Receivers are expected to make local state changes (tombstones)
 and perform RPC calls to propagate changes to Control Silo.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 from django.dispatch import receiver
 
-from sentry import roles
-from sentry.models import (
-    Organization,
-    OrganizationMember,
-    OutboxCategory,
-    Project,
-    process_region_outbox,
-)
-from sentry.models.team import Team
-from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.organization_mapping.serial import (
+from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
+from sentry.auth.services.auth import auth_service
+from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.hybridcloud.services.organization_mapping.model import CustomerId
+from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    RpcOrganizationMemberMappingUpdate,
-    organizationmember_mapping_service,
-)
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import member_joined
+from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.files.utils import get_relocation_storage
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.types.region import get_local_region
 
 
@@ -42,62 +37,16 @@ def process_audit_log_event(payload: Any, **kwds: Any):
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
+@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
+def process_orgauthtoken_update(payload: Any, **kwds: Any):
+    if payload is not None:
+        orgauthtoken_rpc_service.update_orgauthtoken(**payload)
+
+
 @receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
 def process_user_ip_event(payload: Any, **kwds: Any):
     if payload is not None:
         log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
-
-
-# No longer used.
-@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
-def process_organization_member_create(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
-):
-    pass
-
-
-@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
-def process_organization_member_updates(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
-):
-    if (org_member := OrganizationMember.objects.filter(id=object_identifier).last()) is None:
-        # Delete all identities that may have been associated.  This is an implicit cascade.
-        if payload and payload.get("user_id") is not None:
-            identity_service.delete_identities(
-                user_id=payload["user_id"], organization_id=shard_identifier
-            )
-        organizationmember_mapping_service.delete(
-            organizationmember_id=object_identifier,
-            organization_id=shard_identifier,
-        )
-        return
-
-    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
-
-    maybe_join_org(org_member)
-
-    organizationmember_mapping_service.upsert_mapping(
-        organizationmember_id=org_member.id,
-        organization_id=shard_identifier,
-        mapping=rpc_org_member_update,
-    )
-
-
-@receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
-def process_team_updates(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwargs: Any
-):
-    maybe_process_tombstone(Team, object_identifier)
-
-
-@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_UPDATE)
-def process_organization_updates(object_identifier: int, **kwds: Any):
-    if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
-        organization_mapping_service.delete(organization_id=object_identifier)
-        return
-
-    update = update_organization_mapping_from_instance(org, get_local_region())
-    organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)
@@ -105,19 +54,6 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
-
-
-def maybe_join_org(org_member: OrganizationMember):
-    if org_member.user_id is not None:
-        user_org_ids = {o.id for o in user_service.get_organizations(user_id=org_member.user_id)}
-        if org_member.organization_id not in user_org_ids:
-            if org_member.role != roles.get_top_dog().id:
-                member_joined.send_robust(
-                    sender=None,
-                    organization_member_id=org_member.id,
-                    organization_id=org_member.organization_id,
-                    user_id=org_member.user_id,
-                )
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
@@ -128,6 +64,41 @@ def process_organization_mapping_customer_id_update(
         return
 
     if payload and "customer_id" in payload:
-        organization_mapping_service.update(
-            organization_id=org.id, update={"customer_id": payload["customer_id"]}
+        update = update_organization_mapping_from_instance(
+            org, get_local_region(), customer_id=CustomerId(value=payload["customer_id"])
+        )
+        organization_mapping_service.upsert(organization_id=org.id, update=update)
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
+def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # Deprecated
+    auth_service.disable_provider(provider_id=object_identifier)
+    AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
+@receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
+def process_relocation_reply_with_export(payload: Any, **kwds):
+    uuid = payload["relocation_uuid"]
+    slug = payload["org_slug"]
+    relocation_storage = get_relocation_storage()
+    path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+    try:
+        encrypted_bytes = relocation_storage.open(path)
+    except Exception:
+        raise FileNotFoundError(
+            "Could not open SaaS -> SaaS export in export-side relocation bucket."
+        )
+
+    with encrypted_bytes:
+        control_relocation_export_service.reply_with_export(
+            relocation_uuid=uuid,
+            requesting_region_name=payload["requesting_region_name"],
+            replying_region_name=payload["replying_region_name"],
+            org_slug=slug,
+            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+            encrypted_contents=None,
+            encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
         )

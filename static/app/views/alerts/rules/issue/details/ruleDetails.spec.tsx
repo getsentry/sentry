@@ -1,25 +1,29 @@
-import {browserHistory} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
+import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import AlertRuleDetails from './ruleDetails';
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
-  const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule({
+  const project = ProjectFixture();
+  const rule = ProjectAlertRuleFixture({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
-  const member = TestStubs.Member();
+  const member = MemberFixture();
 
   const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
-    const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
       <AlertRuleDetails
@@ -32,7 +36,7 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {context: routerContext, organization: org}
+      {router, organization: org}
     );
   };
 
@@ -53,7 +57,7 @@ describe('AlertRuleDetails', () => {
       body: [
         {
           count: 1,
-          group: TestStubs.Group(),
+          group: GroupFixture(),
           lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
           eventId: 'eventId',
         },
@@ -87,14 +91,14 @@ describe('AlertRuleDetails', () => {
   it('displays alert rule with list of issues', async () => {
     createWrapper();
     expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
-    expect(screen.getByText('RequestError:')).toBeInTheDocument();
+    expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
       expect.stringMatching(
         RegExp(
           `/organizations/${organization.slug}/issues/${
-            TestStubs.Group().id
+            GroupFixture().id
           }/events/eventId.*`
         )
       )
@@ -118,9 +122,10 @@ describe('AlertRuleDetails', () => {
   it('should reset pagination cursor on date change', async () => {
     createWrapper();
 
-    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Last 7 days'));
-    await userEvent.click(screen.getByText('Last 24 hours'));
+    const dateSelector = await screen.findByText('7D');
+    expect(dateSelector).toBeInTheDocument();
+    await userEvent.click(dateSelector);
+    await userEvent.click(screen.getByRole('option', {name: 'Last 24 hours'}));
 
     expect(context.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -157,7 +162,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('renders incompatible rule filter', async () => {
-    const incompatibleRule = TestStubs.ProjectAlertRule({
+    const incompatibleRule = ProjectAlertRuleFixture({
       conditions: [
         {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
         {id: 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
@@ -184,6 +189,101 @@ describe('AlertRuleDetails', () => {
         'The conditions in this alert rule conflict and might not be working properly.'
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('rule disabled banner because of missing actions and hides some actions', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: ProjectAlertRuleFixture({
+        actions: [],
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
+  });
+
+  it('rule disabled banner generic', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: ProjectAlertRuleFixture({
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('rule to be disabled can opt out', async () => {
+    const disabledRule = ProjectAlertRuleFixture({
+      disableDate: moment().add(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert is scheduled to be disabled/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {...disabledRule, optOutExplicit: true}})
+    );
+    expect(
+      screen.queryByText(/This alert is scheduled to be disabled/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('disabled rule can be re-enabled', async () => {
+    const disabledRule = ProjectAlertRuleFixture({
+      status: 'disabled',
+      disableDate: moment().subtract(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const enableMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/enable/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert was disabled due to lack of activity/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
+
+    expect(enableMock).toHaveBeenCalled();
+    expect(
+      screen.queryByText(/This alert was disabled due to lack of activity/)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/This alert is disabled/)).not.toBeInTheDocument();
   });
 
   it('renders the mute button and can mute/unmute alerts', async () => {
@@ -233,9 +333,9 @@ describe('AlertRuleDetails', () => {
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
-    const orgWithoutAccess = {
+    const orgWithoutAccess = OrganizationFixture({
       access: [],
-    };
+    });
 
     const contextWithoutAccess = initializeOrg({
       organization: orgWithoutAccess,
@@ -248,7 +348,7 @@ describe('AlertRuleDetails', () => {
 
   it('inserts user email into rule notify action', async () => {
     // Alert rule with "send a notification to member" action
-    const sendNotificationRule = TestStubs.ProjectAlertRule({
+    const sendNotificationRule = ProjectAlertRuleFixture({
       actions: [
         {
           id: 'sentry.mail.actions.NotifyEmailAction',

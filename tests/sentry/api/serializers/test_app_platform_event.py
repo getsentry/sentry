@@ -1,10 +1,11 @@
+import datetime
+
+import orjson
+
 from sentry.api.serializers import AppPlatformEvent
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test
 class AppPlatformEventSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username="foo")
@@ -15,15 +16,20 @@ class AppPlatformEventSerializerTest(TestCase):
         )
 
     def test_no_actor(self):
+        data = {"time": datetime.datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=datetime.UTC)}
         result = AppPlatformEvent(
-            resource="event_alert", action="triggered", install=self.install, data={}
+            resource="event_alert", action="triggered", install=self.install, data=data
         )
+
+        # Our serializer uses orjson to create the results but the result should match what json
+        # creates on customers side
+        from sentry.utils import json
 
         assert result.body == json.dumps(
             {
                 "action": "triggered",
                 "installation": {"uuid": self.install.uuid},
-                "data": {},
+                "data": data,
                 "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
             }
         )
@@ -43,7 +49,7 @@ class AppPlatformEventSerializerTest(TestCase):
             actor=self.sentry_app.proxy_user,
         )
 
-        assert json.loads(result.body)["actor"] == {
+        assert orjson.loads(result.body)["actor"] == {
             "type": "application",
             "id": self.sentry_app.uuid,
             "name": self.sentry_app.name,
@@ -64,7 +70,7 @@ class AppPlatformEventSerializerTest(TestCase):
             actor=self.user,
         )
 
-        assert json.loads(result.body)["actor"] == {
+        assert orjson.loads(result.body)["actor"] == {
             "type": "user",
             "id": self.user.id,
             "name": self.user.name,

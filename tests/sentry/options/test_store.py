@@ -5,16 +5,16 @@ from uuid import uuid1
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from django.test import override_settings
 
-from sentry.models import Option
-from sentry.options import OptionsManager
-from sentry.options.manager import UpdateChannel
+from sentry.models.options.option import Option
+from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OptionsStoreTest(TestCase):
     @cached_property
     def store(self):
@@ -61,6 +61,7 @@ class OptionsStoreTest(TestCase):
         with pytest.raises(AssertionError):
             store.delete(key)
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self):
         store, key = self.store, self.key
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
@@ -81,6 +82,7 @@ class OptionsStoreTest(TestCase):
                 store.flush_local_cache()
                 assert store.get(key) is None
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
     def test_key_with_grace(self, mocked_time):
         store, key = self.store, self.make_key(10, 10)
@@ -100,6 +102,7 @@ class OptionsStoreTest(TestCase):
                 # It should have also been evicted
                 assert not store._local_cache
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
     def test_key_ttl(self, mocked_time):
         store, key = self.store, self.make_key(10, 0)

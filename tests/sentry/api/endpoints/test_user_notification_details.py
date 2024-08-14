@@ -1,8 +1,5 @@
-from sentry.models import NotificationSetting
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.integrations import ExternalProviders
 
 
 class UserNotificationDetailsTestBase(APITestCase):
@@ -33,46 +30,11 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
         In this test we add existing per-project and per-organization
         Notification settings in order to test that defaults are correct.
         """
-        # default is 3
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.NEVER,
-            user_id=self.user.id,
-            organization=self.organization,
-        )
-
-        # default is NotificationSettingOptionValues.COMMITTED_ONLY
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-            organization=self.organization,
-        )
 
         response = self.get_success_response("me")
 
-        assert response.data.get("deployNotifications") == 3
         assert response.data.get("personalActivityNotifications") is False
         assert response.data.get("selfAssignOnResolve") is False
-        assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == 1
-
-    def test_subscribe_by_default(self):
-        """
-        Test that we expect project-independent issue alert preferences to be
-        returned as `subscribe_by_default`.
-        """
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=self.user.id,
-        )
-
-        response = self.get_success_response("me")
-        assert response.data.get("subscribeByDefault") is False
 
 
 @control_silo_test
@@ -80,52 +42,13 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
     def test_saves_and_returns_values(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
         data = {
-            "deployNotifications": 2,
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
-        response = self.get_success_response("me", **data)
-
-        assert response.data.get("deployNotifications") == 2
-        assert response.data.get("personalActivityNotifications") is True
-        assert response.data.get("selfAssignOnResolve") is True
-        assert response.data.get("subscribeByDefault") is True
-        assert response.data.get("workflowNotifications") == 1
-
-        value = NotificationSetting.objects.get_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            user_id=self.user.id,
-        )
-        assert value == NotificationSettingOptionValues.ALWAYS
-
-    def test_saves_and_returns_values_when_defaults_present(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.NEVER,
-            user_id=self.user.id,
-            organization=self.organization,
-        )
-
-        response = self.get_success_response("me", **{"deployNotifications": 2})
-        assert response.data.get("deployNotifications") == 2
-
-        value1 = NotificationSetting.objects.get_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            user_id=self.user.id,
-            organization=self.organization,
-        )
-        value2 = NotificationSetting.objects.get_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            user_id=self.user.id,
-        )
-
-        assert value1 == NotificationSettingOptionValues.NEVER
-        assert value2 == NotificationSettingOptionValues.ALWAYS
+        self.get_success_response("me", **data)
 
     def test_reject_invalid_values(self):
-        self.get_error_response("me", status_code=400, **{"deployNotifications": 6})
+        self.get_error_response("me", status_code=400, **{"personalActivityNotifications": 6})

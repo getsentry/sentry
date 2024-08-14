@@ -9,15 +9,13 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -174,6 +172,7 @@ function ReleaseEventsChart({
           disablePrevious
           showLegend
           projects={projects}
+          dataset={DiscoverDatasets.METRICS_ENHANCED}
           environments={environments}
           start={start ?? null}
           end={end ?? null}

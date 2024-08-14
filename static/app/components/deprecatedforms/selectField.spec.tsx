@@ -1,13 +1,12 @@
-import selectEvent from 'react-select-event';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 describe('SelectField', function () {
   it('renders without form context', function () {
-    const {container} = render(
+    render(
       <SelectField
         options={[
           {label: 'a', value: 'a'},
@@ -17,18 +16,14 @@ describe('SelectField', function () {
         value="a"
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with flat options', function () {
-    const {container} = render(
-      <SelectField choices={['a', 'b', 'c']} name="fieldName" />
-    );
-    expect(container).toSnapshot();
+    render(<SelectField choices={['a', 'b', 'c']} name="fieldName" />);
   });
 
   it('renders with paired options', function () {
-    const {container} = render(
+    render(
       <SelectField
         options={[
           {value: 'a', label: 'abc'},
@@ -38,7 +33,6 @@ describe('SelectField', function () {
         name="fieldName"
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('can change value and submit', async function () {

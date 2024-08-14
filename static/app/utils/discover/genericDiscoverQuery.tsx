@@ -1,25 +1,33 @@
 import {Component, useContext} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {EventQuery} from 'sentry/actionCreators/events';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {EventQuery} from 'sentry/actionCreators/events';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import EventView, {
-  ImmutableEventView,
-  isAPIPayloadSimilar,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 
 import useApi from '../useApi';
 import useOrganization from '../useOrganization';
 
-export class QueryError {
+export interface DiscoverQueryExtras {
+  useOnDemandMetrics?: boolean;
+}
+
+interface _DiscoverQueryExtras {
+  queryExtras?: DiscoverQueryExtras;
+}
+export class QueryError extends Error {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
   constructor(errorMessage: string, originalError?: any) {
+    super(errorMessage);
+
     this.message = errorMessage;
     this.originalError = originalError;
   }
@@ -95,6 +103,11 @@ type BaseDiscoverQueryProps = {
    * A callback to set an error so that the error can be rendered in parent components
    */
   setError?: (errObject: QueryError | undefined) => void;
+  /**
+   * A flag to skip aborting the request when api.clear() is called, which happens
+   * frequently on component unmounts.
+   */
+  skipAbort?: boolean;
 };
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
@@ -205,22 +218,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       return this.props.parseError(error);
     }
 
-    if (!error) {
-      return null;
-    }
-
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return new QueryError(detail, error);
-    }
-
-    const message = detail?.message;
-    if (typeof message === 'string') {
-      return new QueryError(message, error);
-    }
-
-    const unknownError = new QueryError(t('An unknown error occurred.'), error);
-    return unknownError;
+    return parseError(error);
   };
 
   fetchData = async () => {
@@ -321,7 +319,9 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
   return <_GenericDiscoverQuery<T, P> {..._props} />;
 }
 
-export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
+export type DiscoverQueryRequestParams = Partial<
+  EventQuery & LocationQuery & _DiscoverQueryExtras
+>;
 
 type RetryOptions = {
   statusCodes: number[];
@@ -341,9 +341,10 @@ export async function doDiscoverQuery<T>(
   options: {
     queryBatching?: QueryBatching;
     retry?: RetryOptions;
+    skipAbort?: boolean;
   } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {queryBatching, retry} = options;
+  const {queryBatching, retry, skipAbort} = options;
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, url, {
       query: params,
@@ -372,6 +373,7 @@ export async function doDiscoverQuery<T>(
           // marking params as any so as to not cause typescript errors
           ...(params as any),
         },
+        skipAbort,
       });
     } catch (err) {
       error = err;
@@ -396,7 +398,7 @@ function getPayload<T, P>(props: Props<T, P>) {
     ? getRequestPayload(props)
     : eventView.getEventsAPIPayload(location, forceAppendRawQueryString);
 
-  if (cursor) {
+  if (cursor !== undefined) {
     payload.cursor = cursor;
   }
   if (limit) {
@@ -422,9 +424,10 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
     [route, apiPayload],
-    () =>
+    ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
+        skipAbort: props.skipAbort,
       }),
     options
   );
@@ -432,9 +435,28 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   return {
     ...res,
     data: res.data?.[0] ?? undefined,
+    error: parseError(res.error),
     statusCode: res.data?.[1] ?? undefined,
     response: res.data?.[2] ?? undefined,
   };
 }
+
+const parseError = (error: any): QueryError | null => {
+  if (!error) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return new QueryError(detail, error);
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return new QueryError(message, error);
+  }
+
+  return new QueryError(t('An unknown error occurred.'), error);
+};
 
 export default GenericDiscoverQuery;

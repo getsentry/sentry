@@ -1,142 +1,66 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
+from dataclasses import dataclass
+from enum import Enum, StrEnum
+from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud import ValueEqualityEnum
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 
-"""
-TODO(postgres): We've encoded these enums as integers to facilitate
-communication with the DB. We'd prefer to encode them as strings to facilitate
-communication with the API and plan to do so as soon as we use native enums in
-Postgres. In the meantime each enum has an adjacent object that maps the
-integers to their string values.
-"""
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
+class NotificationSettingEnum(ValueEqualityEnum):
+    DEPLOY = "deploy"
+    ISSUE_ALERTS = "alerts"
+    WORKFLOW = "workflow"
+    APPROVAL = "approval"
+    # Notifications for when 100% reserved quota is reached
+    QUOTA = "quota"
+    # Notifications for when 80% reserved quota is reached
+    QUOTA_WARNINGS = "quotaWarnings"
+    # Notifications for when a specific threshold is reached
+    # If set, this overrides any notification preferences for QUOTA and QUOTA_WARNINGS.
+    QUOTA_THRESHOLDS = "quotaThresholds"
+    QUOTA_ERRORS = "quotaErrors"
+    QUOTA_TRANSACTIONS = "quotaTransactions"
+    QUOTA_ATTACHMENTS = "quotaAttachments"
+    QUOTA_REPLAYS = "quotaReplays"
+    QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
+    QUOTA_SPANS = "quotaSpans"
+    QUOTA_PROFILE_DURATION = "quotaProfileDuration"
+    QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
+    SPIKE_PROTECTION = "spikeProtection"
+    MISSING_MEMBERS = "missingMembers"
+    REPORTS = "reports"
+    BROKEN_MONITORS = "brokenMonitors"
 
 
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
+class NotificationSettingsOptionEnum(ValueEqualityEnum):
+    DEFAULT = "default"
+    NEVER = "never"
+    ALWAYS = "always"
+    SUBSCRIBE_ONLY = "subscribe_only"
+    COMMITTED_ONLY = "committed_only"
 
 
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
+# default is not a choice anymore, we just delete the row if we want to the default
+NOTIFICATION_SETTING_CHOICES = [
+    NotificationSettingsOptionEnum.ALWAYS.value,
+    NotificationSettingsOptionEnum.NEVER.value,
+    NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+    NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
+]
 
 
-class NotificationSettingTypes(ValueEqualityEnum):
-    """
-    Each of these categories of Notification settings has at least an option for
-    "on" or "off". Workflow also includes SUBSCRIBE_ONLY and Deploy also
-    includes COMMITTED_ONLY and both of these values are described below.
-    """
-
-    # Control all notification types. Currently unused.
-    DEFAULT = 0
-
-    # When Sentry sees there is a new code deploy.
-    DEPLOY = 10
-
-    # When Sentry sees and issue that triggers an Alert Rule.
-    ISSUE_ALERTS = 20
-
-    # Notifications for changes in assignment, resolution, comments, etc.
-    WORKFLOW = 30
-
-    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
-    ACTIVE_RELEASE = 31
-
-    # Notifications that require approval like a request to invite a member
-    APPROVAL = 40
-
-    # Notifications about quotas
-    QUOTA = 50
-
-    # Sub category of quotas for each event category
-    QUOTA_ERRORS = 51
-    QUOTA_TRANSACTIONS = 52
-    QUOTA_ATTACHMENTS = 53
-    QUOTA_REPLAYS = 56
-
-    # Sub category of quotas for warnings before hitting the actual limit
-    QUOTA_WARNINGS = 54
-
-    # Sub category of quotas for spend allocation notifications
-    QUOTA_SPEND_ALLOCATIONS = 55
-
-    # Notifications about spikes
-    SPIKE_PROTECTION = 60
+class NotificationScopeEnum(ValueEqualityEnum):
+    USER = "user"
+    ORGANIZATION = "organization"
+    PROJECT = "project"
+    TEAM = "team"
 
 
-NOTIFICATION_SETTING_TYPES = {
-    NotificationSettingTypes.DEFAULT: "default",
-    NotificationSettingTypes.DEPLOY: "deploy",
-    NotificationSettingTypes.ISSUE_ALERTS: "alerts",
-    NotificationSettingTypes.WORKFLOW: "workflow",
-    NotificationSettingTypes.ACTIVE_RELEASE: "activeRelease",
-    NotificationSettingTypes.APPROVAL: "approval",
-    NotificationSettingTypes.QUOTA: "quota",
-    NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
-    NotificationSettingTypes.QUOTA_REPLAYS: "quotaReplays",
-    NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
-    NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
-}
-
-
-class NotificationSettingOptionValues(ValueEqualityEnum):
-    """
-    An empty row in the DB should be represented as
-    NotificationSettingOptionValues.DEFAULT.
-    """
-
-    # Defer to a setting one level up.
-    DEFAULT = 0
-
-    # Mute this kind of notification.
-    NEVER = 10
-
-    # Un-mute this kind of notification.
-    ALWAYS = 20
-
-    # Workflow only. Only send notifications about Issues that the target has
-    # explicitly or implicitly opted-into.
-    SUBSCRIBE_ONLY = 30
-
-    # Deploy only. Only send notifications when the set of changes in the deploy
-    # included a commit authored by the target.
-    COMMITTED_ONLY = 40
-
-
-NOTIFICATION_SETTING_OPTION_VALUES = {
-    NotificationSettingOptionValues.DEFAULT: "default",
-    NotificationSettingOptionValues.NEVER: "never",
-    NotificationSettingOptionValues.ALWAYS: "always",
-    NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
-    NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
-}
-
-
-class NotificationScopeType(ValueEqualityEnum):
-    USER = 0
-    ORGANIZATION = 10
-    PROJECT = 20
-    TEAM = 30
-
-
-NOTIFICATION_SCOPE_TYPE = {
-    NotificationScopeType.USER: "user",
-    NotificationScopeType.ORGANIZATION: "organization",
-    NotificationScopeType.PROJECT: "project",
-    NotificationScopeType.TEAM: "team",
-}
-
-
-class FineTuningAPIKey(Enum):
+class FineTuningAPIKey(StrEnum):
     ALERTS = "alerts"
     APPROVAL = "approval"
     DEPLOY = "deploy"
@@ -148,67 +72,84 @@ class FineTuningAPIKey(Enum):
 
 
 class UserOptionsSettingsKey(Enum):
-    DEPLOY = "deployNotifications"
     SELF_ACTIVITY = "personalActivityNotifications"
     SELF_ASSIGN = "selfAssignOnResolve"
-    SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
-    WORKFLOW = "workflowNotifications"
-    ACTIVE_RELEASE = "activeReleaseNotifications"
-    APPROVAL = "approvalNotifications"
-    QUOTA = "quotaNotifications"
-    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
-    NotificationSettingTypes.APPROVAL: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.APPROVAL: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.DEPLOY: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.COMMITTED_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.DEPLOY: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.COMMITTED_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.ISSUE_ALERTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.ISSUE_ALERTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ERRORS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ERRORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_REPLAYS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_REPLAYS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_WARNINGS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_MONITOR_SEATS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_SPANS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.WORKFLOW: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.SPIKE_PROTECTION: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_WARNINGS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_THRESHOLDS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.WORKFLOW: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.SPIKE_PROTECTION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.BROKEN_MONITORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
 }
 
@@ -271,8 +212,8 @@ class FallthroughChoiceType(Enum):
 
 
 FALLTHROUGH_CHOICES = [
-    (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
     (FallthroughChoiceType.ACTIVE_MEMBERS.value, "Recently Active Members"),
+    (FallthroughChoiceType.ALL_MEMBERS.value, "All Project Members"),
     (FallthroughChoiceType.NO_ONE.value, "No One"),
 ]
 
@@ -288,3 +229,18 @@ ASSIGNEE_CHOICES = [
     (AssigneeTargetType.TEAM.value, "Team"),
     (AssigneeTargetType.MEMBER.value, "Member"),
 ]
+
+
+@dataclass
+class GroupSubscriptionStatus:
+    is_disabled: bool
+    is_active: bool
+    has_only_inactive_subscriptions: bool
+
+
+@dataclass
+class UnsubscribeContext:
+    organization: Organization
+    resource_id: int
+    key: str
+    referrer: str | None = None

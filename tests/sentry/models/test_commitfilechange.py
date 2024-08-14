@@ -1,9 +1,9 @@
-from sentry.models import Commit, CommitFileChange, Repository
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.repository import Repository
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test(stable=True)
 class CommitFileChangeTest(TestCase):
     def test_get_count_for_commits(self):
         group = self.create_group()

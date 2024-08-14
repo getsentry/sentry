@@ -4,19 +4,22 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    ValidationError,
     delete_groups,
     get_by_short_id,
     prep_search,
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
-from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -27,14 +30,20 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 @region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+    }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(3, 1),
-            RateLimitCategory.USER: RateLimit(3, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(3, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         }
     }
 
@@ -68,9 +77,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -194,7 +203,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         The following attributes can be modified and are supplied as
         JSON object in the body:
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be mutated.  This
@@ -205,9 +214,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -257,14 +266,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
                         parameter shall be repeated for each issue.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """

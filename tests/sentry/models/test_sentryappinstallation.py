@@ -1,9 +1,15 @@
-from sentry.models import ApiApplication, SentryApp, SentryAppInstallation
-from sentry.testutils import TestCase
+from unittest import mock
+
+import sentry.hybridcloud.rpc.caching as caching_module
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import get_region_for_organization
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppInstallationTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -42,3 +48,11 @@ class SentryAppInstallationTest(TestCase):
         assert self.install in SentryAppInstallation.objects.filter(
             organization_id=self.install.organization_id
         )
+
+    def test_handle_async_replication_clears_region_cache(self):
+        with mock.patch.object(caching_module, "region_caching_service") as mock_caching_service:
+            self.install.save()
+            region = get_region_for_organization(self.org.slug)
+            mock_caching_service.clear_key.assert_any_call(
+                key=f"app_service.get_installation:{self.install.id}", region_name=region.name
+            )

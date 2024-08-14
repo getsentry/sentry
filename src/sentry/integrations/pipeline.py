@@ -1,34 +1,29 @@
 from __future__ import annotations
 
-from sentry import features
-from sentry.api.utils import generate_organization_url
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo.base import SiloMode
-
-__all__ = ["IntegrationPipeline"]
-
 import logging
 
 from django.db import IntegrityError
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.integrations.manager import default_manager
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.silo.base import SiloMode
 from sentry.web.helpers import render_to_response
 
-logger = logging.getLogger(__name__)
+__all__ = ["IntegrationPipeline"]
 
-from . import default_manager
+logger = logging.getLogger(__name__)
 
 
 def ensure_integration(key, data):
@@ -76,7 +71,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     try:
         mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     except OrganizationMapping.DoesNotExist:
-        logger.error("mapping_missing", extra=logger_extra)
+        logger.exception("mapping_missing", extra=logger_extra)
         return True
 
     return mapping.region_name not in region_names
@@ -126,13 +121,7 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        if "reinstall_id" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, id=data["reinstall_id"]
-            )
-            self.integration.update(external_id=data["external_id"], status=ObjectStatus.ACTIVE)
-            self.integration.get_installation(self.organization.id).reinstall()
-        elif "expect_exists" in data:
+        if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
@@ -233,6 +222,12 @@ class IntegrationPipeline(Pipeline):
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
+
+        extra = data.get("post_install_data", {})
+        # If a particular provider has a redirect for a successful install, use that instead of the generic success
+        redirect_url_format = extra.get("redirect_url_format", None)
+        if redirect_url_format is not None:
+            return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
     def _dialog_success(self, org_integration):
@@ -240,7 +235,7 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization):
+        if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},
@@ -255,3 +250,7 @@ class IntegrationPipeline(Pipeline):
             },
         )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
+
+    def _get_redirect_response(self, redirect_url_format: str) -> HttpResponseRedirect:
+        redirect_url = redirect_url_format.format(org_slug=self.organization.slug)
+        return HttpResponseRedirect(redirect_url)

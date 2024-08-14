@@ -1,7 +1,72 @@
+from copy import deepcopy
+
 from drf_spectacular.utils import OpenApiExample
+
+from sentry.apidocs.examples.organization_member_examples import ORGANIZATION_MEMBER
+
+ORGANIZATION_MEMBER_ON_TEAM = deepcopy(ORGANIZATION_MEMBER)
+ORGANIZATION_MEMBER_ON_TEAM["teamRole"] = "member"
+ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = "powerful-abolitionist"
+
+BASE_TEAM_1 = {
+    "id": "4502349234123",
+    "slug": "ancient-gabelers",
+    "name": "Ancient Gabelers",
+    "dateCreated": "2023-05-31T19:47:53.621181Z",
+    "isMember": True,
+    "teamRole": "contributor",
+    "flags": {"idp:provisioned": False},
+    "access": [
+        "alerts:read",
+        "event:write",
+        "project:read",
+        "team:read",
+        "member:read",
+        "project:releases",
+        "event:read",
+        "org:read",
+    ],
+    "hasAccess": True,
+    "isPending": False,
+    "memberCount": 3,
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+}
+
+BASE_TEAM_2 = {
+    "id": "4502349234125",
+    "slug": "squeaky-minnows",
+    "name": "Squeaky Minnows",
+    "dateCreated": "2023-07-27T11:23:34.621181Z",
+    "isMember": True,
+    "teamRole": "contributor",
+    "flags": {"idp:provisioned": False},
+    "access": [
+        "alerts:read",
+        "event:write",
+        "project:read",
+        "team:read",
+        "member:read",
+        "project:releases",
+        "event:read",
+        "org:read",
+    ],
+    "hasAccess": True,
+    "isPending": False,
+    "memberCount": 5,
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+}
 
 
 class TeamExamples:
+    ADD_TO_TEAM = [
+        OpenApiExample(
+            "Join, request access to or add a member to a team",
+            value=BASE_TEAM_1,
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
     CREATE_TEAM = [
         OpenApiExample(
             "Create a new team",
@@ -34,11 +99,50 @@ class TeamExamples:
                 "isPending": False,
                 "memberCount": 1,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "orgRole": None,
             },
             status_codes=["201"],
             response_only=True,
-        ),
+        )
+    ]
+
+    DELETE_FROM_TEAM = [
+        OpenApiExample(
+            "Remove a member from a team",
+            value={
+                "id": "4502349234123",
+                "slug": "ancient-gabelers",
+                "name": "Ancient Gabelers",
+                "dateCreated": "2023-05-31T19:47:53.621181Z",
+                "isMember": False,
+                "teamRole": None,
+                "flags": {"idp:provisioned": False},
+                "access": [
+                    "alerts:read",
+                    "event:write",
+                    "project:read",
+                    "team:read",
+                    "member:read",
+                    "project:releases",
+                    "event:read",
+                    "org:read",
+                ],
+                "hasAccess": True,
+                "isPending": False,
+                "memberCount": 3,
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    LIST_TEAM_MEMBERS = [
+        OpenApiExample(
+            "List Team Members",
+            value=[ORGANIZATION_MEMBER_ON_TEAM],
+            status_codes=["200"],
+            response_only=True,
+        )
     ]
 
     LIST_ORG_TEAMS = [
@@ -67,7 +171,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 2,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                 },
                 {
                     "id": "100253",
@@ -91,7 +194,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 5,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                     "projects": [
                         {
                             "id": "6403534",
@@ -130,10 +232,22 @@ class TeamExamples:
                             ],
                             "hasAccess": True,
                             "hasMinifiedStackTrace": False,
+                            "hasCustomMetrics": False,
                             "hasMonitors": True,
                             "hasProfiles": False,
                             "hasReplays": False,
+                            "hasFeedbacks": False,
+                            "hasNewFeedbacks": False,
                             "hasSessions": True,
+                            "hasInsightsHttp": True,
+                            "hasInsightsDb": False,
+                            "hasInsightsAssets": True,
+                            "hasInsightsAppStart": False,
+                            "hasInsightsScreenLoad": False,
+                            "hasInsightsVitals": False,
+                            "hasInsightsCaches": False,
+                            "hasInsightsQueues": False,
+                            "hasInsightsLlmMonitoring": False,
                             "isInternal": False,
                             "isPublic": False,
                             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -176,10 +290,22 @@ class TeamExamples:
                             ],
                             "hasAccess": True,
                             "hasMinifiedStackTrace": False,
+                            "hasCustomMetrics": False,
                             "hasMonitors": True,
                             "hasProfiles": False,
                             "hasReplays": False,
+                            "hasFeedbacks": False,
+                            "hasNewFeedbacks": False,
                             "hasSessions": False,
+                            "hasInsightsHttp": False,
+                            "hasInsightsDb": True,
+                            "hasInsightsAssets": True,
+                            "hasInsightsAppStart": True,
+                            "hasInsightsScreenLoad": True,
+                            "hasInsightsVitals": False,
+                            "hasInsightsCaches": False,
+                            "hasInsightsQueues": False,
+                            "hasInsightsLlmMonitoring": False,
                             "isInternal": False,
                             "isPublic": False,
                             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -189,6 +315,14 @@ class TeamExamples:
                     ],
                 },
             ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+    LIST_PROJECT_TEAMS = [
+        OpenApiExample(
+            "List a project's teams",
+            value=[BASE_TEAM_1, BASE_TEAM_2],
             status_codes=["200"],
             response_only=True,
         )
@@ -255,7 +389,19 @@ class TeamExamples:
                     "hasProfiles": False,
                     "hasReplays": False,
                     "hasMonitors": False,
+                    "hasFeedbacks": False,
+                    "hasNewFeedbacks": False,
                     "hasMinifiedStackTrace": False,
+                    "hasCustomMetrics": False,
+                    "hasInsightsHttp": True,
+                    "hasInsightsDb": False,
+                    "hasInsightsAssets": False,
+                    "hasInsightsAppStart": False,
+                    "hasInsightsScreenLoad": False,
+                    "hasInsightsVitals": False,
+                    "hasInsightsCaches": True,
+                    "hasInsightsQueues": True,
+                    "hasInsightsLlmMonitoring": False,
                     "platform": "node-express",
                     "platforms": [],
                     "latestRelease": None,
@@ -314,7 +460,19 @@ class TeamExamples:
                     "hasProfiles": False,
                     "hasReplays": False,
                     "hasMonitors": False,
+                    "hasFeedbacks": False,
+                    "hasNewFeedbacks": False,
                     "hasMinifiedStackTrace": True,
+                    "hasCustomMetrics": False,
+                    "hasInsightsHttp": False,
+                    "hasInsightsDb": False,
+                    "hasInsightsAssets": False,
+                    "hasInsightsAppStart": False,
+                    "hasInsightsScreenLoad": False,
+                    "hasInsightsVitals": False,
+                    "hasInsightsCaches": False,
+                    "hasInsightsQueues": False,
+                    "hasInsightsLlmMonitoring": True,
                     "platform": "javascript",
                     "platforms": ["javascript"],
                     "latestRelease": None,
@@ -322,6 +480,96 @@ class TeamExamples:
                     "latestDeploys": None,
                 },
             ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    RETRIEVE_TEAM_DETAILS = [
+        OpenApiExample(
+            "Retrieve a Team",
+            value={
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "dateCreated": "2018-11-06T21:19:55.114Z",
+                "hasAccess": True,
+                "id": "2",
+                "isMember": True,
+                "isPending": False,
+                "memberCount": 1,
+                "name": "Powerful Abolitionist",
+                "organization": {
+                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "dateCreated": "2018-11-06T21:19:55.101Z",
+                    "id": "2",
+                    "isEarlyAdopter": False,
+                    "name": "The Interstellar Jurisdiction",
+                    "require2FA": False,
+                    "slug": "the-interstellar-jurisdiction",
+                    "status": {"id": "active", "name": "active"},
+                    "features": ["session-replay-videos"],
+                    "hasAuthProvider": True,
+                    "links": {
+                        "organizationUrl": "https://philosophers.sentry.io",
+                        "regionUrl": "https://us.sentry.io",
+                    },
+                },
+                "slug": "powerful-abolitionist",
+                "access": [
+                    "event:read",
+                    "event:write",
+                    "team:read",
+                    "org:read",
+                    "project:read",
+                    "member:read",
+                    "project:releases",
+                    "alerts:read",
+                ],
+                "flags": {"idp:provisioned": False},
+                "teamRole": "contributor",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_TEAM = [
+        OpenApiExample(
+            "Update a Team",
+            value={
+                "avatar": {"avatarType": "letter_avatar"},
+                "dateCreated": "2018-11-06T21:20:08.115Z",
+                "hasAccess": True,
+                "id": "3",
+                "isMember": False,
+                "isPending": False,
+                "memberCount": 1,
+                "name": "The Inflated Philosophers",
+                "slug": "the-inflated-philosophers",
+                "access": [
+                    "event:read",
+                    "event:write",
+                    "team:read",
+                    "org:read",
+                    "project:read",
+                    "member:read",
+                    "project:releases",
+                    "alerts:read",
+                ],
+                "flags": {"idp:provisioned": False},
+                "teamRole": "contributor",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_TEAM_ROLE = [
+        OpenApiExample(
+            "Update a Team Role",
+            value={
+                "isActive": True,
+                "teamRole": "admin",
+            },
             status_codes=["200"],
             response_only=True,
         )

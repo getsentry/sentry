@@ -1,9 +1,10 @@
-import {browserHistory} from 'react-router';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -14,8 +15,8 @@ const FEATURES = ['performance-view'];
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
-    TestStubs.Project({id: '1', slug: '1'}),
-    TestStubs.Project({id: '2', slug: '2'}),
+    ProjectFixture({id: '1', slug: '1'}),
+    ProjectFixture({id: '2', slug: '2'}),
   ];
   return _initializeData({
     features: [...FEATURES, ...features],
@@ -191,7 +192,7 @@ describe('Performance > Table', function () {
         query: 'event.type:transaction transaction:/api*',
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -201,7 +202,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {context: data.routerContext}
+        {router: data.router}
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
@@ -210,7 +211,7 @@ describe('Performance > Table', function () {
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
+        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
@@ -244,7 +245,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', function () {
+    it('hides cell actions when withStaticFilters is true', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -260,22 +261,23 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
     });
 
     it('shows unparameterized tooltip when project only recently sent events', async function () {
       const projects = [
-        TestStubs.Project({id: '1', slug: '1'}),
-        TestStubs.Project({id: '2', slug: '2'}),
-        TestStubs.Project({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
       ];
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -293,9 +295,9 @@ describe('Performance > Table', function () {
 
     it('does not show unparameterized tooltip when project only recently sent events', async function () {
       const projects = [
-        TestStubs.Project({id: '1', slug: '1'}),
-        TestStubs.Project({id: '2', slug: '2'}),
-        TestStubs.Project({
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({
           id: '3',
           slug: '3',
           firstEvent: new Date(+new Date() - 25920e5).toISOString(),
@@ -306,7 +308,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -318,12 +320,12 @@ describe('Performance > Table', function () {
         />
       );
 
-      await screen.findByTestId('grid-editable');
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const indicatorContainer = screen.queryByTestId('unparameterized-indicator');
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', function () {
+    it('sends MEP param when setting enabled', async function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -342,6 +344,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenNthCalledWith(
         1,

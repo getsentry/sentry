@@ -1,12 +1,7 @@
-import {
-  DependencyList,
-  RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {CellMeasurerCache, CellMeasurerCacheParams, MultiGrid} from 'react-virtualized';
+import type {DependencyList, RefObject} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import type {CellMeasurerCacheParams, MultiGrid} from 'react-virtualized';
+import {CellMeasurerCache} from 'react-virtualized';
 
 type Opts = {
   /**
@@ -15,11 +10,11 @@ type Opts = {
   cellMeasurer: CellMeasurerCacheParams;
   /**
    * How many columns are being rendered
-   * */
+   */
   columnCount: number;
   /**
    * List of other values that should trigger re-computing column sizes
-   * */
+   */
   deps: DependencyList;
   /**
    * There must be one column with a dynamic width, so the table can fill all available width inside the container

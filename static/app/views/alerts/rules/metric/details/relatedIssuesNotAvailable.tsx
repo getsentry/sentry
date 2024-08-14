@@ -4,7 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import type {LinkProps} from 'sentry/components/links/link';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 
 interface Props {
   buttonText: string;
@@ -23,7 +23,7 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
       type="info"
       showIcon
       trailingItems={
-        <Feature features={['discover-basic']}>
+        <Feature features="discover-basic">
           <Button priority="default" size="xs" to={buttonTo}>
             {buttonText}
           </Button>

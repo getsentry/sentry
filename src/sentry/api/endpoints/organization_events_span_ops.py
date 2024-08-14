@@ -3,11 +3,13 @@ from typing import Any, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
@@ -19,19 +21,23 @@ class SpanOp(TypedDict):
 
 @region_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
-    def get(self, request: Request, organization: Organization) -> Response:
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response(status=404)
 
         query = request.GET.get("query")
 
         def data_fn(offset: int, limit: int) -> Any:
-            builder = QueryBuilder(
+            builder = DiscoverQueryBuilder(
                 dataset=Dataset.Discover,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 selected_columns=["spans_op", "count()"],
                 array_join="spans_op",
                 query=query,
@@ -44,7 +50,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
             results = raw_snql_query(snql_query, "api.organization-events-span-ops")
             return [SpanOp(op=row["spans_op"], count=row["count"]) for row in results["data"]]
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),

@@ -1,23 +1,26 @@
-import {CSSProperties, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {RequestState} from 'sentry/types/core';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
+  initializeFlamegraphRenderer,
 } from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+import {UIFramesRenderer2D} from 'sentry/utils/profiling/renderers/UIFramesRenderer2D';
+import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -33,6 +36,7 @@ interface FlamegraphUIFramesProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   setUIFramesCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  status: RequestState<any>['type'];
   uiFrames: UIFrames;
   uiFramesCanvas: FlamegraphCanvas | null;
   uiFramesCanvasRef: HTMLCanvasElement | null;
@@ -40,6 +44,7 @@ interface FlamegraphUIFramesProps {
 }
 
 export function FlamegraphUIFrames({
+  status,
   canvasBounds,
   uiFrames,
   canvasPoolManager,
@@ -48,7 +53,6 @@ export function FlamegraphUIFrames({
   uiFramesCanvas,
   setUIFramesCanvasRef,
 }: FlamegraphUIFramesProps) {
-  const profiles = useProfiles();
   const flamegraphTheme = useFlamegraphTheme();
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -63,7 +67,25 @@ export function FlamegraphUIFrames({
       return null;
     }
 
-    return new UIFramesRenderer(uiFramesCanvasRef, uiFrames, flamegraphTheme);
+    const renderer = initializeFlamegraphRenderer(
+      [UIFramesRendererWebGL, UIFramesRenderer2D],
+      [
+        uiFramesCanvasRef,
+        uiFrames,
+        flamegraphTheme,
+        {
+          draw_border: true,
+        },
+      ]
+    );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
+    }
+
+    return renderer;
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
   const hoveredNode: UIFrameNode[] | null = useMemo(() => {
@@ -79,7 +101,9 @@ export function FlamegraphUIFrames({
     }
 
     const drawUIFrames = () => {
-      uiFramesRenderer.draw(uiFramesView.fromConfigView(uiFramesCanvas.physicalSpace));
+      uiFramesRenderer.draw(
+        uiFramesView.fromTransformedConfigView(uiFramesCanvas.physicalSpace)
+      );
     };
 
     scheduler.registerBeforeFrameCallback(drawUIFrames);
@@ -125,7 +149,7 @@ export function FlamegraphUIFrames({
         return;
       }
 
-      const configSpaceMouse = uiFramesView.getConfigViewCursor(
+      const configSpaceMouse = uiFramesView.getTransformedConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         uiFramesCanvas
       );
@@ -142,7 +166,7 @@ export function FlamegraphUIFrames({
     [uiFramesCanvas, uiFramesView, onMouseDrag, startInteractionVector]
   );
 
-  const onMinimapCanvasMouseUp = useCallback(() => {
+  const onMapCanvasMouseUp = useCallback(() => {
     setConfigSpaceCursor(null);
     setLastInteraction(null);
   }, []);
@@ -168,12 +192,12 @@ export function FlamegraphUIFrames({
   });
 
   useEffect(() => {
-    window.addEventListener('mouseup', onMinimapCanvasMouseUp);
+    window.addEventListener('mouseup', onMapCanvasMouseUp);
 
     return () => {
-      window.removeEventListener('mouseup', onMinimapCanvasMouseUp);
+      window.removeEventListener('mouseup', onMapCanvasMouseUp);
     };
-  }, [onMinimapCanvasMouseUp]);
+  }, [onMapCanvasMouseUp]);
 
   const onCanvasMouseLeave = useCallback(() => {
     setConfigSpaceCursor(null);
@@ -274,9 +298,9 @@ export function FlamegraphUIFrames({
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {profiles.type === 'loading' || profiles.type === 'initial' ? (
+      {status === 'loading' || status === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && !uiFrames.frames.length ? (
+      ) : status === 'resolved' && !uiFrames.frames.length ? (
         <CollapsibleTimelineMessage>
           {t('Profile has no dropped or slow frames')}
         </CollapsibleTimelineMessage>

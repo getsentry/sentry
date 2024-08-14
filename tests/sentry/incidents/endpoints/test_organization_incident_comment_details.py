@@ -1,11 +1,11 @@
 from functools import cached_property
 
-from sentry.incidents.models import IncidentActivity, IncidentActivityType
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test(stable=True)
 class BaseIncidentCommentDetailsTest(APITestCase):
     method = "put"
     endpoint = "sentry-api-0-organization-incident-comment-details"
@@ -64,7 +64,6 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -95,7 +94,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
 
     def test_superuser_can_edit(self):
         self.user.is_superuser = True
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.save()
 
         edited_comment = "this comment has been edited"
@@ -113,7 +112,6 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.comment == edited_comment
 
 
-@region_silo_test(stable=True)
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 
@@ -135,7 +133,7 @@ class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTe
 
     def test_superuser_can_delete(self):
         self.user.is_superuser = True
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.save()
 
         with self.feature("organizations:incidents"):

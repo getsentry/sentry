@@ -1,11 +1,10 @@
 import {Component, createContext, createRef} from 'react';
 
-import {
-  clamp,
-  rectOfContent,
-  toPercent,
-} from 'sentry/components/performance/waterfall/utils';
-import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import {rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import clamp from 'sentry/utils/number/clamp';
+import toPercent from 'sentry/utils/number/toPercent';
+import type {UserSelectValues} from 'sentry/utils/userselect';
+import {setBodyUserSelect} from 'sentry/utils/userselect';
 
 // divider handle is positioned at 50% width from the left-hand side
 const DEFAULT_DIVIDER_POSITION = 0.4;

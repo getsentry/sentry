@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:21:59.369986Z'
+created: '2023-12-12T13:53:07.554820Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -119,7 +119,7 @@ app:
           frame (non app frame)
             function*
               "_CFBundleDlfcnLoadBundle"
-          frame (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "dlopen"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -139,7 +139,7 @@ app:
               "ImageLoaderMachOCompressed::rebase"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / 0x00000032"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"
 --------------------------------------------------------------------------
 system:
@@ -258,7 +258,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "_CFBundleDlfcnLoadBundle"
-          frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "dlopen"
           frame (ignored by stack trace rule (category:internals -group))

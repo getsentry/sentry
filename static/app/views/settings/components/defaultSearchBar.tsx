@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 export type RenderSearch = React.ComponentProps<
-  typeof AsyncView.prototype.renderSearchInput
+  typeof DeprecatedAsyncView.prototype.renderSearchInput
 >['children'];
 
 export const SearchWrapper = styled('div')`

@@ -3,8 +3,8 @@ from unittest.mock import patch
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models import SentryApp
-from sentry.testutils import APITestCase
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -12,7 +12,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
@@ -49,7 +49,7 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 
@@ -84,13 +84,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             status=SentryAppInstallationStatus.PENDING,
         )
 
-        self.component1 = self.sentry_app1.components.first()
-        self.component2 = self.sentry_app2.components.first()
-        self.component3 = self.sentry_app3.components.first()
+        self.component1 = self.sentry_app1.components.order_by("pk").first()
+        self.component2 = self.sentry_app2.components.order_by("pk").first()
+        self.component3 = self.sentry_app3.components.order_by("pk").first()
 
         self.login_as(user=self.user)
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_retrieves_all_components_for_installed_apps(self, run):
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -125,7 +125,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             },
         }
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_filter_by_type(self, run):
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
@@ -152,13 +152,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             }
         ]
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_prepares_each_component(self, run):
         self.get_success_response(self.org.slug, qs_params={"projectId": self.project.id})
 
         assert run.call_count == 2
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_errors_are_isolated(self, run):
         run.side_effect = [APIError(), self.component2]
 
@@ -168,7 +168,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         # self.component1 data contains an error, because it raised an exception
         # during preparation.
-        assert response.data == [
+        expected = [
             {
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
@@ -194,3 +194,5 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 },
             },
         ]
+
+        assert response.data == expected

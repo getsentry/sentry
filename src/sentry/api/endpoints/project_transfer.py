@@ -8,15 +8,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, options, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
-from sentry.models import OrganizationMember
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+
+SALT = "sentry-project-transfer"
 
 
 class RelaxedProjectPermission(ProjectPermission):
@@ -25,7 +30,19 @@ class RelaxedProjectPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
-    permission_classes = [RelaxedProjectPermission]
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (RelaxedProjectPermission,)
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.USER: RateLimit(
+                limit=3, window=60 * 60
+            ),  # 3 POST requests per hour per user
+        }
+    }
 
     @sudo_required
     def post(self, request: Request, project) -> Response:
@@ -35,9 +52,9 @@ class ProjectTransferEndpoint(ProjectEndpoint):
 
         Schedules a project for transfer to a new organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :pparam string project_id_or_slug: the id or slug of the project to delete.
         :param string email: email of new owner. must be an organization owner
         :auth: required
         """
@@ -68,11 +85,16 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         organization = project.organization
         transaction_id = uuid4().hex
         url_data = sign(
+            salt=SALT,
             actor_id=request.user.id,
             from_organization_id=organization.id,
             project_id=project.id,
             user_id=owner.user_id,
             transaction_id=transaction_id,
+        )
+
+        ProjectOption.objects.set_value(
+            project, "sentry:project-transfer-transaction-id", transaction_id
         )
 
         context = {

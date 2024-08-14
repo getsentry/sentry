@@ -1,143 +1,93 @@
-import {Fragment} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
-import DateTime from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import Link from 'sentry/components/links/link';
-import PanelTable from 'sentry/components/panels/panelTable';
-import StatusIndicator from 'sentry/components/statusIndicator';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
+// import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
-import type {ActivityType} from 'sentry/views/alerts/types';
-import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
-import {alertDetailsLink} from 'sentry/views/alerts/utils';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';
+import MetricHistoryActivation from 'sentry/views/alerts/rules/metric/details/metricHistoryActivation';
+import type {Incident} from 'sentry/views/alerts/types';
 
 const COLLAPSE_COUNT = 3;
 
-type MetricAlertActivityProps = {
-  incident: Incident;
-  organization: Organization;
-};
-
-function MetricAlertActivity({organization, incident}: MetricAlertActivityProps) {
-  const activities = (incident.activities ?? []).filter(
-    activity => activity.type === IncidentActivityType.STATUS_CHANGE
-  );
-  const criticalActivity = activities.find(
-    activity => activity.value === `${IncidentStatus.CRITICAL}`
-  );
-  const warningActivity = activities.find(
-    activity => activity.value === `${IncidentStatus.WARNING}`
-  );
-
-  const triggeredActivity: ActivityType = criticalActivity
-    ? criticalActivity!
-    : warningActivity!;
-  const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
-
-  // Find duration by looking at the difference between the previous and current activity timestamp
-  const nextActivity = activities.find(
-    ({previousValue}) => previousValue === triggeredActivity.value
-  );
-  const activityDuration = (
-    nextActivity ? moment(nextActivity.dateCreated) : moment()
-  ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
-
-  const triggerLabel = isCritical ? 'critical' : 'warning';
-  const curentTrigger = incident.alertRule.triggers.find(
-    trigger => trigger.label === triggerLabel
-  );
-
-  return (
-    <Fragment>
-      <Cell>
-        {triggeredActivity.value && (
-          <StatusIndicator
-            status={isCritical ? 'error' : 'warning'}
-            tooltipTitle={t('Status: %s', isCritical ? t('Critical') : t('Warning'))}
-          />
-        )}
-        <Link
-          to={{
-            pathname: alertDetailsLink(organization, incident),
-            query: {alert: incident.identifier},
-          }}
-        >
-          #{incident.identifier}
-        </Link>
-      </Cell>
-      <Cell>
-        {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]}{' '}
-        {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-          ? t('above')
-          : t('below')}{' '}
-        {curentTrigger?.alertThreshold}
-      </Cell>
-      <Cell>
-        {activityDuration &&
-          getDynamicText({
-            value: <Duration abbreviation seconds={activityDuration / 1000} />,
-            fixed: '30s',
-          })}
-      </Cell>
-      <Cell>
-        <StyledDateTime
-          date={getDynamicText({
-            value: incident.dateCreated,
-            fixed: 'Mar 4, 2022 10:44:13 AM UTC',
-          })}
-          year
-          seconds
-          timeZone
-        />
-      </Cell>
-    </Fragment>
-  );
-}
-
 type Props = {
+  activations?: AlertRuleActivation[];
   incidents?: Incident[];
 };
 
 function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
-  const filteredIncidents = (incidents ?? []).filter(
-    incident => incident.activities?.length
-  );
-  const numOfIncidents = filteredIncidents.length;
+  const sortedActivity = useMemo(() => {
+    const filteredIncidents = (incidents ?? []).filter(
+      incident => incident.activities?.length
+    );
+    const activationTriggers: ActivationTriggerActivity[] = [];
+    // NOTE: disabling start/finish trigger rows for now until we've determined whether its
+    // valuable during EA
+
+    // activations?.forEach(activation => {
+    //   activationTriggers.push({
+    //     type: ActivationTrigger.ACTIVATED,
+    //     activator: activation.activator,
+    //     conditionType: activation.conditionType,
+    //     dateCreated: activation.dateCreated,
+    //   });
+    //   if (activation.isComplete) {
+    //     activationTriggers.push({
+    //       type: ActivationTrigger.FINISHED,
+    //       activator: activation.activator,
+    //       conditionType: activation.conditionType,
+    //       dateCreated: activation.finishedAt,
+    //     });
+    //   }
+    // });
+
+    return [...filteredIncidents, ...activationTriggers].sort((a, b) =>
+      a.dateCreated > b.dateCreated ? -1 : 1
+    );
+  }, [incidents]);
+
+  const numOfActivities = sortedActivity.length;
 
   return (
     <CollapsePanel
-      items={numOfIncidents}
+      items={numOfActivities}
       collapseCount={COLLAPSE_COUNT}
       disableBorder={false}
-      buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfIncidents - COLLAPSE_COUNT)}
+      buttonTitle={tn('Hidden Alert', 'Hidden Alerts', numOfActivities - COLLAPSE_COUNT)}
     >
       {({isExpanded, showMoreButton}) => (
         <div>
           <StyledPanelTable
             headers={[t('Alert'), t('Reason'), t('Duration'), t('Date Triggered')]}
-            isEmpty={!numOfIncidents}
+            isEmpty={!numOfActivities}
             emptyMessage={t('No alerts triggered during this time.')}
-            expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
+            expanded={numOfActivities <= COLLAPSE_COUNT || isExpanded}
+            data-test-id={'history-table'}
           >
-            {filteredIncidents.map((incident, idx) => {
+            {sortedActivity.map((item, idx) => {
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
                 return null;
               }
+              if ('activator' in item) {
+                return (
+                  <MetricHistoryActivation
+                    key={`${item.type}-${item.activator}`}
+                    activationActivity={item}
+                    organization={organization}
+                  />
+                );
+              }
+
               return (
                 <MetricAlertActivity
                   key={idx}
-                  incident={incident}
+                  incident={item}
                   organization={organization}
                 />
               );
@@ -171,16 +121,4 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
       border-bottom-right-radius: 0px;
       border-bottom: none;
     `}
-`;
-
-const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
-`;
-
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1)};
 `;

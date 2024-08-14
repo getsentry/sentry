@@ -1,16 +1,16 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class UserReport(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField(null=True, db_index=True)
-    event_user_id = BoundedBigIntegerField(null=True)
     event_id = models.CharField(max_length=32)
     environment_id = BoundedBigIntegerField(null=True, db_index=True)
     name = models.CharField(max_length=128)
@@ -21,7 +21,10 @@ class UserReport(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_userreport"
-        index_together = (("project_id", "event_id"), ("project_id", "date_added"))
+        indexes = (
+            models.Index(fields=("project_id", "event_id")),
+            models.Index(fields=("project_id", "date_added")),
+        )
         unique_together = (("project_id", "event_id"),)
 
     __repr__ = sane_repr("event_id", "name", "email")

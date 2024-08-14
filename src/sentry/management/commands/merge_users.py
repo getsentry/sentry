@@ -5,7 +5,8 @@ from functools import reduce
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
+from sentry.users.models.user import User
 
 
 class Command(BaseCommand):

@@ -7,13 +7,14 @@ import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {OrgRoleInfo} from 'sentry/components/orgRole';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
   canAddMembers: boolean;
@@ -75,7 +76,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
   };
 
   renderMemberRole() {
-    const {member, organization} = this.props;
+    const {member} = this.props;
     const {roleName, pending, expired} = member;
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
@@ -88,7 +89,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </InvitedRole>
       );
     }
-    return <OrgRoleInfo member={member} organization={organization} />;
+    return <Fragment>{capitalize(member.orgRole)}</Fragment>;
   }
 
   render() {
@@ -107,14 +108,16 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
     // if member is not the only owner, they can leave
     const isIdpProvisioned = flags['idp:provisioned'];
+    const isPartnershipUser = flags['partnership:restricted'];
     const needsSso = !flags['sso:linked'] && requireLink;
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
-    const canRemoveMember = canRemoveMembers && !isCurrentUser && !isIdpProvisioned;
+    const canRemoveMember =
+      canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
-    const has2fa = user && user.has2fa;
+    const has2fa = user?.has2fa;
     const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
     const isInviting = status === 'loading';
@@ -181,7 +184,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               >
                 <Button
                   data-test-id="remove"
-                  icon={<IconSubtract isCircled size="xs" />}
+                  icon={<IconSubtract isCircled />}
                   size="sm"
                   busy={this.state.busy}
                 >
@@ -199,9 +202,11 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                     ? t(
                         "This user is managed through your organization's identity provider."
                       )
-                    : t('You do not have access to remove members')
+                    : isPartnershipUser
+                      ? t('You cannot make changes to this partner-provisioned user.')
+                      : t('You do not have access to remove members')
                 }
-                icon={<IconSubtract isCircled size="xs" />}
+                icon={<IconSubtract isCircled />}
               >
                 {t('Remove')}
               </Button>
@@ -214,7 +219,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="sm" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="sm" icon={<IconClose />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -223,16 +228,18 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             {showLeaveButton && !memberCanLeave && (
               <Button
                 size="sm"
-                icon={<IconClose size="xs" />}
+                icon={<IconClose />}
                 disabled
                 title={
                   isIdpProvisioned
                     ? t(
                         "Your account is managed through your organization's identity provider."
                       )
-                    : t(
-                        'You cannot leave this organization as you are the only organization owner.'
-                      )
+                    : isPartnershipUser
+                      ? t('You cannot make changes as a partner-provisioned user.')
+                      : t(
+                          'You cannot leave this organization as you are the only organization owner.'
+                        )
                 }
               >
                 {t('Leave')}

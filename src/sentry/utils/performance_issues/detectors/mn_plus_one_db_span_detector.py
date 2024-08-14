@@ -3,16 +3,16 @@ from __future__ import annotations
 import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
-from sentry import features
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,
@@ -29,10 +29,10 @@ class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
 
     @abstractmethod
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         raise NotImplementedError
 
-    def finish(self) -> Optional[PerformanceProblem]:
+    def finish(self) -> PerformanceProblem | None:
         return None
 
     def _equivalent(self, a: Span, b: Span) -> bool:
@@ -61,13 +61,16 @@ class SearchingForMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        initial_spans: Sequence[Span] | None = None,
     ) -> None:
         self.settings = settings
         self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
             self.recent_spans.append(span)
@@ -97,7 +100,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         for span in pattern:
             op = span.get("op") or ""
             description = span.get("description") or ""
-            found_db_op = found_db_op or (
+            found_db_op = found_db_op or bool(
                 op.startswith("db")
                 and not op.startswith("db.redis")
                 and description
@@ -123,18 +126,18 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+        self, settings: dict[str, Any], event: dict[str, Any], pattern: list[Span], first_span: Span
     ) -> None:
         self.settings = settings
         self.event = event
         self.pattern = pattern
 
         # The full list of spans involved in the MN pattern.
-        self.spans: Sequence[Span] = pattern.copy()
+        self.spans = pattern.copy()
         self.spans.append(first_span)
         self.pattern_index = 1
 
-    def next(self, span: Span) -> MNPlusOneState:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         # If the MN pattern is continuing, carry on in this state.
         pattern_span = self.pattern[self.pattern_index]
         if self._equivalent(pattern_span, span):
@@ -154,10 +157,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
             self._maybe_performance_problem(),
         )
 
-    def finish(self) -> Optional[PerformanceProblem]:
+    def finish(self) -> PerformanceProblem | None:
         return self._maybe_performance_problem()
 
-    def _maybe_performance_problem(self) -> Optional[PerformanceProblem]:
+    def _maybe_performance_problem(self) -> PerformanceProblem | None:
         times_occurred = int(len(self.spans) / len(self.pattern))
         minimum_occurrences_of_pattern = self.settings["minimum_occurrences_of_pattern"]
         if times_occurred < minimum_occurrences_of_pattern:
@@ -166,11 +169,16 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
-        # Only consider `db` spans when evaluating the duration threshold.
+        # Consider all spans when evaluating the duration threshold, however at least 10 percent
+        # of the total duration of offenders should be from db spans.
         total_duration_threshold = self.settings["total_duration_threshold"]
+        total_spans_duration = total_span_time(offender_spans)
+
         offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
-        total_duration = total_span_time(offender_db_spans)
-        if total_duration < total_duration_threshold:
+        total_db_spans_duration = total_span_time(offender_db_spans)
+        pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
+
+        if total_spans_duration < total_duration_threshold or pct_db_spans < 0.1:
             return None
 
         parent_span = self._find_common_parent_span(offender_spans)
@@ -178,6 +186,8 @@ class ContinuingMNPlusOne(MNPlusOneState):
             return None
 
         db_span = self._first_db_span()
+        if not db_span:
+            return None
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
@@ -212,13 +222,13 @@ class ContinuingMNPlusOne(MNPlusOneState):
             ],
         )
 
-    def _first_db_span(self) -> Optional[Span]:
+    def _first_db_span(self) -> Span | None:
         for span in self.spans:
             if span["op"].startswith("db"):
                 return span
         return None
 
-    def _find_common_parent_span(self, spans: Sequence[Span]):
+    def _find_common_parent_span(self, spans: Sequence[Span]) -> Span | None:
         parent_span_id = spans[0].get("parent_span_id")
         if not parent_span_id:
             return None
@@ -258,21 +268,19 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
-    def init(self):
-        self.stored_problems = {}
-        self.state = SearchingForMNPlusOne(self.settings, self.event())
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return features.has(
-            "organizations:performance-issues-m-n-plus-one-db-detector",
-            organization,
-            actor=None,
-        )
+        self.stored_problems = {}
+        self.state: MNPlusOneState = SearchingForMNPlusOne(self.settings, self.event())
+
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def visit_span(self, span):
+    def visit_span(self, span: Span) -> None:
         self.state, performance_problem = self.state.next(span)
         if performance_problem:
             self.stored_problems[performance_problem.fingerprint] = performance_problem

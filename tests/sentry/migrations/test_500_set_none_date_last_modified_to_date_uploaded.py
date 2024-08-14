@@ -3,7 +3,8 @@ import uuid
 import pytest
 from django.utils import timezone
 
-from sentry.models import ArtifactBundle, File
+from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.files.file import File
 from sentry.testutils.cases import TestMigrations
 
 

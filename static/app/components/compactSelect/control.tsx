@@ -13,23 +13,39 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
-import {OverlayTriggerState} from '@react-stately/overlays';
+import type {ListState} from '@react-stately/list';
+import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
-import {SingleListProps} from './list';
-import {SelectOption} from './types';
+import type {SingleListProps} from './list';
+import type {SelectKey, SelectOption} from './types';
+
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
 
 export interface SelectContextValue {
   overlayIsOpen: boolean;
@@ -47,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
+    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -72,7 +88,7 @@ export interface ControlProps
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       keyof Omit<
-        SingleListProps<React.Key>,
+        SingleListProps<SelectKey>,
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
@@ -132,11 +148,17 @@ export interface ControlProps
   /**
    * Optional content to display below the menu's header and above the options.
    */
-  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => JSX.Element);
   /**
    * Footer to be rendered at the bottom of the menu.
    */
   menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
@@ -149,6 +171,10 @@ export interface ControlProps
    * true).
    */
   onClear?: () => void;
+  /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
   /**
    * Called when the search input's value changes (applicable only when `searchable`
    * is true).
@@ -208,8 +234,10 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuHeaderTrailingItems,
   menuBody,
   menuFooter,
+  onOpenChange,
 
   // Select props
   size = 'md',
@@ -224,6 +252,7 @@ export function Control({
   children,
   ...wrapperProps
 }: ControlProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<ListState<any>[]>([]);
@@ -302,45 +331,50 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
-    onOpenChange: async open => {
-      // On open
-      if (open) {
-        // Wait for overlay to appear/disappear
-        await new Promise(resolve => resolve(null));
+    onOpenChange: open => {
+      onOpenChange?.(open);
 
-        // Focus on search box if present
-        if (searchable) {
-          searchRef.current?.focus();
+      nextFrameCallback(() => {
+        if (open) {
+          // Focus on search box if present
+          if (searchable) {
+            searchRef.current?.focus();
+            return;
+          }
+
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.focus();
           return;
         }
 
-        const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
-        );
+        // On close
+        onClose?.();
 
-        // Focus on first selected item
-        if (firstSelectedOption) {
-          firstSelectedOption.focus();
-          return;
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
+
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
         }
-
-        // If no item is selected, focus on first item instead
-        overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
-          ?.focus();
-        return;
-      }
-
-      // On close
-      onClose?.();
-
-      // Clear search string
-      setSearchInputValue('');
-      setSearch('');
-
-      // Wait for overlay to appear/disappear
-      await new Promise(resolve => resolve(null));
-      triggerRef.current?.focus();
+      });
     },
   });
 
@@ -383,7 +417,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<React.Key> | SelectOption<React.Key>[]>
+    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -425,6 +459,8 @@ export function Control({
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault(); // Prevent scroll
         overlayState.open();
+      } else {
+        e.continuePropagation();
       }
     },
   });
@@ -468,6 +504,7 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
+            minWidth={overlayProps.style.minWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
@@ -476,11 +513,16 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || (clearable && showClearButton)) && (
+              {(menuTitle ||
+                menuHeaderTrailingItems ||
+                (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
+                    {typeof menuHeaderTrailingItems === 'function'
+                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                      : menuHeaderTrailingItems}
                     {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
@@ -528,6 +570,7 @@ const ControlWrap = styled('div')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
+  line-height: normal;
 `;
 
 const StyledBadge = styled(Badge)`
@@ -569,7 +612,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -584,7 +627,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
@@ -615,7 +658,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
@@ -631,6 +674,7 @@ const StyledOverlay = styled(Overlay, {
   maxHeightProp: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
+  minWidth?: string | number;
   width?: string | number;
 }>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
@@ -640,6 +684,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight

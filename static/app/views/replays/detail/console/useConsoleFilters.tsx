@@ -1,59 +1,56 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
+import type {RefObject} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
-import type {
-  BreadcrumbLevelType,
-  BreadcrumbTypeDefault,
-  Crumb,
-} from 'sentry/types/breadcrumbs';
-import {isBreadcrumbLogLevel, isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
-const ISSUE_CATEGORY = 'issue';
-type BreadcrumbType = BreadcrumbLevelType | typeof ISSUE_CATEGORY;
+export interface ConsoleSelectOption extends SelectOption<string> {
+  qs: 'f_c_logLevel' | 'f_c_search';
+}
 
 export type FilterFields = {
   f_c_logLevel: string[];
   f_c_search: string;
 };
 
-type Item = Extract<Crumb, BreadcrumbTypeDefault>;
-
 type Options = {
-  breadcrumbs: Crumb[];
+  frames: BreadcrumbFrame[];
 };
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
   getLogLevels: () => {label: string; value: string}[];
-  items: Item[];
-  logLevel: BreadcrumbType[];
+  items: BreadcrumbFrame[];
+  logLevel: string[];
   searchTerm: string;
   setLogLevel: (logLevel: string[]) => void;
   setSearchTerm: (searchTerm: string) => void;
 };
 
-const isBreadcrumbTypeValue = (val): val is BreadcrumbType =>
-  isBreadcrumbLogLevel(val) || val === ISSUE_CATEGORY;
+function getFilterableField(frame: BreadcrumbFrame) {
+  if (frame.category === 'console') {
+    const consoleFrame = frame as ConsoleFrame;
+    return consoleFrame.level;
+  }
+  return undefined;
+}
 
 const FILTERS = {
-  logLevel: (item: Item, logLevel: string[]) => {
-    return (
-      logLevel.length === 0 ||
-      (item.category !== ISSUE_CATEGORY && logLevel.includes(item.level)) ||
-      (item.category === ISSUE_CATEGORY && logLevel.includes(ISSUE_CATEGORY))
-    );
-  },
-
-  searchTerm: (item: Item, searchTerm: string) =>
-    JSON.stringify(item.data?.arguments || item.message)
-      .toLowerCase()
-      .includes(searchTerm),
+  logLevel: (item: BreadcrumbFrame, logLevel: string[]) =>
+    logLevel.length === 0 || logLevel.includes(getFilterableField(item) ?? ''),
+  searchTerm: (item: BreadcrumbFrame, searchTerm: string) =>
+    [
+      item.message ?? '',
+      ...Array.from((item as ConsoleFrame).data?.arguments ?? []),
+    ].some(val => JSON.stringify(val).toLowerCase().includes(searchTerm)),
 };
 
 function sortBySeverity(a: string, b: string) {
+  const UNKNOWN_LEVEL = 10;
   const levels = {
     issue: 0,
     fatal: 1,
@@ -64,22 +61,14 @@ function sortBySeverity(a: string, b: string) {
     trace: 6,
   };
 
-  const aRank = levels[a] ?? 10;
-  const bRank = levels[b] ?? 10;
+  const aRank = levels[a] ?? UNKNOWN_LEVEL;
+  const bRank = levels[b] ?? UNKNOWN_LEVEL;
   return aRank - bRank;
 }
 
-function optionValueToLabel(value: string) {
-  return (
-    {
-      error: 'console error',
-      issue: 'sentry error',
-    }[value] || value
-  );
-}
-
-function useConsoleFilters({breadcrumbs}: Options): Return {
+function useConsoleFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
   // Due to virtualization, components can be unmounted as the user scrolls, so
@@ -89,35 +78,25 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const typeDefaultCrumbs = useMemo(
-    () => breadcrumbs.filter(isBreadcrumbTypeDefault),
-    [breadcrumbs]
-  );
-
-  const logLevel = useMemo(
-    () => decodeList(query.f_c_logLevel).filter(isBreadcrumbTypeValue),
-    [query.f_c_logLevel]
-  );
+  const logLevel = useMemo(() => decodeList(query.f_c_logLevel), [query.f_c_logLevel]);
   const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
       filterItems({
-        items: typeDefaultCrumbs,
+        items: frames,
         filterFns: FILTERS,
         filterVals: {logLevel, searchTerm},
       }),
-    [typeDefaultCrumbs, logLevel, searchTerm]
+    [frames, logLevel, searchTerm]
   );
 
   const getLogLevels = useCallback(
     () =>
       Array.from(
         new Set(
-          breadcrumbs
-            .map(breadcrumb =>
-              breadcrumb.category === ISSUE_CATEGORY ? ISSUE_CATEGORY : breadcrumb.level
-            )
+          frames
+            .map(frame => ('level' in frame ? (frame.level as string) : null))
             .concat(logLevel)
         )
       )
@@ -125,9 +104,9 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
         .sort(sortBySeverity)
         .map(value => ({
           value,
-          label: optionValueToLabel(value),
+          label: value,
         })),
-    [breadcrumbs, logLevel]
+    [frames, logLevel]
   );
 
   const setLogLevel = useCallback(

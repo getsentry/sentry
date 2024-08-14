@@ -1,14 +1,20 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {SentryAppComponent} from 'sentry/types';
+import type {
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types/integrations';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
-  const group = TestStubs.Group();
-  const install = TestStubs.SentryAppInstallation();
-  const components: SentryAppComponent[] = [
+  const group = GroupFixture();
+  const install = SentryAppInstallationFixture();
+  const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
       type: 'stacktrace-link',
@@ -63,6 +69,8 @@ describe('OpenInContextLine', function () {
         'href',
         'http://localhost:4000/something?filename=%2Fsentry%2Fapp.py&installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&lineNo=233&projectSlug=internal'
       );
+      expect(screen.getByRole('link', {name: 'Foo'})).toHaveTextContent('');
+      expect(screen.getByRole('link', {name: 'Tesla'})).toHaveTextContent('');
     });
   });
 });

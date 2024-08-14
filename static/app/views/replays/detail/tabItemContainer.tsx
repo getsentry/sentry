@@ -6,6 +6,13 @@ const TabItemContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  display: grid;
+
+  .beforeCurrentTime,
+  .afterCurrentTime {
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+  }
 
   .beforeHoverTime + .afterHoverTime {
     border-top-color: ${p => p.theme.purple200};

@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -6,84 +6,67 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useApi from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
 type Props = {
-  api: Client;
   app: ApiApplication;
   onRemove: (app: ApiApplication) => void;
 };
 
-type State = {
-  loading: boolean;
-};
+function Row({app, onRemove}: Props) {
+  const api = useApi();
+  const [isLoading, setLoading] = useState(false);
 
-class Row extends Component<Props, State> {
-  state: State = {
-    loading: false,
-  };
-
-  handleRemove = () => {
-    if (this.state.loading) {
+  async function handleRemove() {
+    if (isLoading) {
       return;
     }
 
-    const {api, app, onRemove} = this.props;
+    setLoading(true);
+    addLoadingMessage();
 
-    this.setState(
-      {
-        loading: true,
-      },
-      async () => {
-        addLoadingMessage();
+    try {
+      await api.requestPromise(`/api-applications/${app.id}/`, {
+        method: 'DELETE',
+      });
 
-        try {
-          await api.requestPromise(`/api-applications/${app.id}/`, {
-            method: 'DELETE',
-          });
-
-          clearIndicators();
-          onRemove(app);
-        } catch (_err) {
-          addErrorMessage(t('Unable to remove application. Please try again.'));
-        }
-      }
-    );
-  };
-
-  render() {
-    const {app} = this.props;
-
-    return (
-      <StyledPanelItem>
-        <ApplicationNameWrapper>
-          <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-            {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
-          </ApplicationName>
-          <ClientId>
-            {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
-          </ClientId>
-        </ApplicationNameWrapper>
-
-        <Button
-          aria-label="Remove"
-          onClick={this.handleRemove}
-          disabled={this.state.loading}
-          icon={<IconDelete />}
-        />
-      </StyledPanelItem>
-    );
+      clearIndicators();
+      onRemove(app);
+    } catch (_err) {
+      addErrorMessage(t('Unable to remove application. Please try again.'));
+    }
   }
+
+  return (
+    <StyledPanelItem>
+      <ApplicationNameWrapper>
+        <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
+          {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
+        </ApplicationName>
+        <ClientId>
+          {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
+        </ClientId>
+      </ApplicationNameWrapper>
+
+      <Button
+        aria-label={t('Remove')}
+        onClick={handleRemove}
+        disabled={isLoading}
+        size="sm"
+        icon={<IconDelete size="sm" />}
+      />
+    </StyledPanelItem>
+  );
 }
 
 const StyledPanelItem = styled(PanelItem)`

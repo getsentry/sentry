@@ -1,22 +1,16 @@
+import importlib.metadata
 import sys
-
-try:
-    import pkg_resources
-except ImportError:
-    pkg_resources = None
 
 
 def get_package_version(module_name, app):
     version = None
 
-    # Try to pull version from pkg_resource first
+    # Try to pull version from importlib.metadata first
     # as it is able to detect version tagged with egg_info -b
-    if pkg_resources is not None:
-        # pull version from pkg_resources if distro exists
-        try:
-            return pkg_resources.get_distribution(module_name).version
-        except Exception:
-            pass
+    try:
+        return importlib.metadata.version(module_name)
+    except Exception:
+        pass
 
     if hasattr(app, "get_version"):
         version = app.get_version

@@ -1,18 +1,15 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 
-import {RuntimeData, RuntimeKnownDataType} from './types';
-
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
+import type {RuntimeData} from './types';
+import {RuntimeKnownDataType} from './types';
 
 type Props = {
   data: RuntimeData;
   type: RuntimeKnownDataType;
 };
 
-export function getRuntimeKnownDataDetails({type, data}: Props): Output | undefined {
+export function getRuntimeKnownDataDetails({type, data}: Props): KnownDataDetails {
   switch (type) {
     case RuntimeKnownDataType.NAME:
       return {

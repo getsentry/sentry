@@ -1,4 +1,6 @@
-import * as PropTypes from 'prop-types';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -8,7 +10,8 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
@@ -22,9 +25,9 @@ describe('ProjectKeyDetails', function () {
   let projectKeys: ProjectKey[];
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
+    org = OrganizationFixture();
+    project = ProjectFixture();
+    projectKeys = ProjectKeysFixture();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -78,15 +81,6 @@ describe('ProjectKeyDetails', function () {
       method: 'DELETE',
     });
 
-    const context = {
-      context: {
-        project: TestStubs.Project(),
-      },
-      childContextTypes: {
-        project: PropTypes.object,
-      },
-    };
-
     render(
       <ProjectKeyDetails
         {...routerProps}
@@ -96,21 +90,18 @@ describe('ProjectKeyDetails', function () {
           keyId: projectKeys[0].id,
           projectId: project.slug,
         }}
-      />,
-      {
-        context,
-      }
+      />
     );
   });
 
-  it('has stats box', function () {
-    expect(screen.getByText('Key Details')).toBeInTheDocument();
+  it('has stats box', async function () {
+    expect(await screen.findByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
   it('changes name', async function () {
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'New Name');
+    await userEvent.clear(await screen.findByRole('textbox', {name: 'Name'}));
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Name');
     await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
@@ -124,7 +115,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('disable and enables key', async function () {
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -133,7 +124,7 @@ describe('ProjectKeyDetails', function () {
       })
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -144,11 +135,9 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('revokes a key', async function () {
-    await userEvent.click(screen.getByRole('button', {name: 'Revoke Key'}));
-
+    await userEvent.click(await screen.findByRole('button', {name: 'Revoke Key'}));
     renderGlobalModal();
-    await userEvent.click(screen.getByTestId('confirm-button'));
-
+    await userEvent.click(await screen.findByTestId('confirm-button'));
     expect(deleteMock).toHaveBeenCalled();
   });
 });

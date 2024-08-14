@@ -1,39 +1,45 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {
-  StacktraceFilenameQuery,
-  useSourceMapDebug,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import Tag from 'sentry/components/tag';
-import {Tooltip} from 'sentry/components/tooltip';
-import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconFix, IconRefresh} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
+import type {
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from '../debugMeta/debugImage';
+import type DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
-import {SymbolicatorStatus} from '../types';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
-import PackageLink from './packageLink';
-import PackageStatus, {PackageStatusIcon} from './packageStatus';
-import Symbol, {FunctionNameToggleIcon} from './symbol';
-import TogglableAddress, {AddressToggleIcon} from './togglableAddress';
+import {OpenInContextLine} from './openInContextLine';
+import {PackageStatusIcon} from './packageStatus';
+import {FunctionNameToggleIcon} from './symbol';
+import {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -43,14 +49,25 @@ import {
   isExpandable,
 } from './utils';
 
-type Props = {
-  components: Array<SentryAppComponent>;
+const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.jsbundle', // React Native iOS file ending
+  '.bundle', // React Native Android file ending
+  '.hbc', // Hermes Bytecode (from Expo updates) file ending
+  '.js.gz', // file ending idiomatic for Ember.js
+];
+
+export interface DeprecatedLineProps {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
-  debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  frameSourceResolutionResults?: FrameSourceMapDebuggerData;
+  hiddenFrameCount?: number;
+  hideSourceMapDebugger?: boolean;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -61,22 +78,33 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Frames that are hidden under the most recent non-InApp frame
+   */
+  isSubFrame?: boolean;
   lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
-  platform?: PlatformType;
+  platform?: PlatformKey;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
   showingAbsoluteAddress?: boolean;
   threadId?: number;
   timesRepeated?: number;
-};
+}
+
+interface Props extends DeprecatedLineProps {
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+}
 
 type State = {
+  isHovering: boolean;
   isExpanded?: boolean;
 };
 
@@ -92,27 +120,6 @@ function makeFilter(
   return addr;
 }
 
-function SourceMapWarning({
-  debugFrames,
-  frame,
-}: {
-  frame: Frame;
-  debugFrames?: StacktraceFilenameQuery[];
-}) {
-  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.query, {
-    enabled: !!debugFrame,
-  });
-
-  return data?.errors?.length ? (
-    <IconWrapper>
-      <Tooltip skipWrapper title={t('Missing source map')}>
-        <IconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
-      </Tooltip>
-    </IconWrapper>
-  ) : null;
-}
-
 export class DeprecatedLine extends Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
@@ -125,10 +132,19 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
+    isHovering: false,
+  };
+
+  handleMouseEnter = () => {
+    this.setState({isHovering: true});
+  };
+
+  handleMouseLeave = () => {
+    this.setState({isHovering: false});
   };
 
   toggleContext = evt => {
-    evt && evt.preventDefault();
+    evt?.preventDefault();
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -158,17 +174,6 @@ export class DeprecatedLine extends Component<Props, State> {
       emptySourceNotation,
       isOnlyFrame,
     });
-  }
-
-  shouldShowLinkToImage() {
-    const {isHoverPreviewed, data} = this.props;
-    const {symbolicatorStatus} = data;
-
-    return (
-      !!symbolicatorStatus &&
-      symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-      !isHoverPreviewed
-    );
   }
 
   packageStatus() {
@@ -216,26 +221,24 @@ export class DeprecatedLine extends Component<Props, State> {
       return null;
     }
 
-    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
       <ToggleContextButton
-        className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
-        title={t('Toggle Context')}
-        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
+        borderless
       >
-        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+        <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
       </ToggleContextButton>
     );
   }
 
   leadsToApp() {
     const {data, nextFrame} = this.props;
-    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+    return !data.inApp && (nextFrame?.inApp || !nextFrame);
   }
 
   isFoundByStackScanning() {
@@ -270,9 +273,37 @@ export class DeprecatedLine extends Component<Props, State> {
     return null;
   }
 
+  renderShowHideToggle() {
+    const hiddenFrameCount = this.props.hiddenFrameCount;
+    const isShowFramesToggleExpanded = this.props.isShowFramesToggleExpanded;
+    if (hiddenFrameCount) {
+      return (
+        <ToggleButton
+          analyticsEventName="Stacktrace Frames: toggled"
+          analyticsEventKey="stacktrace_frames.toggled"
+          analyticsParams={{
+            frame_count: hiddenFrameCount,
+            is_frame_expanded: isShowFramesToggleExpanded,
+          }}
+          size="xs"
+          borderless
+          onClick={e => {
+            this.props.onShowFramesToggle?.(e);
+          }}
+        >
+          {isShowFramesToggleExpanded
+            ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+            : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+        </ToggleButton>
+      );
+    }
+    return null;
+  }
+
   renderDefaultLine() {
-    const {isHoverPreviewed, debugFrames, data, isANR, threadId, lockAddress} =
+    const {isHoverPreviewed, data, isANR, threadId, lockAddress, isSubFrame, event} =
       this.props;
+    const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
       isANR &&
@@ -282,12 +313,51 @@ export class DeprecatedLine extends Component<Props, State> {
         lockAddress
       );
 
+    const frameHasValidFileEndingForSourceMapDebugger =
+      VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(ending =>
+        (data.absPath || data.filename || '').endsWith(ending)
+      );
+
+    const shouldShowSourceMapDebuggerButton =
+      !this.props.hideSourceMapDebugger &&
+      data.inApp &&
+      frameHasValidFileEndingForSourceMapDebugger &&
+      this.props.frameSourceResolutionResults &&
+      (!this.props.frameSourceResolutionResults.frameIsResolved ||
+        !hasContextSource(data));
+
+    const sourceMapDebuggerAmplitudeData = {
+      organization: this.props.organization ?? null,
+      project_id: this.props.event.projectID,
+      event_id: this.props.event.id,
+      event_platform: this.props.event.platform,
+      sdk_name: this.props.event.sdk?.name,
+      sdk_version: this.props.event.sdk?.version,
+    };
+
+    const activeLineNumber = data.lineNo;
+    const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
+    // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
+    const hasStacktraceLink =
+      (data.inApp || event.platform === 'csharp') &&
+      !!data.filename &&
+      (isHovering || isExpanded);
+    const showSentryAppStacktraceLinkInFrame =
+      hasStacktraceLink && this.props.components.length > 0;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title" data-test-id="title">
-          <DefaultLineTitleWrapper>
+        <DefaultLine
+          data-test-id="title"
+          isSubFrame={!!isSubFrame}
+          onMouseEnter={() => this.handleMouseEnter()}
+          onMouseLeave={() => this.handleMouseLeave()}
+          isExpanded={this.state.isExpanded ?? false}
+          isExpandable={this.isExpandable()}
+        >
+          {this.isExpandable() ? <InteractionStateLayer /> : null}
+          <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
-              <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
                 {this.renderLeadHint()}
                 <DefaultTitle
@@ -298,96 +368,83 @@ export class DeprecatedLine extends Component<Props, State> {
                 />
               </div>
             </LeftLineTitle>
-            {this.renderRepeats()}
           </DefaultLineTitleWrapper>
-          {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-            <SuspectFrameTag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
-              {t('Suspect Frame')}
-            </SuspectFrameTag>
-          ) : null}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
-          {this.renderExpander()}
-        </DefaultLine>
-      </StrictClick>
-    );
-  }
-
-  renderNativeLine() {
-    const {
-      data,
-      showingAbsoluteAddress,
-      onAddressToggle,
-      onFunctionNameToggle,
-      image,
-      maxLengthOfRelativeAddress,
-      includeSystemFrames,
-      isFrameAfterLastNonApp,
-      showCompleteFunctionName,
-      isHoverPreviewed,
-    } = this.props;
-
-    const leadHint = this.renderLeadHint();
-    const packageStatus = this.packageStatus();
-
-    return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table" data-test-id="title">
-          <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-            <PackageInfo>
-              {leadHint}
-              <PackageLink
-                includeSystemFrames={!!includeSystemFrames}
-                withLeadHint={leadHint !== null}
-                packagePath={data.package}
-                onClick={this.scrollToImage}
-                isClickable={this.shouldShowLinkToImage()}
-                isHoverPreviewed={isHoverPreviewed}
-              >
-                {!isHoverPreviewed && (
-                  <PackageStatus
-                    status={packageStatus}
-                    tooltip={t('Go to Images Loaded')}
-                  />
-                )}
-              </PackageLink>
-            </PackageInfo>
-            {data.instructionAddr && (
-              <TogglableAddress
-                address={data.instructionAddr}
-                startingAddress={image ? image.image_addr ?? null : null}
-                isAbsolute={!!showingAbsoluteAddress}
-                isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={!!this.isInlineFrame()}
-                onToggle={onAddressToggle}
-                relativeAddressMaxlength={maxLengthOfRelativeAddress}
-                isHoverPreviewed={isHoverPreviewed}
-              />
+          <DefaultLineTagWrapper>
+            {this.renderRepeats()}
+            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+                {t('Suspect Frame')}
+              </Tag>
+            ) : null}
+            {hasStacktraceLink && !shouldShowSourceMapDebuggerButton && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
             )}
-            <Symbol
-              frame={data}
-              showCompleteFunctionName={!!showCompleteFunctionName}
-              onFunctionNameToggle={onFunctionNameToggle}
-              isHoverPreviewed={isHoverPreviewed}
-            />
-          </NativeLineContent>
-          {this.renderExpander()}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={data.lineNo}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
+            {this.renderShowHideToggle()}
+            {shouldShowSourceMapDebuggerButton ? (
+              <Fragment>
+                <SourceMapDebuggerModalButton
+                  size="zero"
+                  priority="default"
+                  title={t(
+                    'Click to learn how to show the original source code for this stack frame.'
+                  )}
+                  onClick={e => {
+                    e.stopPropagation();
+
+                    trackAnalytics(
+                      'source_map_debug_blue_thunder.modal_opened',
+                      sourceMapDebuggerAmplitudeData
+                    );
+
+                    openModal(
+                      modalProps => (
+                        <SourceMapsDebuggerModal
+                          analyticsParams={sourceMapDebuggerAmplitudeData}
+                          sourceResolutionResults={
+                            this.props.frameSourceResolutionResults!
+                          }
+                          {...modalProps}
+                        />
+                      ),
+                      {
+                        onClose: () => {
+                          trackAnalytics(
+                            'source_map_debug_blue_thunder.modal_closed',
+                            sourceMapDebuggerAmplitudeData
+                          );
+                        },
+                      }
+                    );
+                  }}
+                >
+                  <IconFix size="xs" />
+                  <SourceMapDebuggerButtonText>
+                    {t('Unminify Code')}
+                  </SourceMapDebuggerButtonText>
+                </SourceMapDebuggerModalButton>
+              </Fragment>
+            ) : null}
+            {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            {this.renderExpander()}
+          </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
     );
-  }
-
-  renderLine() {
-    switch (this.getPlatform()) {
-      case 'objc':
-      // fallthrough
-      case 'cocoa':
-      // fallthrough
-      case 'native':
-        return this.renderNativeLine();
-      default:
-        return this.renderDefaultLine();
-    }
   }
 
   render() {
@@ -399,14 +456,13 @@ export class DeprecatedLine extends Component<Props, State> {
       expanded: this.state.isExpanded,
       collapsed: !this.state.isExpanded,
       'system-frame': !data.inApp,
-      'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
     });
     const props = {className};
 
     return (
       <StyledLi data-test-id="line" {...props}>
-        {this.renderLine()}
+        {this.renderDefaultLine()}
         <Context
           frame={data}
           event={this.props.event}
@@ -417,10 +473,10 @@ export class DeprecatedLine extends Component<Props, State> {
           hasContextRegisters={hasContextRegisters(this.props.registers)}
           emptySourceNotation={this.props.emptySourceNotation}
           hasAssembly={hasAssembly(data, this.props.platform)}
-          expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
+          platform={this.props.platform}
         />
       </StyledLi>
     );
@@ -431,24 +487,16 @@ export default withOrganization(
   withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
 );
 
-const PackageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  order: 2;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    order: 0;
-  }
-`;
-
 const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
+  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
@@ -458,48 +506,41 @@ const LeftLineTitle = styled('div')`
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
-  margin-right: ${space(1)};
 `;
 
-const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
-  display: grid;
-  flex: 1;
-  gap: ${space(0.5)};
-  grid-template-columns: ${p =>
-    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
+const DefaultLine = styled('div')<{
+  isExpandable: boolean;
+  isExpanded: boolean;
+  isSubFrame: boolean;
+}>`
+  position: relative;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: flex-start;
-
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    grid-template-columns:
-      ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
-      1fr;
+  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
+  min-height: 32px;
+  word-break: break-word;
+  padding: ${space(0.75)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 16px;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
+  code {
+    font-family: ${p => p.theme.text.family};
   }
-
-  @media (min-width: ${props => props.theme.breakpoints.large}) and (max-width: ${props =>
-      props.theme.breakpoints.xlarge}) {
-    grid-template-columns:
-      ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
-      1fr;
-  }
-`;
-
-const DefaultLine = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-// the Button's label has the padding of 3px because the button size has to be 16x16 px.
+const DefaultLineTagWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const ToggleContextButton = styled(Button)`
-  margin-left: ${space(1)};
-  span:first-child {
-    padding: 3px;
-  }
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLi = styled('li')`
@@ -519,12 +560,23 @@ const StyledLi = styled('li')`
   }
 `;
 
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
+const ToggleButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  padding: ${space(0.25)} ${space(0.5)};
+
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;
 
-const SuspectFrameTag = styled(Tag)`
-  margin-right: ${space(1)};
+const SourceMapDebuggerButtonText = styled('span')`
+  margin-left: ${space(0.5)};
+`;
+
+const SourceMapDebuggerModalButton = styled(Button)`
+  height: 20px;
+  padding: 0 ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

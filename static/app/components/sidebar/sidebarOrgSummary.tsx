@@ -4,7 +4,7 @@ import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 
 type Props = {
   organization: OrganizationSummary;
@@ -43,7 +43,7 @@ const Name = styled('div')<{pendingDeletion: boolean}>`
   color: ${p => (p.pendingDeletion ? p.theme.subText : p.theme.textColor)};
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.1;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis};
 `;
 

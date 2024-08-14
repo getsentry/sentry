@@ -1,27 +1,61 @@
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TooltipProps} from 'sentry/components/tooltip';
-import MemberListStore from 'sentry/stores/memberListStore';
-import {Actor} from 'sentry/types';
-import Teams from 'sentry/utils/teams';
+import Placeholder from 'sentry/components/placeholder';
+import type {Actor} from 'sentry/types/core';
+import {useMembers} from 'sentry/utils/useMembers';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type Props = {
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
+interface Props extends BaseAvatarProps {
   actor: Actor;
-  className?: string;
-  default?: string;
-  gravatar?: boolean;
-  hasTooltip?: boolean;
-  onClick?: () => void;
-  round?: boolean;
-  size?: number;
-  suggested?: boolean;
-  title?: string;
-  tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
-};
+}
+
+/**
+ * Wrapper to assist loading the team from api or store
+ */
+function LoadTeamAvatar({
+  teamId,
+  ...props
+}: {teamId: string} & Omit<React.ComponentProps<typeof TeamAvatar>, 'team'>) {
+  const {teams, isLoading} = useTeamsById({ids: [teamId]});
+  const team = teams.find(t => t.id === teamId);
+
+  if (isLoading) {
+    const size = `${props.size}px`;
+    return <Placeholder width={size} height={size} />;
+  }
+
+  return <TeamAvatar team={team} {...props} />;
+}
+
+/**
+ * Wrapper to assist loading the user from api or store
+ */
+function LoadMemberAvatar({
+  userActor,
+  ...props
+}: {userActor: Actor} & Omit<React.ComponentProps<typeof UserAvatar>, 'team'>) {
+  const ids = useMemo(() => [userActor.id], [userActor.id]);
+  const {members, fetching} = useMembers({ids});
+  const member = members.find(u => u.id === userActor.id);
+
+  if (fetching) {
+    const size = `${props.size}px`;
+    return <Placeholder shape="circle" width={size} height={size} />;
+  }
+
+  if (!member) {
+    return (
+      <BaseAvatar size={props.size} title={userActor.name ?? userActor.email} round />
+    );
+  }
+
+  return <UserAvatar user={member} {...props} />;
+}
 
 function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   const otherProps = {
@@ -31,22 +65,11 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   };
 
   if (actor.type === 'user') {
-    const user = actor.id ? MemberListStore.getById(actor.id) ?? actor : actor;
-    return <UserAvatar user={user} {...otherProps} />;
+    return <LoadMemberAvatar userActor={actor} {...otherProps} />;
   }
 
   if (actor.type === 'team') {
-    return (
-      <Teams ids={[actor.id]}>
-        {({initiallyLoaded, teams}) =>
-          initiallyLoaded ? (
-            <TeamAvatar team={teams[0]} {...otherProps} />
-          ) : (
-            <LoadingIndicator mini />
-          )
-        }
-      </Teams>
-    );
+    return <LoadTeamAvatar teamId={actor.id} {...otherProps} />;
   }
 
   Sentry.withScope(scope => {
