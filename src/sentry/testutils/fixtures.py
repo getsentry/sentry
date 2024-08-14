@@ -8,6 +8,10 @@ import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 
+from sentry.escalation_policies.models.rotation_schedule import (
+    DEFAULT_ROTATION_START_TIME,
+    RotationScheduleLayerRotationType,
+)
 from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
@@ -412,6 +416,43 @@ class Fixtures:
         if projects is None:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
+
+    def create_escalation_policy(
+        self, organization=None, schedules=None, teams=None, users=None, *args, **kwargs
+    ):
+        if not organization:
+            organization = self.organization
+        if teams is None:
+            teams = [self.team]
+        if users is None:
+            users = [self.user]
+        return Factories.create_escalation_policy(
+            organization, schedules, teams, users, *args, **kwargs
+        )
+
+    def create_rotation_schedule_layer(
+        self,
+        schedule,
+        user_ids,
+        precedence=None,
+        rotation_type=RotationScheduleLayerRotationType.WEEKLY,
+        handoff_time="0 16 * * 1",
+        restrictions=None,
+        start_time=DEFAULT_ROTATION_START_TIME,
+        *args,
+        **kwargs,
+    ):
+        return Factories.create_rotation_schedule_layer(
+            schedule,
+            user_ids,
+            precedence,
+            rotation_type,
+            handoff_time,
+            restrictions,
+            start_time,
+            *args,
+            **kwargs,
+        )
 
     def create_alert_rule_activation(
         self,

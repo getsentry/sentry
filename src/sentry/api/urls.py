@@ -77,6 +77,18 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.escalation_policies.endpoints.escalation_policy_details import (
+    OrganizationEscalationPolicyDetailsEndpoint,
+)
+from sentry.escalation_policies.endpoints.escalation_policy_index import (
+    OrganizationEscalationPolicyIndexEndpoint,
+)
+from sentry.escalation_policies.endpoints.rotation_schedule_details import (
+    OrganizationRotationScheduleDetailsEndpoint,
+)
+from sentry.escalation_policies.endpoints.rotation_schedule_index import (
+    OrganizationRotationScheduleIndexEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -1174,6 +1186,28 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
+    ),
+    # Escalation Policies
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/escalation-policies/$",
+        OrganizationEscalationPolicyIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-escalation-policies",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/escalation-policies/(?P<escalation_policy_id>[^\/]+)/$",
+        OrganizationEscalationPolicyDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-escalation-policy-details",
+    ),
+    # Rotation Schedules
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/rotation-schedules/$",
+        OrganizationRotationScheduleIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-rotation-schedules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/rotation-schedules/(?P<rotation_schedules_id>[^\/]+)/$",
+        OrganizationRotationScheduleDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-rotation-schedule-details",
     ),
     # Data Export
     re_path(

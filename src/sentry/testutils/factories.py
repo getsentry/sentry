@@ -31,6 +31,17 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.escalation_policies.models.escalation_policy import (
+    EscalationPolicy,
+    EscalationPolicyStep,
+    EscalationPolicyStepRecipient,
+)
+from sentry.escalation_policies.models.rotation_schedule import (
+    DEFAULT_ROTATION_START_TIME,
+    RotationScheduleLayer,
+    RotationScheduleLayerRotationType,
+    RotationScheduleUserOrder,
+)
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
@@ -1600,6 +1611,88 @@ class Factories:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_escalation_policy(
+        organization,
+        schedules=None,
+        teams=None,
+        users=None,
+        name=None,
+        user_id=None,
+        team_id=None,
+        description=None,
+        repeat_n_times=1,
+    ):
+        if not name:
+            name = petname.generate(2, " ", letters=10).title()
+        if not description:
+            description = petname.generate(2, " ", letters=10).title()
+
+        policy = EscalationPolicy.objects.create(
+            organization=organization,
+            name=name,
+            description=description,
+            repeat_n_times=repeat_n_times,
+            user_id=user_id,
+            team_id=team_id,
+        )
+
+        step1 = EscalationPolicyStep.objects.create(
+            policy=policy,
+            step_number=1,
+            escalate_after_sec=30,
+        )
+        step2 = EscalationPolicyStep.objects.create(
+            policy=policy,
+            step_number=2,
+            escalate_after_sec=30,
+        )
+        for step in [step1, step2]:
+            for schedule in schedules or []:
+                EscalationPolicyStepRecipient.objects.create(
+                    escalation_policy_step=step,
+                    schedule=schedule,
+                )
+            for team in teams or []:
+                EscalationPolicyStepRecipient.objects.create(
+                    escalation_policy_step=step,
+                    team=team,
+                )
+            for user in users or []:
+                EscalationPolicyStepRecipient.objects.create(
+                    escalation_policy_step=step,
+                    user_id=user.id,
+                )
+
+        return policy
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_rotation_schedule_layer(
+        schedule,
+        user_ids,
+        precedence,
+        rotation_type=RotationScheduleLayerRotationType.WEEKLY,
+        handoff_time="0 16 * * 1",
+        restrictions=None,
+        start_time=DEFAULT_ROTATION_START_TIME,
+    ):
+        layer = RotationScheduleLayer.objects.create(
+            schedule=schedule,
+            precedence=precedence,
+            rotation_type=rotation_type,
+            handoff_time=handoff_time,
+            schedule_layer_restrictions=restrictions,
+            start_time=start_time,
+        )
+        for i, id in enumerate(user_ids):
+            RotationScheduleUserOrder.objects.create(
+                user_id=id,
+                schedule_layer=layer,
+                order=i + 1,
+            )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

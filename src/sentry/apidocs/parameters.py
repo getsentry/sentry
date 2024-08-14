@@ -273,6 +273,26 @@ class MetricAlertParams:
     )
 
 
+class EscalationPolicyParams:
+    ESCALATION_POLICY_ID = OpenApiParameter(
+        name="escalation_policy_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the escalation policy you'd like to query.",
+    )
+
+
+class RotationScheduleParams:
+    ROTATION_SCHEDULE_ID = OpenApiParameter(
+        name="rotation_schedule_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the rotation schedule you'd like to query.",
+    )
+
+
 class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
