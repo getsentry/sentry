@@ -1,4 +1,4 @@
-import {Children, isValidElement, ReactNode, useCallback, useState} from 'react';
+import {Children, isValidElement, type ReactNode, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -12,11 +12,15 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {explodeSlug} from 'sentry/utils';
-import {Extraction} from 'sentry/utils/replays/extractHtml';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
-import ReplayReader from 'sentry/utils/replays/replayReader';
-import {isWebVitalFrame, ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {
+  isWebVitalFrame,
+  type ReplayFrame,
+  type WebVitalFrame,
+} from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {Description} from 'sentry/views/traces/fieldRenderers';

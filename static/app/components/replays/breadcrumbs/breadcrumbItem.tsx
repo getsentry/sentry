@@ -129,7 +129,7 @@ function BreadcrumbItem({
         onMouseLeave={onMouseLeave}
       />
     ) : null;
-  }, [expandPaths, frame, onInspectorExpanded, replay]);
+  }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
 
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
