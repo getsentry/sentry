@@ -64,6 +64,10 @@ function getSentryIntegrations(routes?: Function) {
       },
     }),
     Sentry.browserProfilingIntegration(),
+    Sentry.thirdPartyErrorFilterIntegration({
+      filterKeys: ['sentry-spa'],
+      behaviour: 'apply-tag-if-contains-third-party-frames',
+    }),
   ];
 
   return integrations;
