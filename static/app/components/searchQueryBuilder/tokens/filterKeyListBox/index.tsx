@@ -247,8 +247,8 @@ const RecentFiltersPane = styled('ul')<{visible: boolean}>`
   display: ${p => (p.visible ? 'flex' : 'none')};
   flex-wrap: wrap;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)};
-  gap: ${space(0.25)};
+  padding: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(0.25)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
 `;
@@ -272,7 +272,7 @@ const RecentFilterPill = styled('li')`
   height: 22px;
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: 0 ${space(1.5)} 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space(1.5)} 0 ${p => p.theme.space(0.75)};
   background: ${p => p.theme.background};
   box-shadow: inset 0 0 0 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
@@ -289,7 +289,7 @@ const RecentFilterPill = styled('li')`
     background: linear-gradient(
       to left,
       ${p => p.theme.backgroundSecondary} 0 2px,
-      transparent ${space(2)} 100%
+      transparent ${p => p.theme.space(2)} 100%
     );
   }
 `;

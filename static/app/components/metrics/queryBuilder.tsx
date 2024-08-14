@@ -541,7 +541,7 @@ const QueryBuilderWrapper = styled('div')<{
     css`
       display: grid;
       grid-template-columns: subgrid;
-      gap: ${space(1)};
+      gap: ${p.theme.space(1)};
       align-items: flex-start;
       grid-column-start: ${p.hasSymbols ? '2' : '1'};
 

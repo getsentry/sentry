@@ -308,13 +308,13 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)};
 `;
 
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

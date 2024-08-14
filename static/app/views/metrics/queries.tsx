@@ -382,7 +382,7 @@ const Wrapper = styled('div')<{hasMetricsNewInput: boolean; showQuerySymbols: bo
     p.hasMetricsNewInput &&
     css`
       display: grid;
-      gap: ${space(1)};
+      gap: ${p.theme.space(1)};
       grid-template-columns: ${p.showQuerySymbols
         ? 'min-content 1fr max-content'
         : '1fr max-content'};
