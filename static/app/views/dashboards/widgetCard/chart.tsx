@@ -244,7 +244,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         <BigText>{rendered}</BigText>
       ) : (
         <AutoResizeParent key={`big_number:${result.title}`}>
-          <AutoSizedText minFontSize={30} maxFontSize={containerHeight}>
+          <AutoSizedText minFontSize={14} maxFontSize={containerHeight}>
             <Trickery>
               <Tooltip title={rendered} showOnlyOnOverflow>
                 {rendered}
