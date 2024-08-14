@@ -1,8 +1,11 @@
 import pick from 'lodash/pick';
 
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
+// TODO - we should probably just use SpanMetricsField here
 export enum BrowserStarfishFields {
   SPAN_OP = 'span.op',
   TRANSACTION = 'transaction',
@@ -10,6 +13,7 @@ export enum BrowserStarfishFields {
   GROUP_ID = 'groupId',
   DESCRIPTION = 'description',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
+  USER_GEO_SUBREGION = 'user.geo.subregion',
 }
 
 export type ModuleFilters = {
@@ -22,12 +26,13 @@ export type ModuleFilters = {
   [BrowserStarfishFields.SPAN_OP]?: ResourceSpanOps;
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
+  [SpanMetricsField.USER_GEO_SUBREGION]?: SubregionCode[];
 };
 
 export const useResourceModuleFilters = () => {
   const location = useLocation<ModuleFilters>();
 
-  return pick(location.query, [
+  const filters = pick(location.query, [
     BrowserStarfishFields.SPAN_DOMAIN,
     BrowserStarfishFields.SPAN_OP,
     BrowserStarfishFields.TRANSACTION,
@@ -35,4 +40,13 @@ export const useResourceModuleFilters = () => {
     BrowserStarfishFields.DESCRIPTION,
     BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS,
   ]);
+
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
+  if (subregions.length) {
+    filters[SpanMetricsField.USER_GEO_SUBREGION] = subregions;
+  }
+
+  return filters;
 };

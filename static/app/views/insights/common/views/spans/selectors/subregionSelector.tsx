@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,7 +26,11 @@ export default function SubregionSelector() {
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
   const {data, isLoading} = useSpanMetrics(
-    {fields: [SpanMetricsField.USER_GEO_SUBREGION], enabled: hasGeoSelectorFeature},
+    {
+      fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
+      search: new MutableSearch('has:user.geo.subregion'),
+      enabled: hasGeoSelectorFeature,
+    },
     'api.insights.user-geo-subregion-selector'
   );
 

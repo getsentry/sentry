@@ -36,6 +36,7 @@ const {
   SPAN_DOMAIN,
   TRANSACTION,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  USER_GEO_SUBREGION,
 } = BrowserStarfishFields;
 
 type Option = {
@@ -52,7 +53,12 @@ function ResourceView() {
     ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
   };
 
-  const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
+  const extraQuery = [
+    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
+    ...(filters[USER_GEO_SUBREGION]
+      ? [`user.geo.subregion:[${filters[USER_GEO_SUBREGION]}]`]
+      : []),
+  ];
 
   return (
     <Fragment>

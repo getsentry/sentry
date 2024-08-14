@@ -33,6 +33,7 @@ import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
+  type SubregionCode,
 } from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
@@ -44,6 +45,7 @@ type Props = {
   transactionName: string;
   onClose?: () => void;
   referrer?: string;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -53,6 +55,7 @@ export function SampleList({
   moduleName,
   transactionName,
   transactionMethod,
+  subregions,
   onClose,
   transactionRoute = '/performance/summary/',
   referrer,
@@ -193,12 +196,14 @@ export function SampleList({
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
+          subregions={subregions}
         />
 
         <DurationChart
           groupId={groupId}
           transactionName={transactionName}
           transactionMethod={transactionMethod}
+          subregions={subregions}
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
@@ -240,6 +245,7 @@ export function SampleList({
           groupId={groupId}
           moduleName={moduleName}
           transactionName={transactionName}
+          subregions={subregions}
           spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
