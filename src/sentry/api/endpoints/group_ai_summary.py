@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
 
-TIMEOUT_SECONDS = 60 * 30  # 30 minutes
-
 
 class SummarizeIssueResponse(BaseModel):
     group_id: str
@@ -40,7 +38,6 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
     private = True
     enforce_rate_limit = True
     rate_limits = {
