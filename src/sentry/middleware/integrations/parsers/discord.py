@@ -43,7 +43,7 @@ class DiscordRequestParser(BaseRequestParser):
     _discord_request: DiscordRequest | None = None
 
     # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
-    async_response_data = {"type": 5, "flags": 64}
+    async_response_data = {"type": 5, "data": {"flags": 64}}
 
     @property
     def discord_request(self) -> DiscordRequest | None:
@@ -65,7 +65,7 @@ class DiscordRequestParser(BaseRequestParser):
                 }
             )
 
-        return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
+        return JsonResponse(data=self.async_response_data, status=status.HTTP_200_OK)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
