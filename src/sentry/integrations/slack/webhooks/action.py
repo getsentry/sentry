@@ -661,13 +661,13 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-        except SlackApiError as e:
+        except SlackApiError:
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-            _logger.exception("slack.webhook.update_status.response-error", extra={"error": str(e)})
+            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -684,8 +684,8 @@ class SlackActionEndpoint(Endpoint):
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
-        except ApiError as e:
-            _logger.exception("slack.action.response-error", extra={"error": str(e)})
+        except ApiError:
+            _logger.exception("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
