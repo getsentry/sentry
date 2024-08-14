@@ -82,6 +82,31 @@ class ReleaseCommitsListTest(APITestCase):
         assert response.data[0]["id"] == self.commit2.key
         assert response.data[1]["id"] == self.commit.key
 
+    def test_query_external_id_with_duplicate_repos(self):
+        newest_repo = Repository.objects.create(
+            organization_id=self.project.organization_id,
+            name=self.project.name,
+            external_id=123,
+        )
+        new_commit = Commit.objects.create(
+            organization_id=self.project.organization_id, repository_id=newest_repo.id, key="c" * 40
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=self.release,
+            commit=new_commit,
+            order=2,
+        )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            self.release.version,
+            qs_params={"repo_id": newest_repo.external_id},
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == new_commit.key
+
     def test_query_does_not_exist(self):
         self.get_error_response(
             self.project.organization.slug,
