@@ -58,7 +58,6 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.models.useremail import UserEmail
-from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
@@ -80,6 +79,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
+from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import (
     expect_models,
@@ -384,7 +384,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.get_kind() == RpcImportErrorKind.ValidationError
                 assert err.value.context.on.model == "sentry.user"
 
-    @patch("sentry.models.userip.geo_by_addr")
+    @patch("sentry.users.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
             "country_code": "US",
@@ -421,7 +421,7 @@ class SanitizationTests(ImportTestCase):
             ).exists()
 
     # Regression test for getsentry/self-hosted#2468.
-    @patch("sentry.models.userip.geo_by_addr")
+    @patch("sentry.users.models.userip.geo_by_addr")
     def test_good_multiple_user_ips_per_user_in_global_scope(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {
             "country_code": "US",
