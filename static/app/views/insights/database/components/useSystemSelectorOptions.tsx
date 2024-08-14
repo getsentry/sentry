@@ -1,3 +1,4 @@
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -29,11 +30,6 @@ const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
   [SupportedDatabaseSystems.MONGODB]: 'MongoDB',
 };
 
-type Option = {
-  label: string;
-  value: string;
-};
-
 export function useSystemSelectorOptions() {
   const [selectedOption, setSelectedOption] = useLocalStorageState<string>(
     'insights-db-system-selector',
@@ -50,18 +46,18 @@ export function useSystemSelectorOptions() {
     'api.starfish.database-system-selector'
   );
 
-  const options: Option[] = [];
+  const options: SelectOption<string>[] = [];
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {
-      const label =
+      const label: string =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
-      options.push({value: system, label});
+      options.push({value: system, label, textValue: label});
     }
   });
 
-  if (selectedOption === '' && options.length > 0) {
+  if (!selectedOption && options.length > 0) {
     setSelectedOption(options[0].value);
   }
 
