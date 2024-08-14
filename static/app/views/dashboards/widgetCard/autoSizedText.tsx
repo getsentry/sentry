@@ -1,6 +1,7 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import debounce from 'lodash/debounce';
 
 interface Props {
   children: React.ReactNode;
@@ -27,7 +28,7 @@ export function AutoSizedText({
   const parentRef = useRef<HTMLDivElement>(null);
   const childRef = useRef<HTMLDivElement>(null);
 
-  const onResize = () => {
+  const onResize = debounce(() => {
     const parentDimensions = getElementDimensions(parentRef.current);
 
     if (parentDimensions) {
@@ -38,7 +39,7 @@ export function AutoSizedText({
       setParentHeight(parentDimensions.height);
       setParentWidth(parentDimensions.width);
     }
-  };
+  }, RESIZE_DEBOUNCE);
 
   useResizeObserver({
     ref: parentRef,
@@ -137,6 +138,7 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
+const RESIZE_DEBOUNCE = 200; // ms
 const DEFAULT_CALCULATION_COUNT_LIMIT = 5;
 const MAXIMUM_DISPARITY = 0.05;
 
