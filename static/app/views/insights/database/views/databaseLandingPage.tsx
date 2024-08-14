@@ -48,6 +48,8 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
+const {SPAN_SYSTEM} = SpanMetricsField;
+
 export function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
@@ -55,12 +57,16 @@ export function DatabaseLandingPage() {
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
   const {selectedSystem} = useSystemSelectorOptions();
-  console.dir(selectedSystem);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
+
+  // If there is no query parameter for the system, retrieve the current value from the hook instead
+  const systemQueryParam = decodeScalar(location.query?.[SPAN_SYSTEM]);
+  const currentSystem = systemQueryParam ?? selectedSystem;
+  console.dir(currentSystem);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
