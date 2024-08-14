@@ -27,7 +27,7 @@ export default function parseLinkHeader(header: string | null): Result {
     links[rel] = {
       href,
       results: hasResults,
-      cursor: cursor,
+      cursor,
     };
   });
 
