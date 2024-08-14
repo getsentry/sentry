@@ -34,7 +34,6 @@ export interface DraggableTabBarProps {
   orgSlug: string;
   router: InjectedRouter;
   selectedTabKey: string;
-  setBorderStyle: (borderStyle: 'dashed' | 'solid') => void;
   setSelectedTabKey: (key: string) => void;
   setTabs: (tabs: Tab[]) => void;
   setTempTab: (tab: Tab | undefined) => void;

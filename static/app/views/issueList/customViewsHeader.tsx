@@ -33,7 +33,6 @@ type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   queryCounts: QueryCounts;
   router: InjectedRouter;
-  setBorderStyle: (borderStyle: 'dashed' | 'solid') => void;
   views: GroupSearchView[];
 };
 
@@ -47,10 +46,13 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
     orgSlug: props.organization.slug,
   });
 
-  const [borderStyle, setBorderStyle] = useState<'dashed' | 'solid'>('solid');
-
   return (
-    <Layout.Header noActionWrap borderStyle={borderStyle}>
+    <Layout.Header
+      noActionWrap
+      borderStyle={
+        groupSearchViews && !props.router?.location.query.viewId ? 'dashed' : 'solid'
+      }
+    >
       <Layout.HeaderContent>
         <Layout.Title>
           {t('Issues')}
@@ -65,11 +67,7 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <CustomViewsIssueListHeaderTabsContent
-          {...props}
-          views={groupSearchViews}
-          setBorderStyle={setBorderStyle}
-        />
+        <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
       ) : (
         <div style={{height: 33}} />
       )}
@@ -81,7 +79,6 @@ function CustomViewsIssueListHeaderTabsContent({
   organization,
   queryCounts,
   router,
-  setBorderStyle,
   views,
 }: CustomViewsIssueListHeaderTabsContentProps) {
   // Remove cursor and page when switching tabs
@@ -226,15 +223,6 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
-  // Set parent component's bottem border to dashed if temp view is selected
-  useEffect(() => {
-    if (tempTab && selectedTabKey === 'temporary-tab') {
-      setBorderStyle('dashed');
-    } else {
-      setBorderStyle('solid');
-    }
-  }, [tempTab, selectedTabKey, setBorderStyle]);
-
   // Updates the tab's hasSavedChanges state
   useEffect(() => {
     const currentTab = draggableTabs?.find(tab => tab.key === selectedTabKey);
@@ -289,7 +277,6 @@ function CustomViewsIssueListHeaderTabsContent({
       onTabRenamed={newTabs => debounceUpdateViews(newTabs)}
       onSave={debounceUpdateViews}
       onSaveTempView={debounceUpdateViews}
-      setBorderStyle={setBorderStyle}
       router={router}
     />
   );
