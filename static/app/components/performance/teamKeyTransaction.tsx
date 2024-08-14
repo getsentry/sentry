@@ -6,7 +6,8 @@ import type {MultipleSelectProps} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 
