@@ -7,7 +7,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import ModalStore from 'sentry/stores/modalStore';
 
@@ -201,7 +200,7 @@ describe('GlobalModal', function () {
     act(() =>
       openModal(({Body}) => (
         <Body>
-          <Tooltip title={<Button onClick={buttonClick}>Click me</Button>} isHoverable>
+          <Tooltip title={<button onClick={buttonClick}>Click me</button>} isHoverable>
             Hi
           </Tooltip>
         </Body>

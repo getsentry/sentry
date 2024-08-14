@@ -11,6 +11,11 @@ import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 interface TooltipContextProps {
+  /**
+   * Specifies the DOM node where the tooltip should be rendered.
+   * This is particularly useful for making the tooltip interactive within specific contexts,
+   * such as inside a modal. By default the tooltip is rendered in the 'document.body'.
+   */
   container: Parameters<typeof createPortal>[1];
 }
 
@@ -41,7 +46,7 @@ function Tooltip({
   disabled = false,
   ...hoverOverlayProps
 }: TooltipProps) {
-  const context = useContext(TooltipContext);
+  const {container} = useContext(TooltipContext);
   const theme = useTheme();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
@@ -74,10 +79,7 @@ function Tooltip({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(
-        <AnimatePresence>{tooltipContent}</AnimatePresence>,
-        context.container
-      )}
+      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, container)}
     </Fragment>
   );
 }
