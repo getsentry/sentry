@@ -313,11 +313,19 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span_indexed',
+    apiName: 'span',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),
     uid: 12,
+  },
+  [DataCategoryExact.SPAN_INDEXED]: {
+    name: DataCategoryExact.SPAN_INDEXED,
+    apiName: 'span_indexed',
+    plural: 'indexed spans',
+    displayName: 'indexed span',
+    titleName: t('Spans'),
+    uid: 14,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
