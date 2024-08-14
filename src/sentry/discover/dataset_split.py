@@ -19,10 +19,6 @@ from sentry.utils import snuba
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
-def time_limit_exceeded_handler(*_: Any) -> None:
-    raise TimeoutError()
-
-
 TRANSACTION_ONLY_FIELDS = [
     "duration",
     "transaction_op",
