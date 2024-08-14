@@ -250,7 +250,6 @@ export default function HighlightsDataSection({
           link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
         }
       )}
-      isBlank={false}
       isHelpHoverable
       data-test-id="event-highlights"
       actions={
