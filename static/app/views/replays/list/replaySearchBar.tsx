@@ -1,6 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
-import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
@@ -18,9 +18,9 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
 } from 'sentry/utils/fields';
-import useFetchDatasetTags from 'sentry/utils/replays/hooks/useFetchDatasetTags';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import useTags from 'sentry/utils/useTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -86,23 +86,14 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
+  const organizationTags = useTags();
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, pageFilters);
+  }, [api, organization.slug, pageFilters]);
 
-  const {tags: replayTags} = useFetchDatasetTags({
-    org: organization,
-    projectIds: projectIds.map(String),
-    dataset: Dataset.REPLAYS,
-    start: pageFilters.datetime.start
-      ? getUtcDateString(pageFilters.datetime.start)
-      : undefined,
-    end: pageFilters.datetime.end
-      ? getUtcDateString(pageFilters.datetime.end)
-      : undefined,
-    statsPeriod: pageFilters.datetime.period,
-  });
-
-  const allReplaySearchTags = useMemo(
-    () => getReplaySearchTags(replayTags),
-    [replayTags]
+  const replayTags = useMemo(
+    () => getReplaySearchTags(organizationTags),
+    [organizationTags]
   );
 
   const getTagValues = useCallback(
@@ -128,7 +119,7 @@ function ReplaySearchBar(props: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIds.map(String),
+        projectIds: projectIds?.map(String),
         endpointParams,
         includeReplays: true,
       }).then(
@@ -173,7 +164,7 @@ function ReplaySearchBar(props: Props) {
         disallowLogicalOperators={undefined} // ^
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
-        filterKeys={allReplaySearchTags}
+        filterKeys={replayTags}
         filterKeySections={undefined}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
@@ -192,7 +183,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={allReplaySearchTags}
+      supportedTags={replayTags}
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')

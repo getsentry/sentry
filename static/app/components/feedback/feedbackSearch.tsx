@@ -2,7 +2,11 @@ import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
+import {
+  Dataset,
+  fetchTagValues,
+  useFetchOrganizationTags,
+} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
@@ -17,7 +21,6 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useFetchDatasetTags from 'sentry/utils/replays/hooks/useFetchDatasetTags';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -84,21 +87,35 @@ interface Props {
 export default function FeedbackSearch({className, style}: Props) {
   const {selection: pageFilters} = usePageFilters();
   const projectIds = pageFilters.projects;
-  const {pathname, query} = useLocation();
+  const {pathname, query: locationQuery} = useLocation();
   const organization = useOrganization();
-  const {tags: issuePlatformTags} = useFetchDatasetTags({
-    org: organization,
-    projectIds: projectIds.map(String),
-    dataset: Dataset.ISSUE_PLATFORM,
-    start: pageFilters.datetime.start
-      ? getUtcDateString(pageFilters.datetime.start)
-      : undefined,
-    end: pageFilters.datetime.end
-      ? getUtcDateString(pageFilters.datetime.end)
-      : undefined,
-    statsPeriod: pageFilters.datetime.period,
-  });
   const api = useApi();
+
+  const tagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIds.map(String),
+      dataset: Dataset.ISSUE_PLATFORM,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: false,
+      start: pageFilters.datetime.start
+        ? getUtcDateString(pageFilters.datetime.start)
+        : undefined,
+      end: pageFilters.datetime.end
+        ? getUtcDateString(pageFilters.datetime.end)
+        : undefined,
+      statsPeriod: pageFilters.datetime.period,
+    },
+    {}
+  );
+  const issuePlatformTags: TagCollection = useMemo(() => {
+    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    }, {});
+  }, [tagQuery]);
+  // tagQuery.isLoading and tagQuery.isError are not used
 
   const allFeedbackSearchTags = useMemo(
     () => getFeedbackSearchTags(issuePlatformTags),
@@ -154,19 +171,19 @@ export default function FeedbackSearch({className, style}: Props) {
       navigate({
         pathname,
         query: {
-          ...query,
+          ...locationQuery,
           cursor: undefined,
           query: searchQuery.trim(),
         },
       });
     },
-    [navigate, pathname, query]
+    [navigate, pathname, locationQuery]
   );
 
   if (organization.features.includes('search-query-builder-user-feedback')) {
     return (
       <SearchQueryBuilder
-        initialQuery={decodeScalar(query.query, '')}
+        initialQuery={decodeScalar(locationQuery.query, '')}
         filterKeys={allFeedbackSearchTags}
         getTagValues={getTagValues}
         onSearch={onSearch}
@@ -189,7 +206,7 @@ export default function FeedbackSearch({className, style}: Props) {
         fieldDefinitionGetter={getFeedbackFieldDefinition}
         maxMenuHeight={500}
         defaultQuery=""
-        query={decodeScalar(query.query, '')}
+        query={decodeScalar(locationQuery.query, '')}
         onSearch={onSearch}
       />
     </SearchContainer>
