@@ -101,7 +101,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_group_users_count(group: Group) -> int:
-    metrics.incr("slack.get_group_users_count", tags={"group": group.id}, sample_rate=1.0)
+    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
     return group.count_users_seen(
         referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
     )
