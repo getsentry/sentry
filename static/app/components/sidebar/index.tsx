@@ -129,7 +129,7 @@ function Sidebar() {
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = !!preferences.collapsed;
+  const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   // Panel determines whether to highlight
   const hasPanel = !!activePanel;
