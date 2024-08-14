@@ -1,6 +1,6 @@
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSort} from 'sentry/views/explore/hooks/useSort';
+import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 
 import {ToolbarGroupBy} from './toolbarGroupBy';
 import {ToolbarLimitTo} from './toolbarLimitTo';
@@ -13,13 +13,13 @@ interface ExploreToolbarProps {}
 export function ExploreToolbar({}: ExploreToolbarProps) {
   const [resultMode, setResultMode] = useResultMode();
   const [sampleFields] = useSampleFields();
-  const [sort, setSort] = useSort({fields: sampleFields});
+  const [sorts, setSorts] = useSorts({fields: sampleFields});
 
   return (
     <div>
       <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
       <ToolbarVisualize />
-      <ToolbarSortBy fields={sampleFields} sort={sort} setSort={setSort} />
+      <ToolbarSortBy fields={sampleFields} sorts={sorts} setSorts={setSorts} />
       <ToolbarLimitTo />
       <ToolbarGroupBy disabled />
     </div>
