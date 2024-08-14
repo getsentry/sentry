@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,7 +61,7 @@ function IntegrationButton({
   }
   if (metadata.aspects.externalInstall) {
     return (
-      <Button
+      <LinkButton
         icon={externalInstallText ? null : <IconOpen />}
         href={metadata.aspects.externalInstall.url}
         onClick={onExternalClick}
@@ -71,7 +71,7 @@ function IntegrationButton({
         {externalInstallText
           ? externalInstallText
           : metadata.aspects.externalInstall.buttonText}
-      </Button>
+      </LinkButton>
     );
   }
   return null;

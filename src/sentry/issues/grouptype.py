@@ -19,7 +19,7 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class GroupCategory(Enum):

@@ -9,7 +9,9 @@ import {
 } from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';

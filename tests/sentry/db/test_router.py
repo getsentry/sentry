@@ -4,9 +4,9 @@ from django.test import override_settings
 
 from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import use_split_dbs
+from sentry.users.models.user import User
 
 
 class SiloRouterSimulatedTest(TestCase):

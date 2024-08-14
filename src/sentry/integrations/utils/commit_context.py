@@ -10,13 +10,13 @@ from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -274,7 +274,7 @@ def _get_blames_from_all_integrations(
             "integration_id": integration.id,
         }
         install = integration.get_installation(organization_id=organization_id)
-        if not isinstance(install, CommitContextMixin):
+        if not isinstance(install, CommitContextIntegration):
             logger.info("process_commit_context_all_frames.unsupported_integration", extra=log_info)
             continue
         integration_to_install_mapping[integration_organization_id] = (
