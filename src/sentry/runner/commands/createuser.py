@@ -53,7 +53,7 @@ def _set_superadmin(user: User) -> None:
     superadmin role approximates superuser (model attribute) but leveraging
     Sentry's role system.
     """
-    from sentry.models.userrole import UserRole, UserRoleUser
+    from sentry.users.models.userrole import UserRole, UserRoleUser
 
     role = UserRole.objects.get(name="Super Admin")
     UserRoleUser.objects.create(user=user, role=role)

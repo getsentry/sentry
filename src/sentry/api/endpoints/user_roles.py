@@ -6,7 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
-from sentry.models.userrole import UserRole
+from sentry.users.models.userrole import UserRole
 
 
 @control_silo_endpoint

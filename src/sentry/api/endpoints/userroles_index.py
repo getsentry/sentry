@@ -10,7 +10,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.validators.userrole import UserRoleValidator
-from sentry.models.userrole import UserRole
+from sentry.users.models.userrole import UserRole
 
 audit_logger = logging.getLogger("sentry.audit.user")
 

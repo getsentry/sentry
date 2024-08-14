@@ -1,8 +1,8 @@
 from django.conf import settings
 
-from sentry.models.userrole import UserRole, manage_default_super_admin_role
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.userrole import UserRole, manage_default_super_admin_role
 
 
 @control_silo_test
