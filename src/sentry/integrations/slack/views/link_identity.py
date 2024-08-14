@@ -65,7 +65,7 @@ class SlackLinkageView(LinkageView, ABC):
         return "sentry/integrations/slack/expired-link.html"
 
 
-class SlackIdentityLinkageView(IdentityLinkageView, ABC):
+class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
