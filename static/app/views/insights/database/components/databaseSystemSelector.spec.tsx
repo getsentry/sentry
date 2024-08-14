@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -46,9 +46,7 @@ describe('DatabaseSystemSelector', function () {
 
     const dropdownSelector = await screen.findByRole('button');
     expect(dropdownSelector).toBeDisabled();
-    await waitFor(() => {
-      expect(mockSetState).toHaveBeenCalledWith('postgresql');
-    });
+    expect(mockSetState).toHaveBeenCalledWith('postgresql');
   });
 
   it('renders all database system options correctly', async function () {
