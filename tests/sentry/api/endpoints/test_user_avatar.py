@@ -4,11 +4,11 @@ from io import BytesIO
 from django.urls import reverse
 
 from sentry import options as options_store
-from sentry.models.avatars.user_avatar import UserAvatar, UserAvatarType
 from sentry.models.files import ControlFile, File
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user_avatar import UserAvatar, UserAvatarType
 
 
 @control_silo_test

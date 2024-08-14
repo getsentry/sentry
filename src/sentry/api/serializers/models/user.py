@@ -18,7 +18,6 @@ from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -28,6 +27,7 @@ from sentry.models.userpermission import UserPermission
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
