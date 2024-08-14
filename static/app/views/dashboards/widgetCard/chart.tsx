@@ -237,11 +237,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
-        return (
-          <AutoResizeParent key={`big_number:${result.title}`}>
-            {rendered}
-          </AutoResizeParent>
-        );
+        return <BigText key={`big_number:${result.title}`}>{rendered}</BigText>;
       }
 
       return expandNumbers ? (
@@ -585,6 +581,9 @@ const BigNumberResizeWrapper = styled('div')`
   position: relative;
   line-height: 1;
   color: ${p => p.theme.headingColor};
+  * {
+    text-align: left !important;
+  }
 `;
 
 const AutoResizeParent = styled('div')`
@@ -597,6 +596,7 @@ const BigText = styled('div')`
   display: block;
   width: 100%;
   font-size: max(min(8vw, 90px), 30px);
+  padding: ${space(1)} ${space(3)} 0 ${space(3)};
   white-space: nowrap;
 `;
 
