@@ -4,7 +4,11 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
+from sentry.integrations.messaging import (
+    IdentityLinkageView,
+    LinkIdentityView,
+    MessagingIntegrationSpec,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
@@ -23,7 +27,7 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
-class DiscordLinkingView(LinkingView, ABC):
+class DiscordLinkingView(IdentityLinkageView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.discord.spec import DiscordMessagingSpec

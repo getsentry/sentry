@@ -3,7 +3,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
+from sentry.integrations.messaging import (
+    IdentityLinkageView,
+    LinkageView,
+    LinkIdentityView,
+    MessagingIntegrationSpec,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.utils.notifications import SlackCommand, respond_to_slack_command
@@ -32,7 +37,7 @@ def build_linking_url(
     )
 
 
-class SlackLinkingView(LinkingView, ABC):
+class SlackLinkageView(LinkageView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -59,6 +64,8 @@ class SlackLinkingView(LinkingView, ABC):
     def expired_link_template(self) -> str:
         return "sentry/integrations/slack/expired-link.html"
 
+
+class SlackIdentityLinkageView(IdentityLinkageView, ABC):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
@@ -73,7 +80,7 @@ class SlackLinkingView(LinkingView, ABC):
 
 
 @control_silo_view
-class SlackLinkIdentityView(SlackLinkingView, LinkIdentityView):
+class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     """
     Django view for linking user to slack account. Creates an entry on Identity table.
     """

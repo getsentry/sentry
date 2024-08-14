@@ -4,7 +4,11 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
+from sentry.integrations.messaging import (
+    IdentityLinkageView,
+    LinkIdentityView,
+    MessagingIntegrationSpec,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.organization import Organization
@@ -38,7 +42,7 @@ def build_linking_url(
     )
 
 
-class MsTeamsLinkingView(LinkingView, ABC):
+class MsTeamsLinkingView(IdentityLinkageView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
