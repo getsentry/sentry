@@ -5,11 +5,14 @@ import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 export function markEventSeen(
   api: Client,
@@ -278,4 +281,25 @@ export function useHasStreamlinedUI() {
     location.query.streamline === '1' ||
     organization.features.includes('issue-details-streamline')
   );
+}
+
+export function useIsSampleEvent(): boolean {
+  const params = useParams();
+  const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
+
+  const groupId = params.groupId;
+
+  const group = GroupStore.get(groupId);
+
+  const {data} = useFetchIssueTagsForDetailsPage(
+    {
+      groupId: groupId,
+      orgSlug: organization.slug,
+      environment: environments,
+    },
+    // Don't want this query to take precedence over the main requests
+    {enabled: defined(group)}
+  );
+  return data?.some(tag => tag.key === 'sample_event') ?? false;
 }
