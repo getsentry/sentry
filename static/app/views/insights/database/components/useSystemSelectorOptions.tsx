@@ -6,7 +6,7 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 
 /**
  * The supported relational database system values are based on what is
- * set in the Sentry Python SDK. The only supported NoSQL DBMS is MongoDB.
+ * set in the Sentry Python SDK. The only currently supported NoSQL DBMS is MongoDB.
  *
  * https://github.com/getsentry/sentry-python/blob/master/sentry_sdk/integrations/sqlalchemy.py#L125
  */
@@ -31,7 +31,7 @@ const DATABASE_SYSTEM_TO_LABEL: Record<SupportedDatabaseSystems, string> = {
 };
 
 export function useSystemSelectorOptions() {
-  const [selectedSystem, setSelectedSystem] = useLocalStorageState<string>(
+  const [selectedSystem, _setSelectedSystem] = useLocalStorageState<string>(
     'insights-db-system-selector',
     ''
   );
@@ -57,9 +57,20 @@ export function useSystemSelectorOptions() {
     }
   });
 
-  if (!selectedSystem && options.length > 0) {
-    setSelectedSystem(options[0].value);
+  // Edge case: Invalid DB system was retrieved from localStorage
+  if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
+    _setSelectedSystem(options[0].value);
   }
+
+  // Edge case: No current system is saved in localStorage
+  if (!selectedSystem && options.length > 0) {
+    _setSelectedSystem(options[0].value);
+  }
+
+  // Wrap the setState call so the URL query param can be updated as well
+  const setSelectedSystem = (system: string) => {
+    _setSelectedSystem(system);
+  };
 
   return {selectedSystem, setSelectedSystem, options, isLoading, isError};
 }

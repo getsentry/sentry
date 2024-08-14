@@ -46,7 +46,6 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -54,7 +53,6 @@ export function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
-  const {selectedSystem} = useSystemSelectorOptions();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');

@@ -125,4 +125,25 @@ describe('DatabaseSystemSelector', function () {
 
     expect(await screen.findByText('MongoDB')).toBeInTheDocument();
   });
+
+  it('does not set the value from localStorage if the value is invalid', async function () {
+    const mockSetState = jest.fn();
+    mockUseLocalStorageState.mockReturnValue(['chungusdb', mockSetState]);
+    mockUseSpanMetrics.mockReturnValue({
+      data: [
+        {
+          'span.system': 'postgresql',
+          'count()': 1000,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+
+    render(<DatabaseSystemSelector />, {organization});
+
+    const dropdownSelector = await screen.findByRole('button');
+    expect(dropdownSelector).toBeInTheDocument();
+    expect(mockSetState).not.toHaveBeenCalledWith('chungusdb');
+  });
 });
