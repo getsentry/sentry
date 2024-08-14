@@ -1,4 +1,4 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
 import classNames from 'classnames';
 
@@ -17,8 +17,7 @@ interface Props {
   onInspectorExpanded: (
     index: number,
     path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
+    expandedState: Record<string, boolean>
   ) => void;
   startTimestampMs: number;
   style: CSSProperties;
@@ -42,7 +41,7 @@ export default function BreadcrumbRow({
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
+    (path, expandedState) => onInspectorExpanded?.(index, path, expandedState),
     [index, onInspectorExpanded]
   );
 

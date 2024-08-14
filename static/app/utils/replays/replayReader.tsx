@@ -150,8 +150,9 @@ const extractDomNodes = {
   },
   onVisitFrame: (frame, collection, replayer) => {
     const mirror = replayer.getMirror();
-    const nodeId = getNodeId(frame);
-    const html = extractHtml(nodeId as number, mirror);
+    const nodeIds = getNodeId(frame);
+    const html = extractHtml(nodeIds as number[], mirror);
+
     collection.set(frame as ReplayFrame, {
       frame,
       html,
@@ -567,7 +568,9 @@ export default class ReplayReader {
     [
       ...removeDuplicateClicks(
         this._sortedBreadcrumbFrames
-          .filter(frame => 'nodeId' in (frame.data ?? {}))
+          .filter(
+            frame => 'nodeId' in (frame.data ?? {}) || 'nodeIds' in (frame.data ?? {})
+          )
           .filter(
             frame =>
               !(
@@ -577,7 +580,9 @@ export default class ReplayReader {
               )
           )
       ),
-      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+      ...this._sortedSpanFrames.filter(
+        frame => 'nodeId' in (frame.data ?? {}) || 'nodeIds' in (frame.data ?? {})
+      ),
     ].sort(sortFrames)
   );
 
@@ -625,6 +630,15 @@ export default class ReplayReader {
     );
     const uniqueCrumbs = removeDuplicateNavCrumbs(crumbs, spans);
     return [...uniqueCrumbs, ...spans].sort(sortFrames);
+  });
+
+  getCLSFrames = memoize(() => {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
+      return this._sortedSpanFrames
+        .filter(isWebVitalFrame)
+        .filter(frame => frame.description === 'cumulative-layout-shift');
+    }
+    return [];
   });
 
   getWebVitalFrames = memoize(() => {

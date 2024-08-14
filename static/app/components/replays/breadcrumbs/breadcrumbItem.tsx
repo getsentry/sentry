@@ -1,4 +1,4 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
@@ -50,11 +50,7 @@ const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (
-    path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
-  ) => void;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -109,13 +105,15 @@ function BreadcrumbItem({
   }, [frame, replay]);
 
   const renderCodeSnippet = useCallback(() => {
-    return extraction?.html ? (
-      <CodeContainer>
-        <CodeSnippet language="html" hideCopyButton>
-          {beautify.html(extraction?.html, {indent_size: 2})}
-        </CodeSnippet>
-      </CodeContainer>
-    ) : null;
+    return extraction?.html
+      ? extraction?.html.map(html => (
+          <CodeContainer key={html}>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ))
+      : null;
   }, [extraction?.html]);
 
   const renderClsBurst = useCallback(() => {
@@ -127,6 +125,8 @@ function BreadcrumbItem({
         clsFrame={frame}
         expandPaths={expandPaths}
         onInspectorExpanded={onInspectorExpanded}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       />
     ) : null;
   }, [expandPaths, frame, onInspectorExpanded, replay]);
@@ -166,6 +166,7 @@ function BreadcrumbItem({
         <ErrorBoundary mini>
           {renderDescription()}
           {renderComparisonButton()}
+          {renderClsBurst()}
           {renderCodeSnippet()}
           {renderIssueLink()}
         </ErrorBoundary>
@@ -200,8 +201,8 @@ function BreadcrumbItem({
             {renderDescription()}
           </Flex>
           {renderComparisonButton()}
-          {renderCodeSnippet()}
           {renderClsBurst()}
+          {renderCodeSnippet()}
           {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>

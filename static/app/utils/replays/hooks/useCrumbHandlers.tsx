@@ -20,7 +20,7 @@ type RecordType = {
       };
 };
 
-function getNodeIdAndLabel(record: RecordType) {
+export function getNodeIdAndLabel(record: RecordType) {
   if (!record.data || typeof record.data !== 'object') {
     return undefined;
   }

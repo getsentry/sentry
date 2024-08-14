@@ -4,22 +4,30 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: ReplayFrame;
-  html: string | null;
+  html: string[];
   timestamp: number;
 };
 
-export default function extractHtml(nodeId: number, mirror: Mirror): string | null {
-  const node = mirror.getNode(nodeId);
+export default function extractHtml(nodeIds: number[], mirror: Mirror): string[] {
+  const htmls: string[] = [];
+  for (const nodeId of nodeIds) {
+    const node = mirror.getNode(nodeId);
 
-  const html =
-    (node && 'outerHTML' in node ? (node.outerHTML as string) : node?.textContent) || '';
-  // Limit document node depth to 2
-  let truncated = removeNodesAtLevel(html, 2);
-  // If still very long and/or removeNodesAtLevel failed, truncate
-  if (truncated.length > 1500) {
-    truncated = truncated.substring(0, 1500);
+    const html =
+      (node && 'outerHTML' in node ? (node.outerHTML as string) : node?.textContent) ||
+      '';
+    // Limit document node depth to 2
+    let truncated = removeNodesAtLevel(html, 2);
+    // If still very long and/or removeNodesAtLevel failed, truncate
+    if (truncated.length > 1500) {
+      truncated = truncated.substring(0, 1500);
+    }
+
+    if (truncated) {
+      htmls.push(truncated);
+    }
   }
-  return truncated ? truncated : null;
+  return htmls;
 }
 
 function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {

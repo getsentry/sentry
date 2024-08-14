@@ -173,8 +173,10 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
 
 export function getNodeId(frame: ReplayFrame) {
   return 'data' in frame && frame.data && 'nodeId' in frame.data
-    ? frame.data.nodeId
-    : undefined;
+    ? [frame.data.nodeId]
+    : 'data' in frame && frame.data && 'nodeIds' in frame.data
+      ? frame.data.nodeIds
+      : undefined;
 }
 
 export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
