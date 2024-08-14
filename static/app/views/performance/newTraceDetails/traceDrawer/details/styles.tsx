@@ -71,14 +71,14 @@ const FlexBox = styled('div')`
 
 const Actions = styled(FlexBox)`
   gap: ${p => p.theme.space(0.5)};
-  flex-wrap: wrap;
   justify-content: end;
   width: 100%;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${p => p.theme.space(1)};
-  width: 50%;
+  flex-grow: 1;
+  overflow: hidden;
   > span {
     min-width: 30px;
   }
@@ -92,11 +92,34 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
+function TitleOp({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={
+        <Fragment>
+          {text}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={text}
+            tooltipProps={{disabled: true}}
+          />
+        </Fragment>
+      }
+      showOnlyOnOverflow
+      isHoverable
+    >
+      <TitleOpText>{text}</TitleOpText>
+    </Tooltip>
+  );
+}
+
 const Type = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TitleOp = styled('div')`
+const TitleOpText = styled('div')`
   font-size: 15px;
   font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
@@ -133,11 +156,25 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled(Title)`
+const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
-  width: 100%;
-  z-index: 10;
-  flex: 1 1 auto;
+  gap: ${p => p.theme.space(3)};
+  container-type: inline-size;
+
+  @container (max-width: 780px) {
+    .DropdownMenu {
+      display: block;
+    }
+    .Actions {
+      display: none;
+    }
+  }
+
+  @container (min-width: 781px) {
+    .DropdownMenu {
+      display: none;
+    }
+  }
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -475,7 +512,7 @@ function NodeActions(props: {
         </Button>
 
         {isTransactionNode(props.node) ? (
-          <Button
+          <LinkButton
             size="xs"
             icon={<IconOpen />}
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
@@ -483,7 +520,7 @@ function NodeActions(props: {
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
-          </Button>
+          </LinkButton>
         ) : null}
       </Actions>
       <DropdownMenuWithPortal
@@ -514,24 +551,6 @@ const ActionsContainer = styled('div')`
   justify-content: end;
   align-items: center;
   gap: ${p => p.theme.space(1)};
-  container-type: inline-size;
-  min-width: 24px;
-  width: 100%;
-
-  @container (max-width: 380px) {
-    .DropdownMenu {
-      display: block;
-    }
-    .Actions {
-      display: none;
-    }
-  }
-
-  @container (min-width: 381px) {
-    .DropdownMenu {
-      display: none;
-    }
-  }
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

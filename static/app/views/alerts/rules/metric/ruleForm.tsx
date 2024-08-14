@@ -25,14 +25,14 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {
   EventsStats,
-  MetricsExtractionRule,
   MultiSeriesEventsStats,
   Organization,
-  Project,
-} from 'sentry/types';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';

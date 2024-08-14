@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
-import type {TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

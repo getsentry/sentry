@@ -33,6 +33,7 @@ import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraph
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import type {Frame} from 'sentry/utils/profiling/frame';
+import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import type {ProfilingFieldType} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -72,6 +73,28 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
       </ProfileSidebarContainer>
     </TransactionProfilesContentContainer>
   );
+}
+
+function isEmpty(resp: Profiling.Schema) {
+  const profile = resp.profiles[0];
+  if (!profile) return true;
+  if (
+    resp.profiles.length === 1 &&
+    isSampledProfile(profile) &&
+    profile.startValue === 0 &&
+    profile.endValue === 0
+  ) {
+    return true;
+  }
+  if (
+    resp.profiles.length === 1 &&
+    isEventedProfile(profile) &&
+    profile.startValue === 0 &&
+    profile.endValue === 0
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function ProfileVisualization({query}: TransactionProfilesContentProps) {
@@ -158,6 +181,10 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
               ) : isError ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
+                </RequestStateMessageContainer>
+              ) : isEmpty(data) ? (
+                <RequestStateMessageContainer>
+                  {t('No profiling data found')}
                 </RequestStateMessageContainer>
               ) : null}
             </FlamegraphProvider>
@@ -513,6 +540,7 @@ const ProfileVisualizationContainer = styled('div')`
   display: grid;
   grid-template-rows: min-content 1fr;
   height: 100%;
+  position: relative;
 `;
 
 const FlamegraphContainer = styled('div')`

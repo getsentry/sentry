@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/actions/button';
 import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -17,7 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -113,7 +113,9 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                           'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                         )}
                       >
-                        <Button priority="danger">Rotate client secret</Button>
+                        <Button size="xs" priority="danger">
+                          Rotate client secret
+                        </Button>
                       </Confirm>
                     </ClientSecret>
                   )

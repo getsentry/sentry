@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
@@ -68,7 +68,7 @@ function ProjectProguardRow({
                 disabled={hasRole}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}

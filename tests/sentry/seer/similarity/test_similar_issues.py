@@ -7,6 +7,7 @@ from urllib3.response import HTTPResponse
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
+from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import (
     get_similarity_data_from_seer,
     seer_grouping_connection_pool,
@@ -105,6 +106,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
     ):
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        assert existing_grouphash.group_id is None
+
         cases: list[tuple[Any, str]] = [
             (None, "AttributeError"),
             ([], "AttributeError"),
@@ -126,13 +130,29 @@ class GetSimilarityDataFromSeerTest(TestCase):
                     "responses": [
                         {
                             "message_distance": 0.05,
+                            # hash value doesn't match the `GroupHash` created above
                             "parent_hash": "04152013090820131121201212312012",
                             "should_group": True,
                             "stacktrace_distance": 0.01,
                         }
                     ]
                 },
-                "SimilarGroupNotFoundError",
+                "SimilarHashNotFoundError",
+            ),
+            (
+                {
+                    "responses": [
+                        {
+                            "message_distance": 0.05,
+                            # hash value matches the `GroupHash` created above, but that `GroupHash`
+                            # has no associated group
+                            "parent_hash": "dogs are great",
+                            "should_group": True,
+                            "stacktrace_distance": 0.01,
+                        }
+                    ]
+                },
+                "SimilarHashMissingGroupError",
             ),
         ]
 

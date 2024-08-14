@@ -13,7 +13,8 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useTeams} from 'sentry/utils/useTeams';
 
 import type {TeamSelectProps} from './utils';

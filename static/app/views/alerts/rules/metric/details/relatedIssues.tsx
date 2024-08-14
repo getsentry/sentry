@@ -9,7 +9,8 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useRouter from 'sentry/utils/useRouter';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,

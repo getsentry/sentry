@@ -34,6 +34,44 @@ type Props = {
   externalIssue?: PlatformExternalIssue;
 };
 
+export const doOpenSentryAppIssueModal = ({
+  organization,
+  group,
+  event,
+  externalIssue,
+  sentryAppComponent,
+  sentryAppInstallation,
+}: Omit<Props, 'disabled'>) => {
+  // Only show the modal when we don't have a linked issue
+  if (externalIssue) {
+    return;
+  }
+
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: sentryAppComponent.sentryApp.slug,
+    external_issue_type: 'sentry_app',
+  });
+  recordInteraction(
+    sentryAppComponent.sentryApp.slug,
+    'sentry_app_component_interacted',
+    {
+      componentType: 'issue-link',
+    }
+  );
+
+  openModal(
+    deps => (
+      <SentryAppExternalIssueModal
+        {...deps}
+        {...{group, event, sentryAppComponent, sentryAppInstallation}}
+      />
+    ),
+    {closeEvents: 'escape-key'}
+  );
+};
+
 function SentryAppExternalIssueActions({
   organization,
   group,
@@ -45,38 +83,6 @@ function SentryAppExternalIssueActions({
 }: Props) {
   const api = useApi();
   const {onDeleteExternalIssue} = useExternalIssues({group, organization});
-
-  const doOpenModal = (e?: React.MouseEvent) => {
-    // Only show the modal when we don't have a linked issue
-    if (externalIssue) {
-      return;
-    }
-
-    trackAnalytics('issue_details.external_issue_modal_opened', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      external_issue_provider: sentryAppComponent.sentryApp.slug,
-      external_issue_type: 'sentry_app',
-    });
-    recordInteraction(
-      sentryAppComponent.sentryApp.slug,
-      'sentry_app_component_interacted',
-      {
-        componentType: 'issue-link',
-      }
-    );
-
-    e?.preventDefault();
-    openModal(
-      deps => (
-        <SentryAppExternalIssueModal
-          {...deps}
-          {...{group, event, sentryAppComponent, sentryAppInstallation}}
-        />
-      ),
-      {closeEvents: 'escape-key'}
-    );
-  };
 
   const deleteIssue = () => {
     if (!externalIssue) {
@@ -95,7 +101,13 @@ function SentryAppExternalIssueActions({
 
   const onAddRemoveClick = () => {
     if (!externalIssue) {
-      doOpenModal();
+      doOpenSentryAppIssueModal({
+        organization,
+        group,
+        event,
+        sentryAppComponent,
+        sentryAppInstallation,
+      });
     } else {
       deleteIssue();
     }
@@ -123,7 +135,17 @@ function SentryAppExternalIssueActions({
           skipWrapper
         >
           <StyledIntegrationLink
-            onClick={e => (disabled ? e.preventDefault() : doOpenModal())}
+            onClick={e =>
+              disabled
+                ? e.preventDefault()
+                : doOpenSentryAppIssueModal({
+                    organization,
+                    group,
+                    event,
+                    sentryAppComponent,
+                    sentryAppInstallation,
+                  })
+            }
             href={disabled ? undefined : url}
             disabled={disabled}
           >

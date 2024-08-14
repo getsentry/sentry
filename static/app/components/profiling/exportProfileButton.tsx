@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -37,7 +37,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       <IconDownload size="xs" />
     </StyledButtonSmall>
   ) : (
-    <Button
+    <LinkButton
       icon={<IconDownload />}
       title={title}
       href={href}
@@ -45,11 +45,11 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       {...props}
     >
       {props.children}
-    </Button>
+    </LinkButton>
   );
 }
 
-const StyledButtonSmall = styled(Button)`
+const StyledButtonSmall = styled(LinkButton)`
   border: none;
   background-color: transparent;
   box-shadow: none;

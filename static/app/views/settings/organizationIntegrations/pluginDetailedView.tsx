@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
+import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types/integrations';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 

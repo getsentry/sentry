@@ -4,7 +4,8 @@ import {Button} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AvatarProject, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function SampleEventAlert({

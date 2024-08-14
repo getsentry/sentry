@@ -16,8 +16,8 @@ import type {
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports

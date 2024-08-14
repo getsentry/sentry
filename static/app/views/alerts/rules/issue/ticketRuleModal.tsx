@@ -6,8 +6,10 @@ import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstract
 import type {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Choices, IssueConfigField, Organization} from 'sentry/types';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {Choices} from 'sentry/types/core';
+import type {IssueConfigField} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];

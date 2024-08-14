@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -8,6 +9,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -22,18 +25,13 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import type {
-  AvatarUser,
-  CurrentRelease,
-  Group,
-  Organization,
-  OrganizationSummary,
-  Project,
-  TeamParticipant,
-  UserParticipant,
-} from 'sentry/types';
-import {IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease} from 'sentry/types/release';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -260,6 +258,14 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummary groupId={group.id} />
+      </Feature>
+      {hasStreamlinedUI && event && (
+        <ErrorBoundary mini>
+          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        </ErrorBoundary>
+      )}
       {!hasStreamlinedUI && (
         <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       )}
@@ -273,12 +279,12 @@ export default function GroupSidebar({
           currentRelease={currentRelease}
         />
       )}
-      {event && (
+      {!hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {renderPluginIssue()}
+      {!hasStreamlinedUI && renderPluginIssue()}
       {issueTypeConfig.tags.enabled && (
         <TagFacets
           environments={environments}

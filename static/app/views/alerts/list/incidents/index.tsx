@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -184,9 +184,9 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     const actions = (
       <Fragment>
-        <Button size="sm" external href={DOCS_URL}>
+        <LinkButton size="sm" external href={DOCS_URL}>
           {t('View Features')}
-        </Button>
+        </LinkButton>
         <CreateAlertButton
           organization={organization}
           iconProps={{size: 'xs'}}

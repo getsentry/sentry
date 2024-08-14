@@ -8,7 +8,7 @@ import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import type {OnboardingCustomComponentProps} from 'sentry/types';
+import type {OnboardingCustomComponentProps} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import SkipConfirm from './skipConfirm';

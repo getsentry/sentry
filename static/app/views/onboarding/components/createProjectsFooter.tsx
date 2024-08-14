@@ -16,8 +16,10 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {OnboardingSelectedSDK, Organization, Project} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {OnboardingProjectStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';

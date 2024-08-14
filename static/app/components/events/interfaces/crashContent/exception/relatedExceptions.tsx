@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {ExceptionValue, StackTraceMechanism} from 'sentry/types';
+import type {ExceptionValue} from 'sentry/types/event';
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 type ExceptionGroupContextProps = {

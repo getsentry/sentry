@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ApiApplication} from 'sentry/types';
+import type {ApiApplication} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 

@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearchType} from 'sentry/types/group';
@@ -45,17 +46,26 @@ export function TracesSearchBar({
       {localQueries.map((query, index) => (
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
-          <StyledSearchBar
-            searchSource="trace-explorer"
-            query={query}
-            onSearch={(queryString: string) => handleSearch(index, queryString)}
-            placeholder={t('Search for span attributes')}
-            organization={organization}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
-            savedSearchType={SavedSearchType.SPAN}
-          />
+          {organization.features.includes('search-query-builder-performance') ? (
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={query}
+              onSearch={(queryString: string) => handleSearch(index, queryString)}
+              searchSource="trace-explorer"
+            />
+          ) : (
+            <StyledSearchBar
+              searchSource="trace-explorer"
+              query={query}
+              onSearch={(queryString: string) => handleSearch(index, queryString)}
+              placeholder={t('Search for span attributes')}
+              organization={organization}
+              supportedTags={supportedTags}
+              dataset={DiscoverDatasets.SPANS_INDEXED}
+              projectIds={selection.projects}
+              savedSearchType={SavedSearchType.SPAN}
+            />
+          )}
           <StyledButton
             aria-label={t('Remove Span')}
             icon={<IconClose size="sm" />}

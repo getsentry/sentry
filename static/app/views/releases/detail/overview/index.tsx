@@ -19,8 +19,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
-import type {NewQuery, Organization, PageFilters, ReleaseProject} from 'sentry/types';
-import {SessionFieldWithOperation} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {ReleaseProject} from 'sentry/types/release';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

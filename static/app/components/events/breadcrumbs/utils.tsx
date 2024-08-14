@@ -226,7 +226,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
 
 function getBreadcrumbTitle(crumb: RawCrumb) {
   if (crumb?.type === BreadcrumbType.DEFAULT) {
-    return crumb?.category;
+    return crumb?.category ?? BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
   }
 
   switch (crumb?.category) {

@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
+import type {
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types/integrations';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 

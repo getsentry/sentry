@@ -15,7 +15,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import type {Organization, PageFilters, Release} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from '../releasesRequest';

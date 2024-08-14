@@ -1,13 +1,15 @@
 import {createContext, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CommitRow} from 'sentry/components/commitRow';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  DefaultGroupEventDetailsContent,
-  type GroupEventDetailsContentProps,
+  EventDetailsContent,
+  type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
@@ -29,7 +31,7 @@ export function EventDetails({
   group,
   event,
   project,
-}: Required<GroupEventDetailsContentProps>) {
+}: Required<EventDetailsContentProps>) {
   const navRef = useRef<HTMLDivElement>(null);
   const {selection} = usePageFilters();
   const {environments} = selection;
@@ -39,6 +41,12 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={eventDetails}>
+      <SuspectCommits
+        project={project}
+        eventId={event.id}
+        group={group}
+        commitRow={CommitRow}
+      />
       <FilterContainer>
         <EnvironmentPageFilter />
         <SearchFilter
@@ -54,11 +62,7 @@ export function EventDetails({
       <GroupContent navHeight={navRef?.current?.offsetHeight}>
         <FloatingEventNavigation event={event} group={group} ref={navRef} />
         <GroupContentPadding>
-          <DefaultGroupEventDetailsContent
-            group={group}
-            event={event}
-            project={project}
-          />
+          <EventDetailsContent group={group} event={event} project={project} />
         </GroupContentPadding>
       </GroupContent>
     </EventDetailsContext.Provider>
@@ -68,6 +72,9 @@ export function EventDetails({
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
   top: 0;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    top: ${p => p.theme.sidebar.mobileHeight};
+  }
   background: ${p => p.theme.background};
   z-index: 100;
   border-radius: 6px 6px 0 0;

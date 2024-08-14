@@ -18,13 +18,14 @@ import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/toke
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface TokenizedQueryGridProps {
+  actionBarWidth: number;
   label?: string;
 }
 
 interface GridProps extends AriaGridListOptions<ParseResultToken> {
+  actionBarWidth: number;
   children: CollectionChildren<ParseResultToken>;
   items: ParseResultToken[];
 }
@@ -70,7 +71,12 @@ function Grid(props: GridProps) {
   useSelectOnDrag(state);
 
   return (
-    <SearchQueryGridWrapper {...gridProps} ref={ref} size={size}>
+    <SearchQueryGridWrapper
+      {...gridProps}
+      ref={ref}
+      size={size}
+      style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
+    >
       <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
       {[...state.collection].map(item => {
         const token = item.value;
@@ -122,7 +128,7 @@ function Grid(props: GridProps) {
   );
 }
 
-export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
+export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridProps) {
   const {parsedQuery} = useSearchQueryBuilder();
 
   // Shouldn't ever get here since we will render the plain text input instead
@@ -135,6 +141,7 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
       aria-label={label ?? t('Create a search query')}
       items={parsedQuery}
       selectionMode="multiple"
+      actionBarWidth={actionBarWidth}
     >
       {item => (
         <Item key={makeTokenKey(item, parsedQuery)}>
@@ -146,10 +153,10 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
 }
 
 const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
-  padding: ${p =>
-    p.size === 'small'
-      ? space(0.75)
-      : `${p.theme.space(0.75)} 34px ${p.theme.space(0.75)} 32px`};
+  padding-top: ${p => p.theme.space(0.75)};
+  padding-bottom: ${p => p.theme.space(0.75)};
+  padding-left: ${p => (p.size === 'small' ? p.theme.space(0.75) : '32px')};
+  padding-right: ${p => p.theme.space(0.75)};
   display: flex;
   align-items: stretch;
   row-gap: ${p => p.theme.space(0.5)};

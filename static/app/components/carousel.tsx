@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface CarouselProps {
   children?: React.ReactNode;
@@ -22,54 +23,15 @@ interface CarouselProps {
 }
 
 function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  // The visibility match up to the elements list. Visibility of elements is
-  // true if visible in the scroll container, false if outside.
-  const [childrenEls, setChildrenEls] = useState<HTMLElement[]>([]);
-  const [visibility, setVisibility] = useState<boolean[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const {visibility, childrenEls} = useRefChildrenVisibility({
+    children,
+    scrollContainerRef,
+    visibleRatio,
+  });
 
   const isAtStart = visibility[0];
   const isAtEnd = visibility[visibility.length - 1];
-
-  // Update list of children element
-  useEffect(
-    () => setChildrenEls(Array.from(ref.current?.children ?? []) as HTMLElement[]),
-    [children]
-  );
-
-  // Update the threshold list. This
-  useEffect(() => {
-    if (!ref.current) {
-      return () => {};
-    }
-
-    const observer = new IntersectionObserver(
-      entries =>
-        setVisibility(currentVisibility =>
-          // Compute visibility list of the elements
-          childrenEls.map((child, idx) => {
-            const entry = entries.find(e => e.target === child);
-
-            // NOTE: When the intersection observer fires, only elements that
-            // have passed a threshold will be included in the entries list.
-            // This is why we fallback to the currentThreshold value if there
-            // was no entry for the child.
-            return entry !== undefined
-              ? entry.intersectionRatio > visibleRatio
-              : currentVisibility[idx] ?? false;
-          })
-        ),
-      {
-        root: ref.current,
-        threshold: [visibleRatio],
-      }
-    );
-
-    childrenEls.map(child => observer.observe(child));
-
-    return () => observer.disconnect();
-  }, [childrenEls, visibleRatio]);
 
   const scrollLeft = useCallback(
     () =>
@@ -93,7 +55,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
 
   return (
     <CarouselContainer>
-      <CarouselItems ref={ref}>{children}</CarouselItems>
+      <CarouselItems ref={scrollContainerRef}>{children}</CarouselItems>
       {!isAtStart && (
         <StyledArrowButton
           onClick={scrollLeft}

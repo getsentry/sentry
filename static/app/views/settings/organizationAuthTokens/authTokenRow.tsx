@@ -10,7 +10,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization, OrgAuthToken, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {OrgAuthToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 

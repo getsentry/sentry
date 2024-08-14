@@ -24,7 +24,7 @@ import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
-} from 'sentry/types';
+} from 'sentry/types/system';
 import marked from 'sentry/utils/marked';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 

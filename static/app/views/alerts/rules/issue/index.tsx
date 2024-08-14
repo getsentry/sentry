@@ -45,7 +45,6 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -59,6 +58,8 @@ import {
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
@@ -69,7 +70,9 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
-import SetupMessagingIntegrationButton from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import SetupMessagingIntegrationButton, {
+  MessagingIntegrationAnalyticsView,
+} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -1228,6 +1231,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 <SetupMessagingIntegrationButton
                   projectSlug={project.slug}
                   refetchConfigs={this.refetchConfigs}
+                  analyticsParams={{
+                    view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
+                  }}
                 />
               ) : (
                 <SetupAlertIntegrationButton

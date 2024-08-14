@@ -13,10 +13,11 @@ import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
-import type {ExceptionType, Project} from 'sentry/types';
-import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
@@ -137,6 +138,8 @@ export function Content({
 
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
+  const isSampleError = useIsSampleEvent();
+
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
@@ -199,7 +202,7 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        {exc.stacktrace && isTopException && (
+        {exc.stacktrace && isTopException && !isSampleError && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>

@@ -11,12 +11,8 @@ import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  type Organization,
-  SavedSearchType,
-  type Tag,
-  type TagCollection,
-} from 'sentry/types';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';

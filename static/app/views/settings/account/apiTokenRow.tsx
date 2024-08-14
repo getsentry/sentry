@@ -7,7 +7,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 

@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {ValueLink} from 'sentry/components/keyValueData';
-import type {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 

@@ -111,6 +111,8 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_METRICS.value,
+    Referrer.API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE.value,
     Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
@@ -321,7 +323,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         referrer = request.GET.get("referrer")
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(
+            snuba_params = self.get_snuba_params(
                 request,
                 organization,
                 # This is only temporary until we come to a decision on global views
@@ -390,7 +392,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
-                params=params,
+                params={},
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
@@ -619,7 +621,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
                         dataset=dataset,
@@ -632,7 +634,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         results,
                         standard_meta=True,
                         dataset=dataset,

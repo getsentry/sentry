@@ -8,7 +8,8 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import type {Organization, Release} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 

@@ -17,7 +17,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -289,7 +290,7 @@ function NewTraceDetailsContent(props: Props) {
         warning = (
           <Alert type="info" showIcon>
             {tct(
-              "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
+              "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
               {
                 tracingLink: (
                   <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />

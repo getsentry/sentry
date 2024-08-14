@@ -14,7 +14,8 @@ import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError,
   TraceErrorOrIssue,

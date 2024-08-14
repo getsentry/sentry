@@ -5,7 +5,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
-import type {Group, GroupIntegration} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {GroupIntegration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
@@ -23,6 +25,32 @@ type Props = {
 type LinkedIssues = {
   linked: GroupIntegration[];
   unlinked: GroupIntegration[];
+};
+
+export const doOpenExternalIssueModal = ({
+  group,
+  integration,
+  onChange,
+  organization,
+}: {
+  group: Group;
+  integration: GroupIntegration;
+  onChange: () => void;
+  organization: Organization;
+}) => {
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: integration.provider.key,
+    external_issue_type: 'first_party',
+  });
+
+  openModal(
+    deps => (
+      <ExternalIssueForm {...deps} {...{group, onChange, integration, organization}} />
+    ),
+    {closeEvents: 'escape-key'}
+  );
 };
 
 function ExternalIssueActions({configurations, group, onChange}: Props) {
@@ -64,22 +92,6 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
     });
   };
 
-  const doOpenModal = (integration: GroupIntegration) => {
-    trackAnalytics('issue_details.external_issue_modal_opened', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      external_issue_provider: integration.provider.key,
-      external_issue_type: 'first_party',
-    });
-
-    openModal(
-      deps => (
-        <ExternalIssueForm {...deps} {...{group, onChange, integration, organization}} />
-      ),
-      {closeEvents: 'escape-key'}
-    );
-  };
-
   return (
     <Fragment>
       {linked.map(config => {
@@ -114,13 +126,33 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
           hoverCardBody={
             <Container>
               {unlinked.map(config => (
-                <Wrapper onClick={() => doOpenModal(config)} key={config.id}>
+                <Wrapper
+                  onClick={() =>
+                    doOpenExternalIssueModal({
+                      group,
+                      integration: config,
+                      onChange,
+                      organization,
+                    })
+                  }
+                  key={config.id}
+                >
                   <IntegrationItem integration={config} />
                 </Wrapper>
               ))}
             </Container>
           }
-          onOpen={unlinked.length === 1 ? () => doOpenModal(unlinked[0]) : undefined}
+          onOpen={
+            unlinked.length === 1
+              ? () =>
+                  doOpenExternalIssueModal({
+                    group,
+                    integration: unlinked[0],
+                    onChange,
+                    organization,
+                  })
+              : undefined
+          }
         />
       )}
     </Fragment>

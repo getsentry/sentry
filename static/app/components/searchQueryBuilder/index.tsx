@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {forwardRef, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -99,30 +99,38 @@ export interface SearchQueryBuilderProps {
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+  /**
+   * Render custom content in the trailing section of the search bar, located
+   * to the left of the clear button.
+   */
+  trailingItems?: React.ReactNode;
 }
 
-function ActionButtons() {
-  const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
+  ({trailingItems = null}, ref) => {
+    const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
 
-  if (disabled) {
-    return null;
+    if (disabled) {
+      return null;
+    }
+
+    return (
+      <ButtonsWrapper ref={ref}>
+        {trailingItems}
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      </ButtonsWrapper>
+    );
   }
-
-  return (
-    <ButtonsWrapper>
-      <ActionButton
-        aria-label={t('Clear search query')}
-        size="zero"
-        icon={<IconClose />}
-        borderless
-        onClick={() => {
-          dispatch({type: 'CLEAR'});
-          handleSearch('');
-        }}
-      />
-    </ButtonsWrapper>
-  );
-}
+);
 
 export function SearchQueryBuilder({
   className,
@@ -146,8 +154,10 @@ export function SearchQueryBuilder({
   queryInterface = QueryInterfaceType.TOKENIZED,
   recentSearches,
   searchSource,
+  trailingItems,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const actionBarRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
@@ -193,8 +203,9 @@ export function SearchQueryBuilder({
     searchSource,
     onSearch,
   });
-  const {width} = useDimensions({elementRef: wrapperRef});
-  const size = width < 600 ? ('small' as const) : ('normal' as const);
+  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
+  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
   const contextValue = useMemo(() => {
     return {
@@ -248,9 +259,11 @@ export function SearchQueryBuilder({
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
-            <TokenizedQueryGrid label={label} />
+            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
           )}
-          {size !== 'small' && <ActionButtons />}
+          {size !== 'small' && (
+            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+          )}
         </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>

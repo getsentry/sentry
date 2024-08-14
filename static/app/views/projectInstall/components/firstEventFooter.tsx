@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -10,9 +10,9 @@ import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIn
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 interface FirstEventFooterProps {
+  docsLink: string;
   organization: Organization;
   project: Project;
-  docsLink?: string;
   docsOnClick?: () => void;
 }
 
@@ -33,9 +33,9 @@ export default function FirstEventFooter({
           <CTAFooter>
             <Actions gap={2}>
               {firstEventButton}
-              <Button external href={docsLink} onClick={docsOnClick}>
+              <LinkButton external href={docsLink} onClick={docsOnClick}>
                 {t('View full documentation')}
-              </Button>
+              </LinkButton>
             </Actions>
             {indicator}
           </CTAFooter>
@@ -54,7 +54,7 @@ export default function FirstEventFooter({
               />
             ),
             skip: (
-              <Button priority="link" href="/" aria-label={t('Finish setup later')} />
+              <LinkButton priority="link" href="/" aria-label={t('Finish setup later')} />
             ),
           }
         )}

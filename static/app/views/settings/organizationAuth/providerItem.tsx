@@ -9,7 +9,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AuthProvider} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 

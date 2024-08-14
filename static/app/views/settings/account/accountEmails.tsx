@@ -20,7 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountEmailsFields from 'sentry/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {UserEmail} from 'sentry/types';
+import type {UserEmail} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

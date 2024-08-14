@@ -89,9 +89,16 @@ export default storyBook('KeyValueData', story => {
         />
         <KeyValueData.Card
           title={
-            <b style={{color: theme.green400}}>
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                color: theme.green400,
+              }}
+            >
               <IconSettings /> Custom Title Node
-            </b>
+            </span>
           }
           contentItems={contentItems.slice(4, 9)}
         />

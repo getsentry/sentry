@@ -28,7 +28,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports

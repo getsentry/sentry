@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import type {IntegrationInstallationStatus} from 'sentry/types';
+import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
 
 import {COLORS} from './constants';
 

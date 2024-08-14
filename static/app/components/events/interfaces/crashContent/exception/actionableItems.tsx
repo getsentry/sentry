@@ -18,7 +18,8 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -34,7 +35,7 @@ import {
 import type {ActionableItemsResponse} from './useActionableItems';
 import {useActionableItems} from './useActionableItems';
 
-interface ErrorMessage {
+export interface ErrorMessage {
   desc: React.ReactNode;
   title: string;
   data?: {
@@ -58,7 +59,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(
+export function getErrorMessage(
   error: ActionableItemErrors | EventErrorData,
   meta?: Record<string, any>
 ): Array<ErrorMessage> {

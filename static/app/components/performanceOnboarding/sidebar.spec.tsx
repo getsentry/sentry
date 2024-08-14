@@ -12,7 +12,8 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import type {PlatformKey, Project, StatuspageIncident} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types/project';
+import type {StatuspageIncident} from 'sentry/types/system';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 import {generateDocKeys} from './utils';

@@ -5,7 +5,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import type {Deploy} from 'sentry/types';
+import type {Deploy} from 'sentry/types/release';
 
 type Props = {
   deploys: Deploy[];

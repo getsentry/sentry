@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -44,14 +44,13 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
           <Button size="sm" onClick={printCodes} aria-label={t('print')}>
             <IconPrint />
           </Button>
-          <Button
+          <LinkButton
             size="sm"
             download="sentry-recovery-codes.txt"
             href={`data:text/plain;charset=utf-8,${formattedCodes}`}
             aria-label={t('download')}
-          >
-            <IconDownload />
-          </Button>
+            icon={<IconDownload />}
+          />
           <Confirm
             onConfirm={onRegenerateBackupCodes}
             message={t(

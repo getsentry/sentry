@@ -18,15 +18,10 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {
-  Actor,
-  Group,
-  Organization,
-  SuggestedOwner,
-  SuggestedOwnerReason,
-  Team,
-  User,
-} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Group, SuggestedOwner, SuggestedOwnerReason} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';

@@ -76,7 +76,6 @@ export function ModulesOnboarding({
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
-
   return (
     <Panel>
       <Container>
@@ -297,6 +296,14 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     heading: t('TODO'),
     description: t('TODO'),
     valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
+  // Mobile Screens is not released yet
+  'mobile-screens': {
+    heading: t('Mobile Screens'),
+    description: t('Explore mobile app metrics.'),
+    valuePropDescription: '',
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },

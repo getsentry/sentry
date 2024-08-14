@@ -8,7 +8,9 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventAttachment, Organization, Project} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   organization: Organization;

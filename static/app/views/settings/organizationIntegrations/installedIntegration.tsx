@@ -10,12 +10,9 @@ import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  Integration,
-  IntegrationProvider,
-  ObjectStatus,
-  Organization,
-} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 

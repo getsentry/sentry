@@ -9,8 +9,9 @@ import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashC
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import type {EventTransaction, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

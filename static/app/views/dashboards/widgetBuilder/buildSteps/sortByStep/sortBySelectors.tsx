@@ -6,7 +6,8 @@ import uniqBy from 'lodash/uniqBy';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import {
   EQUATION_PREFIX,
   explodeField,

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {t, tn} from 'sentry/locale';
-import type {Release} from 'sentry/types';
+import type {Release} from 'sentry/types/release';
 
 type Props = {
   release: Release;

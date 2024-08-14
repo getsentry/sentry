@@ -4,7 +4,7 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,11 +18,11 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   Integration,
-  Organization,
-  Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -253,14 +253,14 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
               <EmptyMessage
                 icon={getIntegrationIcon(integration.provider.key, 'lg')}
                 action={
-                  <Button
+                  <LinkButton
                     href={docsLink}
                     size="sm"
                     external
                     onClick={this.trackDocsClick}
                   >
                     {t('View Documentation')}
-                  </Button>
+                  </LinkButton>
                 }
               >
                 {t('Set up stack trace linking by adding a code mapping.')}

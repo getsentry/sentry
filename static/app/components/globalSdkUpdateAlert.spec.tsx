@@ -5,7 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {InnerGlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {PageFilters, ProjectSdkUpdates} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 

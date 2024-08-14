@@ -21,12 +21,12 @@ import sentry_sdk
 from sentry_sdk.integrations.gcp import GcpIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[GcpIntegration()],${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
@@ -45,7 +45,7 @@ def http_function_entrypoint(request):
 
 const getTimeoutWarningSnippet = (params: Params) => `
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[
         GcpIntegration(timeout_warning=True),
     ],

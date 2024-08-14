@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -126,9 +126,9 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
           </Button>
         </Confirm>
         {platform.key !== 'other' && (
-          <Button size="sm" href={platform.link ?? undefined} external>
+          <LinkButton size="sm" href={platform.link ?? ''} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         )}
       </ButtonBar>
     </StyledPageHeader>

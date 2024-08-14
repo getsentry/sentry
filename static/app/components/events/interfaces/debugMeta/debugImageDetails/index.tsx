@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -317,12 +317,12 @@ export function DebugImageDetails({
       </Body>
       <Footer>
         <StyledButtonBar gap={1}>
-          <Button
+          <LinkButton
             href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
             external
           >
             {t('Read the docs')}
-          </Button>
+          </LinkButton>
           {debugFilesSettingsLink && (
             <LinkButton
               title={t(

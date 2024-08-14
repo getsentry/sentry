@@ -8,7 +8,8 @@ import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project, RepositoryProjectPathConfig} from 'sentry/types';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;

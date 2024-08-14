@@ -10,7 +10,8 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationFeature, Organization, SentryApp} from 'sentry/types';
+import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,

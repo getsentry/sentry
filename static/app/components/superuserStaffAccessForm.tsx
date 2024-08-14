@@ -14,7 +14,7 @@ import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;

@@ -28,7 +28,7 @@ end`;
 
 const getConfigureSnippet = (params: Params) => `
   config :sentry,
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   environment_name: Mix.env(),
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]`;

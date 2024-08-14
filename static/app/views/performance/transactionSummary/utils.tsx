@@ -202,14 +202,14 @@ export function generateProfileLink() {
         query.traceId = String(tableRow.trace);
       }
 
-      return generateContinuousProfileFlamechartRouteWithQuery(
-        organization.slug,
-        String(projectSlug),
-        String(profilerId),
-        start.toISOString(),
-        finish.toISOString(),
-        query
-      );
+      return generateContinuousProfileFlamechartRouteWithQuery({
+        orgSlug: organization.slug,
+        projectSlug: String(projectSlug),
+        profilerId: String(profilerId),
+        start: start.toISOString(),
+        end: finish.toISOString(),
+        query,
+      });
     }
 
     return {};

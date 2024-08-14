@@ -18,8 +18,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Outcome} from 'sentry/types';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 
@@ -76,6 +76,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.span.titleName,
     value: DATA_CATEGORY_INFO.span.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },

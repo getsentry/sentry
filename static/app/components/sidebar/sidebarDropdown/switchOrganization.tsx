@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
 

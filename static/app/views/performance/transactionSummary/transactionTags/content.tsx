@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
@@ -180,6 +181,8 @@ function InnerContent(
 
   const query = decodeScalar(location.query.query, '');
 
+  const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -195,13 +198,24 @@ function InnerContent(
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-          />
+          <StyledSearchBarWrapper>
+            {organization.features.includes('search-query-builder-performance') ? (
+              <TransactionSearchQueryBuilder
+                projects={projectIds}
+                initialQuery={query}
+                onSearch={handleSearch}
+                searchSource="transaction_tags"
+              />
+            ) : (
+              <SearchBar
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={handleSearch}
+              />
+            )}
+          </StyledSearchBarWrapper>
           <CompactSelect
             value={aggregateColumn}
             options={X_AXIS_SELECT_OPTIONS}
@@ -332,7 +346,7 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/6;

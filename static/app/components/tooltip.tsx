@@ -1,15 +1,26 @@
-import {Fragment, useEffect} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import getModalPortal from 'sentry/utils/getModalPortal';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+
+interface TooltipContextProps {
+  /**
+   * Specifies the DOM node where the tooltip should be rendered.
+   * This is particularly useful for making the tooltip interactive within specific contexts,
+   * such as inside a modal. By default the tooltip is rendered in the 'document.body'.
+   */
+  container: Parameters<typeof createPortal>[1];
+}
+
+export const TooltipContext = createContext<TooltipContextProps>({
+  container: document.body,
+});
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -34,8 +45,8 @@ function Tooltip({
   disabled = false,
   ...hoverOverlayProps
 }: TooltipProps) {
+  const {container} = useContext(TooltipContext);
   const theme = useTheme();
-  const {visible: modalIsVisible} = useGlobalModal();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
 
@@ -63,10 +74,6 @@ function Tooltip({
       </TooltipContent>
     </PositionWrapper>
   );
-
-  // If the tooltip is rendered outside the modal's DOM node, it will be unclickable and unselectable.
-  // Therefore, we check if the global modal is active. If it is, the tooltip should be rendered within the same node to ensure interactivity.
-  const container = modalIsVisible ? getModalPortal() : document.body;
 
   return (
     <Fragment>

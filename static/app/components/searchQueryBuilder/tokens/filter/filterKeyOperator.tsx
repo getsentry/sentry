@@ -7,7 +7,10 @@ import type {DOMAttributes, FocusableElement, Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
+import {
+  AggregateKey,
+  AggregateKeyVisual,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -98,7 +101,7 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   return token.operator;
 }
 
-function FilterKeyOperatorLabel({
+export function FilterKeyOperatorLabel({
   keyLabel,
   opLabel,
   includeKeyLabel,
@@ -114,7 +117,7 @@ function FilterKeyOperatorLabel({
   return (
     <KeyOpLabelWrapper>
       <span>{keyLabel}</span>
-      {opLabel ? <OpLabel>{opLabel}</OpLabel> : null}
+      {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
     </KeyOpLabelWrapper>
   );
 }
@@ -347,6 +350,30 @@ function AggregateFilterKeyOperator({
       </GridCell>
     </Fragment>
   );
+}
+
+export function FilterKeyOperatorVisual({token}: {token: TokenResult<Token.FILTER>}) {
+  switch (token.filter) {
+    case FilterType.AGGREGATE_DATE:
+    case FilterType.AGGREGATE_DURATION:
+    case FilterType.AGGREGATE_NUMERIC:
+    case FilterType.AGGREGATE_PERCENTAGE:
+    case FilterType.AGGREGATE_RELATIVE_DATE:
+    case FilterType.AGGREGATE_SIZE: {
+      const {label} = getOperatorInfo(token, false);
+
+      return (
+        <KeyOpLabelWrapper>
+          <div>
+            <AggregateKeyVisual token={token} /> {label}
+          </div>
+        </KeyOpLabelWrapper>
+      );
+    }
+    default:
+      const {label} = getOperatorInfo(token, true);
+      return label;
+  }
 }
 
 export function FilterKeyOperator({

@@ -27,7 +27,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 

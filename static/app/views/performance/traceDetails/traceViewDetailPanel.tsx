@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
@@ -52,8 +52,9 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
+import type {EntryBreadcrumbs, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -274,7 +275,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   return (
     <Wrapper>
       <Actions>
-        <Button
+        <LinkButton
           size="sm"
           icon={<IconOpen />}
           href={eventJsonUrl}
@@ -286,7 +287,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           }
         >
           {t('JSON')} (<FileSize bytes={detail.event?.size} />)
-        </Button>
+        </LinkButton>
       </Actions>
 
       <Title>

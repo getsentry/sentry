@@ -14,8 +14,10 @@ import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, Organization, Project} from 'sentry/types';
-import {Outcome} from 'sentry/types';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withProjects from 'sentry/utils/withProjects';
 
 import type {UsageSeries} from './types';

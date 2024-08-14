@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NarrowLayout from 'sentry/components/narrowLayout';
@@ -153,22 +153,22 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         <Actions>
           <ActionsLeft>
             {inviteDetails.hasAuthProvider && (
-              <Button
+              <LinkButton
                 data-test-id="sso-login"
                 priority="primary"
                 href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
+              </LinkButton>
             )}
             {!inviteDetails.requireSso && (
-              <Button
+              <LinkButton
                 data-test-id="create-account"
                 priority="primary"
                 href="/auth/register/"
               >
                 {t('Create a new account')}
-              </Button>
+              </LinkButton>
             )}
           </ActionsLeft>
           {!inviteDetails.requireSso && (
@@ -246,13 +246,13 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         <Actions>
           <ActionsLeft>
             {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
-              <Button
+              <LinkButton
                 data-test-id="sso-login"
                 priority="primary"
                 href={`/auth/login/${inviteDetails.orgSlug}/`}
               >
                 {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
+              </LinkButton>
             )}
 
             <Button

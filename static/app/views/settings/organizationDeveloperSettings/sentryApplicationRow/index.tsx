@@ -6,7 +6,8 @@ import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
-import type {Organization, SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 

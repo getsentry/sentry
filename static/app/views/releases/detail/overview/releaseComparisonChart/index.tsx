@@ -17,15 +17,17 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
-  type PlatformKey,
-  ReleaseComparisonChartType,
-  type ReleaseProject,
-  type ReleaseWithHealth,
+  type Organization,
   type SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
-} from 'sentry/types';
-import type {Organization} from 'sentry/types/organization';
+} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {
+  ReleaseComparisonChartType,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';

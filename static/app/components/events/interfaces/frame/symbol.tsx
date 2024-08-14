@@ -4,7 +4,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import {FunctionName} from './functionName';

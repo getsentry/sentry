@@ -16,13 +16,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {
   BaseRole,
   Member,
   MissingMember,
   Organization,
-  OrganizationAuthProvider,
-} from 'sentry/types';
+} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';

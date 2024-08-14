@@ -12,7 +12,7 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
@@ -316,7 +316,9 @@ const StyledButton = styled(Button)`
   min-width: 40%;
 `;
 
-const DismissButton = styled(StyledButton)`
+const DismissButton = styled(LinkButton)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  min-width: 40%;
   margin-left: ${p => p.theme.space(1)};
 
   &:hover,

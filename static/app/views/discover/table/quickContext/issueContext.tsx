@@ -13,7 +13,8 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

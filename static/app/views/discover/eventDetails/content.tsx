@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -153,7 +153,7 @@ function EventDetailsContent(props: Props) {
                 <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
                   {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                 </Button>
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconOpen />}
                   href={eventJsonUrl}
@@ -165,7 +165,7 @@ function EventDetailsContent(props: Props) {
                   }
                 >
                   {t('JSON')} (<FileSize bytes={event.size} />)
-                </Button>
+                </LinkButton>
                 {hasProfilingFeature && event.type === 'transaction' && (
                   <TransactionToProfileButton event={event} projectSlug={projectId} />
                 )}

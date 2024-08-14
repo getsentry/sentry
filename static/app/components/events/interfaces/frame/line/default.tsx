@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {tn} from 'sentry/locale';
-import type {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';

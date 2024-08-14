@@ -1,5 +1,5 @@
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 
 type Value = {
   actor: Actor;

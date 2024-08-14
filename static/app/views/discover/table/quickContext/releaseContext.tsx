@@ -9,7 +9,8 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

@@ -5,7 +5,8 @@ import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {GroupActivityReprocess, Organization} from 'sentry/types';
+import type {GroupActivityReprocess} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import localStorage from 'sentry/utils/localStorage';
 
 type Props = {

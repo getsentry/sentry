@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import type {CodeOwner} from 'sentry/types';
+import type {CodeOwner} from 'sentry/types/integrations';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';

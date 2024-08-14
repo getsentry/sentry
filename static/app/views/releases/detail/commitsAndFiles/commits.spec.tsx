@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {ReleaseProject} from 'sentry/types';
+import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import Commits from './commits';

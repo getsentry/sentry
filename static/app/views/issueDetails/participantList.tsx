@@ -7,7 +7,8 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {Team, User} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 
 interface ParticipantScrollboxProps {
   teams: Team[];

@@ -5,15 +5,14 @@ import keyBy from 'lodash/keyBy';
 import ClippedBox from 'sentry/components/clippedBox';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
-  Frame,
   LineCoverage,
-  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import {CodecovStatusCode, Coverage} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';

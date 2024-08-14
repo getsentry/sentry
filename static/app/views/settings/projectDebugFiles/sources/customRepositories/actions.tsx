@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActionButton from 'sentry/components/actions/button';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -105,7 +104,8 @@ function Actions({
           caret={false}
           disabled={actionsDisabled}
           customTitle={
-            <StyledActionButton
+            <StyledButton
+              size="xs"
               aria-label={t('Actions')}
               disabled={actionsDisabled}
               title={
@@ -132,7 +132,7 @@ function Actions({
 
 export default Actions;
 
-const StyledActionButton = styled(ActionButton)`
+const StyledButton = styled(Button)`
   height: 32px;
 `;
 

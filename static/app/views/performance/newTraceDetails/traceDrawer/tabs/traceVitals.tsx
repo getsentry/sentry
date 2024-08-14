@@ -5,7 +5,7 @@ import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Measurement} from 'sentry/types';
+import type {Measurement} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {IconSize} from 'sentry/utils/theme';
@@ -44,7 +44,7 @@ export function TraceVitals(props: TraceVitalsProps) {
                 </Tooltip>
                 <div>
                   <div>{t('transaction')}</div>
-                  <TraceDrawerComponents.TitleOp> {op}</TraceDrawerComponents.TitleOp>
+                  <TraceDrawerComponents.TitleOp text={op} />
                 </div>
               </TraceDrawerComponents.Title>
             </TraceDrawerComponents.HeaderContainer>

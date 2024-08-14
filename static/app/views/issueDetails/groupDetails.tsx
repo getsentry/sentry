@@ -21,9 +21,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Organization, Project} from 'sentry/types';
-import {GroupStatus, IssueCategory, IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -65,8 +67,8 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useFetchIssueTagsForDetailsPage,
   useHasStreamlinedUI,
+  useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
@@ -828,22 +830,8 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
 
 function GroupDetails(props: GroupDetailsProps) {
   const organization = useOrganization();
-  const router = useRouter();
-
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-
-  const environments = useEnvironmentsFromUrl();
-
-  const {data} = useFetchIssueTagsForDetailsPage(
-    {
-      groupId: router.params.groupId,
-      orgSlug: organization.slug,
-      environment: environments,
-    },
-    // Don't want this query to take precedence over the main requests
-    {enabled: defined(group)}
-  );
-  const isSampleError = data?.some(tag => tag.key === 'sample_event') ?? false;
+  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';

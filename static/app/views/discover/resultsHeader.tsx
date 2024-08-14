@@ -13,7 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import type {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';

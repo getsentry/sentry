@@ -104,6 +104,7 @@ export default function BreadcrumbsDataSection({
             }
             return true;
           },
+          transitionProps: {stiffness: 1000},
         }
       );
     },

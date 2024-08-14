@@ -18,7 +18,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 

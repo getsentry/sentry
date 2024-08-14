@@ -56,11 +56,21 @@ function AvatarList({
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
   const maxVisibleUsers =
     maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+
   // Reverse the order since css flex-reverse is used to display the avatars
   const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
   const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
-  const numCollapsedAvatars =
+  let numCollapsedAvatars =
     users.length + teams.length - (visibleUserAvatars.length + visibleTeamAvatars.length);
+
+  if (numCollapsedAvatars === 1) {
+    if (visibleTeamAvatars.length < teams.length) {
+      visibleTeamAvatars.unshift(teams[teams.length - 1]);
+    } else if (visibleUserAvatars.length < users.length) {
+      visibleUserAvatars.unshift(users[users.length - 1]);
+    }
+    numCollapsedAvatars = 0;
+  }
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';

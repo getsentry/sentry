@@ -1,6 +1,4 @@
-import styled from '@emotion/styled';
-
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
@@ -47,7 +45,7 @@ function EventAttachmentActions({
         />
       </Confirm>
 
-      <DownloadButton
+      <LinkButton
         size="xs"
         icon={<IconDownload />}
         href={url ? `${url}?download=1` : ''}
@@ -57,7 +55,7 @@ function EventAttachmentActions({
       />
 
       {withPreviewButton && (
-        <DownloadButton
+        <Button
           size="xs"
           disabled={!url || !hasPreview}
           priority={previewIsOpen ? 'primary' : 'default'}
@@ -72,14 +70,10 @@ function EventAttachmentActions({
           }
         >
           {t('Preview')}
-        </DownloadButton>
+        </Button>
       )}
     </ButtonBar>
   );
 }
-
-const DownloadButton = styled(Button)`
-  margin-right: ${p => p.theme.space(0.5)};
-`;
 
 export default EventAttachmentActions;

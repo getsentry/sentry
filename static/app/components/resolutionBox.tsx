@@ -12,10 +12,10 @@ import type {
   GroupActivity,
   GroupActivitySetByResolvedInNextSemverRelease,
   GroupActivitySetByResolvedInRelease,
-  Repository,
   ResolvedStatusDetails,
-} from 'sentry/types';
+} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Repository} from 'sentry/types/integrations';
 
 type Props = {
   projectId: string;

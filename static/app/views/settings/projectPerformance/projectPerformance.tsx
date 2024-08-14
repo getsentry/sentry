@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
@@ -20,8 +20,10 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project, Scope} from 'sentry/types';
-import {IssueTitle, IssueType} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import {IssueTitle, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
@@ -944,12 +946,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                   disabled={!hasAccess}
                   renderFooter={() => (
                     <Actions>
-                      <Button
+                      <LinkButton
                         external
                         href="https://docs.sentry.io/product/performance/performance-at-scale/"
                       >
                         {t('Read docs')}
-                      </Button>
+                      </LinkButton>
                     </Actions>
                   )}
                 />

@@ -16,14 +16,14 @@ import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations:[
         sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),
     ],${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${

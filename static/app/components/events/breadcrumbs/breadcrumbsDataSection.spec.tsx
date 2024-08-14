@@ -14,7 +14,7 @@ import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_EXCEPTION_ENTRY,
 } from 'sentry/components/events/breadcrumbs/testUtils';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 // Needed to mock useVirtualizer lists.
 jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({

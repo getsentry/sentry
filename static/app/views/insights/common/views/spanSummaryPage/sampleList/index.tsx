@@ -276,5 +276,5 @@ const Title = styled('h4')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(2)} 0;
 `;

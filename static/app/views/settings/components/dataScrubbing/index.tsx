@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -193,9 +193,9 @@ export function DataScrubbing({
           />
         )}
         <PanelAction>
-          <Button href={ADVANCED_DATASCRUBBING_LINK} external>
+          <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
           <Button disabled={disabled} onClick={handleAdd} priority="primary">
             {t('Add Rule')}
           </Button>

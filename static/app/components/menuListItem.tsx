@@ -289,6 +289,7 @@ const MenuItemWrap = styled('li')`
   margin: 0;
   padding: 0 ${p => p.theme.space(0.5)};
   cursor: pointer;
+  scroll-margin: ${space(0.5)} 0;
 
   &:focus {
     outline: none;

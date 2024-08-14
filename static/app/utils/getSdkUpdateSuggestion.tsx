@@ -5,8 +5,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import type {UpdateSdkSuggestion} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, UpdateSdkSuggestion} from 'sentry/types/event';
 
 type Props = {
   sdk: Event['sdk'];
