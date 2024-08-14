@@ -869,7 +869,8 @@ const SidebarSectionGroupPrimary = styled('div')`
 `;
 
 const PrimaryItems = styled('div')`
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
