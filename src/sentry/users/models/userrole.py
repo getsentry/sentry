@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -81,7 +82,7 @@ class UserRoleUser(ControlOutboxProducingModel):
 
 
 # this must be idempotent because it executes on every upgrade
-def manage_default_super_admin_role(**kwargs):
+def manage_default_super_admin_role(**kwargs: Any) -> None:
     role, _ = UserRole.objects.get_or_create(
         name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
     )
