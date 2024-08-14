@@ -269,12 +269,14 @@ const VisibleFocusButton = styled(Button)`
 `;
 
 const BreadcrumbDrawerHeader = styled(DrawerHeader)`
-  min-height: ${MIN_NAV_HEIGHT}px;
+  max-height: ${MIN_NAV_HEIGHT}px;
+  box-shadow: none;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const BreadcrumbNavigator = styled('div')<{offset: number}>`
   position: sticky;
-  top: ${p => p.offset + 1}px;
+  top: ${p => p.offset}px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
