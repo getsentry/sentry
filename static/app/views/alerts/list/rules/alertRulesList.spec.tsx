@@ -225,7 +225,6 @@ describe('AlertRulesList', () => {
     const deletedRuleName = 'Metric Rule';
     const metricRule = MetricRuleFixture({
       name: deletedRuleName,
-      query: 'is:unresolved',
     });
 
     MockApiClient.addMockResponse({
