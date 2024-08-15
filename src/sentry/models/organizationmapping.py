@@ -51,6 +51,7 @@ class OrganizationMapping(Model):
     codecov_access = models.BooleanField(default=False)
     disable_member_project_creation = models.BooleanField(default=False)
     prevent_superuser_access = models.BooleanField(default=False)
+    disable_member_invite = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
