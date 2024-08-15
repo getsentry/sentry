@@ -299,7 +299,11 @@ class LinkingView(BaseView, ABC):
 
     def record_analytic(self, actor_id: int) -> None:
         if self.analytics_operation_key is None:
+            # This preserves legacy differences between messaging integrations,
+            # in that some record analytics and some don't.
+            # TODO: Make consistent across all messaging integrations.
             return
+
         event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
         analytics.record(
             event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
