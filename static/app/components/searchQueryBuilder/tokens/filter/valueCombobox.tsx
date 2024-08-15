@@ -4,9 +4,13 @@ import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {
+  type CustomComboboxMenu,
+  SearchQueryBuilderCombobox,
+} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
@@ -682,41 +686,41 @@ export function SearchQueryBuilderValueCombobox({
     [wrapperRef]
   );
 
-  const customMenu = useMemo(() => {
-    if (!showDatePicker) return undefined;
+  const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
+    useMemo(() => {
+      if (!showDatePicker) return undefined;
 
-    return function ({popoverRef, isOpen}) {
-      return (
-        <SpecificDatePicker
-          popoverRef={popoverRef}
-          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
-          handleSelectDateTime={newDateTimeValue => {
-            setInputValue(newDateTimeValue);
-            inputRef.current?.focus();
-            trackAnalytics('search.value_autocompleted', {
-              ...analyticsData,
-              filter_value: newDateTimeValue,
-              filter_value_type: 'absolute_date',
-            });
-          }}
-          handleBack={() => {
-            setShowDatePicker(false);
-            setInputValue('');
-            inputRef.current?.focus();
-          }}
-          handleSave={newDateTimeValue => {
-            dispatch({
-              type: 'UPDATE_TOKEN_VALUE',
-              token: token,
-              value: newDateTimeValue,
-            });
-            onCommit();
-          }}
-          isOpen={isOpen}
-        />
-      );
-    };
-  }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
+      return function (props) {
+        return (
+          <SpecificDatePicker
+            {...props}
+            dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+            handleSelectDateTime={newDateTimeValue => {
+              setInputValue(newDateTimeValue);
+              inputRef.current?.focus();
+              trackAnalytics('search.value_autocompleted', {
+                ...analyticsData,
+                filter_value: newDateTimeValue,
+                filter_value_type: 'absolute_date',
+              });
+            }}
+            handleBack={() => {
+              setShowDatePicker(false);
+              setInputValue('');
+              inputRef.current?.focus();
+            }}
+            handleSave={newDateTimeValue => {
+              dispatch({
+                type: 'UPDATE_TOKEN_VALUE',
+                token: token,
+                value: newDateTimeValue,
+              });
+              onCommit();
+            }}
+          />
+        );
+      };
+    }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
