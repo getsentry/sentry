@@ -14,13 +14,15 @@ import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconIssues, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 interface Props {
   eventData: Event | undefined;
@@ -50,6 +52,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const displayUrl =
     eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
+
+  const {oneOtherIssueEvent: onlyOneOtherIssueInTrace} = eventData
+    ? useTraceTimelineEvents({event: eventData})
+    : {oneOtherIssueEvent: undefined};
+  const hasLinkedError: boolean = crashReportId && feedbackItem.project;
+  // If there's a linked error from a crash report and only one other issue, showing both would be redundant.
+  // The TraceTimeline wrapped in TraceDataSection only works for >1 issues.
+  const showTraceDataSection: boolean = !onlyOneOtherIssueInTrace || !hasLinkedError;
 
   return (
     <Fragment>
@@ -94,6 +104,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           feedbackItem={feedbackItem}
           organization={organization}
         />
+
+        {eventData && showTraceDataSection ? (
+          <Section icon={<IconIssues size="xs" />} title={t('Trace-related Issues')}>
+            <TraceDataSection event={eventData} />
+          </Section>
+        ) : null}
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />
