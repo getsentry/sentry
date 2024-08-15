@@ -1,9 +1,10 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {QueryCounts} from 'sentry/views/issueList/utils';
 
 // Copied from CountEndpointParams in overview.tsx
-type FetchIssueCountsParameters = {
+interface FetchIssueCountsParameters extends Partial<PageFilters['datetime']> {
   environment: string[];
   orgSlug: string;
   project: number[];
@@ -12,7 +13,7 @@ type FetchIssueCountsParameters = {
   sort?: string;
   statsPeriod?: string | null;
   useGroupSnubaDataset?: boolean;
-};
+}
 
 export const makeFetchIssueCounts = ({
   orgSlug,
