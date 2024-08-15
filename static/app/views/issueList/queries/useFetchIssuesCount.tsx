@@ -1,10 +1,17 @@
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {CountsEndpointParams} from 'sentry/views/issueList/overview';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type FetchIssueCountsParameters = CountsEndpointParams & {
+// Copied from CountEndpointParams in overview.tsx
+type FetchIssueCountsParameters = {
+  environment: string[];
   orgSlug: string;
+  project: number[];
+  query: string[];
+  groupStatsPeriod?: string | null;
+  sort?: string;
+  statsPeriod?: string | null;
+  useGroupSnubaDataset?: boolean;
 };
 
 export const makeFetchIssueCounts = ({
@@ -24,7 +31,7 @@ export const useFetchGroupSearchViews = (
   options: Partial<UseApiQueryOptions<GroupSearchView[]>> = {}
 ) => {
   return useApiQuery<GroupSearchView[]>(makeFetchIssueCounts(params), {
-    staleTime: Infinity,
+    staleTime: 0,
     ...options,
   });
 };

@@ -139,7 +139,7 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   useGroupSnubaDataset?: boolean;
 }
 
-export type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
+type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
   query: string[];
 };
 
