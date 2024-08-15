@@ -32,7 +32,7 @@ import (
 if err := sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   // Set TracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
+  // of transactions for tracing.
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,
 }); err != nil {

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconUpgrade} from 'sentry/icons';
@@ -44,14 +44,14 @@ export default function AdminEnvironment() {
           <VersionLabel>
             {t('Server Version')}
             {version.upgradeAvailable && (
-              <Button
+              <LinkButton
                 href="https://github.com/getsentry/sentry/releases"
                 icon={<IconUpgrade />}
                 size="xs"
                 external
               >
                 {t('Upgrade to Sentry %s', version.latest)}
-              </Button>
+              </LinkButton>
             )}
           </VersionLabel>
           <dd>

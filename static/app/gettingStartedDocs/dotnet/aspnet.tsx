@@ -60,7 +60,7 @@ public class MvcApplication : HttpApplication
               params.isPerformanceSelected
                 ? `
             // Set TracesSampleRate to 1.0 to capture 100%
-            // of transactions for performance monitoring.
+            // of transactions for tracing.
             // We recommend adjusting this value in production
             o.TracesSampleRate = 1.0;`
                 : ''

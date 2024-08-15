@@ -23,7 +23,9 @@ from sentry.integrations.message_builder import (
     format_actor_options,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import (
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
+from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
@@ -31,8 +33,6 @@ from sentry.integrations.slack.message_builder import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
@@ -60,6 +60,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -80,9 +81,7 @@ USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
     "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: group.count_users_seen(
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
-    ),
+    "Users Affected": lambda group: get_group_users_count(group),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
     "Approx. Start Time": lambda group: datetime.fromtimestamp(
@@ -99,6 +98,13 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_users_count(group: Group) -> int:
+    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
+    return group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
+    )
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:

@@ -11,8 +11,10 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, Group, Organization} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import type {EventError} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   findRangeOfMultiSeries,
   getDurationUnit,

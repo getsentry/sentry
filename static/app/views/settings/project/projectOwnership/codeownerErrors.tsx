@@ -5,7 +5,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types';
+import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 

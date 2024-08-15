@@ -12,7 +12,6 @@ from sentry.mediators.project_rules.updater import Updater
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
-from sentry.models.user import User
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.signals import (
@@ -20,6 +19,7 @@ from sentry.signals import (
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
+from sentry.users.models.user import User
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 

@@ -96,6 +96,8 @@ def register_permanent_features(manager: FeatureManager):
         # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
         # must be installed to use this functionality.
         "organizations:sso-saml2": True,
+        # Enable 'spans' category on the stats page
+        "organizations:span-stats": False,
         # Enable team insights page
         "organizations:team-insights": True,
         # Enable setting team-level roles and receiving permissions from them

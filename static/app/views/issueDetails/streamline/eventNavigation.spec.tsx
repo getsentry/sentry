@@ -32,6 +32,14 @@ describe('EventNavigation', () => {
       clipboard: {writeText: jest.fn().mockResolvedValue('')},
     });
     window.open = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
+      body: {
+        errors: [],
+      },
+      method: 'GET',
+    });
   });
 
   describe('recommended event tabs', () => {
@@ -129,5 +137,28 @@ describe('EventNavigation', () => {
     expect(window.open).toHaveBeenCalledWith(
       `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
     );
+  });
+
+  it('shows processing issue button if there is an event error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
+      body: {
+        errors: [
+          {
+            type: 'invalid_data',
+            data: {
+              name: 'logentry',
+            },
+            message: 'no message present',
+          },
+        ],
+      },
+      method: 'GET',
+    });
+    render(<EventNavigation {...defaultProps} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Processing Error'})
+    ).toBeInTheDocument();
   });
 });

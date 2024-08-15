@@ -337,7 +337,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
-        assert self.group.substatus == GroupSubStatus.ONGOING
+        assert self.group.substatus == GroupSubStatus.NEW
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_forever_through_unfurl(self, mock_tags):

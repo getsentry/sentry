@@ -119,6 +119,7 @@ def incident_attachment_info(
     title_link_params = {
         "alert": str(incident.identifier),
         "referrer": referrer,
+        "detection_type": alert_rule.detection_type,
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid

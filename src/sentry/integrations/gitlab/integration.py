@@ -13,12 +13,12 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -92,18 +92,16 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
-):
-    repo_search = True
+class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabIssueBasic):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
 
-    def get_group_id(self):
-        return self.model.metadata["group_id"]
+    @property
+    def integration_name(self) -> str:
+        return "gitlab"
 
     def get_client(self):
         if self.default_identity is None:
@@ -114,6 +112,26 @@ class GitlabIntegration(
 
         return GitLabApiClient(self)
 
+    # IntegrationInstallation methods
+    def error_message_from_json(self, data):
+        """
+        Extract error messages from gitlab API errors.
+        Generic errors come in the `error` key while validation errors
+        are generally in `message`.
+
+        See https://docs.gitlab.com/ee/api/#data-validation-and-error-reporting
+        """
+        if "message" in data:
+            return data["message"]
+        if "error" in data:
+            return data["error"]
+
+    # RepositoryIntegration methods
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
+
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
@@ -123,7 +141,7 @@ class GitlabIntegration(
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 
@@ -143,27 +161,20 @@ class GitlabIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
+    # Gitlab only functions
+
+    def get_group_id(self):
+        return self.model.metadata["group_id"]
+
     def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_projects(group_id, query)
 
+    # TODO(cathy): define in issue ABC
     def search_issues(self, project_id, query, iids):
         client = self.get_client()
         return client.search_project_issues(project_id, query, iids)
-
-    def error_message_from_json(self, data):
-        """
-        Extract error messages from gitlab API errors.
-        Generic errors come in the `error` key while validation errors
-        are generally in `message`.
-
-        See https://docs.gitlab.com/ee/api/#data-validation-and-error-reporting
-        """
-        if "message" in data:
-            return data["message"]
-        if "error" in data:
-            return data["error"]
 
 
 class InstallationForm(forms.Form):

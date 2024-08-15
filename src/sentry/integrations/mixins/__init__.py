@@ -11,7 +11,6 @@ __all__ = (
     "IssueBasicMixin",
     "IssueSyncMixin",
     "NotifyBasicMixin",
-    "RepositoryMixin",
     "ResolveSyncAction",
     "ServerlessMixin",
     "SUCCESS_UNLINKED_TEAM_MESSAGE",
@@ -24,5 +23,4 @@ from .notifications import (
     SUCCESS_UNLINKED_TEAM_TITLE,
     NotifyBasicMixin,
 )
-from .repositories import RepositoryMixin
 from .serverless import ServerlessMixin

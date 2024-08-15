@@ -316,6 +316,9 @@
     "sentry.grouptombstone",
     "sentry.project"
   ],
+  "sentry.grouphashmetadata": [
+    "sentry.grouphash"
+  ],
   "sentry.grouphistory": [
     "sentry.group",
     "sentry.organization",

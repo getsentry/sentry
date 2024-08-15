@@ -4,7 +4,8 @@ import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPr
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 

@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -85,7 +86,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
+    children: [FieldKey.ASSIGNED, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -100,7 +101,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_4',
     label: 'Category 4',
-    children: [FieldKey.LAST_SEEN],
+    children: [FieldKey.LAST_SEEN, FieldKey.TIMES_SEEN],
   },
   {
     value: 'cat_5',
@@ -365,6 +366,11 @@ export default storyBook(SearchQueryBuilder, story => {
         name: 'count_if',
         kind: FieldKind.FUNCTION,
       },
+      p95: {
+        key: 'p95',
+        name: 'p95',
+        kind: FieldKind.FUNCTION,
+      },
       'transaction.duration': {
         key: 'transaction.duration',
         name: 'transaction.duration',
@@ -465,6 +471,32 @@ export default storyBook(SearchQueryBuilder, story => {
               },
             ],
           };
+        case 'p95':
+          return {
+            desc: 'Returns results with the 95th percentile of the selected column.',
+            kind: FieldKind.FUNCTION,
+            defaultValue: '300ms',
+            valueType: null,
+            parameterDependentValueType: parameters => {
+              const column = parameters[0];
+              const fieldDef = column ? getFieldDefinition(column) : null;
+              return fieldDef?.valueType ?? FieldValueType.NUMBER;
+            },
+            parameters: [
+              {
+                name: 'column',
+                kind: 'column' as const,
+                columnTypes: [
+                  FieldValueType.DURATION,
+                  FieldValueType.NUMBER,
+                  FieldValueType.INTEGER,
+                  FieldValueType.PERCENTAGE,
+                ],
+                defaultValue: 'transaction.duration',
+                required: true,
+              },
+            ],
+          };
         default:
           return getFieldDefinition(key);
       }
@@ -524,6 +556,13 @@ export default storyBook(SearchQueryBuilder, story => {
             </li>
           </li>
         </ul>
+        <p>
+          Some aggreate filters may have a return type that is dependent on the
+          parameters. For example, <code>p95(column)</code> may return a few different
+          types depending on the column type. In this case, the field definition should
+          implement <code>parameterDependentValueType</code>. This function accepts an
+          array of parameters and returns the value type.
+        </p>
         <SearchQueryBuilder
           initialQuery=""
           filterKeys={aggregateFilterKeys}
@@ -652,6 +691,21 @@ export default storyBook(SearchQueryBuilder, story => {
         searchSource="storybook"
         disabled
       />
+    );
+  });
+
+  story('FormattedQuery', () => {
+    return (
+      <Fragment>
+        <p>
+          If you just need to render a formatted query outside of the search bar,{' '}
+          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+        </p>
+        <FormattedQuery
+          query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
+          filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
     );
   });
 

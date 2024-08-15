@@ -5,9 +5,6 @@ from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
@@ -15,6 +12,9 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole
 
 
 class UserDetailsTest(APITestCase):
@@ -45,7 +45,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
-        assert not resp.data["options"]["issueDetailsNewExperienceQ42023"]
+        assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
 
     def test_superuser_simple(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -115,7 +115,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "language": "fr",
                 "clock24Hours": True,
                 "extra": True,
-                "issueDetailsNewExperienceQ42023": True,
+                "prefersIssueDetailsStreamlinedUI": True,
             },
         )
 
@@ -133,7 +133,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert UserOption.objects.get_value(
-            user=self.user, key="issue_details_new_experience_q4_2023"
+            user=self.user, key="prefers_issue_details_streamlined_ui"
         )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")

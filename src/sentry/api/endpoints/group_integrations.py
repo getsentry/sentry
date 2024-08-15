@@ -20,7 +20,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):

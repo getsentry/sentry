@@ -12,14 +12,14 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {DateString} from 'sentry/types/core';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {
-  DateString,
   EventsStats,
   EventsStatsData,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'sentry/types';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';

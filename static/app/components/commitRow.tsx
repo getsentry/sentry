@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -19,8 +19,8 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types';
 import type {Commit} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -233,13 +233,13 @@ function CommitRow({
       </CommitMessage>
 
       {commit.pullRequest?.externalUrl && (
-        <Button
+        <LinkButton
           external
           href={commit.pullRequest.externalUrl}
           onClick={onPullRequestClick}
         >
           {t('View Pull Request')}
-        </Button>
+        </LinkButton>
       )}
     </StyledPanelItem>
   );

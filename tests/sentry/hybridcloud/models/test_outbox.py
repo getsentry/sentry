@@ -22,7 +22,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -30,6 +29,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
+from sentry.users.models.user import User
 
 
 def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
@@ -146,7 +146,7 @@ class ControlOutboxTest(TestCase):
 
 
 class OutboxDrainTest(TransactionTestCase):
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_draining_with_disabled_shards(self, mock_send: Mock) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -196,7 +196,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert RegionOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_not_flush_all__concurrent_processing(
         self, mock_process_region_outbox: Mock
     ) -> None:
@@ -265,7 +265,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox1.id).first()
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
         self, mock_process_region_outbox: Mock
     ) -> None:
@@ -375,7 +375,9 @@ class RegionOutboxTest(TestCase):
             raise
 
     def test_outbox_rescheduling(self) -> None:
-        with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:
+        with patch(
+            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+        ) as mock_process_region_outbox:
 
             def raise_exception(**kwargs: Any) -> None:
                 raise ValueError("This is just a test mock exception")
@@ -435,9 +437,12 @@ class RegionOutboxTest(TestCase):
                 ensure_converged()
 
     def test_outbox_converges(self) -> None:
-        with patch(
-            "sentry.models.outbox.process_region_outbox.send"
-        ) as mock_process_region_outbox, outbox_context(flush=False):
+        with (
+            patch(
+                "sentry.hybridcloud.models.outbox.process_region_outbox.send"
+            ) as mock_process_region_outbox,
+            outbox_context(flush=False),
+        ):
             Organization(id=10001).outbox_for_update().save()
             Organization(id=10001).outbox_for_update().save()
 

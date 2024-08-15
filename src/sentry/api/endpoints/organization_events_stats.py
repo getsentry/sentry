@@ -12,9 +12,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
     errors,
@@ -181,7 +181,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
-        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+        query_source = self.get_request_source(request)
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -277,7 +277,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             scoped_dataset: Any,
             query_columns: Sequence[str],
             query: str,
-            params: dict[str, str],
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None,
@@ -288,7 +288,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
                     limit=top_events,
@@ -305,7 +306,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 rollup=rollup,
                 referrer=referrer,
                 zerofill_results=zerofill_results,
@@ -340,7 +342,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             def fn(
                 query_columns: Sequence[str],
                 query: str,
-                params: dict[str, str],
+                snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
@@ -351,7 +353,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -383,7 +385,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             split_dataset,
                             query_columns,
                             split_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -397,7 +399,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             errors_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -410,7 +412,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -438,7 +440,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             transactions_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -455,7 +457,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -498,7 +500,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,

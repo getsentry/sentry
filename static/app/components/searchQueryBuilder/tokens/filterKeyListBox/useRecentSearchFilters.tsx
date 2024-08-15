@@ -1,11 +1,18 @@
+import {useMemo} from 'react';
+
 import {useFetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 
-const MAX_RECENT_FILTERS = 5;
+const MAX_RECENT_FILTERS = 3;
+const NO_FILTERS = [];
+
+// If the recent searches are very long, this prevents the parser from taking too long
+const MAX_QUERY_PARSE_LENGTH = 500;
 
 function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
   if (!parsedQuery) {
@@ -14,7 +21,7 @@ function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
 
   return parsedQuery
     .filter(token => token.type === Token.FILTER)
-    .map(token => token.key.text);
+    .map(token => getKeyName(token.key));
 }
 
 function getFiltersFromQuery({
@@ -26,15 +33,19 @@ function getFiltersFromQuery({
   getFieldDefinition: FieldDefinitionGetter;
   query: string;
 }) {
-  const parsed = parseQueryBuilderValue(query, getFieldDefinition, {
-    filterKeys,
-  });
+  const parsed = parseQueryBuilderValue(
+    query.slice(0, MAX_QUERY_PARSE_LENGTH),
+    getFieldDefinition,
+    {
+      filterKeys,
+    }
+  );
 
   return getFiltersFromParsedQuery(parsed);
 }
 
 function getFiltersFromRecentSearches(
-  recentSearchesData: RecentSearch[],
+  recentSearchesData: RecentSearch[] | undefined,
   {
     parsedCurrentQuery,
     filterKeys,
@@ -45,17 +56,21 @@ function getFiltersFromRecentSearches(
     parsedCurrentQuery: ParseResult | null;
   }
 ) {
-  if (!recentSearchesData.length) {
-    return [];
+  if (!recentSearchesData?.length) {
+    return NO_FILTERS;
   }
-
   const filtersInCurrentQuery = getFiltersFromParsedQuery(parsedCurrentQuery);
 
   const filterCounts: {[filter: string]: number} = recentSearchesData
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => !filtersInCurrentQuery.includes(filter))
+    .filter(
+      filter =>
+        // We want to show recent filters that are not already in the current query
+        // and are valid filter keys
+        !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter]
+    )
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
@@ -79,18 +94,22 @@ export function useRecentSearchFilters() {
   const {data: recentSearchesData} = useFetchRecentSearches(
     {
       savedSearchType: recentSearches ?? null,
-      limit: 10,
+      limit: 5,
     },
     {
       staleTime: 30_000,
     }
   );
 
-  const filters = getFiltersFromRecentSearches(recentSearchesData ?? [], {
-    parsedCurrentQuery: parsedQuery,
-    filterKeys,
-    getFieldDefinition,
-  });
+  const filters = useMemo(
+    () =>
+      getFiltersFromRecentSearches(recentSearchesData, {
+        parsedCurrentQuery: parsedQuery,
+        filterKeys,
+        getFieldDefinition,
+      }),
+    [filterKeys, getFieldDefinition, parsedQuery, recentSearchesData]
+  );
 
   return filters;
 }

@@ -5,8 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization as TOrganization} from 'sentry/types';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 import type {NotificationOptionsObject, NotificationProvidersObject} from './constants';
 import NotificationSettingsByType from './notificationSettingsByType';
@@ -73,7 +73,7 @@ function renderComponent({
   notificationProviders?: NotificationProvidersObject[];
   notificationType?: string;
   organizationIntegrations?: OrganizationIntegration[];
-  organizations?: TOrganization[];
+  organizations?: Organization[];
 }) {
   const org = OrganizationFixture();
   renderMockRequests({

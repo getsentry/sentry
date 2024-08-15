@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
-import Button from 'sentry/components/actions/button';
+import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -53,13 +53,17 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      <Button priority={isResolved ? 'danger' : 'primary'} onClick={onResolveClick}>
+      <Button
+        size="xs"
+        priority={isResolved ? 'danger' : 'primary'}
+        onClick={onResolveClick}
+      >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
-      <Button priority="default" onClick={onSpamClick}>
+      <Button size="xs" priority="default" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
-      <Button onClick={onMarkAsReadClick}>
+      <Button size="xs" onClick={onMarkAsReadClick}>
         {hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
     </Fragment>
@@ -72,7 +76,11 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      <Button priority={isResolved ? 'danger' : 'primary'} onClick={onResolveClick}>
+      <Button
+        size="xs"
+        priority={isResolved ? 'danger' : 'primary'}
+        onClick={onResolveClick}
+      >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
 

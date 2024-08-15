@@ -76,7 +76,7 @@ def match_selected_version_to_browser_sdk_version(selected_version):
     )
 
 
-def get_browser_sdk_version(project_key):
+def get_browser_sdk_version(project_key) -> Version:
     selected_version = get_selected_browser_sdk_version(project_key)
 
     try:

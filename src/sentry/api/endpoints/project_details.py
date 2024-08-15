@@ -2,6 +2,7 @@ import logging
 import math
 import time
 from datetime import timedelta
+from random import randint
 from uuid import uuid4
 
 import orjson
@@ -13,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -167,7 +168,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         allow_null=True,
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
-
+    highlightContext = HighlightContextField(
+        required=False,
+        help_text="A JSON mapping of context types to lists of strings for their keys. E.g. {'user': ['id', 'email']}",
+    )
+    highlightTags = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of strings with tag keys to highlight on this project's issues. E.g. ['release', 'environment']",
+    )
     # TODO: Add help_text to all the fields for public documentation
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
@@ -185,8 +194,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    highlightContext = HighlightContextField(required=False)
-    highlightTags = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
@@ -979,7 +986,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-grouping", project):
+            if features.has("projects:similarity-embeddings-grouping", project) or (
+                project.get_option("sentry:similarity_backfill_completed")
+                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
+            ):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

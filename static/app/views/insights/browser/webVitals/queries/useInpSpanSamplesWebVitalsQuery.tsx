@@ -7,7 +7,7 @@ import {
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 export function useInpSpanSamplesWebVitalsQuery({
   transaction,
@@ -16,12 +16,14 @@ export function useInpSpanSamplesWebVitalsQuery({
   filters = {},
   sortName,
   browserTypes,
+  subregions,
 }: {
   limit: number;
   browserTypes?: BrowserType[];
   enabled?: boolean;
   filters?: {[key: string]: string[] | string | number | undefined};
   sortName?: string;
+  subregions?: SubregionCode[];
   transaction?: string;
 }) {
   const filteredSortableFields = SORTABLE_INDEXED_INTERACTION_FIELDS;
@@ -43,6 +45,12 @@ export function useInpSpanSamplesWebVitalsQuery({
   }
   if (browserTypes) {
     mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    mutableSearch.addDisjunctionFilterValues(
+      SpanIndexedField.USER_GEO_SUBREGION,
+      subregions
+    );
   }
 
   const {data, isLoading, ...rest} = useSpansIndexed(

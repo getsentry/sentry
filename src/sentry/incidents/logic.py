@@ -659,6 +659,8 @@ def create_alert_rule(
             except (ValidationError):
                 alert_rule.delete()
                 raise
+            else:
+                metrics.incr("anomaly_detection_alert.created")
 
         if user:
             create_audit_entry_from_user(

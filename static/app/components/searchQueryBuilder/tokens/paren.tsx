@@ -15,6 +15,14 @@ type SearchQueryBuilderParenProps = {
   token: TokenResult<Token.L_PAREN | Token.R_PAREN>;
 };
 
+export function SearchQueryBuilderParenIcon({
+  token,
+}: Pick<SearchQueryBuilderParenProps, 'token'>) {
+  return (
+    <IconParenthesis side={token.type === Token.L_PAREN ? 'left' : 'right'} height={26} />
+  );
+}
+
 export function SearchQueryBuilderParen({
   item,
   state,
@@ -28,10 +36,7 @@ export function SearchQueryBuilderParen({
       label={token.value}
       invalid={token.invalid}
     >
-      <IconParenthesis
-        side={token.type === Token.L_PAREN ? 'left' : 'right'}
-        height={26}
-      />
+      <SearchQueryBuilderParenIcon token={token} />
     </DeletableToken>
   );
 }

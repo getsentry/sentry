@@ -1,8 +1,10 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import type {DataCategoryInfo, Scope} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
+import type {PermissionResource} from 'sentry/types/integrations';
+import type {OrgRole} from 'sentry/types/organization';
 
 /**
  * Common constants here
@@ -311,7 +313,7 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span_indexed',
+    apiName: 'span',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),

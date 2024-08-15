@@ -74,7 +74,7 @@ public static MauiApp CreateMauiApp()
         params.isPerformanceSelected
           ? `
 
-      // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+      // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
       // We recommend adjusting this value in production.
       options.TracesSampleRate = 1.0;`
           : ''
@@ -246,7 +246,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: (
               <Fragment>
                 {t(
