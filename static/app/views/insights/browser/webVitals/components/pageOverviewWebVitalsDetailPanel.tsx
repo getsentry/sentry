@@ -39,7 +39,7 @@ import type {
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -89,6 +89,9 @@ export function PageOverviewWebVitalsDetailPanel({
   const {replayExists} = useReplayExists();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = location.query[
+    SpanIndexedField.USER_GEO_SUBREGION
+  ] as SubregionCode[];
   const isInp = webVital === 'inp';
 
   const replayLinkGenerator = generateReplayLink(routes);
@@ -104,11 +107,16 @@ export function PageOverviewWebVitalsDetailPanel({
       : location.query.transaction
     : undefined;
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({transaction, browserTypes});
+  const {data: projectData} = useProjectRawWebVitalsQuery({
+    transaction,
+    browserTypes,
+    subregions,
+  });
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     transaction,
     browserTypes,
+    subregions,
   });
 
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
@@ -121,6 +129,7 @@ export function PageOverviewWebVitalsDetailPanel({
       webVital,
       enabled: Boolean(webVital) && !isInp,
       browserTypes,
+      subregions,
     });
 
   const {data: inpTableData, isLoading: isInteractionsLoading} =
@@ -128,6 +137,7 @@ export function PageOverviewWebVitalsDetailPanel({
       transaction: transaction ?? '',
       enabled: Boolean(webVital) && isInp,
       browserTypes,
+      subregions,
     });
 
   const {profileExists} = useProfileExists(
@@ -135,7 +145,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({transaction, browserTypes});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction, browserTypes, subregions});
 
   const webVitalData: LineChartSeries = {
     data:
