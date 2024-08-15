@@ -23,6 +23,7 @@ interface Props {
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  savedSearchType?: SavedSearchType;
 }
 
 export function EventsSearchBar({
@@ -32,6 +33,7 @@ export function EventsSearchBar({
   onClose,
   widgetQuery,
   dataset,
+  savedSearchType = SavedSearchType.EVENT,
 }: Props) {
   const {customMeasurements} = useCustomMeasurements();
   const projectIds = pageFilters.projects;
@@ -53,7 +55,7 @@ export function EventsSearchBar({
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}
       maxMenuHeight={MAX_MENU_HEIGHT}
-      savedSearchType={SavedSearchType.EVENT}
+      savedSearchType={savedSearchType}
       customMeasurements={customMeasurements}
       dataset={dataset}
       includeTransactions={hasDatasetSelector(organization) ? false : true}
