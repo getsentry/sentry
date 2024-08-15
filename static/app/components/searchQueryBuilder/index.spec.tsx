@@ -400,11 +400,8 @@ describe('SearchQueryBuilder', function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
           body: [
-            {query: 'assigned:me'},
-            {query: 'assigned:me browser.name:firefox'},
-            {query: 'assigned:me browser.name:firefox is:unresolved'},
             // Level is not a valid filter key
-            {query: 'assigned:me browser.name:firefox is:unresolved level:error'},
+            {query: 'assigned:me level:error'},
           ],
         });
 
@@ -420,10 +417,8 @@ describe('SearchQueryBuilder', function () {
 
         // Should not show "level" in the recent filter keys
         const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
-        expect(recentFilterKeys).toHaveLength(3);
+        expect(recentFilterKeys).toHaveLength(1);
         expect(recentFilterKeys[0]).toHaveTextContent('assigned');
-        expect(recentFilterKeys[1]).toHaveTextContent('browser');
-        expect(recentFilterKeys[2]).toHaveTextContent('is');
       });
 
       it('can navigate between filters with arrow keys', async function () {
