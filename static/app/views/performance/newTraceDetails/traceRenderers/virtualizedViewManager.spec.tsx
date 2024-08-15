@@ -174,7 +174,9 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTraceSpace([0, 0, 100, 1]);
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
-      expect(manager.computeSpanCSSMatrixTransform([0, 100])).toEqual([1, 0, 0, 1, 0, 0]);
+      expect(manager.computeSpanCSSMatrixTransform([0, 100])).toEqual([
+        1, 0, 0, 1, -2, 0,
+      ]);
     });
 
     it('computes x position correctly', () => {
@@ -191,7 +193,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
-        1, 0, 0, 1, 50, 0,
+        1, 0, 0, 1, 48, 0,
       ]);
     });
 
@@ -209,7 +211,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
-        1, 0, 0, 1, 50, 0,
+        1, 0, 0, 1, 48, 0,
       ]);
     });
 
@@ -228,7 +230,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
-          1, 0, 0, 1, 0, 0,
+          1, 0, 0, 1, -2, 0,
         ]);
       });
       it('computes x position correctly when view is offset', () => {
@@ -245,7 +247,7 @@ describe('VirtualizedViewManger', () => {
         manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
-          1, 0, 0, 1, 0, 0,
+          1, 0, 0, 1, -2, 0,
         ]);
       });
     });
