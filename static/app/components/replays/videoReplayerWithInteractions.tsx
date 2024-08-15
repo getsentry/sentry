@@ -137,7 +137,7 @@ export class VideoReplayerWithInteractions {
             tags: {
               sdk_name: context.sdkName,
               sdk_version: context.sdkVersion,
-              type: typeof t,
+              touch_event_type: typeof t,
             },
           }
         );
