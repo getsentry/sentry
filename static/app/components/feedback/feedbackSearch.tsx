@@ -30,7 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-const EXCLUDED_TAGS = [
+const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.BROWSER_VERSION,
   FeedbackFieldKey.EMAIL,
   FeedbackFieldKey.LOCALE_LANG,
@@ -38,6 +38,11 @@ const EXCLUDED_TAGS = [
   FeedbackFieldKey.NAME,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,
+  // These are some tags found in issuePlatform dataset
+  'browser',
+  'device',
+  'os',
+  'user',
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
@@ -58,18 +63,20 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
 
 /**
- * Merges a list of supported tags and feedback search fields into one collection.
+ * Merges a list of supported tags and feedback search properties into one collection.
  */
-function getFeedbackSearchTags(supportedTags: TagCollection) {
+function getFeedbackFilterKeys(supportedTags: TagCollection) {
   const allTags = {
     ...Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
-        },
-      ])
+      Object.keys(supportedTags)
+        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .map(key => [
+          key,
+          {
+            ...supportedTags[key],
+            kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
+          },
+        ])
     ),
     ...FEEDBACK_FIELDS_AS_TAGS,
   };
@@ -90,12 +97,10 @@ const getFilterKeySections = (
     return [];
   }
 
-  const excludedTags = ['browser', 'device', 'os', 'user'];
-
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       tag.kind === FieldKind.TAG &&
-      !excludedTags.includes(tag.key) &&
+      !EXCLUDED_TAGS.includes(tag.key) &&
       !FEEDBACK_FIELDS.map(String).includes(tag.key)
   );
 
@@ -152,8 +157,8 @@ export default function FeedbackSearch({className, style}: Props) {
   }, [tagQuery]);
   // tagQuery.isLoading and tagQuery.isError are not used
 
-  const allFeedbackSearchTags = useMemo(
-    () => getFeedbackSearchTags(issuePlatformTags),
+  const filterKeys = useMemo(
+    () => getFeedbackFilterKeys(issuePlatformTags),
     [issuePlatformTags]
   );
 
@@ -223,7 +228,7 @@ export default function FeedbackSearch({className, style}: Props) {
     return (
       <SearchQueryBuilder
         initialQuery={decodeScalar(locationQuery.query, '')}
-        filterKeys={allFeedbackSearchTags}
+        filterKeys={filterKeys}
         filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         onSearch={onSearch}
@@ -241,7 +246,7 @@ export default function FeedbackSearch({className, style}: Props) {
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}
-        supportedTags={allFeedbackSearchTags}
+        supportedTags={filterKeys}
         excludedTags={EXCLUDED_TAGS}
         fieldDefinitionGetter={getFeedbackFieldDefinition}
         maxMenuHeight={500}
