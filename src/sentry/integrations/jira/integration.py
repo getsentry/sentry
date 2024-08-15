@@ -115,6 +115,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
     "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
     "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
     "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
+    "team": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
 }
 
 
@@ -860,6 +861,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     elif schema["type"] == "issuelink":  # used by Parent field
                         v = {"key": v}
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
+                        v = v
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["team"]:
                         v = v
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
                         try:

@@ -76,6 +76,17 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
+    def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
+        filters: SentryAppInstallationFilterArgs = {
+            "status": SentryAppInstallationStatus.INSTALLED,
+            "api_installation_token_id": str(token_id),
+        }
+        queryset = self._FQ.apply_filters(SentryAppInstallation.objects.all(), filters)
+        install = queryset.first()
+        if not install:
+            return None
+        return install.organization_id
+
     def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)

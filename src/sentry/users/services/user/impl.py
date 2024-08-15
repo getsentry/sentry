@@ -24,10 +24,10 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.useremail import UserEmail
 from sentry.signals import user_signup
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,

@@ -23,6 +23,18 @@ export default function MissingReplayAlert({orgSlug}: Props) {
     ),
     t('The replay has been deleted by a member in your organization.'),
     t('There were network errors and the replay was not saved.'),
+    tct(
+      "An ad-blocker was turned on for the user's session. [link:Read our docs] for a workaround.",
+      {
+        link: (
+          <ExternalLink
+            href={
+              'https://docs.sentry.io/platforms/javascript/troubleshooting/#dealing-with-ad-blockers'
+            }
+          />
+        ),
+      }
+    ),
   ];
   return (
     <Alert

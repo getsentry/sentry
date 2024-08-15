@@ -45,6 +45,11 @@ function ResourceSummaryCharts(props: {groupId: string}) {
                   filters[RESOURCE_RENDER_BLOCKING_STATUS],
               }
             : {}),
+          ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+            ? {
+                [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+              }
+            : {}),
         }),
         yAxis: [
           `spm()`,
