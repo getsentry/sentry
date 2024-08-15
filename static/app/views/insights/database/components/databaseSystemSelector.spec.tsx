@@ -4,6 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -20,9 +21,14 @@ jest.mock('sentry/utils/useLocation', () => ({
   useLocation: jest.fn(),
 }));
 
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
 const mockUseSpanMetrics = jest.mocked(useSpanMetrics);
 const mockUseLocation = jest.mocked(useLocation);
+const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('DatabaseSystemSelector', function () {
   const organization = OrganizationFixture();
@@ -166,8 +172,10 @@ describe('DatabaseSystemSelector', function () {
     expect(mockSetState).not.toHaveBeenCalledWith('chungusdb');
   });
 
-  it('prioritizes the system set in query parameters but does not replace localStorage valud', async function () {
+  it('prioritizes the system set in query parameters but does not replace localStorage value until an option is clicked', async function () {
     const {SPAN_SYSTEM} = SpanMetricsField;
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
 
     mockUseLocation.mockReturnValue({
       query: {project: ['1'], [SPAN_SYSTEM]: 'mongodb'},
@@ -202,5 +210,25 @@ describe('DatabaseSystemSelector', function () {
     const dropdownSelector = await screen.findByRole('button');
     expect(dropdownSelector).toHaveTextContent('DB SystemMongoDB');
     expect(mockSetState).not.toHaveBeenCalledWith('mongodb');
+
+    // Now that it has been confirmed that following a URL does not reset localStorage state, confirm that
+    // clicking a different option will update both the state and the URL
+    await userEvent.click(dropdownSelector);
+    const dropdownOptionLabels = await screen.findAllByTestId('menu-list-item-label');
+    expect(dropdownOptionLabels[0]).toHaveTextContent('PostgreSQL');
+    expect(dropdownOptionLabels[1]).toHaveTextContent('MongoDB');
+
+    await userEvent.click(dropdownOptionLabels[0]);
+    expect(dropdownSelector).toHaveTextContent('DB SystemPostgreSQL');
+    expect(mockSetState).toHaveBeenCalledWith('postgresql');
+    expect(mockNavigate).toHaveBeenCalledWith({
+      action: 'POP',
+      hash: '',
+      key: '',
+      pathname: '',
+      query: {project: ['1'], 'span.system': 'postgresql'},
+      search: '',
+      state: undefined,
+    });
   });
 });
