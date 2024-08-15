@@ -4,7 +4,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models.signals import post_save
 
-from sentry.db.postgres.helpers import handle_db_failure
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models.organization import Organization
@@ -16,6 +15,7 @@ from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
 from sentry.silo.base import SiloMode, region_silo_function
 from sentry.users.services.user.service import user_service
+from sentry.utils.db import handle_db_failure
 from sentry.utils.env import in_test_environment
 from sentry.utils.settings import is_self_hosted
 
@@ -132,20 +132,20 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_upgrade.connect(
-    handle_db_failure(create_default_projects, model=Organization, wrap_in_transaction=False),
+    handle_db_failure(create_default_projects, wrap_in_transaction=False),
     dispatch_uid="create_default_project",
     weak=False,
     sender=SiloMode.MONOLITH,
 )
 
 post_save.connect(
-    handle_db_failure(freeze_option_epoch_for_project, model=Organization),
+    handle_db_failure(freeze_option_epoch_for_project),
     sender=Project,
     dispatch_uid="freeze_option_epoch_for_project",
     weak=False,
 )
 post_save.connect(
-    handle_db_failure(create_keys_for_project, model=Organization),
+    handle_db_failure(create_keys_for_project),
     sender=Project,
     dispatch_uid="create_keys_for_project",
     weak=False,

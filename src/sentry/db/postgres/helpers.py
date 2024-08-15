@@ -1,25 +1,5 @@
-import logging
-from functools import wraps
-
 import psycopg2
-from django.db import router, transaction
-from django.db.utils import DatabaseError, InterfaceError, OperationalError, ProgrammingError
-
-
-def handle_db_failure(func, model, wrap_in_transaction: bool = True):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            if wrap_in_transaction:
-                with transaction.atomic(router.db_for_write(model)):
-                    return func(*args, **kwargs)
-            else:
-                return func(*args, **kwargs)
-        except (ProgrammingError, OperationalError):
-            logging.exception("Failed processing signal %s", func.__name__)
-            return
-
-    return wrapped
+from django.db.utils import DatabaseError, InterfaceError
 
 
 def can_reconnect(exc):
