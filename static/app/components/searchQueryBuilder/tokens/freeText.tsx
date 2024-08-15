@@ -94,12 +94,27 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
   return key;
 }
 
+function getInitialValueType(fieldDefinition: FieldDefinition | null) {
+  if (!fieldDefinition) {
+    return FieldValueType.STRING;
+  }
+
+  if (fieldDefinition.parameterDependentValueType) {
+    return fieldDefinition.parameterDependentValueType(
+      fieldDefinition.parameters?.map(p => p.defaultValue ?? null) ?? []
+    );
+  }
+
+  return fieldDefinition.valueType ?? FieldValueType.STRING;
+}
+
 function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
+  const valueType = getInitialValueType(fieldDefinition);
 
-  switch (fieldDefinition?.valueType) {
+  switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:

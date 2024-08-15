@@ -32,16 +32,6 @@ function getInitialInputValue(token: AggregateFilter) {
   return '';
 }
 
-// Args are null if none are provided. If that is the case, we can use the space
-// within the parens for determining where replacements should be made.
-function getArgsToken(token: AggregateFilter) {
-  if (!token.key.args) {
-    return token.key.argsSpaceBefore;
-  }
-
-  return token.key.args;
-}
-
 function getParameterAtCursorPosition(
   text: string,
   cursorPosition: number | null
@@ -211,7 +201,7 @@ export function SearchQueryBuilderParametersCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
-      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token: getArgsToken(token), value});
+      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value});
 
       onCommit();
     },
@@ -224,7 +214,7 @@ export function SearchQueryBuilderParametersCombobox({
 
       dispatch({
         type: 'UPDATE_AGGREGATE_ARGS',
-        token: getArgsToken(token),
+        token,
         value: newValue,
       });
       setInputValue(newValue);
