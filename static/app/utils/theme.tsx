@@ -806,6 +806,7 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
+    semiCollapsedWidth: '100px',
     expandedWidth: '220px',
     mobileHeight: '54px',
     menuSpacing: '15px',
