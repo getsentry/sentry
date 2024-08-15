@@ -88,7 +88,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
-      <ScrollCarousel gap={0.5}>
+      <ScrollCarousel gap={0.5} transparentMask>
         {commits.slice(0, 100).map((commit, commitIndex) => (
           <StreamlinedPanel key={commitIndex}>
             <Title>{t('Suspect Commit')}</Title>
