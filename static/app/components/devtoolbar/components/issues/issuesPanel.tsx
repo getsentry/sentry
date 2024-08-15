@@ -3,7 +3,7 @@ import Placeholder from 'sentry/components/placeholder';
 
 import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {listItemPlaceholderWrapperCss} from '../../styles/listItem';
-import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
+import {panelDescCss, panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {resetFlexColumnCss} from '../../styles/reset';
 import {smallCss} from '../../styles/typography';
 import InfiniteListItems from '../infiniteListItems';
@@ -22,11 +22,9 @@ export default function IssuesPanel() {
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
-    <PanelLayout title="Issues">
-      <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Unresolved issues related to <code>{transactionName}</code>
-        </span>
+    <PanelLayout title="Issues" showProjectBadge>
+      <div css={[smallCss, panelSectionCss, panelDescCss]}>
+        <span>Unresolved issues related to this page</span>
       </div>
 
       <div css={resetFlexColumnCss}>

@@ -192,7 +192,7 @@ export default function ReleasesPanel() {
   }
 
   return (
-    <PanelLayout title="Latest Release">
+    <PanelLayout title="Latest Release" showProjectBadge>
       <AnalyticsProvider nameVal="header" keyVal="header">
         <span
           css={[
