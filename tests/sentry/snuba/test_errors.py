@@ -1760,7 +1760,7 @@ class ErrorsArithmeticTest(SnubaTestCase, TestCase):
         event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
         self.snuba_params = SnubaParams(
-            projects=[self.project.id],
+            projects=[self.project],
             start=self.day_ago,
             end=self.now,
         )
