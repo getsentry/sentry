@@ -35,8 +35,17 @@ export const panelSectionCss = css`
   }
 `;
 
+export const panelSectionCssNoBorder = css`
+  position: relative;
+  padding-block: var(--space150);
+`;
+
 export const panelInsetContentCss = css`
   padding-inline: var(--space150);
+`;
+
+export const verticalPaddingCss = css`
+  padding: var(--space150) 0;
 `;
 
 export const panelDescCss = css`
@@ -45,4 +54,12 @@ export const panelDescCss = css`
   margin: 0 var(--space150);
   text-align: left;
   padding-top: var(--space200);
+`;
+
+export const buttonRightCss = css`
+  display: flex;
+  gap: var(--space75);
+  align-items: center;
+  color: var(--purple300);
+  font-weight: bold;
 `;

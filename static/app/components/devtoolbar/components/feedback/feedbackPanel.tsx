@@ -21,6 +21,7 @@ import {
   listItemPlaceholderWrapperCss,
 } from '../../styles/listItem';
 import {
+  buttonRightCss,
   panelDescCss,
   panelHeadingRightCss,
   panelInsetContentCss,
@@ -68,15 +69,7 @@ export default function FeedbackPanel() {
             ref={buttonRef}
             title="Submit Feedback"
           >
-            <span
-              css={{
-                display: 'flex',
-                gap: 'var(--space75)',
-                alignItems: 'center',
-                color: 'var(--purple300)',
-                fontWeight: 'bold',
-              }}
-            >
+            <span css={buttonRightCss}>
               <IconMegaphone size="xs" />
               Report Bug
             </span>
