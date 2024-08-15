@@ -1,12 +1,8 @@
-import logging
-from functools import wraps
-
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models.signals import post_save
-from django.db.utils import OperationalError, ProgrammingError
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
@@ -19,6 +15,7 @@ from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
 from sentry.silo.base import SiloMode, region_silo_function
 from sentry.users.services.user.service import user_service
+from sentry.utils.db import handle_db_failure
 from sentry.utils.env import in_test_environment
 from sentry.utils.settings import is_self_hosted
 
@@ -28,22 +25,6 @@ SELECT setval('sentry_project_id_seq', (
     FROM sentry_project))
 """
 DEFAULT_SENTRY_PROJECT_ID = 1
-
-
-def handle_db_failure(func, using=None, wrap_in_transaction=True):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            if wrap_in_transaction:
-                with transaction.atomic(using or router.db_for_write(Organization)):
-                    return func(*args, **kwargs)
-            else:
-                return func(*args, **kwargs)
-        except (ProgrammingError, OperationalError):
-            logging.exception("Failed processing signal %s", func.__name__)
-            return
-
-    return wrapped
 
 
 def create_default_projects(**kwds):
@@ -151,20 +132,20 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_upgrade.connect(
-    handle_db_failure(create_default_projects, wrap_in_transaction=False),
+    handle_db_failure(create_default_projects, model=Organization, wrap_in_transaction=False),
     dispatch_uid="create_default_project",
     weak=False,
     sender=SiloMode.MONOLITH,
 )
 
 post_save.connect(
-    handle_db_failure(freeze_option_epoch_for_project),
+    handle_db_failure(freeze_option_epoch_for_project, model=Organization),
     sender=Project,
     dispatch_uid="freeze_option_epoch_for_project",
     weak=False,
 )
 post_save.connect(
-    handle_db_failure(create_keys_for_project),
+    handle_db_failure(create_keys_for_project, model=Organization),
     sender=Project,
     dispatch_uid="create_keys_for_project",
     weak=False,
