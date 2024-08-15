@@ -15,7 +15,11 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
-import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {
+  ModuleName,
+  SpanMetricsQueryFilters,
+  SubregionCode,
+} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -35,6 +39,7 @@ type Props = {
   referrer?: string;
   release?: string;
   spanSearch?: MutableSearch;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
@@ -51,6 +56,7 @@ function SampleTable({
   spanSearch,
   additionalFields,
   additionalFilters,
+  subregions,
   referrer,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
@@ -64,6 +70,10 @@ function SampleTable({
 
   if (release) {
     filters.release = release;
+  }
+
+  if (subregions) {
+    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
@@ -93,6 +103,7 @@ function SampleTable({
     groupId,
     transactionName,
     transactionMethod,
+    subregions,
     release,
     spanSearch,
     additionalFields,

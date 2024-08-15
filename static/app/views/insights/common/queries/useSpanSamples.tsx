@@ -14,8 +14,9 @@ import {getDateConditions} from 'sentry/views/insights/common/utils/getDateCondi
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
+  SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
@@ -25,6 +26,7 @@ type Options = {
   additionalFields?: string[];
   release?: string;
   spanSearch?: MutableSearch;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
@@ -52,6 +54,7 @@ export const useSpanSamples = (options: Options) => {
     release,
     spanSearch,
     additionalFields,
+    subregions,
   } = options;
   const location = useLocation();
 
@@ -71,6 +74,11 @@ export const useSpanSamples = (options: Options) => {
   if (release) {
     query.addFilterValue('release', release);
     filters.release = release;
+  }
+
+  if (subregions) {
+    query.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
@@ -103,6 +111,7 @@ export const useSpanSamples = (options: Options) => {
       dateCondtions.start,
       dateCondtions.end,
       queryString,
+      subregions?.join(','),
       additionalFields?.join(','),
     ],
     queryFn: async () => {
