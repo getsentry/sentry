@@ -63,10 +63,11 @@ const Color = styled('span')<{colorConfig: ColorConfig}>`
  * As of writing this, it just grabs a few, but in the future it may collapse,
  * or manipulate them in some way for a better summary.
  */
-export function getSummaryBreadcrumbs(crumbs: EnhancedCrumb[], sort: BreadcrumbSort) {
-  const breadcrumbs = [...crumbs];
-  const sortedCrumbs =
-    sort === BreadcrumbSort.OLDEST ? breadcrumbs : breadcrumbs.reverse();
+export function getSummaryBreadcrumbs(
+  crumbs: readonly EnhancedCrumb[],
+  sort: BreadcrumbSort
+) {
+  const sortedCrumbs = sort === BreadcrumbSort.OLDEST ? crumbs : crumbs.toReversed();
   return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
 }
 
@@ -76,7 +77,7 @@ export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const typeOptions: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => {
+  const typeOptions = [...uniqueCrumbTypes].map<SelectOption<string>>(crumbType => {
     const crumbFilter = getBreadcrumbFilter(crumbType);
     return {
       value: crumbFilter,
@@ -100,7 +101,7 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
     {} as Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>
   );
 
-  const levelOptions: SelectOption<string>[] = Object.entries(crumbLevels).map(
+  const levelOptions = Object.entries(crumbLevels).map<SelectOption<string>>(
     ([crumbLevel, levelComponent]) => {
       return {
         value: crumbLevel,
@@ -188,7 +189,7 @@ export interface EnhancedCrumb {
 export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
+  const breadcrumbs: any[] = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
 
   if (breadcrumbs.length === 0) {
     return [];
@@ -198,7 +199,9 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   const meta: Record<number, any> =
     event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values ?? {};
 
-  const enhancedCrumbs: EnhancedCrumb[] = breadcrumbs.map((raw, i) => ({
+  const enhancedCrumbs = breadcrumbs.map<
+    Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>
+  >((raw, i) => ({
     raw,
     meta: meta[i],
     // Converts breadcrumbs into other types if sufficient data is present.
@@ -213,7 +216,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
     : enhancedCrumbs;
 
   // Add display props
-  return allCrumbs.map(ec => ({
+  return allCrumbs.map<EnhancedCrumb>(ec => ({
     ...ec,
     title: getBreadcrumbTitle(ec.breadcrumb),
     colorConfig: getBreadcrumbColorConfig(ec.breadcrumb.type),
