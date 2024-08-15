@@ -41,7 +41,6 @@ from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
-from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -49,6 +48,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -337,10 +337,10 @@ class User(Model, AbstractBaseUser):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authidentity import AuthIdentity
-        from sentry.models.avatars.user_avatar import UserAvatar
         from sentry.models.identity import Identity
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.users.models.authenticator import Authenticator
+        from sentry.users.models.user_avatar import UserAvatar
         from sentry.users.models.user_option import UserOption
         from sentry.users.models.useremail import UserEmail
 
