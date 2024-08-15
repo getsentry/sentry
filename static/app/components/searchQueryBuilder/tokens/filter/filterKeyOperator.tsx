@@ -13,7 +13,10 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getValidOpsForFilter,
+  isAggregateFilterToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -354,27 +357,20 @@ function AggregateFilterKeyOperator({
 }
 
 export function FilterKeyOperatorVisual({token}: {token: TokenResult<Token.FILTER>}) {
-  switch (token.filter) {
-    case FilterType.AGGREGATE_DATE:
-    case FilterType.AGGREGATE_DURATION:
-    case FilterType.AGGREGATE_NUMERIC:
-    case FilterType.AGGREGATE_PERCENTAGE:
-    case FilterType.AGGREGATE_RELATIVE_DATE:
-    case FilterType.AGGREGATE_SIZE: {
-      const {label} = getOperatorInfo(token, false);
+  if (isAggregateFilterToken(token)) {
+    const {label} = getOperatorInfo(token, false);
 
-      return (
-        <KeyOpLabelWrapper>
-          <div>
-            <AggregateKeyVisual token={token} /> {label}
-          </div>
-        </KeyOpLabelWrapper>
-      );
-    }
-    default:
-      const {label} = getOperatorInfo(token, true);
-      return label;
+    return (
+      <KeyOpLabelWrapper>
+        <div>
+          <AggregateKeyVisual token={token} /> {label}
+        </div>
+      </KeyOpLabelWrapper>
+    );
   }
+
+  const {label} = getOperatorInfo(token, true);
+  return label;
 }
 
 export function FilterKeyOperator({
@@ -385,25 +381,17 @@ export function FilterKeyOperator({
   filterRef,
   gridCellProps,
 }: FilterOperatorProps) {
-  switch (token.filter) {
-    case FilterType.AGGREGATE_DATE:
-    case FilterType.AGGREGATE_DURATION:
-    case FilterType.AGGREGATE_NUMERIC:
-    case FilterType.AGGREGATE_PERCENTAGE:
-    case FilterType.AGGREGATE_RELATIVE_DATE:
-    case FilterType.AGGREGATE_SIZE:
-      return (
-        <AggregateFilterKeyOperator
-          token={token}
-          state={state}
-          item={item}
-          onOpenChange={onOpenChange}
-          filterRef={filterRef}
-          gridCellProps={gridCellProps}
-        />
-      );
-    default:
-      break;
+  if (isAggregateFilterToken(token)) {
+    return (
+      <AggregateFilterKeyOperator
+        token={token}
+        state={state}
+        item={item}
+        onOpenChange={onOpenChange}
+        filterRef={filterRef}
+        gridCellProps={gridCellProps}
+      />
+    );
   }
 
   return (
