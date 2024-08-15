@@ -8,7 +8,12 @@ import type {Tag} from 'sentry/types/group';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export function KeyDescription({tag}: {tag: Tag}) {
+type KeyDescriptionProps = {
+  tag: Tag;
+  size?: 'sm' | 'md';
+};
+
+export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
   const {getFieldDefinition} = useSearchQueryBuilder();
 
   const fieldDefinition = getFieldDefinition(tag.key);
@@ -18,7 +23,7 @@ export function KeyDescription({tag}: {tag: Tag}) {
     (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
 
   return (
-    <DescriptionWrapper>
+    <DescriptionWrapper size={size}>
       <DescriptionKeyLabel>
         {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
       </DescriptionKeyLabel>
@@ -34,10 +39,11 @@ export function KeyDescription({tag}: {tag: Tag}) {
   );
 }
 
-const DescriptionWrapper = styled('div')`
-  padding: ${space(0.75)} ${space(1)};
-  max-width: 220px;
-  font-size: ${p => p.theme.fontSizeSmall};
+const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
+  padding: ${p =>
+    p.size === 'sm' ? `${space(0.75)} ${space(1)}` : `${space(1.5)} ${space(2)}`};
+  max-width: ${p => (p.size === 'sm' ? '220px' : 'none')};
+  font-size: ${p => (p.size === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
 
   p {
     margin: 0;
