@@ -5,7 +5,7 @@ import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styl
 import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconAdd, IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 
 import {
   buttonRightCss,
@@ -41,7 +41,11 @@ export default function FeatureFlagsPanel() {
             onClick={() => setIsAddFlagActive(!isAddFlagActive)}
           >
             <span css={buttonRightCss}>
-              <IconAdd size="xs" />
+              {isAddFlagActive ? (
+                <IconChevron direction="up" size="xs" />
+              ) : (
+                <IconChevron direction="down" size="xs" />
+              )}
               Add Flag
             </span>
           </button>

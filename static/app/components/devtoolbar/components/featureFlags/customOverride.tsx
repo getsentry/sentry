@@ -13,7 +13,7 @@ import {useFeatureFlagsContext} from './featureFlagsContext';
 export default function CustomOverride({
   setComponentActive,
 }: {
-  setComponentActive: (boolean) => void;
+  setComponentActive: (value: boolean) => void;
 }) {
   const {eventName, eventKey} = useContext(AnalyticsContext);
   const {trackAnalytics} = useConfiguration();
