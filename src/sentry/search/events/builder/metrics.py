@@ -1589,8 +1589,10 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
         kwargs["config"] = config
         super().__init__(*args, **kwargs)
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        result = super().run_query(referrer, use_cache)
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
+        result = super().run_query(referrer, use_cache, query_source=query_source)
         for row in result["data"]:
             for key, value in row.items():
                 if key in self.histogram_aliases:

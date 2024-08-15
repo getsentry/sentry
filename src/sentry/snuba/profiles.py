@@ -36,6 +36,7 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -57,7 +58,7 @@ def query(
             functions_acl=functions_acl,
         ),
     )
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
