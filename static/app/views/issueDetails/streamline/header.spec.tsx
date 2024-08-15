@@ -10,7 +10,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('UpdatedGroupHeader', () => {
