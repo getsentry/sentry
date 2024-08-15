@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from snuba_sdk import DeleteQuery, Request
 
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
@@ -53,11 +53,13 @@ class SnubaTest(TestCase, SnubaTestCase):
 
         # delete it
         req = Request(
-            dataset="search_issues",
+            dataset=Dataset.IssuePlatform.value,
             app_id="my_app",
             query=DeleteQuery(
-                "search_issues", {"project_id": [self.project.id], "occurrence_id": [str(id)]}
+                StorageKey.SearchIssues.value,
+                {"project_id": [self.project.id], "occurrence_id": [str(id)]},
             ),
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
         )
         snuba.raw_snql_query(req)
 
