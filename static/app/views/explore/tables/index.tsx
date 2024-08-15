@@ -17,11 +17,12 @@ interface ExploreTablesProps {}
 export function ExploreTables({}: ExploreTablesProps) {
   const [resultMode] = useResultMode();
 
-  if (resultMode === 'aggregate') {
-    return <ExploreAggregateTable />;
-  }
-
-  return <ExploreSamplesTable />;
+  return (
+    <Fragment>
+      {resultMode === 'aggregate' && <ExploreAggregateTable />}
+      {resultMode === 'samples' && <ExploreSamplesTable />}
+    </Fragment>
+  );
 }
 
 function ExploreAggregateTable() {
