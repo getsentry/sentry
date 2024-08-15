@@ -21,12 +21,12 @@ from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueS
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.signals import user_signup
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import (
     RpcAvatar,

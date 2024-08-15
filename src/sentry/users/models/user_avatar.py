@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Generator
 from enum import IntEnum
 from typing import Any, ClassVar, Self
 
@@ -10,9 +11,8 @@ from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.avatars import ControlAvatarBase
 from sentry.types.region import find_regions_for_user
-
-from . import ControlAvatarBase
 
 
 class UserAvatarType(IntEnum):
@@ -20,7 +20,7 @@ class UserAvatarType(IntEnum):
     UPLOAD = 1
     GRAVATAR = 2
 
-    def api_name(self):
+    def api_name(self) -> str:
         return self.name.lower()
 
     @classmethod
@@ -63,7 +63,7 @@ class UserAvatar(ControlAvatarBase):
         )
 
     @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
         from sentry.hybridcloud.models.outbox import outbox_context
 
         with outbox_context(
@@ -88,5 +88,5 @@ class UserAvatar(ControlAvatarBase):
         with self._maybe_prepare_outboxes(outbox_before_super=True):
             return super().delete(*args, **kwds)
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size: int) -> str:
         return f"avatar:{self.user_id}:{size}"

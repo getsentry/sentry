@@ -4,8 +4,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user import RpcUser
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar

@@ -2,10 +2,10 @@ from io import BytesIO
 
 from django.urls import reverse
 
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.files.control_file import ControlFile
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
