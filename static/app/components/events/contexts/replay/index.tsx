@@ -1,8 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {type Event, type ReplayContext, ReplayContextKey} from 'sentry/types/event';
+import type {Event, ReplayContext, ReplayContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
@@ -10,7 +9,6 @@ import {
   getKnownData,
   getKnownStructuredData,
   getUnknownData,
-  type KnownDataDetails,
 } from '../utils';
 
 const REPLAY_KNOWN_DATA_VALUES = ['replay_id'];
@@ -24,7 +22,6 @@ interface ReplayContextProps {
 export function getKnownReplayContextData({
   data,
   meta,
-  organization,
 }: Pick<ReplayContextProps, 'data' | 'meta'> & {
   organization: Organization;
 }) {
@@ -32,7 +29,9 @@ export function getKnownReplayContextData({
     data,
     meta,
     knownDataTypes: REPLAY_KNOWN_DATA_VALUES,
-    onGetKnownDataDetails: v => getReplayKnownDataDetails({...v, organization}),
+    onGetKnownDataDetails: _ => {
+      return undefined;
+    },
   }).map(v => ({
     ...v,
     subjectDataTestId: `replay-context-${v.key.toLowerCase()}-value`,
@@ -69,19 +68,4 @@ export function ReplayEventContext({event, data, meta: propsMeta}: ReplayContext
       <KeyValueList data={unknownData} shouldSort={false} raw={false} isContextData />
     </ErrorBoundary>
   );
-}
-
-function getReplayKnownDataDetails({
-  type,
-}: {
-  data: ReplayContext;
-  organization: Organization;
-  type: ReplayContextKey;
-  project?: Project;
-}): KnownDataDetails {
-  switch (type) {
-    case ReplayContextKey.REPLAY_ID:
-    default:
-      return undefined;
-  }
 }
