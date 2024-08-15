@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from dataclasses import dataclass
 from typing import Any
 
 import orjson
@@ -164,53 +164,48 @@ def send_incident_alert_notification(
     return success
 
 
-class SlackCommand(Enum):
-    LINK = "link"
-    UNLINK = "unlink"
+@dataclass(frozen=True, eq=True)
+class SlackCommandResponse:
+    command: str
+    message: str
+    log_key: str
 
 
 def respond_to_slack_command(
-    command: SlackCommand,
+    command_response: SlackCommandResponse,
     integration: Integration,
     slack_id: str,
     response_url: str | None,
 ) -> None:
-    from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE
-    from sentry.integrations.slack.views.unlink_identity import SUCCESS_UNLINKED_MESSAGE
-
-    if command is SlackCommand.LINK:
-        log = "slack.link-identity."
-        text = SUCCESS_LINKED_MESSAGE
-    elif command is SlackCommand.UNLINK:
-        log = "slack.unlink-identity."
-        text = SUCCESS_UNLINKED_MESSAGE
-    else:
-        raise ValueError
+    def log_msg(tag: str) -> str:
+        return f"{command_response.log_key}.{tag}"
 
     if response_url:
-        logger.info(log + "respond-webhook", extra={"response_url": response_url})
+        logger.info(log_msg("respond-webhook"), extra={"response_url": response_url})
         try:
             webhook_client = WebhookClient(response_url)
-            webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
+            webhook_client.send(
+                text=command_response.message, replace_original=False, response_type="ephemeral"
+            )
             metrics.incr(
                 SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"type": "webhook", "command": command.value},
+                tags={"type": "webhook", "command": command_response.command},
             )
         except (SlackApiError, SlackRequestError) as e:
             if unpack_slack_api_error(e) != EXPIRED_URL:
                 metrics.incr(
                     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
-                    tags={"type": "webhook", "command": command.value},
+                    tags={"type": "webhook", "command": command_response.command},
                 )
-                logger.exception(log + "error", extra={"error": str(e)})
+                logger.exception(log_msg("error"), extra={"error": str(e)})
     else:
-        logger.info(log + "respond-ephemeral")
+        logger.info(log_msg("respond-ephemeral"))
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postMessage(
-                text=text,
+                text=command_response.message,
                 channel=slack_id,
                 replace_original=False,
                 response_type="ephemeral",
@@ -218,13 +213,13 @@ def respond_to_slack_command(
             metrics.incr(
                 SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"type": "ephemeral", "command": command.value},
+                tags={"type": "ephemeral", "command": command_response.command},
             )
         except SlackApiError as e:
             if unpack_slack_api_error(e) != EXPIRED_URL:
                 metrics.incr(
                     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
-                    tags={"type": "ephemeral", "command": command.value},
+                    tags={"type": "ephemeral", "command": command_response.command},
                 )
-                logger.exception(log + "error", extra={"error": str(e)})
+                logger.exception(log_msg("error"), extra={"error": str(e)})
