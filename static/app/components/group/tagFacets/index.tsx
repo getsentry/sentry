@@ -175,12 +175,11 @@ export default function TagFacets({
 
   // filter out replayId since we no longer want to
   // display this on issue or trace details
-  const topTagKeys = tagKeys
-    .filter(tagKey => Object.keys(tagsData).includes(tagKey))
-    .filter(f => f !== 'replayId');
+  const topTagKeys = tagKeys.filter(
+    tagKey => Object.keys(tagsData).includes(tagKey) && tagKey !== 'replayId'
+  );
   const remainingTagKeys = Object.keys(tagsData)
-    .filter(tagKey => !tagKeys.includes(tagKey))
-    .filter(f => f !== 'replayId')
+    .filter(tagKey => !tagKeys.includes(tagKey) && tagKey !== 'replayId')
     .sort();
 
   if (isLoading) {
