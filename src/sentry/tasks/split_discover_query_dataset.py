@@ -5,7 +5,7 @@ import sentry_sdk
 from cachetools import LRUCache
 from celery.exceptions import SoftTimeLimitExceeded
 
-from sentry import options
+from sentry import features, options
 from sentry.discover.dataset_split import (
     get_and_save_split_decision_for_query,
     save_split_decision_for_query,
@@ -49,7 +49,7 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
     while True:
         if int(time()) - last_activity > 60:
             logger.warning(
-                "sentry.tasks.split_discover_query_dataset - forced exit",
+                "sentry.tasks.split_discover_query_dataset - idle task, forced exit",
                 extra={
                     "total_processed": total_processed,
                     "transaction_dataset_count": transaction_dataset_count,
@@ -81,6 +81,11 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
             break
 
         for saved_query in RangeQuerySetWrapper(queryset):
+            if not features.has(
+                "organizations:performance-discover-dataset-selector", saved_query.organization
+            ):
+                continue
+
             last_accessed = rate_limit_cache.get(saved_query.organization_id, None)
             # Don't try to split if we've run hit snuba for this org in the last 10 seconds
             if last_accessed is not None and int(time()) - last_accessed < 10:
@@ -110,8 +115,8 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
                 snuba.QueryConnectionFailed,
                 snuba.QueryTooManySimultaneous,
             ) as e:
-                # These are errors that should be okay to be retried on the next batch, so not setting
-                # a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
+                # These are errors that should be okay to be retried on the next batch,
+                # so not setting a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
                 sentry_sdk.capture_exception(
                     e,
                     contexts={
@@ -120,6 +125,9 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
                     },
                 )
                 inferred_with_query += 1
+
+                # We've hit rate limits / resource limits, wait 5 minutes
+                # before trying this organization again.
                 rate_limit_cache[saved_query.organization_id] = int(time()) + 300
                 errored_query_count += 1
                 last_activity = int(time())
