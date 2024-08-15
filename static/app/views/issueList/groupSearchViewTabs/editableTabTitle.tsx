@@ -57,7 +57,7 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return isEditing ? (
+  return (
     <StyledGrowingInput
       type="text"
       value={inputValue}
@@ -66,8 +66,6 @@ function EditableTabTitle({
       onBlur={handleOnBlur}
       ref={inputRef}
     />
-  ) : (
-    <div style={{height: '20px'}}>{label}</div>
   );
 }
 
