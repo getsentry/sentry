@@ -42,10 +42,10 @@ email-reply-parser==0.5.12
 fastjsonschema==2.16.2
 fido2==0.9.2
 filelock==3.15.3
-google-api-core==2.15.0
-google-auth==2.25.2
-google-cloud-bigtable==2.22.0
-google-cloud-build==3.22.0
+google-api-core==2.19.1
+google-auth==2.29.0
+google-cloud-bigtable==2.26.0
+google-cloud-build==3.24.2
 google-cloud-core==2.4.1
 google-cloud-functions==1.14.0
 google-cloud-kms==2.20.0
