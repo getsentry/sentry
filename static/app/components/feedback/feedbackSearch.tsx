@@ -1,12 +1,15 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {orderBy} from 'lodash';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -22,9 +25,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useTags from 'sentry/utils/useTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-const EXCLUDED_TAGS = [
+const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.BROWSER_VERSION,
   FeedbackFieldKey.EMAIL,
   FeedbackFieldKey.LOCALE_LANG,
@@ -32,6 +35,11 @@ const EXCLUDED_TAGS = [
   FeedbackFieldKey.NAME,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,
+  // These are found in issue platform and redundant (= __.name, ex os.name)
+  'browser',
+  'device',
+  'os',
+  'user',
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
@@ -52,18 +60,20 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
 
 /**
- * Merges a list of supported tags and feedback search fields into one collection.
+ * Merges a list of supported tags and feedback search properties into one collection.
  */
-function getFeedbackSearchTags(supportedTags: TagCollection) {
+function getFeedbackFilterKeys(supportedTags: TagCollection) {
   const allTags = {
     ...Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
-        },
-      ])
+      Object.keys(supportedTags)
+        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .map(key => [
+          key,
+          {
+            ...supportedTags[key],
+            kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
+          },
+        ])
     ),
     ...FEEDBACK_FIELDS_AS_TAGS,
   };
@@ -76,6 +86,41 @@ function getFeedbackSearchTags(supportedTags: TagCollection) {
   return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('search-query-builder-user-feedback')) {
+    return [];
+  }
+
+  const customTags: Tag[] = Object.values(tags).filter(
+    tag =>
+      tag.kind === FieldKind.TAG &&
+      !EXCLUDED_TAGS.includes(tag.key) &&
+      !FEEDBACK_FIELDS.map(String).includes(tag.key)
+  );
+
+  const orderedTagKeys: string[] = orderBy(
+    customTags,
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  return [
+    {
+      value: 'feedback_field',
+      label: t('Suggested'),
+      children: Object.keys(FEEDBACK_FIELDS_AS_TAGS),
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: orderedTagKeys,
+    },
+  ];
+};
+
 interface Props {
   className?: string;
   style?: CSSProperties;
@@ -84,15 +129,47 @@ interface Props {
 export default function FeedbackSearch({className, style}: Props) {
   const {selection: pageFilters} = usePageFilters();
   const projectIds = pageFilters.projects;
-  const {pathname, query} = useLocation();
+  const {pathname, query: locationQuery} = useLocation();
   const organization = useOrganization();
-  const organizationTags = useTags();
   const api = useApi();
 
-  const feedbackTags = useMemo(
-    () => getFeedbackSearchTags(organizationTags),
-    [organizationTags]
+  const start = pageFilters.datetime.start
+    ? getUtcDateString(pageFilters.datetime.start)
+    : undefined;
+  const end = pageFilters.datetime.end
+    ? getUtcDateString(pageFilters.datetime.end)
+    : undefined;
+  const statsPeriod = pageFilters.datetime.period;
+  const tagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIds.map(String),
+      dataset: Dataset.ISSUE_PLATFORM,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: false,
+      start: start,
+      end: end,
+      statsPeriod: statsPeriod,
+    },
+    {}
   );
+  const issuePlatformTags: TagCollection = useMemo(() => {
+    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    }, {});
+  }, [tagQuery]);
+  // tagQuery.isLoading and tagQuery.isError are not used
+
+  const filterKeys = useMemo(
+    () => getFeedbackFilterKeys(issuePlatformTags),
+    [issuePlatformTags]
+  );
+
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(issuePlatformTags, organization);
+  }, [issuePlatformTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -103,13 +180,9 @@ export default function FeedbackSearch({className, style}: Props) {
       }
 
       const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
+        start: start,
+        end: end,
+        statsPeriod: statsPeriod,
       };
 
       return fetchTagValues({
@@ -126,14 +199,7 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [
-      api,
-      organization.slug,
-      projectIds,
-      pageFilters.datetime.start,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-    ]
+    [api, organization.slug, projectIds, start, end, statsPeriod]
   );
 
   const navigate = useNavigate();
@@ -143,20 +209,21 @@ export default function FeedbackSearch({className, style}: Props) {
       navigate({
         pathname,
         query: {
-          ...query,
+          ...locationQuery,
           cursor: undefined,
           query: searchQuery.trim(),
         },
       });
     },
-    [navigate, pathname, query]
+    [navigate, pathname, locationQuery]
   );
 
   if (organization.features.includes('search-query-builder-user-feedback')) {
     return (
       <SearchQueryBuilder
-        initialQuery={decodeScalar(query.query, '')}
-        filterKeys={feedbackTags}
+        initialQuery={decodeScalar(locationQuery.query, '')}
+        filterKeys={filterKeys}
+        filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         onSearch={onSearch}
         searchSource={'feedback-list'}
@@ -173,12 +240,12 @@ export default function FeedbackSearch({className, style}: Props) {
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}
-        supportedTags={feedbackTags}
+        supportedTags={filterKeys}
         excludedTags={EXCLUDED_TAGS}
         fieldDefinitionGetter={getFeedbackFieldDefinition}
         maxMenuHeight={500}
         defaultQuery=""
-        query={decodeScalar(query.query, '')}
+        query={decodeScalar(locationQuery.query, '')}
         onSearch={onSearch}
       />
     </SearchContainer>
