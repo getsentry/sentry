@@ -10,8 +10,8 @@ from sentry.types.group import GroupSubStatus
 
 
 class BackfillMissingUnresolvedSubstatusTest(TestMigrations):
-    migrate_from = "0747_create_datasecrecywaiver_table"
-    migrate_to = "0748_fix_substatus_for_unresolved_groups"
+    migrate_from = "0749_disable_member_invite"
+    migrate_to = "0750_fix_substatus_for_unresolved_groups"
 
     def setup_before_migration(self, app):
         self.organization = Organization.objects.create(name="test", slug="test")

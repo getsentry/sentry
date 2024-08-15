@@ -73,7 +73,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0747_create_datasecrecywaiver_table"),
+        ("sentry", "0749_disable_member_invite"),
     ]
 
     operations = [
