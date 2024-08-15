@@ -164,6 +164,7 @@ class Referrer(Enum):
         "api.organization.metrics-metadata.fetch-metrics-summaries"
     )
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
+    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -17,6 +17,7 @@ from sentry.sentry_metrics.querying.data import (
     MQLQuery,
     run_queries,
 )
+from sentry.sentry_metrics.querying.eap import mql_eap_bridge
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -156,6 +157,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             mql_queries = self._mql_queries_from_request(request)
+            projects = self.get_projects(request, organization)
 
             metrics.incr(
                 key="ddm.metrics_api.query",
@@ -166,13 +168,31 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 },
             )
 
+            if all(
+                features.has("projects:use-eap-spans-for-metrics-explorer", project)
+                for project in projects
+            ):
+                if len(mql_queries) == 1 and "a" in mql_queries[0].sub_queries:
+                    subquery = mql_queries[0].sub_queries["a"]
+                    if "d:eap/" in subquery.mql:
+                        res_data = mql_eap_bridge.make_eap_request(
+                            subquery.mql,
+                            start,
+                            end,
+                            interval,
+                            organization,
+                            projects,
+                            Referrer.API_ORGANIZATION_METRICS_EAP_QUERY.value,
+                        )
+                        return Response(status=200, data=res_data)
+
             results = run_queries(
                 mql_queries=mql_queries,
                 start=start,
                 end=end,
                 interval=interval,
                 organization=organization,
-                projects=self.get_projects(request, organization),
+                projects=projects,
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
                 query_type=self._get_query_type_from_request(request),
