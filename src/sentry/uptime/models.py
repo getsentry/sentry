@@ -28,6 +28,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
     interval_seconds = models.IntegerField()
     # How long to wait for a response from the url before we assume a timeout
     timeout_ms = models.IntegerField()
+    abc = models.IntegerField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
