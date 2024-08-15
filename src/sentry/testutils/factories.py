@@ -115,7 +115,6 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -165,6 +164,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole

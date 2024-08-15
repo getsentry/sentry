@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
-from sentry.models.options.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 
 INVALID_EMAIL_MSG = (
