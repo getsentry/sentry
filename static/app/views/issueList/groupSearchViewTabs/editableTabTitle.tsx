@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {GrowingInput} from 'sentry/components/growingInput';
+
 function EditableTabTitle({
   label,
   onChange,
@@ -15,7 +17,6 @@ function EditableTabTitle({
   const [inputValue, setInputValue] = useState(label);
 
   const inputRef = useRef<HTMLInputElement>(null);
-
   const isEmpty = !inputValue.trim();
 
   const handleOnBlur = () => {
@@ -41,6 +42,9 @@ function EditableTabTitle({
       setInputValue(label);
       setIsEditing(false);
     }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
+      e.stopPropagation();
+    }
   };
 
   useEffect(() => {
@@ -54,30 +58,28 @@ function EditableTabTitle({
   };
 
   return isEditing ? (
-    <StyledInput
+    <StyledGrowingInput
       type="text"
       value={inputValue}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
       onBlur={handleOnBlur}
       ref={inputRef}
-      size={inputValue.length > 1 ? inputValue.length - 1 : 1}
     />
   ) : (
-    label
+    <div style={{height: '20px'}}>{label}</div>
   );
 }
 
 export default EditableTabTitle;
 
-const StyledInput = styled('input')`
-  border: none !important;
-  width: fit-content;
-  background: transparent;
-  outline: none;
-  height: auto;
+const StyledGrowingInput = styled(GrowingInput)`
+  border: none;
   padding: 0;
-  font-size: inherit;
+  background: transparent;
+  min-height: 0px;
+  height: 20px;
+
   &,
   &:focus,
   &:active,
