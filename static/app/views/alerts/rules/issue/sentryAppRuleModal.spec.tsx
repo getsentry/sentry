@@ -35,11 +35,6 @@ describe('SentryAppRuleModal', function () {
     expect(errors).toHaveLength(0);
   };
 
-  const submitErrors = async errorCount => {
-    const errors = await _submit();
-    expect(errors).toHaveLength(errorCount);
-  };
-
   const defaultConfig: SchemaFormConfig = {
     uri: '/integration/test/',
     description: '',
@@ -132,9 +127,13 @@ describe('SentryAppRuleModal', function () {
       });
     });
 
-    it('should raise validation errors when "Save Changes" is clicked with invalid data', async function () {
+    it('submit button shall be disabled if form is incomplete', async function () {
       createWrapper();
-      await submitErrors(3);
+      expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Save Changes'}));
+      expect(
+        await screen.findByText('Required fields must be filled out')
+      ).toBeInTheDocument();
     });
 
     it('should submit when "Save Changes" is clicked with valid data', async function () {

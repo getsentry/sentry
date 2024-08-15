@@ -7,7 +7,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type Group, GroupActivityType, GroupStatus} from 'sentry/types';
+import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
 
 interface Props {
   group: Group;

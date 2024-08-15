@@ -1,69 +1,27 @@
-import {t} from 'sentry/locale';
+import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
+import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
+import {useSort} from 'sentry/views/explore/hooks/useSort';
 
-import {ToolbarHeading, ToolbarSection} from './styles';
+import {ToolbarGroupBy} from './toolbarGroupBy';
+import {ToolbarLimitTo} from './toolbarLimitTo';
+import {ToolbarResults} from './toolbarResults';
+import {ToolbarSortBy} from './toolbarSortBy';
+import {ToolbarVisualize} from './toolbarVisualize';
 
 interface ExploreToolbarProps {}
 
 export function ExploreToolbar({}: ExploreToolbarProps) {
+  const [resultMode, setResultMode] = useResultMode();
+  const [sampleFields] = useSampleFields();
+  const [sort, setSort] = useSort({fields: sampleFields});
+
   return (
     <div>
-      <ToolbarResults />
+      <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
       <ToolbarVisualize />
-      <ToolbarSortBy />
+      <ToolbarSortBy fields={sampleFields} sort={sort} setSort={setSort} />
       <ToolbarLimitTo />
       <ToolbarGroupBy disabled />
     </div>
-  );
-}
-
-interface ToolbarResultsProps {}
-
-function ToolbarResults({}: ToolbarResultsProps) {
-  return (
-    <ToolbarSection>
-      <ToolbarHeading>{t('Results')}</ToolbarHeading>
-    </ToolbarSection>
-  );
-}
-
-interface ToolbarVisualizeProps {}
-
-function ToolbarVisualize({}: ToolbarVisualizeProps) {
-  return (
-    <ToolbarSection>
-      <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
-    </ToolbarSection>
-  );
-}
-
-interface ToolbarSortByProps {}
-
-function ToolbarSortBy({}: ToolbarSortByProps) {
-  return (
-    <ToolbarSection>
-      <ToolbarHeading>{t('Sort By')}</ToolbarHeading>
-    </ToolbarSection>
-  );
-}
-
-interface ToolbarLimitToProps {}
-
-function ToolbarLimitTo({}: ToolbarLimitToProps) {
-  return (
-    <ToolbarSection>
-      <ToolbarHeading>{t('Limit To')}</ToolbarHeading>
-    </ToolbarSection>
-  );
-}
-
-interface ToolbarGroupByProps {
-  disabled?: boolean;
-}
-
-function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  return (
-    <ToolbarSection>
-      <ToolbarHeading disabled={disabled}>{t('Group By')}</ToolbarHeading>
-    </ToolbarSection>
   );
 }

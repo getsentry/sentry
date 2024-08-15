@@ -17,8 +17,9 @@ import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExte
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 

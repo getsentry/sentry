@@ -7,8 +7,9 @@ import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
-import type {Organization, SavedSearch} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {useModifySavedSearch} from 'sentry/views/issueList/mutations/useModifySavedSearch';
 
 interface EditSavedSearchModalProps extends ModalRenderProps {

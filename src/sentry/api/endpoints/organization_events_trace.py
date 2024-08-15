@@ -1031,9 +1031,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
 
@@ -1217,7 +1215,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params, _ = self.get_snuba_dataclass(
+            snuba_params = self.get_snuba_params(
                 self.request, self.request.organization, check_global_views=False
             )
             if current_generation is None:
@@ -1376,7 +1374,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params, _ = self.get_snuba_dataclass(
+        snuba_params = self.get_snuba_params(
             self.request, self.request.organization, check_global_views=False
         )
         # The root of the orphan tree we're currently navigating through
@@ -1649,9 +1647,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace meta isn't useful without global views, so skipping the check here
-            snuba_params, params = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
 
@@ -1664,7 +1660,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "count_if(event.type, equals, transaction) as transactions",
                 "count_if(event.type, notEquals, transaction) as errors",
             ],
-            params=params,
+            params={},
             snuba_params=snuba_params,
             query=f"trace:{trace_id}",
             limit=1,
@@ -1676,7 +1672,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 "count()",
             ],
             orderby=["transaction.id"],
-            params=params,
+            params={},
             snuba_params=snuba_params,
             query=f"trace:{trace_id}",
             limit=10_000,

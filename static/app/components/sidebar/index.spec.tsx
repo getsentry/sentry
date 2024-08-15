@@ -10,7 +10,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, StatuspageIncident} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
