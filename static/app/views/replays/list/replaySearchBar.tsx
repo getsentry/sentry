@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {orderBy} from 'lodash';
 
-import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -22,7 +22,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import useTags from 'sentry/utils/useTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -117,18 +117,39 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
-  const organizationTags = useTags();
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, pageFilters);
-  }, [api, organization.slug, pageFilters]);
+  const tagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIds.map(String),
+      dataset: Dataset.ISSUE_PLATFORM,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: false,
+      start: pageFilters.datetime.start
+        ? getUtcDateString(pageFilters.datetime.start)
+        : undefined,
+      end: pageFilters.datetime.end
+        ? getUtcDateString(pageFilters.datetime.end)
+        : undefined,
+      statsPeriod: pageFilters.datetime.period,
+    },
+    {}
+  );
+  const issuePlatformTags: TagCollection = useMemo(() => {
+    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    }, {});
+  }, [tagQuery]);
+  // tagQuery.isLoading and tagQuery.isError are not used
 
   const filterKeys = useMemo(
-    () => getReplayFilterKeys(organizationTags),
-    [organizationTags]
+    () => getReplayFilterKeys(issuePlatformTags),
+    [issuePlatformTags]
   );
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(organizationTags, organization);
-  }, [organizationTags, organization]);
+    return getFilterKeySections(issuePlatformTags, organization);
+  }, [issuePlatformTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
