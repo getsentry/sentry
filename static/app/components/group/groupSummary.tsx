@@ -116,6 +116,9 @@ const SummaryContent = styled('div')`
   p {
     margin: 0;
   }
+  code {
+    word-break: break-all;
+  }
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
