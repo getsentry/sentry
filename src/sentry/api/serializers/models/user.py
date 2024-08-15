@@ -76,7 +76,7 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
-    issueDetailsNewExperienceQ42023: bool
+    prefersIssueDetailsStreamlinedUI: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -201,10 +201,9 @@ class UserSerializer(Serializer):
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
-                "issueDetailsNewExperienceQ42023": options.get(
-                    "issue_details_new_experience_q4_2023"
-                )
-                or False,
+                "prefersIssueDetailsStreamlinedUI": options.get(
+                    "prefers_issue_details_streamlined_ui", False
+                ),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
