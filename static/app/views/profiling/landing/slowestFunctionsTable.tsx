@@ -265,12 +265,17 @@ interface SlowestFunctionTimeSeriesProps {
 
 function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
   const projects = useMemo(() => {
-    return props.function.examples
-      .map(f => {
-        if (typeof f !== 'string' && 'project_id' in f) return f.project_id;
-        return null;
-      })
-      .filter(n => n !== null);
+    const projectsMap = props.function.examples.reduce<Record<string, number>>(
+      (acc, f) => {
+        if (typeof f !== 'string' && 'project_id' in f) {
+          acc[f.project_id] = f.project_id;
+        }
+        return acc;
+      },
+      {}
+    );
+
+    return Object.values(projectsMap);
   }, [props.function]);
 
   useProfilingFunctionMetrics({
