@@ -415,7 +415,14 @@ class LinkingView(BaseView, ABC):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
-        pass
+        """On success, notify the user through the messaging client.
+
+        No-op by default.
+
+        :param external_id: the `Identity.external_id` value (the messaging service's ID)
+        :param params:      raw params from the incoming request
+        :param integration: affected Integration entity, if any
+        """
 
 
 class LinkIdentityView(LinkingView, ABC):
