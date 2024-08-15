@@ -42,6 +42,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     return discover.query(
         selected_columns,
@@ -70,6 +71,7 @@ def query(
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
         fallback_to_transactions=fallback_to_transactions,
+        query_source=query_source,
     )
 
 
