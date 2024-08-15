@@ -131,47 +131,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssueSync):
     def integration_name(self) -> str:
         return "vsts"
 
-    def all_repos_migrated(self) -> bool:
-        return not self.get_unmigratable_repositories()
-
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
-        try:
-            repos = self.get_client().get_repos()
-        except (ApiError, IdentityNotValid) as e:
-            raise IntegrationError(self.message_from_error(e))
-        data = []
-        for repo in repos["value"]:
-            data.append(
-                {
-                    "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
-                    "identifier": repo["id"],
-                }
-            )
-        return data
-
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id, providers=["visualstudio"]
-        )
-        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
-        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
-
-    def has_repo_access(self, repo: RpcRepository) -> bool:
-        client = self.get_client()
-        try:
-            # since we don't actually use webhooks for vsts commits,
-            # just verify repo access
-            client.get_repo(repo.config["name"], project=repo.config["project"])
-        except (ApiError, IdentityNotValid):
-            return False
-        return True
-
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
                 self.default_identity = self.get_default_identity()
-            self.check_domain_name(self.default_identity)
+            self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:
             raise Exception("self.org_integration is not defined")
@@ -184,15 +149,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssueSync):
             identity_id=self.org_integration.default_auth_id,
         )
 
-    def check_domain_name(self, default_identity: RpcIdentity) -> None:
-        if re.match("^https://.+/$", self.model.metadata["domain_name"]):
-            return
-
-        base_url = VstsIntegrationProvider.get_base_url(
-            default_identity.data["access_token"], self.model.external_id
-        )
-        self.model.metadata["domain_name"] = base_url
-        self.model.save()
+    # IntegrationInstallation methods
 
     def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
         client = self.get_client()
@@ -333,6 +290,40 @@ class VstsIntegration(RepositoryIntegration, VstsIssueSync):
         config["sync_status_forward"] = sync_status_forward
         return config
 
+    # RepositoryIntegration methods
+
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
+        try:
+            repos = self.get_client().get_repos()
+        except (ApiError, IdentityNotValid) as e:
+            raise IntegrationError(self.message_from_error(e))
+        data = []
+        for repo in repos["value"]:
+            data.append(
+                {
+                    "name": "{}/{}".format(repo["project"]["name"], repo["name"]),
+                    "identifier": repo["id"],
+                }
+            )
+        return data
+
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["visualstudio"]
+        )
+        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
+        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        client = self.get_client()
+        try:
+            # since we don't actually use webhooks for vsts commits,
+            # just verify repo access
+            client.get_repo(repo.config["name"], project=repo.config["project"])
+        except (ApiError, IdentityNotValid):
+            return False
+        return True
+
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(self.model.metadata["domain_name"])
 
@@ -361,6 +352,18 @@ class VstsIntegration(RepositoryIntegration, VstsIssueSync):
         if "path" in qs and len(qs["path"]) == 1:
             return qs["path"][0].lstrip("/")
         return ""
+
+    # Azure DevOps only methods
+
+    def _check_domain_name(self, default_identity: RpcIdentity) -> None:
+        if re.match("^https://.+/$", self.model.metadata["domain_name"]):
+            return
+
+        base_url = VstsIntegrationProvider.get_base_url(
+            default_identity.data["access_token"], self.model.external_id
+        )
+        self.model.metadata["domain_name"] = base_url
+        self.model.save()
 
     @property
     def instance(self) -> str:

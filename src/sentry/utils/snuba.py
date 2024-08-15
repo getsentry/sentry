@@ -4,7 +4,6 @@ import dataclasses
 import functools
 import logging
 import os
-import random
 import re
 import time
 from collections import namedtuple
@@ -1075,6 +1074,15 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
+def _is_rejected_query(body: Any) -> bool:
+    return (
+        "quota_allowance" in body
+        and "summary" in body["quota_allowance"]
+        and "rejected_by" in body["quota_allowance"]["summary"]
+        and body["quota_allowance"]["summary"]["rejected_by"] is not None
+    )
+
+
 def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     snuba_requests_list = list(snuba_requests)
 
@@ -1131,7 +1139,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
-            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
+            if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 span.set_tag(
                     f"{allocation_policy_prefix}threads_used",
@@ -1149,19 +1157,6 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     k = allocation_policy_prefix + "rejecting_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
-
-                if (
-                    "throttled_by" in quota_allowance_summary
-                    and quota_allowance_summary["throttled_by"]
-                ):
-                    metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
-                    if random.random() < 0.01:
-                        logger.warning(
-                            "Warning: Query is throttled", extra={"response.data": response.data}
-                        )
-                        sentry_sdk.capture_message(
-                            f"Warning: Query from referrer {referrer} is throttled", level="warning"
-                        )
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)

@@ -47,7 +47,7 @@ ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
 # When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
 # successes in a row do we need to mark it up
-ACTIVE_FAILURE_THRESHOLD = 2
+ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
@@ -143,15 +143,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
                 # accurate measurement of delay/duration.
                 if result["duration_ms"]:
-                    metrics.gauge(
+                    metrics.distribution(
                         "uptime.result_processor.check_result.duration",
                         result["duration_ms"],
                         sample_rate=1.0,
+                        unit="millisecond",
                     )
-                metrics.gauge(
+                metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
+                    unit="millisecond",
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:

@@ -4,7 +4,6 @@ from pytest import fixture
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.userpermission import UserPermission
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
@@ -14,6 +13,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 
 

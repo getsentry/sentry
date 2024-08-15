@@ -12,8 +12,9 @@ export const panelCss = css`
 `;
 
 export const panelHeadingCss = css`
-  margin: 0;
-  text-align: center;
+  padding: 0 0 0 var(--space200);
+  text-align: left;
+  border-bottom: 1px solid var(--gray200);
 `;
 
 export const panelHeadingLeftCss = css`
@@ -28,7 +29,7 @@ export const panelHeadingRightCss = css`
 
 export const panelSectionCss = css`
   position: relative;
-  padding-block: var(--space100);
+  padding-block: var(--space75);
   &:not(:last-child) {
     border-bottom: 1px solid var(--gray200);
   }
@@ -36,4 +37,12 @@ export const panelSectionCss = css`
 
 export const panelInsetContentCss = css`
   padding-inline: var(--space150);
+`;
+
+export const panelDescCss = css`
+  color: var(--gray300);
+  font-weight: bold;
+  margin: 0 var(--space150);
+  text-align: left;
+  padding-top: var(--space200);
 `;
