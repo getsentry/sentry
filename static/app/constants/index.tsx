@@ -313,7 +313,7 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span_indexed',
+    apiName: 'span',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),

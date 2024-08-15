@@ -44,7 +44,13 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 # ONBOARDING_MONITOR_PERIOD.
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
-AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=5)
+AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
+# When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
+# successes in a row do we need to mark it up
+ACTIVE_FAILURE_THRESHOLD = 3
+ACTIVE_RECOVERY_THRESHOLD = 1
+# The TTL of the redis key used to track consecutive statuses
+ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -53,6 +59,12 @@ def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> st
 
 def build_onboarding_failure_key(project_subscription: ProjectUptimeSubscription) -> str:
     return f"project-sub-onboarding_failure:{project_subscription.id}"
+
+
+def build_active_consecutive_status_key(
+    project_subscription: ProjectUptimeSubscription, status: str
+) -> str:
+    return f"project-sub-active:{status}:{project_subscription.id}"
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
@@ -103,7 +115,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             tags={"status_reason": status_reason, **metric_tags},
             sample_rate=1.0,
         )
-        cluster = _get_cluster()
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
                 # If the scheduled check time is older than the most recent update then we've already processed it.
@@ -132,15 +143,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
                 # accurate measurement of delay/duration.
                 if result["duration_ms"]:
-                    metrics.gauge(
+                    metrics.distribution(
                         "uptime.result_processor.check_result.duration",
                         result["duration_ms"],
                         sample_rate=1.0,
+                        unit="millisecond",
                     )
-                metrics.gauge(
+                metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
+                    unit="millisecond",
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
@@ -154,6 +167,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             logger.exception("Failed to process result for uptime project subscription")
 
         # Now that we've processed the result for this project subscription we track the last update date
+        cluster = _get_cluster()
         cluster.set(
             build_last_update_key(project_subscription),
             int(result["scheduled_check_time_ms"]),
@@ -230,10 +244,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def handle_result_for_project_active_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult
     ):
+        redis = _get_cluster()
+        delete_status = (
+            CHECKSTATUS_FAILURE if result["status"] == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
+        )
+        # Delete any consecutive results we have for the opposing status, since we received this status
+        redis.delete(build_active_consecutive_status_key(project_subscription, delete_status))
+
         if (
             project_subscription.uptime_status == UptimeStatus.OK
             and result["status"] == CHECKSTATUS_FAILURE
         ):
+            if not self.has_reached_status_threshold(project_subscription, result["status"]):
+                return
+
             if features.has(
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
@@ -252,6 +276,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             project_subscription.uptime_status == UptimeStatus.FAILED
             and result["status"] == CHECKSTATUS_SUCCESS
         ):
+            if not self.has_reached_status_threshold(project_subscription, result["status"]):
+                return
+
             if features.has(
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
@@ -266,6 +293,25 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     },
                 )
             project_subscription.update(uptime_status=UptimeStatus.OK)
+
+    def has_reached_status_threshold(
+        self, project_subscription: ProjectUptimeSubscription, status: str
+    ) -> bool:
+        pipeline = _get_cluster().pipeline()
+        key = build_active_consecutive_status_key(project_subscription, status)
+        pipeline.incr(key)
+        pipeline.expire(key, ACTIVE_THRESHOLD_REDIS_TTL)
+        status_count = int(pipeline.execute()[0])
+        result = (status == CHECKSTATUS_FAILURE and status_count >= ACTIVE_FAILURE_THRESHOLD) or (
+            status == CHECKSTATUS_SUCCESS and status_count >= ACTIVE_RECOVERY_THRESHOLD
+        )
+        if not result:
+            metrics.incr(
+                "uptime.result_processor.active.under_threshold",
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+        return result
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

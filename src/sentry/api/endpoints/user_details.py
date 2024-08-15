@@ -25,10 +25,10 @@ from sentry.models.options.user_option import UserOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 

@@ -23,7 +23,10 @@ interface GroupSummaryData {
 const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
-): ApiQueryKey => [`/organizations/${organizationSlug}/issues/${groupId}/summarize/`];
+): ApiQueryKey => [
+  `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
+  {method: 'POST'},
+];
 
 export function GroupSummary({groupId}: GroupSummaryProps) {
   const organization = useOrganization();
