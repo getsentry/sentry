@@ -25,6 +25,7 @@ import {
   RESOURCE_THROUGHPUT_UNIT,
 } from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
@@ -79,6 +80,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const filters = useResourceModuleFilters();
   const {setPageInfo, pageAlert} = usePageAlert();
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
@@ -130,7 +132,11 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
     if (key === SPAN_DESCRIPTION) {
       const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
-
+      const extraLinkQueryParams = {};
+      if (filters[SpanMetricsField.USER_GEO_SUBREGION]) {
+        extraLinkQueryParams[SpanMetricsField.USER_GEO_SUBREGION] =
+          filters[SpanMetricsField.USER_GEO_SUBREGION];
+      }
       return (
         <DescriptionWrapper>
           <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
@@ -140,6 +146,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}
             group={row[SPAN_GROUP]}
+            extraLinkQueryParams={extraLinkQueryParams}
           />
         </DescriptionWrapper>
       );
