@@ -59,7 +59,7 @@ export default function CustomOverride({
         }}
         css={{background: 'white'}}
       />
-      <Button size="xs" type="submit" css={{width: '28px'}}>
+      <Button size="xs" type="submit" css={{width: '28px'}} disabled={!name.length}>
         <IconAdd />
       </Button>
     </form>
