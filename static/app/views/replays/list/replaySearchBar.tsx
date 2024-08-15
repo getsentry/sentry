@@ -119,6 +119,14 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
+  const start = pageFilters.datetime.start
+    ? getUtcDateString(pageFilters.datetime.start)
+    : undefined;
+  const end = pageFilters.datetime.end
+    ? getUtcDateString(pageFilters.datetime.end)
+    : undefined;
+  const statsPeriod = pageFilters.datetime.period;
+
   const tagQuery = useFetchOrganizationTags(
     {
       orgSlug: organization.slug,
@@ -127,13 +135,9 @@ function ReplaySearchBar(props: Props) {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: pageFilters.datetime.start
-        ? getUtcDateString(pageFilters.datetime.start)
-        : undefined,
-      end: pageFilters.datetime.end
-        ? getUtcDateString(pageFilters.datetime.end)
-        : undefined,
-      statsPeriod: pageFilters.datetime.period,
+      start: start,
+      end: end,
+      statsPeriod: statsPeriod,
     },
     {}
   );
@@ -162,13 +166,9 @@ function ReplaySearchBar(props: Props) {
       }
 
       const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
+        start: start,
+        end: end,
+        statsPeriod: statsPeriod,
       };
 
       return fetchTagValues({
@@ -186,14 +186,7 @@ function ReplaySearchBar(props: Props) {
         }
       );
     },
-    [
-      api,
-      organization.slug,
-      projectIds,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-      pageFilters.datetime.start,
-    ]
+    [api, organization.slug, projectIds, start, end, statsPeriod]
   );
 
   const onSearch = props.onSearch;
