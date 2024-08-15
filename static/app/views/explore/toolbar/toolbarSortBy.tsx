@@ -73,13 +73,13 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
         <CompactSelect
           size="md"
           options={fieldOptions}
-          value={sorts[0].field}
+          value={sorts[0]?.field}
           onChange={newSortField => setSortField(0, newSortField)}
         />
         <CompactSelect
           size="md"
           options={kindOptions}
-          value={sorts[0].kind}
+          value={sorts[0]?.kind}
           onChange={newSortKind => setSortKind(0, newSortKind)}
         />
       </ToolbarContent>
