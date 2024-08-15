@@ -438,7 +438,7 @@ function Sidebar() {
         icon={<IconLightning />}
         label={
           <GuideAnchor target="performance">
-            {hasNewNav ? truncateString(t('Performance'), 4) : t('Performance')}
+            {hasNewNav ? truncateString('Performance', 4) : t('Performance')}
           </GuideAnchor>
         }
         to={`/organizations/${organization.slug}/performance/`}
@@ -544,7 +544,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? truncateString(t('Dashboards'), 4) : t('Dashboards')}
+        label={hasNewNav ? truncateString('Dashboards', 4) : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
