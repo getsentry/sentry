@@ -62,7 +62,7 @@ class IdentityProvider(Model):
         db_table = "sentry_identityprovider"
         unique_together = (("type", "external_id"),)
 
-    def get_provider(self):
+    def get_provider(self) -> Identity:
         from sentry.identity import get
 
         return get(self.type)
@@ -71,7 +71,7 @@ class IdentityProvider(Model):
 class IdentityManager(BaseManager["Identity"]):
     def get_identities_for_user(
         self, user: User | RpcUser, provider: ExternalProviders
-    ) -> QuerySet:
+    ) -> QuerySet[Identity]:
         return self.filter(user_id=user.id, idp__type=provider.name)
 
     def has_identity(self, user: User | RpcUser, provider: ExternalProviders) -> bool:
