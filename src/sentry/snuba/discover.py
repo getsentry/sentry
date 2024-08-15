@@ -283,14 +283,13 @@ def query(
 def _query_temp_do_not_use(
     selected_columns: list[str],
     query_string: str,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     referrer: str | None = None,
 ):
     """There's a single function call in getsentry that we need to support as we remove params"""
     return query(
         selected_columns=selected_columns,
         query=query_string,
-        params={},
         snuba_params=snuba_params,
         referrer=referrer,
     )
