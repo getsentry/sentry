@@ -5,6 +5,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 
 const MAX_RECENT_FILTERS = 3;
@@ -20,7 +21,7 @@ function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
 
   return parsedQuery
     .filter(token => token.type === Token.FILTER)
-    .map(token => token.key.text);
+    .map(token => getKeyName(token.key));
 }
 
 function getFiltersFromQuery({
@@ -64,7 +65,12 @@ function getFiltersFromRecentSearches(
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )
-    .filter(filter => !filtersInCurrentQuery.includes(filter))
+    .filter(
+      filter =>
+        // We want to show recent filters that are not already in the current query
+        // and are valid filter keys
+        !filtersInCurrentQuery.includes(filter) && !!filterKeys[filter]
+    )
     .reduce((acc, filter) => {
       acc[filter] = (acc[filter] ?? 0) + 1;
       return acc;
