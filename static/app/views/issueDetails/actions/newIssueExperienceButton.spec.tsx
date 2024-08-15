@@ -27,7 +27,7 @@ describe('NewIssueExperienceButton', function () {
         expect.objectContaining({
           data: {
             options: {
-              issueDetailsNewExperienceQ42023: true,
+              prefersIssueDetailsStreamlinedUI: true,
             },
           },
         })
@@ -47,7 +47,7 @@ describe('NewIssueExperienceButton', function () {
         expect.objectContaining({
           data: {
             options: {
-              issueDetailsNewExperienceQ42023: false,
+              prefersIssueDetailsStreamlinedUI: false,
             },
           },
         })
