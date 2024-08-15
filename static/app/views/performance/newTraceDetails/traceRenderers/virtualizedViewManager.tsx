@@ -878,6 +878,15 @@ export class VirtualizedViewManager {
       (space[0] - this.view.to_origin) / this.span_to_px[0] -
       this.view.trace_view.x / this.span_to_px[0];
 
+    // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
+    if (
+      (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
+        this.span_to_px[0] <=
+      1
+    ) {
+      // 1px for the span and 1px for the border
+      this.span_matrix[4] = this.span_matrix[4] - 2;
+    }
     return this.span_matrix;
   }
 
