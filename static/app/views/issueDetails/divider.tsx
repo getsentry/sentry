@@ -1,0 +1,15 @@
+import styled from '@emotion/styled';
+
+export function Divider() {
+  return <DividerWrapper aria-hidden>{'|'}</DividerWrapper>;
+}
+
+/**
+ * Using relative font size to match the font size of the parent element
+ */
+const DividerWrapper = styled('div')`
+  color: ${p => p.theme.gray200};
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+`;
