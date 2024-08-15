@@ -45,7 +45,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
-        assert not resp.data["options"]["issueDetailsNewExperienceQ42023"]
+        assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
 
     def test_superuser_simple(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -115,7 +115,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "language": "fr",
                 "clock24Hours": True,
                 "extra": True,
-                "issueDetailsNewExperienceQ42023": True,
+                "prefersIssueDetailsStreamlinedUI": True,
             },
         )
 
