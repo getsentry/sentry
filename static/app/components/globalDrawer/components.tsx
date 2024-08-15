@@ -37,7 +37,7 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
 ) {
   return (
     <DrawerContainer>
-      <SlideOverPanel
+      <DrawerSlidePanel
         ariaLabel={ariaLabel}
         slidePosition="right"
         collapsed={false}
@@ -52,13 +52,14 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
           {children}
         </DrawerContentContext.Provider>
-      </SlideOverPanel>
+      </DrawerSlidePanel>
     </DrawerContainer>
   );
 });
 
 interface DrawerHeaderProps {
   children?: React.ReactNode;
+  className?: string;
   /**
    * If true, hides the spacer bar separating close button from custom header content
    */
@@ -70,13 +71,18 @@ interface DrawerHeaderProps {
 }
 
 export const DrawerHeader = forwardRef(function _DrawerHeader(
-  {children = null, hideBar = false, hideCloseButton = false}: DrawerHeaderProps,
+  {
+    className,
+    children = null,
+    hideBar = false,
+    hideCloseButton = false,
+  }: DrawerHeaderProps,
   ref: React.ForwardedRef<HTMLHeadingElement>
 ) {
   const {onClose} = useDrawerContentContext();
 
   return (
-    <Header ref={ref}>
+    <Header ref={ref} className={className}>
       {!hideCloseButton && (
         <Fragment>
           <CloseButton
@@ -117,7 +123,7 @@ const Header = styled('header')`
   justify-content: flex-start;
   display: flex;
   padding: ${space(1.5)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.border} 0 1px;
   padding-left: 24px;
 `;
 
@@ -131,6 +137,10 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
+`;
+
+const DrawerSlidePanel = styled(SlideOverPanel)`
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
 `;
 
 export const DrawerComponents = {

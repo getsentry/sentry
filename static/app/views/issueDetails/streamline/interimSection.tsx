@@ -45,7 +45,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
 );
 
 export const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.border};
+  border-color: ${p => p.theme.translucentBorder};
   margin: ${space(1)} 0;
   &:last-child {
     display: none;

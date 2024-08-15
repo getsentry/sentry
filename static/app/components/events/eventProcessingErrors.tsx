@@ -118,6 +118,10 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
       }))
     );
 
+  if (!errors.length) {
+    return null;
+  }
+
   return (
     <InterimSection
       title={t('Event Processing Errors')}
