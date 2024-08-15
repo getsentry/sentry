@@ -57,13 +57,12 @@ export function HTTPLandingPage() {
     },
   });
 
-  const ADDITONAL_FILTERS = {
-    ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
-      ? {
-          [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
-        }
-      : {}),
-  };
+
+  const ADDITIONAL_FILTERS = {};
+  
+  if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
+    ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] = `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`
+  }
 
   const chartFilters = {
     ...BASE_FILTERS,
