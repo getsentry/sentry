@@ -52,7 +52,6 @@ export {IconInput} from './iconInput';
 export {IconIssues} from './iconIssues';
 export {IconJira} from './iconJira';
 export {IconJson} from './iconJson';
-export {IconKeyboard} from './iconKeyboard';
 export {IconKeyDown} from './iconKeyDown';
 export {IconLab} from './iconLab';
 export {IconLaptop} from './iconLaptop';

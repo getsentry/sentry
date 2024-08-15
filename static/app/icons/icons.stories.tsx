@@ -1030,12 +1030,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'keyboard',
-        keywords: ['keys', 'shortcut'],
-        name: 'Keyboard',
-        defaultProps: {},
-      },
-      {
         id: 'thumb',
         keywords: ['feedback', 'good'],
         additionalProps: ['direction'],

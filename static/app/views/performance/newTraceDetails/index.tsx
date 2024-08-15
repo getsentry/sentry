@@ -1033,7 +1033,7 @@ function TraceResetZoomButton(props: {
       onClick={onResetZoom}
       ref={props.viewManager.registerResetZoomRef}
     >
-      {t('Reset Zoom')}
+      {t('Reset')}
     </ResetZoomButton>
   );
 }
