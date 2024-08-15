@@ -50,7 +50,6 @@ import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
-import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -552,10 +551,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           <Header />
           <Layout.Body>
             <Layout.Main fullWidth>
-              {organization.features.includes('releases-v2-banner') && (
-                <ReleaseFeedbackBanner />
-              )}
-
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
