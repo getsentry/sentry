@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
-import AnomalyDetectionForm from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
+import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
@@ -124,7 +124,7 @@ class Triggers extends Component<Props> {
         <Panel>
           <PanelBody>
             {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
-              <AnomalyDetectionForm
+              <AnomalyDetectionFormField
                 disabled={disabled}
                 sensitivity={sensitivity}
                 onSensitivityChange={onSensitivityChange}

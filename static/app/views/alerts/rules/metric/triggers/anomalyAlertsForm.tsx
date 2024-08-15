@@ -37,19 +37,11 @@ function SensitivityFormItem({
   sensitivity,
   onSensitivityChange,
 }: SensitivityFormItemProps) {
-  const handleSensitivityChange = ({value}) => {
-    onSensitivityChange(value);
-  };
-
   return (
     <StyledField
-      label={<div>{'Sensitivity'}</div>}
+      label={'Sensitivity'}
       help={
-        <div>
-          {
-            'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
-          }
-        </div>
+        'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
       }
       required
     >
@@ -71,7 +63,9 @@ function SensitivityFormItem({
               label: 'High (alert more often)',
             },
           ]}
-          onChange={handleSensitivityChange}
+          onChange={({value}) => {
+            onSensitivityChange(value);
+          }}
         />
       </SelectContainer>
     </StyledField>
@@ -82,19 +76,11 @@ function DirectionFormItem({
   thresholdType,
   onThresholdTypeChange,
 }: DirectionFormItemProps) {
-  const handleThresholdTypeChange = ({value}) => {
-    onThresholdTypeChange(value);
-  };
-
   return (
     <StyledField
-      label={<div>{'Direction'}</div>}
+      label={'Direction'}
       help={
-        <div>
-          {
-            'Indicate if you want to be alerted of anomalies above your set bounds, below, or both.'
-          }
-        </div>
+        'Indicate if you want to be alerted of anomalies above your set bounds, below, or both.'
       }
       required
     >
@@ -116,14 +102,16 @@ function DirectionFormItem({
               label: 'Below bounds only',
             },
           ]}
-          onChange={handleThresholdTypeChange}
+          onChange={({value}) => {
+            onThresholdTypeChange(value);
+          }}
         />
       </SelectContainer>
     </StyledField>
   );
 }
 
-class AnomalyDetectionForm extends Component<Props> {
+class AnomalyDetectionFormField extends Component<Props> {
   render() {
     const {sensitivity, onSensitivityChange, thresholdType, onThresholdTypeChange} =
       this.props;
@@ -153,4 +141,4 @@ const StyledField = styled(FieldGroup)`
 const SelectContainer = styled('div')`
   flex: 1;
 `;
-export default AnomalyDetectionForm;
+export default AnomalyDetectionFormField;

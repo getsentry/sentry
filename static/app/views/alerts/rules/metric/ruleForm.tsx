@@ -459,23 +459,26 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     changedTriggerIndex?: number
   ) {
     const {comparisonType} = this.state;
+    const triggerErrors = new Map();
     // If we have an anomaly detection alert, then we don't need to validate the thresholds, but we do need to set them to 0
     if (comparisonType === AlertRuleComparisonType.DYNAMIC) {
       // NOTE: we don't support warning triggers for anomaly detection alerts yet
-      // once we do, uncomment this code and delete the next five uncommented lines:
+      // once we do, uncomment this code and delete 475-478:
       // triggers.forEach(trigger => {
       //   trigger.alertThreshold = 0;
       // });
       const criticalTriggerIndex = triggers.findIndex(
         ({label}) => label === AlertRuleTriggerType.CRITICAL
       );
-      const criticalTrigger = triggers[criticalTriggerIndex];
+      const warningTriggerIndex = criticalTriggerIndex ^ 1;
+      const triggersCopy = [...triggers];
+      const criticalTrigger = triggersCopy[criticalTriggerIndex];
+      const warningTrigger = triggersCopy[warningTriggerIndex];
       criticalTrigger.alertThreshold = 0;
-      const triggerErrors = new Map();
+      warningTrigger.alertThreshold = ''; // we need to set this to empty
+      this.setState({triggers: triggersCopy});
       return triggerErrors; // return an empty map
     }
-    const triggerErrors = new Map();
-
     const requiredFields = ['label', 'alertThreshold'];
     triggers.forEach((trigger, triggerIndex) => {
       requiredFields.forEach(field => {
@@ -932,7 +935,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       : DEFAULT_CHANGE_TIME_WINDOW;
     const sensitivity =
       value === AlertRuleComparisonType.DYNAMIC
-        ? this.state.sensitivity ?? AlertRuleSensitivity.MEDIUM
+        ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
     const seasonality = value === AlertRuleComparisonType.DYNAMIC ? 'auto' : undefined; // TODO: replace "auto" with the correct constant
     this.setState({
