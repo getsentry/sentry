@@ -268,7 +268,7 @@ class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubI
             return False
         return True
 
-    # for derive code mappings (TODO: define in an ABC)
+    # for derive code mappings - TODO(cathy): define in an ABC
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         trees: dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
@@ -291,7 +291,7 @@ class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubI
 
         return trees
 
-    # TODO: define in issue ABC
+    # TODO(cathy): define in issue ABC
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         return self.get_client().search_issues(query)
 
