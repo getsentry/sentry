@@ -13,6 +13,7 @@ interface ScrollCarouselProps {
   children: React.ReactNode;
   className?: string;
   gap?: ValidSize;
+  transparentMask?: boolean;
 }
 
 /**
@@ -32,7 +33,12 @@ const DEFAULT_VISIBLE_RATIO = 0.85;
  */
 const DEFAULT_JUMP_ITEM_COUNT = 2;
 
-export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselProps) {
+export function ScrollCarousel({
+  children,
+  className,
+  gap = 1,
+  transparentMask = false,
+}: ScrollCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
@@ -77,8 +83,8 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
       >
         {children}
       </ScrollContainer>
-      {!isAtStart && <LeftMask />}
-      {!isAtEnd && <RightMask />}
+      {!isAtStart && <LeftMask transparentMask={transparentMask} />}
+      {!isAtEnd && <RightMask transparentMask={transparentMask} />}
       {!isAtStart && (
         <StyledArrowButton
           onClick={scrollLeft}
@@ -151,24 +157,30 @@ const Mask = css`
   z-index: 1;
 `;
 
-const LeftMask = styled('div')`
+const LeftMask = styled('div')<{transparentMask: boolean}>`
   ${Mask}
   left: 0;
-  background: linear-gradient(
+  background: ${p =>
+    p.transparentMask
+      ? 'linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))'
+      : `linear-gradient(
     90deg,
-    ${p => p.theme.background} 50%,
-    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
-  );
+    ${p.theme.background} 50%,
+    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  )`};
 `;
 
-const RightMask = styled('div')`
+const RightMask = styled('div')<{transparentMask: boolean}>`
   ${Mask}
   right: 0;
-  background: linear-gradient(
+  background: ${p =>
+    p.transparentMask
+      ? 'linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))'
+      : `linear-gradient(
     270deg,
-    ${p => p.theme.background} 50%,
-    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
-  );
+    ${p.theme.background} 50%,
+    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  )`};
 `;
 
 const StyledIconChevron = styled(IconChevron)`

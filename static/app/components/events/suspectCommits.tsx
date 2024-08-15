@@ -87,25 +87,27 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return hasStreamlinedUI ? (
-    <ScrollCarousel gap={0.5}>
-      {commits.slice(0, 100).map((commit, commitIndex) => (
-        <StreamlinedPanel key={commitIndex}>
-          <Title>{t('Suspect Commit')}</Title>
-          <div>
-            <CommitRow
-              key={commit.id}
-              commit={commit}
-              onCommitClick={() => handleCommitClick(commit, commitIndex)}
-              onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
-              project={project}
-            />
-          </div>
-          <IllustrationContainer>
-            <Illustration src={bannerIllustration} />
-          </IllustrationContainer>
-        </StreamlinedPanel>
-      ))}
-    </ScrollCarousel>
+    <SuspectCommitWrapper>
+      <ScrollCarousel gap={0.5}>
+        {commits.slice(0, 100).map((commit, commitIndex) => (
+          <StreamlinedPanel key={commitIndex}>
+            <Title>{t('Suspect Commit')}</Title>
+            <div>
+              <CommitRow
+                key={commit.id}
+                commit={commit}
+                onCommitClick={() => handleCommitClick(commit, commitIndex)}
+                onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
+                project={project}
+              />
+            </div>
+            <IllustrationContainer>
+              <Illustration src={bannerIllustration} />
+            </IllustrationContainer>
+          </StreamlinedPanel>
+        ))}
+      </ScrollCarousel>
+    </SuspectCommitWrapper>
   ) : (
     <div>
       <SuspectCommitHeader>
@@ -164,6 +166,12 @@ const StreamlinedPanel = styled(Panel)`
   margin-bottom: 0;
   width: 100%;
   min-width: 85%;
+  &:last-child {
+    margin-right: ${space(1.5)};
+  }
+  &:first-child {
+    margin-left: ${space(1.5)};
+  }
 `;
 
 const IllustrationContainer = styled('div')`
@@ -179,4 +187,9 @@ const IllustrationContainer = styled('div')`
 
 const Illustration = styled('img')`
   height: 110px;
+`;
+
+const SuspectCommitWrapper = styled('div')`
+  margin-right: 0;
+  margin-left: 0;
 `;
