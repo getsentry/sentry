@@ -70,7 +70,7 @@ class TestCreateFlag(CliTestCase):
             "--owner=Test Owner",
             input="\n".join(cli_input),
         )
-        assert rv.exit_code == 0
+        assert rv.exit_code == 0, rv.output
         parsed_feature = self.convert_output_to_feature(rv.output)
         assert parsed_feature.name == "feature.organizations:new-flag"
         assert parsed_feature.owner == "Test Owner"

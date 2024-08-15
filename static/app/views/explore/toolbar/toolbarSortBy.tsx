@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
-import type {Direction, Sort} from 'sentry/views/explore/hooks/useSort';
 
 import {ToolbarHeading, ToolbarSection} from './styles';
 
 interface ToolbarSortByProps {
   fields: Field[];
-  setSort: (newSort: Sort) => void;
-  sort: Sort;
+  setSorts: (newSorts: Sort[]) => void;
+  sorts: Sort[];
 }
 
-export function ToolbarSortBy({fields, setSort, sort}: ToolbarSortByProps) {
+export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const fieldOptions: SelectOption<Field>[] = useMemo(() => {
     return fields.map(field => {
       return {
@@ -26,16 +26,20 @@ export function ToolbarSortBy({fields, setSort, sort}: ToolbarSortByProps) {
   }, [fields]);
 
   const setSortField = useCallback(
-    ({value}: SelectOption<Field>) => {
-      setSort({
-        field: value,
-        direction: sort.direction,
-      });
+    (i: number, {value}: SelectOption<Field>) => {
+      if (sorts[i]) {
+        setSorts([
+          {
+            field: value,
+            kind: sorts[i].kind,
+          },
+        ]);
+      }
     },
-    [setSort, sort]
+    [setSorts, sorts]
   );
 
-  const directionOptions: SelectOption<Direction>[] = useMemo(() => {
+  const kindOptions: SelectOption<Sort['kind']>[] = useMemo(() => {
     return [
       {
         label: 'Descending',
@@ -48,14 +52,18 @@ export function ToolbarSortBy({fields, setSort, sort}: ToolbarSortByProps) {
     ];
   }, []);
 
-  const setSortDirection = useCallback(
-    ({value}: SelectOption<Direction>) => {
-      setSort({
-        field: sort.field,
-        direction: value,
-      });
+  const setSortKind = useCallback(
+    (i: number, {value}: SelectOption<Sort['kind']>) => {
+      if (sorts[i]) {
+        setSorts([
+          {
+            field: sorts[i].field,
+            kind: value,
+          },
+        ]);
+      }
     },
-    [setSort, sort]
+    [setSorts, sorts]
   );
 
   return (
@@ -65,14 +73,14 @@ export function ToolbarSortBy({fields, setSort, sort}: ToolbarSortByProps) {
         <CompactSelect
           size="md"
           options={fieldOptions}
-          value={sort.field}
-          onChange={setSortField}
+          value={sorts[0].field}
+          onChange={newSortField => setSortField(0, newSortField)}
         />
         <CompactSelect
           size="md"
-          options={directionOptions}
-          value={sort.direction}
-          onChange={setSortDirection}
+          options={kindOptions}
+          value={sorts[0].kind}
+          onChange={newSortKind => setSortKind(0, newSortKind)}
         />
       </ToolbarContent>
     </ToolbarSection>

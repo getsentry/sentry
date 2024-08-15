@@ -91,6 +91,7 @@ class Referrer(Enum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
+    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"

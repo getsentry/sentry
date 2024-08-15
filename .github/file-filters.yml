@@ -87,10 +87,7 @@ backend_any_type: &backend_any_type
 
 migrations_added:
   - added:
-      - 'src/sentry/migrations/*'
-      - 'src/sentry/feedback/migrations/*'
-      - 'src/sentry/hybridcloud/migrations/*'
-      - 'src/sentry/replays/migrations/*'
+      - 'src/sentry/**/migrations/*'
 
 # These files will trigger our workflow to check if lockfile
 # updates are needed
