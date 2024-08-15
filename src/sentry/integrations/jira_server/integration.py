@@ -572,7 +572,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:

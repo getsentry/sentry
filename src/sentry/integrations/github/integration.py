@@ -296,8 +296,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
 
         return trees
 
-    # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+    def search_issues(self, query: str | None, **kwargs):
         return self.get_client().search_issues(query)
 
 

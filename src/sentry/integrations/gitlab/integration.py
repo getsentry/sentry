@@ -172,8 +172,10 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         return client.search_projects(group_id, query)
 
     # TODO(cathy): define in issue ABC
-    def search_issues(self, project_id, query, iids):
+    def search_issues(self, query: str | None, **kwargs):
         client = self.get_client()
+        project_id = kwargs["project_id"]
+        iids = kwargs["iids"]
         return client.search_project_issues(project_id, query, iids)
 
 
