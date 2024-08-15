@@ -131,6 +131,13 @@ export default function FeedbackSearch({className, style}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
+  const start = pageFilters.datetime.start
+    ? getUtcDateString(pageFilters.datetime.start)
+    : undefined;
+  const end = pageFilters.datetime.end
+    ? getUtcDateString(pageFilters.datetime.end)
+    : undefined;
+  const statsPeriod = pageFilters.datetime.period;
   const tagQuery = useFetchOrganizationTags(
     {
       orgSlug: organization.slug,
@@ -139,13 +146,9 @@ export default function FeedbackSearch({className, style}: Props) {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: pageFilters.datetime.start
-        ? getUtcDateString(pageFilters.datetime.start)
-        : undefined,
-      end: pageFilters.datetime.end
-        ? getUtcDateString(pageFilters.datetime.end)
-        : undefined,
-      statsPeriod: pageFilters.datetime.period,
+      start: start,
+      end: end,
+      statsPeriod: statsPeriod,
     },
     {}
   );
@@ -175,13 +178,9 @@ export default function FeedbackSearch({className, style}: Props) {
       }
 
       const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
+        start: start,
+        end: end,
+        statsPeriod: statsPeriod,
       };
 
       return fetchTagValues({
@@ -198,14 +197,7 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [
-      api,
-      organization.slug,
-      projectIds,
-      pageFilters.datetime.start,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-    ]
+    [api, organization.slug, projectIds, start, end, statsPeriod]
   );
 
   const navigate = useNavigate();
