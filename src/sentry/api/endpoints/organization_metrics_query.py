@@ -182,7 +182,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                             interval,
                             organization,
                             projects,
-                            Referrer.API_ORGANIZATION_METRICS_QUERY.value,
+                            Referrer.API_ORGANIZATION_METRICS_EAP_QUERY.value,
                         )
                         return Response(status=200, data=results)
 
