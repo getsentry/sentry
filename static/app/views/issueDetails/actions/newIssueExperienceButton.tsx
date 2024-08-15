@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
@@ -56,6 +57,10 @@ export function NewIssueExperienceButton() {
         aria-label={label}
         onClick={() => {
           mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+          trackAnalytics('issue_details.streamline_ui_toggle', {
+            isEnabled: !hasStreamlinedUI,
+            organization: organization,
+          });
           navigate({
             ...location,
             query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},

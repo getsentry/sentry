@@ -5,7 +5,14 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+
+const mockUseNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockUseNavigate,
+}));
+jest.mock('sentry/utils/analytics');
 
 describe('NewIssueExperienceButton', function () {
   const organization = OrganizationFixture({features: ['issue-details-streamline']});
@@ -56,7 +63,7 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
   });
 
-  it('triggers changes to the user config', async function () {
+  it('triggers changes to the user config and location', async function () {
     const mockChangeUserSettings = MockApiClient.addMockResponse({
       url: '/users/me/',
       method: 'PUT',
@@ -86,6 +93,11 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
+    // Location should update
+    expect(mockUseNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {streamline: '1'}})
+    );
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     // Clicking again toggles it off
     await userEvent.click(button);
@@ -106,5 +118,10 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
+    // Location should update again
+    expect(mockUseNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {streamline: '0'}})
+    );
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 });
