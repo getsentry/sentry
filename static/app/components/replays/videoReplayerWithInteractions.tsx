@@ -134,7 +134,11 @@ export class VideoReplayerWithInteractions {
         Sentry.captureMessage(
           'Mobile replay has mismatching touch start and end events',
           {
-            tags: {sdk_name: context.sdkName, sdk_version: context.sdkVersion},
+            tags: {
+              sdk_name: context.sdkName,
+              sdk_version: context.sdkVersion,
+              type: typeof t,
+            },
           }
         );
       }
