@@ -6,8 +6,8 @@ from typing import Any
 from django.utils.functional import LazyObject
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user import (
     RpcAuthenticator,
     RpcAvatar,
