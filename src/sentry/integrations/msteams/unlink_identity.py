@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.messaging import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams import MsTeamsIdentityLinkageView
+from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
