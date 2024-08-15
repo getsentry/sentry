@@ -5,6 +5,17 @@ import requests
 import snuba_sdk.mql.mql
 from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
+from sentry_protos.snuba.v1alpha.endpoint_aggregate_bucket_pb2 import (
+    AggregateBucketRequest,
+    AggregateBucketResponse,
+)
+from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1alpha.trace_item_filter_pb2 import (
+    AndFilter,
+    OrFilter,
+    StringFilter,
+    TraceItemFilter,
+)
 from snuba_sdk import Timeseries
 from snuba_sdk.conditions import And as MQLAnd
 from snuba_sdk.conditions import Condition as MQLCondition
@@ -14,17 +25,6 @@ from snuba_sdk.conditions import Or as MQLOr
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.eap.protobufs.AggregateBucket_pb2 import (
-    AggregateBucketRequest,
-    AggregateBucketResponse,
-)
-from sentry.sentry_metrics.querying.eap.protobufs.BaseRequest_pb2 import RequestInfo
-from sentry.sentry_metrics.querying.eap.protobufs.Filters_pb2 import (
-    AndFilter,
-    OrFilter,
-    StringFilter,
-    TraceItemFilter,
-)
 
 
 def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
@@ -39,9 +39,7 @@ def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
             )
         elif isinstance(cond, MQLCondition):
             if cond.op == MQLOp.EQ:
-                yield TraceItemFilter(
-                    string_comparison=StringFilter(key=cond.lhs.name, value=cond.rhs)
-                )
+                yield TraceItemFilter(string_filter=StringFilter(key=cond.lhs.name, value=cond.rhs))
         # TODO: maybe we want to implement other stuff
 
 
@@ -76,14 +74,14 @@ def make_eap_request(
             and_filter=AndFilter(filters=list(parse_mql_filters(ts.filters)))
         )
     req = AggregateBucketRequest(
-        request_info=RequestInfo(
-            start_timestamp=start_time_proto,
-            end_timestamp=end_time_proto,
+        meta=RequestMeta(
             organization_id=organization.id,
             cogs_category="eap",
             referrer=referrer,
             project_ids=[project.id for project in projects],
         ),
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
         aggregate=aggregate_map[ts.aggregate],
         filter=rpc_filters,
     )
