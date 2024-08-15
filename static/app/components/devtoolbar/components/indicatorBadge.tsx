@@ -14,10 +14,10 @@ interface Props {
 }
 
 export default function IndicatorBadge({variant}: Props) {
-  return <div css={[smallCss, counterCss, variants[variant]]} />;
+  return <div css={[smallCss, badgeCss, variants[variant]]} />;
 }
 
-const counterCss = css`
+const badgeCss = css`
   background: var(--red400);
   border-radius: 50%;
   border: 1px solid transparent;
