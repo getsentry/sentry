@@ -173,9 +173,14 @@ export default function TagFacets({
     return formatted as Record<string, GroupTagResponseItem>;
   }, [data, tagFormatter, isStatisticalDetector]);
 
-  const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
+  // filter out replayId since we no longer want to
+  // display this on issue or trace details
+  const topTagKeys = tagKeys
+    .filter(tagKey => Object.keys(tagsData).includes(tagKey))
+    .filter(f => f !== 'replayId');
   const remainingTagKeys = Object.keys(tagsData)
     .filter(tagKey => !tagKeys.includes(tagKey))
+    .filter(f => f !== 'replayId')
     .sort();
 
   if (isLoading) {
