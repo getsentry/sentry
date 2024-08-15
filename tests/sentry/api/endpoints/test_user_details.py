@@ -133,7 +133,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert UserOption.objects.get_value(
-            user=self.user, key="issue_details_new_experience_q4_2023"
+            user=self.user, key="prefers_issue_details_streamlined_ui"
         )
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
