@@ -33,6 +33,7 @@ from sentry.notifications.notifications.integration_nudge import IntegrationNudg
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
+from sentry.types.actor import ActorType
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -284,6 +285,19 @@ class LinkingView(BaseView, ABC):
     def metrics_operation_key(self) -> str:
         raise NotImplementedError
 
+    def capture_metric(self, event_tag: str, tags: dict[str, str] | None = None) -> str:
+        event = ".".join(
+            ("sentry.integrations", self.provider_slug, self.metrics_operation_key, event_tag)
+        )
+        metrics.incr(event, tags=(tags or {}), sample_rate=1.0)
+        return event
+
+    def record_analytic(self, event_tag: str, actor_id: int) -> None:
+        event = ".".join(("integrations", self.provider_slug, event_tag))
+        analytics.record(
+            event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
+        )
+
     @staticmethod
     def _render_error_page(
         request: Request | HttpRequest, status: int, body_text: str
@@ -292,18 +306,13 @@ class LinkingView(BaseView, ABC):
         context = {"body_text": body_text}
         return render_to_response(template, request=request, status=status, context=context)
 
-    def get_metric_key(self, event_tag: str) -> str:
-        return ".".join(
-            ("sentry.integrations", self.provider_slug, self.metrics_operation_key, event_tag)
-        )
-
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
             params = unsign(signed_params, salt=self.salt)
         except (SignatureExpired, BadSignature) as e:
             logger.warning("dispatch.signature_error", exc_info=e)
-            metrics.incr(self.get_metric_key("failure"), tags={"error": str(e)}, sample_rate=1.0)
+            self.capture_metric("failure", tags={"error": str(e)})
             return render_to_response(
                 self.expired_link_template,
                 request=request,
@@ -320,7 +329,7 @@ class LinkingView(BaseView, ABC):
                 )
         except Http404:
             logger.exception("get_identity_error", extra={"integration_id": integration_id})
-            metrics.incr(self.get_metric_key("failure.get_identity"), sample_rate=1.0)
+            self.capture_metric("failure.get_identity")
             return self._render_error_page(
                 request,
                 status=404,
@@ -331,7 +340,7 @@ class LinkingView(BaseView, ABC):
             "get_identity_success",
             extra={"integration_id": integration_id, "provider": self.provider_slug},
         )
-        metrics.incr(self.get_metric_key("success.get_identity"), sample_rate=1.0)
+        self.capture_metric("success.get_identity")
         params.update({"organization": organization, "integration": integration, "idp": idp})
 
         dispatch_kwargs = dict(
@@ -360,9 +369,8 @@ class LinkingView(BaseView, ABC):
             params_dict: Mapping[str, Any] = kwargs["params"]
             external_id: str = params_dict[self.external_id_parameter]
         except KeyError as e:
-            key = self.get_metric_key("failure.post.missing_params")
-            logger.exception(key)
-            metrics.incr(key, tags={"error": str(e)}, sample_rate=1.0)
+            event = self.capture_metric("failure.post.missing_params", tags={"error": str(e)})
+            logger.exception(event)
             return self._render_error_page(
                 request,
                 status=400,
@@ -374,11 +382,11 @@ class LinkingView(BaseView, ABC):
             return exc_response
 
         self.notify_on_success(external_id, params_dict, integration)
+        self.capture_metric("success.post")
+        self.record_analytic("identity_linked", request.user.id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
-
-        metrics.incr(self.get_metric_key("success.post"), sample_rate=1.0)
 
         success_template, success_context = self.get_success_template_and_context(
             params_dict, integration
@@ -450,11 +458,8 @@ class LinkIdentityView(LinkingView, ABC):
         try:
             Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
         except IntegrityError:
-            logger.exception("slack.link.integrity_error")
-            metrics.incr(
-                self.get_metric_key("failure.post.identity.integrity_error"),
-                sample_rate=1.0,
-            )
+            event = self.capture_metric("failure.integrity_error")
+            logger.exception(event)
             raise Http404
 
 
