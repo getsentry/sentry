@@ -1,12 +1,11 @@
-from abc import ABC
 from collections.abc import Mapping
 from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
+from sentry.integrations.messaging import LinkIdentityView
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
 from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -38,37 +37,7 @@ def build_linking_url(
     )
 
 
-class MsTeamsLinkingView(LinkingView, ABC):
-    @property
-    def parent_messaging_spec(self) -> MessagingIntegrationSpec:
-        from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
-
-        return MsTeamsMessagingSpec()
-
-    @property
-    def provider(self) -> ExternalProviders:
-        return ExternalProviders.MSTEAMS
-
-    @property
-    def external_provider_enum(self) -> ExternalProviderEnum:
-        return ExternalProviderEnum.MSTEAMS
-
-    @property
-    def salt(self) -> str:
-        from .constants import SALT
-
-        return SALT
-
-    @property
-    def external_id_parameter(self) -> str:
-        return "teams_user_id"
-
-    @property
-    def expired_link_template(self) -> str:
-        return "sentry/integrations/msteams/expired-link.html"
-
-
-class MsTeamsLinkIdentityView(MsTeamsLinkingView, LinkIdentityView):
+class MsTeamsLinkIdentityView(MsTeamsIdentityLinkageView, LinkIdentityView):
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:

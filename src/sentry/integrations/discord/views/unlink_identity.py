@@ -3,7 +3,7 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.discord.views.link_identity import DiscordLinkingView
+from sentry.integrations.discord.views.linkage import DiscordIdentityLinkageView
 from sentry.integrations.messaging import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -22,7 +22,7 @@ def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
-class DiscordUnlinkIdentityView(DiscordLinkingView, UnlinkIdentityView):
+class DiscordUnlinkIdentityView(DiscordIdentityLinkageView, UnlinkIdentityView):
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:

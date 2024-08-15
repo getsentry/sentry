@@ -228,7 +228,9 @@ class _MessagingHandlerFactory(ActionHandlerFactory):
 
 
 @control_silo_view
-class LinkingView(BaseView, ABC):
+class IdentityLinkageView(BaseView, ABC):
+    """ "Linkage" includes both linking and unlinking."""
+
     @property
     @abstractmethod
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
@@ -447,7 +449,7 @@ class LinkingView(BaseView, ABC):
         """
 
 
-class LinkIdentityView(LinkingView, ABC):
+class LinkIdentityView(IdentityLinkageView, ABC):
     @property
     def confirmation_template(self) -> str:
         return "sentry/auth-link-identity.html"
@@ -474,7 +476,7 @@ class LinkIdentityView(LinkingView, ABC):
             raise Http404
 
 
-class UnlinkIdentityView(LinkingView, ABC):
+class UnlinkIdentityView(IdentityLinkageView, ABC):
     @property
     def confirmation_template(self) -> str:
         return "sentry/auth-unlink-identity.html"
