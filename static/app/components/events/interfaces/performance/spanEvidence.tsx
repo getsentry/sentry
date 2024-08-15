@@ -4,7 +4,6 @@ import {LinkButton} from 'sentry/components/button';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
@@ -65,7 +64,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
             data-test-id="span-evidence-settings-btn"
             to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
             size="xs"
-            icon={<StyledSettingsIcon />}
+            icon={<IconSettings />}
           >
             {t('Threshold Settings')}
           </LinkButton>
@@ -125,8 +124,4 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 const TraceViewWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSettingsIcon = styled(IconSettings)`
-  margin-right: ${space(0.5)};
 `;
