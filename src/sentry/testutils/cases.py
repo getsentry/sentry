@@ -103,7 +103,6 @@ from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -145,6 +144,7 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
@@ -1383,6 +1383,15 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
                 data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
+    def store_issues(self, issues):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
+                data=json.dumps(issues),
             ).status_code
             == 200
         )
