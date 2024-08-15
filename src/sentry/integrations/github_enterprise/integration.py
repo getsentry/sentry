@@ -154,6 +154,19 @@ class GitHubEnterpriseIntegration(
             org_integration_id=self.org_integration.id,
         )
 
+    # IntegrationInstallation methods
+
+    def message_from_error(self, exc):
+        if isinstance(exc, ApiError):
+            message = API_ERRORS.get(exc.code)
+            if message is None:
+                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
+        else:
+            return ERR_INTERNAL
+
+    # RepositoryIntegration methods
+
     def get_repositories(self, query=None):
         if not query:
             return [
@@ -196,15 +209,6 @@ class GitHubEnterpriseIntegration(
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
         return False
-
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
-            if message is None:
-                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
-        else:
-            return ERR_INTERNAL
 
 
 class InstallationForm(forms.Form):
