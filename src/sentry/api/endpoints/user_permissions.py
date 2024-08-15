@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
-from sentry.models.userpermission import UserPermission
+from sentry.users.models.userpermission import UserPermission
 
 
 @control_silo_endpoint

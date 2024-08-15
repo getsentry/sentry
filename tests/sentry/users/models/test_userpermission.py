@@ -1,6 +1,6 @@
-from sentry.models.userpermission import UserPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.userpermission import UserPermission
 
 
 @control_silo_test
