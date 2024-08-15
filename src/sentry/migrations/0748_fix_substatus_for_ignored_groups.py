@@ -5,6 +5,7 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # Copying constants defined in the models
 
@@ -50,10 +51,10 @@ def backfill_substatus_for_ignored_groups(
     Activity = apps.get_model("sentry", "Activity")
     GroupSnooze = apps.get_model("sentry", "GroupSnooze")
 
-    groups = Group.objects.filter(status=GroupStatus.IGNORED, substatus=None)
     activity = Activity.objects.filter(type=ActivityType.SET_IGNORED)
-
-    for group in groups:
+    for group in RangeQuerySetWrapperWithProgressBarApprox(
+        Group.objects.filter(status=GroupStatus.IGNORED, substatus=None),
+    ):
         group_activity = activity.filter(group_id=group.id).order_by("-datetime").first()
         new_substatus = None
         if group_activity:
@@ -75,7 +76,7 @@ def backfill_substatus_for_ignored_groups(
                 new_substatus = GroupSubStatus.FOREVER
 
         group.substatus = new_substatus
-        group.save()
+        group.save(update_fields=["substatus"])
 
 
 class Migration(CheckedMigration):
