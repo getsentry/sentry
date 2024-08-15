@@ -57,11 +57,11 @@ export function HTTPLandingPage() {
     },
   });
 
-
   const ADDITIONAL_FILTERS = {};
-  
+
   if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
-    ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] = `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`
+    ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
+      `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`;
   }
 
   const chartFilters = {
