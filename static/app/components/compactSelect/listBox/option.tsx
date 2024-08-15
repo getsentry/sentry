@@ -15,13 +15,19 @@ interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
+  showDetails?: boolean;
 }
 
 /**
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
+export function ListBoxOption({
+  item,
+  listState,
+  size,
+  showDetails = true,
+}: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
@@ -89,7 +95,7 @@ export function ListBoxOption({item, listState, size}: ListBoxOptionProps) {
       ref={ref}
       size={size}
       label={label}
-      details={details}
+      details={showDetails ? details : null}
       disabled={isDisabled}
       isPressed={isPressed}
       isSelected={isSelected}
