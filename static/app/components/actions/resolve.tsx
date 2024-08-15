@@ -236,10 +236,12 @@ function ResolveActions({
               actionTitle
             ) : latestRelease ? (
               <Fragment>
-                <MaxReleaseWidthWrapper>
-                  {formatVersion(latestRelease.version)}
-                </MaxReleaseWidthWrapper>{' '}
-                {isSemver ? t('semver') : t('non-semver')}
+                <div>
+                  <MaxReleaseWidthWrapper>
+                    {formatVersion(latestRelease.version)}
+                  </MaxReleaseWidthWrapper>
+                </div>{' '}
+                ({isSemver ? t('semver') : t('non-semver')})
               </Fragment>
             ) : null}
           </CurrentReleaseWrapper>
@@ -413,6 +415,7 @@ const SetupReleasesHeader = styled('h6')`
 const CurrentReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.25)};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`
