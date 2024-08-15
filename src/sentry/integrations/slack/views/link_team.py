@@ -80,11 +80,6 @@ class SlackLinkTeamView(SlackLinkageView, LinkTeamView):
     def notify_team_already_linked(
         self, request: Request, channel_id: str, integration: RpcIntegration, team: Team
     ) -> HttpResponse:
-        from sentry.integrations.slack.views.link_team import (
-            ALREADY_LINKED_MESSAGE,
-            ALREADY_LINKED_TITLE,
-        )
-
         message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
         try:
             client = SlackSdkClient(integration_id=integration.id)

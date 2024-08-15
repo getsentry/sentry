@@ -41,6 +41,7 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view, region_silo_view
@@ -566,11 +567,13 @@ class LinkTeamView(TeamLinkageView, ABC):
             SelectTeamForm,
         )
 
+        user = serialize_generic_user(request.user)
+
         channel_id: str = params["channel_id"]
         channel_name: str = params["channel_name"]
         slack_id: str = params["slack_id"]
         logger_params = {
-            "user_id": request.user.id,
+            "user_id": user.id,
             "integration_id": integration.id,
             "channel_id": channel_id,
             "channel_name": channel_name,
@@ -578,9 +581,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             "response_url": params["response_url"],
         }
 
-        organization_memberships = OrganizationMember.objects.get_for_integration(
-            integration, request.user
-        )
+        organization_memberships = OrganizationMember.objects.get_for_integration(integration, user)
         # Filter to teams where we have write access to, either through having a sufficient
         # organization role (owner/manager/admin) or by being a team admin on at least one team.
         teams_by_id: dict[int, Team] = {}
@@ -591,7 +592,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             is_team_admin = not self.is_valid_role(org_membership)
 
             for team in Team.objects.get_for_user(
-                org_membership.organization, request.user, is_team_admin=is_team_admin
+                org_membership.organization, user, is_team_admin=is_team_admin
             ):
                 teams_by_id[team.id] = team
 
@@ -737,6 +738,8 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         )
         from sentry.integrations.slack.views.unlink_team import INSUFFICIENT_ACCESS
 
+        user = serialize_generic_user(request.user)
+
         integration_id: int = integration.id
         channel_id: str = params["channel_id"]
         channel_name: str = params["channel_name"]
@@ -745,7 +748,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         organization_id: str = params["organization_id"]
 
         logger_params = {
-            "user_id": request.user.id,
+            "user_id": user.id,
             "integration_id": integration_id,
             "channel_id": channel_id,
             "channel_name": channel_name,
@@ -755,7 +758,7 @@ class UnlinkTeamView(TeamLinkageView, ABC):
         }
 
         om = OrganizationMember.objects.get_for_integration(
-            integration, request.user, organization_id=int(organization_id)
+            integration, user, organization_id=int(organization_id)
         ).first()
         organization = om.organization if om else None
         if organization is None:
