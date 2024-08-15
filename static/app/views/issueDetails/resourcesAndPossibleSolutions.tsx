@@ -61,6 +61,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     !isSampleError;
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
+    config.aiSuggestedSolution &&
     organization.aiSuggestedSolution &&
     getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
