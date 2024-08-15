@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.constants import SentryAppInstallationStatus
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -136,22 +135,14 @@ def get_rate_limit_key(
 def get_organization_id_from_token(token_id: int) -> int | None:
     from sentry.sentry_apps.services.app import app_service
 
-    installations = app_service.get_many(
-        filter={
-            "status": SentryAppInstallationStatus.INSTALLED,
-            "api_installation_token_id": token_id,
-        }
-    )
-
-    installation = installations[0] if installations else None
-
+    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
     # Return None to avoid collisions caused by tokens not being associated with
     # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
-    if not installation:
+    if not organization_id:
         logger.info("installation.not_found", extra={"token_id": token_id})
         return None
 
-    return installation.organization_id
+    return organization_id
 
 
 def get_rate_limit_config(
