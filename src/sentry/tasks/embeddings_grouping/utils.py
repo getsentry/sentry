@@ -39,6 +39,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -530,19 +531,25 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
                         )
                     )
                 ]
-            # TODO: if we get a `SimilarHashNotFoundError`, we need to delete the record from seer or this will always happen
             # we should not update the similarity data for this group cause we'd want to try again once we delete it
             except (
                 IncompleteSeerDataError,
                 SimilarHashNotFoundError,
                 SimilarHashMissingGroupError,
-            ):
+            ) as err:
+                parent_hash = groups_with_neighbor[str(group.id)]["parent_hash"]
+
+                if isinstance(err, SimilarHashNotFoundError):
+                    # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
+                    # which doesn't exist
+                    delete_seer_grouping_records_by_hash.delay(project.id, [parent_hash])
+
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.invalid_parent_group",
                     extra={
                         "project_id": project.id,
                         "group_id": group.id,
-                        "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
+                        "parent_hash": parent_hash,
                     },
                 )
                 seer_similarity = {}

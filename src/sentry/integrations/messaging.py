@@ -41,6 +41,7 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
+from sentry.types.actor import ActorType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
@@ -259,18 +260,37 @@ class LinkageView(BaseView, ABC):
 
     @property
     @abstractmethod
-    def metrics_operation_key(self) -> str:
+    def salt(self) -> str:
         raise NotImplementedError
-
-    def get_metric_key(self, event_tag: str) -> str:
-        return ".".join(
-            ("sentry.integrations", self.provider_slug, self.metrics_operation_key, event_tag)
-        )
 
     @property
     @abstractmethod
-    def salt(self) -> str:
+    def metrics_operation_key(self) -> str:
         raise NotImplementedError
+
+    def capture_metric(self, event_tag: str, tags: dict[str, str] | None = None) -> str:
+        event = ".".join(
+            ("sentry.integrations", self.provider_slug, self.metrics_operation_key, event_tag)
+        )
+        metrics.incr(event, tags=(tags or {}), sample_rate=1.0)
+        return event
+
+    @property
+    def analytics_operation_key(self) -> str | None:
+        """Operation description to use in analytics. Return None to skip."""
+        return None
+
+    def record_analytic(self, actor_id: int) -> None:
+        if self.analytics_operation_key is None:
+            # This preserves legacy differences between messaging integrations,
+            # in that some record analytics and some don't.
+            # TODO: Make consistent across all messaging integrations.
+            return
+
+        event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
+        analytics.record(
+            event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
+        )
 
     @staticmethod
     def render_error_page(
@@ -316,7 +336,7 @@ class IdentityLinkageView(LinkageView, ABC):
             params = unsign(signed_params, salt=self.salt)
         except (SignatureExpired, BadSignature) as e:
             logger.warning("dispatch.signature_error", exc_info=e)
-            metrics.incr(self.get_metric_key("failure"), tags={"error": str(e)}, sample_rate=1.0)
+            self.capture_metric("failure", tags={"error": str(e)})
             return render_to_response(
                 self.expired_link_template,
                 request=request,
@@ -333,15 +353,18 @@ class IdentityLinkageView(LinkageView, ABC):
                 )
         except Http404:
             logger.exception("get_identity_error", extra={"integration_id": integration_id})
-            metrics.incr(self.get_metric_key("failure.get_identity"), sample_rate=1.0)
+            self.capture_metric("failure.get_identity")
             return self.render_error_page(
                 request,
                 status=404,
                 body_text="HTTP 404: Could not find the identity.",
             )
 
-        logger.info("get_identity_success", extra={"integration_id": integration_id})
-        metrics.incr(self.get_metric_key("success.get_identity"), sample_rate=1.0)
+        logger.info(
+            "get_identity_success",
+            extra={"integration_id": integration_id, "provider": self.provider_slug},
+        )
+        self.capture_metric("success.get_identity")
         params.update({"organization": organization, "integration": integration, "idp": idp})
 
         dispatch_kwargs = dict(
@@ -370,9 +393,8 @@ class IdentityLinkageView(LinkageView, ABC):
             params_dict: Mapping[str, Any] = kwargs["params"]
             external_id: str = params_dict[self.external_id_parameter]
         except KeyError as e:
-            key = self.get_metric_key("failure.post.missing_params")
-            logger.exception(key)
-            metrics.incr(key, tags={"error": str(e)}, sample_rate=1.0)
+            event = self.capture_metric("failure.post.missing_params", tags={"error": str(e)})
+            logger.exception(event)
             return self.render_error_page(
                 request,
                 status=400,
@@ -384,11 +406,11 @@ class IdentityLinkageView(LinkageView, ABC):
             return exc_response
 
         self.notify_on_success(external_id, params_dict, integration)
+        self.capture_metric("success.post")
+        self.record_analytic(request.user.id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
-
-        metrics.incr(self.get_metric_key("success.post"), sample_rate=1.0)
 
         success_template, success_context = self.get_success_template_and_context(
             params_dict, integration
@@ -428,7 +450,14 @@ class IdentityLinkageView(LinkageView, ABC):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
-        pass
+        """On success, notify the user through the messaging client.
+
+        No-op by default.
+
+        :param external_id: the `Identity.external_id` value (the messaging service's ID)
+        :param params:      raw params from the incoming request
+        :param integration: affected Integration entity, if any
+        """
 
 
 class LinkIdentityView(IdentityLinkageView, ABC):
@@ -453,11 +482,8 @@ class LinkIdentityView(IdentityLinkageView, ABC):
         try:
             Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
         except IntegrityError:
-            logger.exception("slack.link.integrity_error")
-            metrics.incr(
-                self.get_metric_key("failure.post.identity.integrity_error"),
-                sample_rate=1.0,
-            )
+            event = self.capture_metric("failure.integrity_error")
+            logger.exception(event)
             raise Http404
 
 

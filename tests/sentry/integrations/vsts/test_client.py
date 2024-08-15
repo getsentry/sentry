@@ -219,7 +219,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
         resp = client.check_file(repo, path, version)
-        assert resp.status_code == 200
+        assert resp
+        assert getattr(resp, "status_code") == 200
 
     @responses.activate
     def test_check_no_file(self):

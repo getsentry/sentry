@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 

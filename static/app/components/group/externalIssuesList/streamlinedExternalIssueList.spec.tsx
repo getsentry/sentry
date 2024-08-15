@@ -140,7 +140,7 @@ describe('StreamlinedExternalIssueList', () => {
 
   it('should combine multiple integration configurations into a single dropdown', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/1/external-issues/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
 
@@ -174,6 +174,25 @@ describe('StreamlinedExternalIssueList', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'GitHub codecov'})
+    ).toBeInTheDocument();
+  });
+
+  it('should render empty state when no integrations', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+
+    render(
+      <StreamlinedExternalIssueList event={event} group={group} project={project} />
+    );
+
+    expect(
+      await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
   });
 });

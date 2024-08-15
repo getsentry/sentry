@@ -6,7 +6,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import useOrganization from 'sentry/utils/useOrganization';
 

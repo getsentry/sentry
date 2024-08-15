@@ -10,10 +10,10 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
-  Organization,
   PluginWithProjectList,
   SentryApp,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,

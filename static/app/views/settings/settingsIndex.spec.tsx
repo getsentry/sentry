@@ -5,7 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 import {BreadcrumbProvider} from './components/settingsBreadcrumb/context';
@@ -59,7 +59,7 @@ describe('SettingsIndex', function () {
       name: 'Org Index',
       slug: 'org-index',
       features: [],
-    } as unknown as TOrganization;
+    } as unknown as Organization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     let orgApi: jest.Mock;

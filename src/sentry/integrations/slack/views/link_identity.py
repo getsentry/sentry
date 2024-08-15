@@ -1,21 +1,14 @@
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.messaging import (
-    IdentityLinkageView,
-    LinkageView,
-    LinkIdentityView,
-    MessagingIntegrationSpec,
-)
+from sentry.integrations.messaging import LinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.utils.notifications import SlackCommand, respond_to_slack_command
-from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.slack.utils.notifications import SlackCommand
+from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
 from sentry.web.frontend.base import control_silo_view
 
-from . import SALT
 from . import build_linking_url as base_build_linking_url
 
 _logger = logging.getLogger(__name__)
@@ -35,48 +28,6 @@ def build_linking_url(
         channel_id=channel_id,
         response_url=response_url,
     )
-
-
-class SlackLinkageView(LinkageView, ABC):
-    @property
-    def parent_messaging_spec(self) -> MessagingIntegrationSpec:
-        from sentry.integrations.slack.spec import SlackMessagingSpec
-
-        return SlackMessagingSpec()
-
-    @property
-    def provider(self) -> ExternalProviders:
-        return ExternalProviders.SLACK
-
-    @property
-    def external_provider_enum(self) -> ExternalProviderEnum:
-        return ExternalProviderEnum.SLACK
-
-    @property
-    def salt(self) -> str:
-        return SALT
-
-    @property
-    def external_id_parameter(self) -> str:
-        return "slack_id"
-
-    @property
-    def expired_link_template(self) -> str:
-        return "sentry/integrations/slack/expired-link.html"
-
-
-class SlackIdentityLinkageView(SlackLinkageView, IdentityLinkageView, ABC):
-    def notify_on_success(
-        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
-    ) -> None:
-        respond_to_slack_command(
-            self.slack_command, integration, external_id, params.get("response_url")
-        )
-
-    @property
-    @abstractmethod
-    def slack_command(self) -> SlackCommand:
-        raise NotImplementedError
 
 
 @control_silo_view

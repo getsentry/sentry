@@ -958,10 +958,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
 
     @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.delete_seer_grouping_records_by_hash")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_has_invalid_neighbor(
-        self, mock_post_bulk_grouping_records, mock_logger
+        self, mock_post_bulk_grouping_records, mock_logger, mock_seer_deletion_request
     ):
         """
         Test that groups that have nearest neighbors that do not exist, do not have their metadata
@@ -1011,6 +1012,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                         "group_id": group.id,
                         "parent_hash": "00000000000000000000000000000000",
                     },
+                )
+                mock_seer_deletion_request.delay.assert_called_with(
+                    self.project.id, ["00000000000000000000000000000000"]
                 )
 
     @with_feature("projects:similarity-embeddings-backfill")

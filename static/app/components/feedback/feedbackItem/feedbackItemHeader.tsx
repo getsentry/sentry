@@ -8,7 +8,8 @@ import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackAct
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

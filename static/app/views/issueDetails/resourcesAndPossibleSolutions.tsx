@@ -7,7 +7,9 @@ import {Resources} from 'sentry/components/events/interfaces/performance/resourc
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event, type Group, type Project} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
@@ -16,6 +18,7 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -47,20 +50,22 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
+  const isSampleError = useIsSampleEvent();
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&
     organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
-    hasStacktraceWithFrames(event);
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
     getRegionDataFromOrganization(organization)?.name !== 'de' &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
-    !displayAiAutofix;
+    !displayAiAutofix &&
+    !isSampleError;
 
   if (
     isSelfHostedErrorsOnly ||

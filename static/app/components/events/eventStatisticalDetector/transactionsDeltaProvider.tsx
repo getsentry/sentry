@@ -2,7 +2,8 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';

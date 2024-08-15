@@ -20,8 +20,8 @@ import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,

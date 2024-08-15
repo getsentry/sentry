@@ -1,7 +1,9 @@
 import type {RouteComponentProps} from 'react-router';
 
-import type {Group, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import type {ReprocessingStatus} from '../utils';

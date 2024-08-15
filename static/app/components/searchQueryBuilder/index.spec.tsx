@@ -74,6 +74,10 @@ const FILTER_KEYS: TagCollection = {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
   },
+  uncategorized_tag: {
+    key: 'uncategorized_tag',
+    name: 'uncategorized_tag',
+  },
 };
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
@@ -289,7 +293,7 @@ describe('SearchQueryBuilder', function () {
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
-      expect(groups).toHaveLength(2);
+      expect(groups).toHaveLength(3);
 
       // First group (Field) should have age, assigned, browser.name
       const group1 = groups[0];
@@ -303,6 +307,12 @@ describe('SearchQueryBuilder', function () {
       const group2 = groups[1];
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+
+      // There should be a third group for uncategorized keys
+      const group3 = groups[2];
+      expect(
+        within(group3).getByRole('option', {name: 'uncategorized_tag'})
       ).toBeInTheDocument();
 
       // Clicking "Category 2" should filter the options to only category 2

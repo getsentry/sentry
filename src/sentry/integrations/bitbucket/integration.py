@@ -11,13 +11,12 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.repository import Repository
@@ -83,8 +82,10 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):
-    repo_search = True
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
+    @property
+    def integration_name(self) -> str:
+        return "bitbucket"
 
     def get_client(self):
         return BitbucketApiClient(integration=self.model)
@@ -142,7 +143,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             "https://bitbucket.org",
         )
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:

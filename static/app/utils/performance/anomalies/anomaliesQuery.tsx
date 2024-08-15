@@ -1,4 +1,4 @@
-import type {EventsStatsData, Organization} from 'sentry/types';
+import type {EventsStatsData, Organization} from 'sentry/types/organization';
 import type {
   DiscoverQueryProps,
   GenericChildrenProps,

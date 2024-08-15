@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {useFetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -5,7 +7,11 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
 
-const MAX_RECENT_FILTERS = 5;
+const MAX_RECENT_FILTERS = 3;
+const NO_FILTERS = [];
+
+// If the recent searches are very long, this prevents the parser from taking too long
+const MAX_QUERY_PARSE_LENGTH = 500;
 
 function getFiltersFromParsedQuery(parsedQuery: ParseResult | null) {
   if (!parsedQuery) {
@@ -26,15 +32,19 @@ function getFiltersFromQuery({
   getFieldDefinition: FieldDefinitionGetter;
   query: string;
 }) {
-  const parsed = parseQueryBuilderValue(query, getFieldDefinition, {
-    filterKeys,
-  });
+  const parsed = parseQueryBuilderValue(
+    query.slice(0, MAX_QUERY_PARSE_LENGTH),
+    getFieldDefinition,
+    {
+      filterKeys,
+    }
+  );
 
   return getFiltersFromParsedQuery(parsed);
 }
 
 function getFiltersFromRecentSearches(
-  recentSearchesData: RecentSearch[],
+  recentSearchesData: RecentSearch[] | undefined,
   {
     parsedCurrentQuery,
     filterKeys,
@@ -45,10 +55,9 @@ function getFiltersFromRecentSearches(
     parsedCurrentQuery: ParseResult | null;
   }
 ) {
-  if (!recentSearchesData.length) {
-    return [];
+  if (!recentSearchesData?.length) {
+    return NO_FILTERS;
   }
-
   const filtersInCurrentQuery = getFiltersFromParsedQuery(parsedCurrentQuery);
 
   const filterCounts: {[filter: string]: number} = recentSearchesData
@@ -79,18 +88,22 @@ export function useRecentSearchFilters() {
   const {data: recentSearchesData} = useFetchRecentSearches(
     {
       savedSearchType: recentSearches ?? null,
-      limit: 10,
+      limit: 5,
     },
     {
       staleTime: 30_000,
     }
   );
 
-  const filters = getFiltersFromRecentSearches(recentSearchesData ?? [], {
-    parsedCurrentQuery: parsedQuery,
-    filterKeys,
-    getFieldDefinition,
-  });
+  const filters = useMemo(
+    () =>
+      getFiltersFromRecentSearches(recentSearchesData, {
+        parsedCurrentQuery: parsedQuery,
+        filterKeys,
+        getFieldDefinition,
+      }),
+    [filterKeys, getFieldDefinition, parsedQuery, recentSearchesData]
+  );
 
   return filters;
 }

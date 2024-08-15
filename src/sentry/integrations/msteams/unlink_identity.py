@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.integrations.messaging import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams import MsTeamsLinkingView
+from sentry.integrations.msteams import MsTeamsIdentityLinkageView
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
@@ -29,7 +29,7 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
     )
 
 
-class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
+class MsTeamsUnlinkIdentityView(MsTeamsIdentityLinkageView, UnlinkIdentityView):
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
