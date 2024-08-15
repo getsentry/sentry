@@ -47,7 +47,7 @@ ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
 # When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
 # successes in a row do we need to mark it up
-ACTIVE_FAILURE_THRESHOLD = 2
+ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
