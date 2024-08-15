@@ -5,7 +5,7 @@ from typing import Any
 from sentry.integrations.messaging import LinkIdentityView
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.utils.notifications import SlackCommand
+from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
 from sentry.web.frontend.base import control_silo_view
 
@@ -37,8 +37,8 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     """
 
     @property
-    def slack_command(self) -> SlackCommand:
-        return SlackCommand.LINK
+    def command_response(self) -> SlackCommandResponse:
+        return SlackCommandResponse("link", SUCCESS_LINKED_MESSAGE, "slack.link-identity")
 
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None

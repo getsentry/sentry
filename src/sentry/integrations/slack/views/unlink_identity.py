@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry.integrations.messaging import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.utils.notifications import SlackCommand
+from sentry.integrations.slack.utils.notifications import SlackCommandResponse
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views.link_identity import SlackIdentityLinkageView
 from sentry.web.frontend.base import control_silo_view
@@ -33,8 +33,8 @@ class SlackUnlinkIdentityView(SlackIdentityLinkageView, UnlinkIdentityView):
     """
 
     @property
-    def slack_command(self) -> SlackCommand:
-        return SlackCommand.UNLINK
+    def command_response(self) -> SlackCommandResponse:
+        return SlackCommandResponse("unlink", SUCCESS_UNLINKED_MESSAGE, "slack.unlink-identity")
 
     def get_success_template_and_context(
         self, params: Mapping[str, Any], integration: Integration | None

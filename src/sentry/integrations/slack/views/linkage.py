@@ -4,7 +4,10 @@ from typing import Any
 
 from sentry.integrations.messaging import IdentityLinkageView, MessagingIntegrationSpec
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.slack.utils.notifications import SlackCommand, respond_to_slack_command
+from sentry.integrations.slack.utils.notifications import (
+    SlackCommandResponse,
+    respond_to_slack_command,
+)
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 
 from . import SALT
@@ -41,10 +44,10 @@ class SlackIdentityLinkageView(IdentityLinkageView, ABC):
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
         respond_to_slack_command(
-            self.slack_command, integration, external_id, params.get("response_url")
+            self.command_response, integration, external_id, params.get("response_url")
         )
 
     @property
     @abstractmethod
-    def slack_command(self) -> SlackCommand:
+    def command_response(self) -> SlackCommandResponse:
         raise NotImplementedError
