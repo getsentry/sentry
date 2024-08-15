@@ -139,15 +139,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             **kwargs,
         )
 
-        org_id = self.filter_params.get("organization_id")
-        if org_id is None and self.params.organization is not None:
-            org_id = self.params.organization.id
-        if org_id is None or not isinstance(org_id, int):
+        if self.organization_id is None:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
-        self.organization_id: int = org_id
 
     def load_config(self) -> DatasetConfig:
         if hasattr(self, "config_class") and self.config_class is not None:
@@ -163,6 +159,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     @property
     def use_default_tags(self) -> bool:
+        if self.is_spans_metrics_query:
+            return False
         if self._use_default_tags is None:
             if self.params.organization is not None:
                 self._use_default_tags = features.has(

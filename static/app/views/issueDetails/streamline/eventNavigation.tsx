@@ -6,11 +6,11 @@ import color from 'color';
 import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -308,7 +308,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 ]}
               />
             </EventIdInfo>
-            <TimeSince date={event.dateCreated ?? event.dateReceived} css={grayText} />
+            <StyledTimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              css={grayText}
+            />
             {hasEventError && (
               <Fragment>
                 <Divider />
@@ -332,7 +335,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           <JumpTo>
             <div>{t('Jump to:')}</div>
-            <StyledButtonBar>
+            <ScrollCarousel gap={0.25}>
               {jumpToSections.map(jump => (
                 <Button
                   key={jump.section}
@@ -348,7 +351,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {jump.label}
                 </Button>
               ))}
-            </StyledButtonBar>
+            </ScrollCarousel>
           </JumpTo>
         </EventInfoJumpToWrapper>
         <NavigationDivider />
@@ -373,6 +376,12 @@ const Navigation = styled('div')`
   border-right: 1px solid ${p => p.theme.gray100};
 `;
 
+const StyledTimeSince = styled(TimeSince)`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  white-space: nowrap;
+`;
+
 const EventInfoJumpToWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
@@ -380,6 +389,11 @@ const EventInfoJumpToWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  flex-wrap: wrap;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-wrap: nowrap;
+  }
 `;
 
 const EventInfo = styled('div')`
@@ -397,8 +411,11 @@ const JumpTo = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
-  max-width: 50%;
-  width: 400px;
+  max-width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    max-width: 50%;
+  }
 `;
 
 const NavigationDivider = styled('hr')`
@@ -445,18 +462,5 @@ const ProcessingErrorButton = styled(Button)`
 
   :hover {
     color: ${p => p.theme.red300};
-  }
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &:after {
-    position: sticky;
-    padding: ${space(1)};
-    content: '';
-    inset: 0;
-    background: linear-gradient(90deg, transparent, ${p => p.theme.background});
   }
 `;

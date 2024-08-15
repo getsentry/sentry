@@ -148,6 +148,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "label": "Issue Type",
                     "type": "select",
                 },
+                {"label": "Team", "name": "customfield_10001", "required": False, "type": "text"},
                 {
                     "name": "customfield_10200",
                     "default": "",
@@ -303,6 +304,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "customfield_10001",
                 "customfield_10200",
                 "customfield_10300",
                 "customfield_10400",
@@ -325,6 +327,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "customfield_10001",
                 "customfield_10300",
                 "customfield_10400",
                 "customfield_10500",

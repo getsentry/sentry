@@ -1,5 +1,5 @@
 ---
-created: '2024-08-06T18:35:03.850325+00:00'
+created: '2024-08-13T18:47:42.048211+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -574,6 +574,11 @@ source: tests/sentry/backup/test_comparators.py
     - group_tombstone_id
     - project
   model_name: sentry.grouphash
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - grouphash
+  model_name: sentry.grouphashmetadata
 - comparators:
   - class: ForeignKeyComparator
     fields:
