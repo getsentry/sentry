@@ -280,7 +280,7 @@ export function useHasStreamlinedUI() {
   }
 
   return (
-    location.query.streamline === '1' || !!user.options.prefersIssueDetailsStreamlinedUI
+    location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
   );
 }
 

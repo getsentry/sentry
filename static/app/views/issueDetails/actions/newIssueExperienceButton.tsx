@@ -24,15 +24,15 @@ export function NewIssueExperienceButton() {
     return null;
   }
 
-  const streamlineButton = openForm ? (
+  const feedbackButton = openForm ? (
     <Button
       size="sm"
       aria-label={t('Give feedback on new UI')}
       onClick={() =>
         openForm({
-          messagePlaceholder: t('How can we make this new look work for you?'),
+          messagePlaceholder: t('How can we make this new UI work for you?'),
           tags: {
-            ['feedback.source']: 'issue_details_new_ui',
+            ['feedback.source']: 'issue_details_streamline_ui',
             ['feedback.owner']: 'issues',
           },
         })
@@ -62,7 +62,7 @@ export function NewIssueExperienceButton() {
           });
         }}
       />
-      {hasStreamlinedUI && streamlineButton}
+      {hasStreamlinedUI && feedbackButton}
     </ButtonBar>
   );
 }
