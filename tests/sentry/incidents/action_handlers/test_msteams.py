@@ -1,4 +1,5 @@
 import time
+from typing import cast
 from unittest.mock import patch
 
 import responses
@@ -13,6 +14,13 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.messaging import MessagingActionHandler
+from sentry.integrations.msteams.card_builder.block import (
+    Block,
+    ColumnBlock,
+    ColumnSetBlock,
+    ContainerBlock,
+    TextBlock,
+)
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
@@ -103,14 +111,18 @@ class MsTeamsActionHandlerTest(FireTest):
         data = build_incident_attachment(
             incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
         )
-        assert (
-            data["body"][0]["columns"][1]["items"][0]["items"][1]["text"]
-            == "1000 events in the last 10 minutes"
-        )
-        assert alert_rule.name in data["body"][0]["columns"][1]["items"][0]["items"][0]["text"]
+        body: list[Block] = data["body"]
+        column_set_block = cast(ColumnSetBlock, body[0])
+        column_blocks: list[ColumnBlock] = column_set_block["columns"]
+        column_block: ColumnBlock = column_blocks[1]
+        container = cast(ContainerBlock, column_block["items"][0])
+        text_block = cast(TextBlock, container["items"][1])
+        assert text_block["text"] == "1000 events in the last 10 minutes"
+        text_block2 = cast(TextBlock, container["items"][0])
+        assert alert_rule.name in text_block2["text"]
         assert (
             f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_msteams&detection_type={alert_rule.detection_type}"
-            in data["body"][0]["columns"][1]["items"][0]["items"][0]["text"]
+            in text_block2["text"]
         )
 
     @responses.activate
@@ -142,14 +154,21 @@ class MsTeamsActionHandlerTest(FireTest):
         data = build_incident_attachment(
             incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
         )
+        body: list[Block] = data["body"]
+        column_set_block = cast(ColumnSetBlock, body[0])
+        column_blocks: list[ColumnBlock] = column_set_block["columns"]
+        column_block: ColumnBlock = column_blocks[1]
+        container = cast(ContainerBlock, column_block["items"][0])
+        text_block = cast(TextBlock, container["items"][1])
+        text_block2 = cast(TextBlock, container["items"][0])
         assert (
-            data["body"][0]["columns"][1]["items"][0]["items"][1]["text"]
+            text_block["text"]
             == f"1000 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}"
         )
-        assert alert_rule.name in data["body"][0]["columns"][1]["items"][0]["items"][0]["text"]
+        assert alert_rule.name in text_block2["text"]
         assert (
             f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_msteams&detection_type={alert_rule.detection_type}"
-            in data["body"][0]["columns"][1]["items"][0]["items"][0]["text"]
+            in text_block2["text"]
         )
 
     def test_fire_metric_alert(self):
