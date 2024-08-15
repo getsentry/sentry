@@ -819,6 +819,7 @@ def spans_histogram_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse | SnubaData:
     """
     API for generating histograms for span exclusive time.
@@ -883,7 +884,7 @@ def spans_histogram_query(
             Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
         ]
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer, query_source=query_source)
 
     if not normalize_results:
         return results
@@ -911,6 +912,7 @@ def histogram_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1002,7 +1004,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.process_results(builder.run_query(referrer))
+    results = builder.process_results(builder.run_query(referrer, query_source=query_source))
 
     if not normalize_results:
         return results

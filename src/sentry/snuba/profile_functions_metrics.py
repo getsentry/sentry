@@ -91,6 +91,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -114,7 +115,7 @@ def timeseries_query(
             use_metrics_layer=use_metrics_layer,
         ),
     )
-    result = metrics_query.run_query(referrer)
+    result = metrics_query.run_query(referrer, query_source=query_source)
 
     result = metrics_query.process_results(result)
     result["data"] = (

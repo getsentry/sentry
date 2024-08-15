@@ -325,6 +325,7 @@ def histogram_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -352,6 +353,7 @@ def histogram_query(
                 extra_conditions,
                 normalize_results,
                 use_metrics_layer,
+                query_source=query_source,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -381,5 +383,6 @@ def histogram_query(
             histogram_rows,
             extra_conditions,
             normalize_results,
+            query_source=query_source,
         )
     return {}

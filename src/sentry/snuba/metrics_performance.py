@@ -110,7 +110,8 @@ def bulk_timeseries_query(
     *,
     apply_formatting: Literal[False],
     query_source: QuerySource | None = None,
-) -> EventsResponse: ...
+) -> EventsResponse:
+    ...
 
 
 @overload
@@ -131,7 +132,8 @@ def bulk_timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
     query_source: QuerySource | None = None,
-) -> SnubaTSResult: ...
+) -> SnubaTSResult:
+    ...
 
 
 def bulk_timeseries_query(
@@ -150,9 +152,9 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
     *,
     apply_formatting: bool = True,
-    query_source: QuerySource | None = None,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
@@ -553,6 +555,7 @@ def histogram_query(
     extra_conditions=None,
     normalize_results=True,
     use_metrics_layer=True,
+    query_source: QuerySource | None = None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -619,7 +622,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer, query_source=query_source)
 
     # TODO: format to match non-metric-result
     if not normalize_results:
