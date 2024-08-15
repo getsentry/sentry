@@ -10,7 +10,7 @@ import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/f
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
@@ -112,7 +112,12 @@ function useParameterSuggestions({
   const parameterSuggestions = useMemo<SuggestionItem[]>(() => {
     switch (parameterDefinition?.kind) {
       case 'column': {
-        const potentialColumns = Object.values(filterKeys);
+        const potentialColumns = Object.values(filterKeys).filter(filterKey => {
+          const fieldDef = getFieldDefinition(filterKey.key);
+          return (
+            fieldDef?.kind !== FieldKind.EQUATION && fieldDef?.kind !== FieldKind.FUNCTION
+          );
+        });
         const {columnTypes} = parameterDefinition;
 
         if (typeof columnTypes === 'function') {
