@@ -14,6 +14,7 @@ from django.urls.resolvers import URLPattern
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
@@ -21,15 +22,18 @@ from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTr
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils import get_identity_or_404
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.user import User
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
-from sentry.types.actor import ActorType
+from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
@@ -235,6 +239,11 @@ class LinkingView(BaseView, ABC):
         raise NotImplementedError
 
     @property
+    @abstractmethod
+    def external_provider_enum(self) -> ExternalProviderEnum:
+        raise NotImplementedError
+
+    @property
     def provider_slug(self) -> str:
         return self.parent_messaging_spec.provider_slug
 
@@ -263,27 +272,38 @@ class LinkingView(BaseView, ABC):
         """Path to the HTML template to show when a link is expired."""
         raise NotImplementedError
 
-    @property
     @abstractmethod
-    def success_template(self) -> str:
-        """Path to the HTML template to show when an identity has been linked."""
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        """HTML content to show when the operation has been completed."""
         raise NotImplementedError
 
     @property
-    def success_metric(self) -> str | None:
-        """Optional analytics key to record on success."""
-        return None
+    @abstractmethod
+    def metrics_operation_key(self) -> str:
+        raise NotImplementedError
 
-    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
-        pass
+    @staticmethod
+    def _render_error_page(
+        request: Request | HttpRequest, status: int, body_text: str
+    ) -> HttpResponse:
+        template = "sentry/integrations/generic-error.html"
+        context = {"body_text": body_text}
+        return render_to_response(template, request=request, status=status, context=context)
+
+    def get_metric_key(self, event_tag: str) -> str:
+        return ".".join(
+            ("sentry.integrations", self.provider_slug, self.metrics_operation_key, event_tag)
+        )
 
     @method_decorator(never_cache)
-    def handle(
-        self, request: HttpRequest, signed_params: Any, *args: Any, **kwargs: Any
-    ) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
             params = unsign(signed_params, salt=self.salt)
-        except (SignatureExpired, BadSignature):
+        except (SignatureExpired, BadSignature) as e:
+            logger.warning("dispatch.signature_error", exc_info=e)
+            metrics.incr(self.get_metric_key("failure"), tags={"error": str(e)}, sample_rate=1.0)
             return render_to_response(
                 self.expired_link_template,
                 request=request,
@@ -293,42 +313,99 @@ class LinkingView(BaseView, ABC):
         integration: Integration | None = None
         idp: IdentityProvider | None = None
         integration_id = params.get("integration_id")
-        if integration_id:
-            organization, integration, idp = get_identity_or_404(
-                self.provider,
-                request.user,
-                integration_id=integration_id,
-                organization_id=params.get("organization_id"),
+        try:
+            if integration_id:
+                organization, integration, idp = get_identity_or_404(
+                    self.provider, request.user, integration_id=integration_id
+                )
+        except Http404:
+            logger.exception("get_identity_error", extra={"integration_id": integration_id})
+            metrics.incr(self.get_metric_key("failure.get_identity"), sample_rate=1.0)
+            return self._render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: Could not find the identity.",
             )
 
-        if request.method != "POST":
-            context = {
-                "organization": organization,
-                "provider": integration.get_provider() if integration else None,
-            }
-            return render_to_response(self.confirmation_template, request=request, context=context)
+        logger.info(
+            "get_identity_success",
+            extra={"integration_id": integration_id, "provider": self.provider_slug},
+        )
+        metrics.incr(self.get_metric_key("success.get_identity"), sample_rate=1.0)
+        params.update({"organization": organization, "integration": integration, "idp": idp})
 
-        response = self.execute(idp, params[self.external_id_parameter], request)
-        if response is not None:
-            return response
+        dispatch_kwargs = dict(
+            organization=organization, integration=integration, idp=idp, params=params
+        )
+        dispatch_kwargs = {k: v for (k, v) in dispatch_kwargs.items() if v is not None}
+        return super().dispatch(request, **dispatch_kwargs)
 
-        self.notify_on_success(integration, params)
+    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
+        params = kwargs["params"]
+        context = {"organization": params["organization"]}
+        integration = params.get("integration")
+        if integration:
+            context["provider"] = integration.get_provider()
+        return render_to_response(self.confirmation_template, request=request, context=context)
 
-        if self.success_metric:
-            provider_slug = self.parent_messaging_spec.provider_slug
-            analytics.record(
-                self.success_metric,
-                provider=provider_slug,
-                actor_id=request.user.id,
-                actor_type=ActorType.USER,
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+        if isinstance(request.user, AnonymousUser):
+            return HttpResponse(status=401)
+
+        try:
+            organization: RpcOrganization | None = kwargs.get("organization")
+            integration: Integration | None = kwargs.get("integration")
+            idp: IdentityProvider | None = kwargs.get("idp")
+
+            params_dict: Mapping[str, Any] = kwargs["params"]
+            external_id: str = params_dict[self.external_id_parameter]
+        except KeyError as e:
+            key = self.get_metric_key("failure.post.missing_params")
+            logger.exception(key)
+            metrics.incr(key, tags={"error": str(e)}, sample_rate=1.0)
+            return self._render_error_page(
+                request,
+                status=400,
+                body_text="HTTP 400: Missing required parameters.",
             )
 
-        team_id = params.get("team_id")
-        context = {"team_id": team_id} if team_id else {}
-        return render_to_response(self.success_template, request=request, context=context)
+        exc_response = self.persist_identity(idp, external_id, request)
+        if exc_response is not None:
+            return exc_response
+
+        self.notify_on_success(external_id, params_dict, integration)
+
+        if organization is not None:
+            self._send_nudge_notification(organization, request)
+
+        metrics.incr(self.get_metric_key("success.post"), sample_rate=1.0)
+
+        success_template, success_context = self.get_success_template_and_context(
+            params_dict, integration
+        )
+        return render_to_response(success_template, request=request, context=success_context)
+
+    def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
+        # TODO: Delete this if no longer needed
+
+        user: User = request.user  # type: ignore[assignment]
+        controller = NotificationController(
+            recipients=[user],
+            organization_id=organization.id,
+            provider=self.external_provider_enum,
+        )
+        has_provider_settings = controller.user_has_any_provider_settings(
+            self.external_provider_enum
+        )
+        if not has_provider_settings:
+            # Expects Organization, not RpcOrganization. Suspect this to be a bug
+            # that isn't being hit because these notifications aren't being sent.
+            nudge_notification = IntegrationNudgeNotification(organization, user, self.provider)  # type: ignore[arg-type]
+
+            nudge_notification.send()
 
     @abstractmethod
-    def execute(
+    def persist_identity(
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         """Execute the operation on the Identity table.
@@ -338,15 +415,31 @@ class LinkingView(BaseView, ABC):
         """
         raise NotImplementedError
 
+    def notify_on_success(
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
+    ) -> None:
+        """On success, notify the user through the messaging client.
+
+        No-op by default.
+
+        :param external_id: the `Identity.external_id` value (the messaging service's ID)
+        :param params:      raw params from the incoming request
+        :param integration: affected Integration entity, if any
+        """
+
 
 class LinkIdentityView(LinkingView, ABC):
     @property
     def confirmation_template(self) -> str:
         return "sentry/auth-link-identity.html"
 
-    def execute(
+    @property
+    def metrics_operation_key(self) -> str:
+        return "link_identity_view"
+
+    def persist_identity(
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
-    ) -> HttpResponse | None:
+    ) -> None:
         if idp is None:
             raise ValueError('idp is required for linking (params must include "integration_id")')
 
@@ -354,9 +447,15 @@ class LinkIdentityView(LinkingView, ABC):
         if isinstance(user, AnonymousUser):
             raise TypeError("Cannot link identity without a logged-in user")
 
-        Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
-
-        return None
+        try:
+            Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
+        except IntegrityError:
+            logger.exception("slack.link.integrity_error")
+            metrics.incr(
+                self.get_metric_key("failure.post.identity.integrity_error"),
+                sample_rate=1.0,
+            )
+            raise Http404
 
 
 class UnlinkIdentityView(LinkingView, ABC):
@@ -374,7 +473,11 @@ class UnlinkIdentityView(LinkingView, ABC):
         # TODO: Is it okay to just make this True everywhere?
         return False
 
-    def execute(
+    @property
+    def metrics_operation_key(self) -> str:
+        return "unlink_identity_view"
+
+    def persist_identity(
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         try:
