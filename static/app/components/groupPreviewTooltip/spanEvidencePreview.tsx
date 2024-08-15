@@ -1,4 +1,3 @@
-import type {ReactChild} from 'react';
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
@@ -14,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 
 type SpanEvidencePreviewProps = {
-  children: ReactChild;
+  children: React.ReactNode;
   groupId: string;
   query?: string;
 };

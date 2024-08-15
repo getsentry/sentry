@@ -163,8 +163,8 @@ class UserOption(Model):
         - unused
      - issues:defaults:jira_server
         - unused
-    - issue_details_new_experience_q4_2023
-        - Whether the user has opted into the new issue details experience (boolean)
+    - prefers_issue_details_streamlined_ui
+        - Whether the user prefers the new issue details experience (boolean)
      - language
         - which language to display the app in
      - mail:email
