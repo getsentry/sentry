@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {orderBy} from 'lodash';
 
 import {
   Dataset,
@@ -8,9 +9,11 @@ import {
   useFetchOrganizationTags,
 } from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -79,6 +82,38 @@ function getFeedbackSearchTags(supportedTags: TagCollection) {
   return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('search-query-builder-user-feedback')) {
+    return [];
+  }
+
+  const excludedTags = ['browser', 'device', 'os', 'user'];
+
+  const customTags: Tag[] = Object.values(tags).filter(
+    tag =>
+      tag.kind === FieldKind.TAG &&
+      !excludedTags.includes(tag.key) &&
+      !FEEDBACK_FIELDS.map(String).includes(tag.key)
+  );
+
+  const orderedTagKeys: string[] = orderBy(
+    customTags,
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  return [
+    {
+      value: FieldKind.TAG,
+      label: t('Custom Tags'),
+      children: orderedTagKeys,
+    },
+  ];
+};
+
 interface Props {
   className?: string;
   style?: CSSProperties;
@@ -121,6 +156,10 @@ export default function FeedbackSearch({className, style}: Props) {
     () => getFeedbackSearchTags(issuePlatformTags),
     [issuePlatformTags]
   );
+
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(issuePlatformTags, organization);
+  }, [issuePlatformTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -185,6 +224,7 @@ export default function FeedbackSearch({className, style}: Props) {
       <SearchQueryBuilder
         initialQuery={decodeScalar(locationQuery.query, '')}
         filterKeys={allFeedbackSearchTags}
+        filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         onSearch={onSearch}
         searchSource={'feedback-list'}
