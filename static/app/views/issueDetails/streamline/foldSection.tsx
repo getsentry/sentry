@@ -122,7 +122,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 
   return (
     <Section {...props} ref={ref} id={sectionKey}>
-      <SectionHeader
+      <SectionExpander
         preventCollapse={preventCollapse}
         onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
       >
@@ -144,7 +144,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         <IconWrapper preventCollapse={preventCollapse}>
           <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
         </IconWrapper>
-      </SectionHeader>
+      </SectionExpander>
       {isCollapsed ? null : (
         <ErrorBoundary mini>
           <Content>{children}</Content>
@@ -160,7 +160,7 @@ const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
 `;
 
-const SectionHeader = styled('div')<{preventCollapse: boolean}>`
+const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
