@@ -1398,6 +1398,7 @@ export enum ReplayFieldKey {
   OS_VERSION = 'os.version',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
+  URL = 'url',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -1451,6 +1452,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
+  ReplayFieldKey.URL,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
@@ -1523,6 +1525,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Whether you have seen this replay before (true/false)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [ReplayFieldKey.URL]: {
+    desc: t('A url visited within the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the replay'),

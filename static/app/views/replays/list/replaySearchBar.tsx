@@ -1,7 +1,9 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {orderBy} from 'lodash';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -55,7 +57,7 @@ const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK
  * Merges a list of supported tags and replay search fields into one collection.
  */
 function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
-  const allTags = {
+  return {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...Object.fromEntries(
@@ -68,14 +70,41 @@ function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
       ])
     ),
   };
-
-  // A hack used to "sort" the dictionary for SearchQueryBuilder.
-  // Technically dicts are unordered but this works in dev.
-  // To guarantee ordering, we need to implement filterKeySections.
-  const keys = Object.keys(allTags);
-  keys.sort();
-  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
+
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('search-query-builder-replays')) {
+    return [];
+  }
+
+  const excludedTags = ['browser', 'device', 'os', 'user'];
+  const customTags: Tag[] = Object.values(tags).filter(
+    tag =>
+      !excludedTags.includes(tag.key) &&
+      !REPLAY_FIELDS.map(String).includes(tag.key) &&
+      !REPLAY_CLICK_FIELDS.map(String).includes(tag.key)
+  );
+
+  const orderedTagKeys = orderBy(customTags, ['totalValues', 'key'], ['desc', 'asc']).map(
+    tag => tag.key
+  );
+
+  return [
+    {
+      value: 'replay_click_field',
+      label: t('Replay Click Fields'),
+      children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Custom Tags'),
+      children: orderedTagKeys,
+    },
+  ];
+};
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
@@ -95,6 +124,9 @@ function ReplaySearchBar(props: Props) {
     () => getReplaySearchTags(organizationTags),
     [organizationTags]
   );
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(organizationTags, organization);
+  }, [organizationTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -165,7 +197,7 @@ function ReplaySearchBar(props: Props) {
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
         filterKeys={replayTags}
-        filterKeySections={undefined}
+        filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
         onSearch={onSearchWithAnalytics}
