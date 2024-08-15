@@ -20,7 +20,7 @@ export function getValueSuggestions({
 }: {
   filterValue: string;
   token: TokenResult<Token.FILTER>;
-  valueType: FieldValueType | null | undefined;
+  valueType: FieldValueType;
 }): SuggestionSection[] | null {
   switch (valueType) {
     case FieldValueType.NUMBER:

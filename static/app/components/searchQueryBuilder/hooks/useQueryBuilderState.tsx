@@ -1,6 +1,11 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
+import {
+  convertTokenTypeToValueType,
+  getArgsToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   FieldDefinitionGetter,
   FocusOverride,
@@ -11,13 +16,14 @@ import {
   parseQueryBuilderValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  type AggregateFilter,
   FilterType,
   type ParseResultToken,
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
 
 type QueryBuilderState = {
   focusOverride: FocusOverride | null;
@@ -82,7 +88,7 @@ type DeleteLastMultiSelectFilterValueAction = {
 };
 
 type UpdateAggregateArgsAction = {
-  token: TokenResult<Token.KEY_AGGREGATE_ARGS> | TokenResult<Token.SPACES>;
+  token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
 };
@@ -219,6 +225,7 @@ function modifyFilterValueDate(
   return replaceQueryToken(query, token, `${token.key.text}:${newValue}`);
 }
 
+// Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
   tokens: TokenResult<Token>[],
@@ -234,12 +241,32 @@ function replaceQueryTokens(
   return start + value + end;
 }
 
+// Uses the token's location to replace the given with the new text value
 function replaceQueryToken(
   query: string,
   token: TokenResult<Token>,
   value: string
 ): string {
   return replaceQueryTokens(query, [token], value);
+}
+
+// Takes a list of token replacements and applies them to the query
+function multipleReplaceQueryToken(
+  query: string,
+  replacements: Array<{replacement: string; token: TokenResult<Token>}>
+) {
+  // Because replacements to earlier tokens can affect the offsets of later tokens,
+  // we need to apply the replacements in order from rightmost to leftmost
+  const sortedReplacements = replacements.sort(
+    (a, b) => b.token.location.start.offset - a.token.location.start.offset
+  );
+
+  let newQuery = query;
+  for (const {token, replacement} of sortedReplacements) {
+    newQuery = replaceQueryToken(newQuery, token, replacement);
+  }
+
+  return newQuery;
 }
 
 function removeExcessWhitespaceFromParts(...parts: string[]): string {
@@ -379,6 +406,47 @@ function deleteLastMultiSelectTokenValue(
   }
 }
 
+function updateAggregateArgs(
+  state: QueryBuilderState,
+  action: UpdateAggregateArgsAction,
+  {
+    getFieldDefinition,
+  }: {
+    getFieldDefinition: FieldDefinitionGetter;
+  }
+): QueryBuilderState {
+  const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+
+  if (!fieldDefinition?.parameterDependentValueType) {
+    return {
+      ...state,
+      query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+    };
+  }
+
+  const newValueType = fieldDefinition.parameterDependentValueType(
+    action.value.split(',').map(arg => arg.trim())
+  );
+  const oldValueType = convertTokenTypeToValueType(action.token.value.type);
+
+  if (newValueType === oldValueType) {
+    return {
+      ...state,
+      query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+    };
+  }
+
+  const newValue = getDefaultValueForValueType(newValueType);
+
+  return {
+    ...state,
+    query: multipleReplaceQueryToken(state.query, [
+      {token: getArgsToken(action.token), replacement: action.value},
+      {token: action.token.value, replacement: newValue},
+    ]),
+  };
+}
+
 export function useQueryBuilderState({
   initialQuery,
   getFieldDefinition,
@@ -438,10 +506,7 @@ export function useQueryBuilderState({
             query: modifyFilterValue(state.query, action.token, action.value),
           };
         case 'UPDATE_AGGREGATE_ARGS':
-          return {
-            ...state,
-            query: replaceQueryToken(state.query, action.token, action.value),
-          };
+          return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
         case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':

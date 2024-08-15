@@ -2168,6 +2168,11 @@ describe('SearchQueryBuilder', function () {
           name: 'count_if',
           kind: FieldKind.FUNCTION,
         },
+        p95: {
+          key: 'p95',
+          name: 'p95',
+          kind: FieldKind.FUNCTION,
+        },
         'transaction.duration': {
           key: 'transaction.duration',
           name: 'transaction.duration',
@@ -2225,6 +2230,32 @@ describe('SearchQueryBuilder', function () {
                   dataType: FieldValueType.STRING,
                   defaultValue: '300ms',
                   required: false,
+                },
+              ],
+            };
+          case 'p95':
+            return {
+              desc: 'Returns results with the 95th percentile of the selected column.',
+              kind: FieldKind.FUNCTION,
+              defaultValue: '300ms',
+              valueType: null,
+              parameterDependentValueType: parameters => {
+                const column = parameters[0];
+                const fieldDef = column ? getFieldDefinition(column) : null;
+                return fieldDef?.valueType ?? FieldValueType.NUMBER;
+              },
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.DURATION,
+                    FieldValueType.NUMBER,
+                    FieldValueType.INTEGER,
+                    FieldValueType.PERCENTAGE,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
                 },
               ],
             };
@@ -2329,6 +2360,31 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {
             name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('automatically changes the filter value if the type changes after editing parameters', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="p95(transaction.duration):>10ms"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: p95'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('timesSeen{enter}');
+
+        // After selecting timesSeen, the value should change to a number
+        expect(
+          await screen.findByRole('row', {
+            name: 'p95(timesSeen):>100',
           })
         ).toBeInTheDocument();
       });
