@@ -183,9 +183,11 @@ export function EventSamplesTable({
       {!footerAlignedPagination && (
         <Header>
           {showDeviceClassSelector && (
-            <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+            <StyledControls>
+              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+              <SubregionSelector size="xs" />
+            </StyledControls>
           )}
-          <SubregionSelector />
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
@@ -227,6 +229,11 @@ const Header = styled('div')`
   margin-bottom: ${space(1)};
   align-items: center;
   height: 26px;
+`;
+
+const StyledControls = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`
