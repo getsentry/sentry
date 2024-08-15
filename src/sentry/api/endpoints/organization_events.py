@@ -126,6 +126,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -323,7 +324,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         referrer = request.GET.get("referrer")
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(
+            snuba_params = self.get_snuba_params(
                 request,
                 organization,
                 # This is only temporary until we come to a decision on global views
@@ -386,13 +387,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("forbidden_referrer", referrer)
+                sentry_sdk.capture_message(
+                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
-                params=params,
+                params={},
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
@@ -621,7 +627,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
                         dataset=dataset,
@@ -634,7 +640,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         results,
                         standard_meta=True,
                         dataset=dataset,

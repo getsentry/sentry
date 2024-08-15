@@ -1,3 +1,4 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
@@ -11,7 +12,10 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanSummaryPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['insights-related-issues-table'],
+  });
+  const group = GroupFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -49,6 +53,11 @@ describe('DatabaseSpanSummaryPage', function () {
   });
 
   it('renders', async function () {
+    // Ignore known issue with jsdom used by jest when parsing nested CSS syntax (@container). See:
+    // - https://github.com/jsdom/jsdom/issues/3236
+    // - https://github.com/jsdom/jsdom/issues/2005
+    jest.spyOn(console, 'error').mockImplementation();
+
     const eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -86,6 +95,7 @@ describe('DatabaseSpanSummaryPage', function () {
         data: [
           {
             'span.group': '1756baf8fd19c116',
+            'span.description': 'SELECT * FROM users',
           },
         ],
       },
@@ -135,6 +145,19 @@ describe('DatabaseSpanSummaryPage', function () {
           },
         },
       },
+    });
+
+    const issuesRequestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      method: 'GET',
+      body: [
+        {
+          ...group,
+          metadata: {
+            value: 'SELECT * FROM users',
+          },
+        },
+      ],
     });
 
     render(
@@ -302,6 +325,26 @@ describe('DatabaseSpanSummaryPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
+    // Issues request. This runs after the indexed span has loaded
+    expect(issuesRequestMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          query:
+            'issue.type:[performance_slow_db_query,performance_n_plus_one_db_queries] message:"SELECT * FROM users"',
+          environment: [],
+          expand: ['inbox', 'owners'],
+          limit: 100,
+          shortIdLookup: 1,
+          project: [],
+          statsPeriod: '10d',
+          utc: 'false',
+        },
+      })
+    );
+
     // Span details for query source. This runs after the indexed span has loaded
     expect(eventsRequestMock).toHaveBeenNthCalledWith(
       2,
@@ -339,5 +382,13 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '204.50ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '2.95min'})).toBeInTheDocument();
+
+    expect(await screen.findByText('1 Related Issue')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Graph'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Events'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Users'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Assignee'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '327k'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '35k'})).toBeInTheDocument();
   });
 });

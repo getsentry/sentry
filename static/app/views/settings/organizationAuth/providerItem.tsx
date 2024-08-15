@@ -10,7 +10,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AuthProvider} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 

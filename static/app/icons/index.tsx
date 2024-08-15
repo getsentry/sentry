@@ -109,6 +109,7 @@ export {IconTag} from './iconTag';
 export {IconTap} from './iconTap';
 export {IconTeamwork} from './iconTeamwork';
 export {IconTelescope} from './iconTelescope';
+export {IconThumb} from './iconThumb';
 export {IconTerminal} from './iconTerminal';
 export {IconTimer} from './iconTimer';
 export {IconToggle} from './iconToggle';

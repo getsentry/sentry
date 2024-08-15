@@ -3,7 +3,7 @@ import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {type AnimationProps, motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
@@ -24,14 +24,24 @@ type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   ariaLabel?: string;
+  className?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom';
+  transitionProps?: AnimationProps['transition'];
 };
 
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {ariaLabel, collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
+  {
+    ariaLabel,
+    collapsed,
+    children,
+    className,
+    onOpen,
+    slidePosition,
+    transitionProps = {},
+  }: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   useEffect(() => {
@@ -57,10 +67,12 @@ function SlideOverPanel(
         type: 'spring',
         stiffness: 500,
         damping: 50,
+        ...transitionProps,
       }}
       role="complementary"
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
+      className={className}
     >
       {children}
     </_SlideOverPanel>

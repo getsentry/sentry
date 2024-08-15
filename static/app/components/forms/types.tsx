@@ -5,7 +5,8 @@ import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMappe
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type FormModel from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {AvatarProject, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {AvatarProject, Project} from 'sentry/types/project';
 
 export const FieldType = [
   'array',

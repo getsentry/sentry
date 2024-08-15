@@ -12,13 +12,14 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
+from sentry import options
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
+from .rollout import in_random_rollout
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.features.handler import FeatureHandler
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 logger = logging.getLogger(__name__)
@@ -102,30 +103,34 @@ class RegisteredFeatureManager:
         remaining = set(objects)
 
         handlers = self._handler_registry[name]
-        for handler in handlers:
-            if not remaining:
-                break
+        try:
+            for handler in handlers:
+                if not remaining:
+                    break
 
-            with sentry_sdk.start_span(
-                op="feature.has_for_batch.handler",
-                description=f"{type(handler).__name__} ({name})",
-            ) as span:
-                batch_size = len(remaining)
-                span.set_data("Batch Size", batch_size)
-                span.set_data("Feature Name", name)
-                span.set_data("Handler Type", type(handler).__name__)
+                with sentry_sdk.start_span(
+                    op="feature.has_for_batch.handler",
+                    description=f"{type(handler).__name__} ({name})",
+                ) as span:
+                    batch_size = len(remaining)
+                    span.set_data("Batch Size", batch_size)
+                    span.set_data("Feature Name", name)
+                    span.set_data("Handler Type", type(handler).__name__)
 
-                batch = FeatureCheckBatch(self, name, organization, remaining, actor)
-                handler_result = handler.has_for_batch(batch)
-                for obj, flag in handler_result.items():
-                    if flag is not None:
-                        remaining.remove(obj)
-                        result[obj] = flag
-                span.set_data("Flags Found", batch_size - len(remaining))
+                    batch = FeatureCheckBatch(self, name, organization, remaining, actor)
+                    handler_result = handler.has_for_batch(batch)
+                    for obj, flag in handler_result.items():
+                        if flag is not None:
+                            remaining.remove(obj)
+                            result[obj] = flag
+                    span.set_data("Flags Found", batch_size - len(remaining))
 
-        default_flag = settings.SENTRY_FEATURES.get(name, False)
-        for obj in remaining:
-            result[obj] = default_flag
+            default_flag = settings.SENTRY_FEATURES.get(name, False)
+            for obj in remaining:
+                result[obj] = default_flag
+        except Exception as e:
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
 
         return result
 
@@ -202,7 +207,9 @@ class FeatureManager(RegisteredFeatureManager):
             self.flagpole_features.add(name)
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
-            register(feature_option_name, type=Dict, default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+            options.register(
+                feature_option_name, type=Dict, default={}, flags=options.FLAG_AUTOMATOR_MODIFIABLE
+            )
 
         if name not in settings.SENTRY_FEATURES:
             settings.SENTRY_FEATURES[name] = default
@@ -307,7 +314,8 @@ class FeatureManager(RegisteredFeatureManager):
 
                 return False
         except Exception as e:
-            sentry_sdk.capture_exception(e)
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
             return False
 
     def batch_has(
@@ -364,7 +372,8 @@ class FeatureManager(RegisteredFeatureManager):
                     return {"unscoped": unscoped_results}
                 return None
         except Exception as e:
-            sentry_sdk.capture_exception(e)
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
             return None
 
     @staticmethod
@@ -396,7 +405,7 @@ class FeatureCheckBatch:
         name: str,
         organization: Organization,
         objects: Iterable[Project],
-        actor: User,
+        actor: User | None,
     ) -> None:
         self._manager = manager
         self.feature_name = name

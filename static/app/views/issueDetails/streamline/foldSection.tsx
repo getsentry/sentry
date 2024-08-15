@@ -29,7 +29,7 @@ export const enum FoldSectionKey {
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
 
-  // QuickTraceQuery?
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
 
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
@@ -170,7 +170,6 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
-  overflow: hidden;
   &::marker,
   &::-webkit-details-marker {
     display: none;

@@ -104,7 +104,7 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
     isShare,
   });
 
-  if (!actionableItems || !proguardErrors) {
+  if (!actionableItems || actionableItems.errors.length === 0 || !proguardErrors) {
     return null;
   }
 
@@ -117,6 +117,10 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
         type: error.type,
       }))
     );
+
+  if (!errors.length) {
+    return null;
+  }
 
   return (
     <InterimSection

@@ -43,6 +43,7 @@ function CompactSelect<Value extends SelectKey>(
 
 function CompactSelect<Value extends SelectKey>({
   triggerProps,
+  className,
   ...props
 }: CompactSelectProps<Value>) {
   const theme = useTheme();
@@ -54,8 +55,11 @@ function CompactSelect<Value extends SelectKey>({
         className: 'tag-button',
       }}
       css={css`
+        width: 100%;
+
         .tag-button {
           border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} 0;
+          width: 100%;
         }
 
         @media (min-width: ${theme.breakpoints.small}) {
@@ -67,6 +71,7 @@ function CompactSelect<Value extends SelectKey>({
           }
         }
       `}
+      className={className}
     />
   );
 }
@@ -108,10 +113,6 @@ const ComboBox = styled(_ComboBox)`
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    max-width: min(500px, 100%);
-  }
 `;
 
 const searchCss = (theme: Theme) => css`
@@ -142,6 +143,7 @@ const FieldGroup = styled('div')`
 
   > *:nth-child(even) {
     margin-left: -1px;
+    width: calc(100% + 1px);
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

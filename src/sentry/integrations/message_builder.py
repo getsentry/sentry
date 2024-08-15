@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment

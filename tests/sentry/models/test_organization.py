@@ -21,7 +21,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
@@ -32,6 +31,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.users.models.user import User
 
 
 class OrganizationTest(TestCase, HybridCloudTestMixin):
@@ -96,12 +96,14 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.require_2fa = True
         org.flags.disable_member_project_creation = True
         org.flags.prevent_superuser_access = True
+        org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "early_adopter")
         assert flag_has_changed(org, "codecov_access")
         assert flag_has_changed(org, "require_2fa")
         assert flag_has_changed(org, "disable_member_project_creation")
         assert flag_has_changed(org, "prevent_superuser_access")
+        assert flag_has_changed(org, "disable_member_invite")
 
     def test_has_changed(self):
         org = self.create_organization()
