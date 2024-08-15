@@ -1,4 +1,4 @@
-from sentry.discover.dataset_split import save_split_decision_for_query
+from sentry.discover.dataset_split import get_and_save_split_decision_for_query
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.models.user import User
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -44,7 +44,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(errors_query.id)
+        get_and_save_split_decision_for_query(errors_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 1
 
@@ -66,7 +66,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(errors_query.id)
+        get_and_save_split_decision_for_query(errors_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 1
 
@@ -88,7 +88,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(transaction_query.id)
+        get_and_save_split_decision_for_query(transaction_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 2
 
@@ -110,7 +110,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(transaction_query.id)
+        get_and_save_split_decision_for_query(transaction_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 1
 
@@ -132,7 +132,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         array_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(array_query.id)
+        get_and_save_split_decision_for_query(array_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=array_query.id)
         assert saved_query.dataset == 2
 
@@ -161,7 +161,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         measurements_query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(measurements_query.id)
+        get_and_save_split_decision_for_query(measurements_query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=measurements_query.id)
         assert saved_query.dataset == 2
 
@@ -189,7 +189,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 2
 
@@ -218,7 +218,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 2
 
@@ -245,7 +245,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 2
 
@@ -279,7 +279,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 1
 
@@ -313,7 +313,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 2
 
@@ -339,7 +339,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 1
 
@@ -373,7 +373,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 1
 
@@ -408,7 +408,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 2
 
@@ -444,6 +444,6 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        save_split_decision_for_query(query.id)
+        get_and_save_split_decision_for_query(query.id)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 1

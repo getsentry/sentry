@@ -226,7 +226,7 @@ def get_snuba_dataclass(
     saved_query: DiscoverSavedQuery, projects
 ) -> tuple[SnubaParams, ParamsType]:
     # Default
-    start, end = get_date_range_from_stats_period("7d")
+    start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
     if "start" in saved_query.query:
         start, end = parse_timestamp(saved_query.query["start"]), parse_timestamp(
@@ -235,13 +235,15 @@ def get_snuba_dataclass(
         if start and end:
             expired, _ = outside_retention_with_modified_start(start, end, saved_query.organization)
             if expired:
-                start, end = get_date_range_from_stats_period("7d")
+                start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
     elif "range" in saved_query.query:
         try:
-            start, end = get_date_range_from_stats_period(saved_query.query["range"])
+            start, end = get_date_range_from_stats_period(
+                {"statsPeriod": saved_query.query["range"]}
+            )
         except InvalidParams:
-            start, end = get_date_range_from_stats_period("7d")
+            start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
 
     with sentry_sdk.start_span(
         op="discover.migration.split", description="filter_params(dataclass)"
