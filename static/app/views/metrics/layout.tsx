@@ -9,7 +9,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -219,13 +219,13 @@ export const MetricsLayout = memo(() => {
                       }
                     )}
                   </p>
-                  <Button
+                  <LinkButton
                     priority="primary"
                     href="https://docs.sentry.io/product/performance/getting-started/"
                     external
                   >
                     {t('Set Up Tracing')}
-                  </Button>
+                  </LinkButton>
                 </Fragment>
               ) : (
                 <Fragment>
@@ -241,9 +241,9 @@ export const MetricsLayout = memo(() => {
                     >
                       {t('Set Up Custom Metric')}
                     </Button>
-                    <Button href={METRICS_DOCS_URL} external>
+                    <LinkButton href={METRICS_DOCS_URL} external>
                       {t('Read Docs')}
-                    </Button>
+                    </LinkButton>
                     {hasPerformanceMetrics && (
                       <Button onClick={viewPerformanceMetrics}>
                         {t('View Performance Metrics')}

@@ -8,8 +8,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {TeamParticipant, UserParticipant} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -30,15 +30,10 @@ describe('UpdatedGroupHeader', () => {
       project,
     };
 
-    const release = ReleaseFixture();
+    const firstRelease = ReleaseFixture({id: '1'});
+    const lastRelease = ReleaseFixture({id: '2'});
 
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-        method: 'GET',
-        body: {firstRelease: release, lastRelease: release},
-      });
-
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/replay-count/',
         body: {},
@@ -49,16 +44,21 @@ describe('UpdatedGroupHeader', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(release.version)}/`,
+        url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(firstRelease.version)}/`,
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/releases/${encodeURIComponent(release.version)}/deploys/`,
+        url: `/organizations/org-slug/releases/${encodeURIComponent(firstRelease.version)}/deploys/`,
         body: {},
       });
     });
 
     it('shows all elements of header', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+        method: 'GET',
+        body: {firstRelease, lastRelease},
+      });
       const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
       const users: UserParticipant[] = [
         {
@@ -117,6 +117,22 @@ describe('UpdatedGroupHeader', () => {
 
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(await screen.findByRole('button', {name: 'Archive'})).toBeInTheDocument();
+    });
+
+    it('only shows one release if possible', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+        method: 'GET',
+        // First and last release match
+        body: {firstRelease, lastRelease: firstRelease},
+      });
+      render(
+        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
+        {organization}
+      );
+      expect(
+        await screen.findByText(textWithMarkupMatcher('Release'))
+      ).toBeInTheDocument();
     });
   });
 });

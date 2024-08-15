@@ -25,6 +25,7 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
   FILE_EXTENSION,
+  USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -48,6 +49,9 @@ export const getResourcesEventViewQuery = (
     ...DEFAULT_RESOURCE_FILTERS,
     ...(resourceFilters.transaction
       ? [`transaction:"${resourceFilters.transaction}"`]
+      : []),
+    ...(resourceFilters[USER_GEO_SUBREGION]
+      ? [`user.geo.subregion:[${resourceFilters[USER_GEO_SUBREGION]}]`]
       : []),
     ...getDomainFilter(resourceFilters[SPAN_DOMAIN]),
     ...(resourceFilters[RESOURCE_RENDER_BLOCKING_STATUS]

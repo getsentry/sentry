@@ -1396,6 +1396,11 @@ export const TRANSACTION_FILTER_FIELDS: FilterKeySection = {
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
     FieldKey.TRANSACTION_STATUS,
+    SpanOpBreakdown.SPANS_BROWSER,
+    SpanOpBreakdown.SPANS_DB,
+    SpanOpBreakdown.SPANS_HTTP,
+    SpanOpBreakdown.SPANS_RESOURCE,
+    SpanOpBreakdown.SPANS_UI,
   ],
 };
 
@@ -1414,7 +1419,7 @@ export const USER_FILTER_FIELDS: FilterKeySection = {
 
 export const GEO_FILTER_FIELDS: FilterKeySection = {
   value: 'geo_fields',
-  label: 'Geographical',
+  label: 'Geo',
   children: [
     FieldKey.GEO_CITY,
     FieldKey.GEO_COUNTRY_CODE,
@@ -1431,18 +1436,6 @@ export const HTTP_FILTER_FIELDS: FilterKeySection = {
     FieldKey.HTTP_REFERER,
     FieldKey.HTTP_STATUS_CODE,
     FieldKey.HTTP_URL,
-  ],
-};
-
-export const SPAN_OP_FILTER_FIELDS: FilterKeySection = {
-  value: 'span_duration_fields',
-  label: 'Span Duration',
-  children: [
-    SpanOpBreakdown.SPANS_BROWSER,
-    SpanOpBreakdown.SPANS_DB,
-    SpanOpBreakdown.SPANS_HTTP,
-    SpanOpBreakdown.SPANS_RESOURCE,
-    SpanOpBreakdown.SPANS_UI,
   ],
 };
 
@@ -1524,7 +1517,6 @@ export const MISC_FIELDS: FilterKeySection = {
 
 export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   TRANSACTION_FILTER_FIELDS,
-  SPAN_OP_FILTER_FIELDS,
   HTTP_FILTER_FIELDS,
   WEB_VITAL_FIELDS,
   RELEASE_FIELDS,

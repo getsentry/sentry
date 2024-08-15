@@ -31,13 +31,12 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
-  Frame,
-  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 

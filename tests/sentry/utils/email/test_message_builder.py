@@ -7,11 +7,11 @@ from django.core.mail.message import EmailMultiAlternatives
 from sentry import options
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.options.user_option import UserOption
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email

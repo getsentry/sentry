@@ -4,7 +4,7 @@ from collections import namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
@@ -120,9 +120,21 @@ class SnubaParams:
         return self.end
 
     @property
+    def date_range(self) -> timedelta:
+        return self.end_date - self.start_date
+
+    @property
     def environment_names(self) -> list[str]:
         return (
             [env.name if env is not None else "" for env in self.environments]
+            if self.environments
+            else []
+        )
+
+    @property
+    def environment_ids(self) -> list[int]:
+        return (
+            [env.id for env in self.environments if env is not None and env.id is not None]
             if self.environments
             else []
         )
@@ -165,7 +177,9 @@ class SnubaParams:
             "project_objects": list(self.projects),
             "environment": list(self.environment_names),
             "team_id": list(self.team_ids),
-            "environment_objects": [env for env in self.environments if env is not None],
+            "environment_objects": [env for env in self.environments if env is not None]
+            if self.environments
+            else [],
         }
         if self.organization_id:
             filter_params["organization_id"] = self.organization_id
@@ -203,6 +217,7 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
+    insights_metrics_override_metric_layer: bool = False
 
 
 @dataclass(frozen=True)

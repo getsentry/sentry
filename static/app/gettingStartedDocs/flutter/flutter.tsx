@@ -25,10 +25,10 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';${
+      options.dsn = '${params.dsn.public}';${
         params.isPerformanceSelected
           ? `
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
       // We recommend adjusting this value in production.
       options.tracesSampleRate = 1.0;`
           : ''
@@ -94,7 +94,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';
+      options.dsn = '${params.dsn.public}';
       options.enableMetrics = true;
     },
     appRunner: initApp, // Init your App.
@@ -282,7 +282,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance'),
+            title: t('Tracing'),
             description: t(
               "You'll be able to monitor the performance of your app using the SDK. For example:"
             ),

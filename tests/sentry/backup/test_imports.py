@@ -34,14 +34,11 @@ from sentry.backup.imports import (
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
-from sentry.models.authenticator import Authenticator
-from sentry.models.email import Email
 from sentry.models.importchunk import (
     ControlImportChunk,
     ControlImportChunkReplica,
     RegionImportChunk,
 )
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
@@ -59,11 +56,8 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
@@ -81,6 +75,12 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.email import Email
+from sentry.users.models.lostpasswordhash import LostPasswordHash
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,

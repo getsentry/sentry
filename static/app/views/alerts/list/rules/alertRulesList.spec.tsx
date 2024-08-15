@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -573,5 +574,66 @@ describe('AlertRulesList', () => {
     expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(await screen.findByText('activated Test Metric Alert')).toBeInTheDocument();
+  });
+
+  it('renders uptime alert rules', async () => {
+    rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        {
+          ...UptimeRuleFixture({owner: undefined}),
+          type: CombinedAlertType.UPTIME,
+        },
+      ],
+    });
+
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+
+    expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
+    expect(await screen.findByText('Auto Detected')).toBeInTheDocument();
+    expect(await screen.findByText('Up')).toBeInTheDocument();
+  });
+
+  it('deletes an uptime rule', async () => {
+    const deletedRuleName = 'Uptime Rule';
+    const uptimeRule = UptimeRuleFixture({owner: undefined});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [{...uptimeRule, type: CombinedAlertType.UPTIME}],
+    });
+
+    const {router, project, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+    renderGlobalModal();
+
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+
+    // Add a new response to the mock with no rules
+    const emptyListMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [],
+    });
+
+    expect(
+      screen.queryByRole('link', {name: 'Uptime Rule Auto Detected'})
+    ).toBeInTheDocument();
+    await userEvent.click(actions);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(emptyListMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
   });
 });

@@ -6,7 +6,9 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
+import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
@@ -202,7 +204,7 @@ describe('Onboarding Setup Docs', function () {
       ).toBeInTheDocument();
 
       const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).toHaveTextContent(/Tracing/);
       expect(codeBlock).toHaveTextContent(/Session Replay/);
     });
 
@@ -252,7 +254,7 @@ describe('Onboarding Setup Docs', function () {
       );
 
       const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).toHaveTextContent(/Tracing/);
       expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
 
@@ -303,7 +305,7 @@ describe('Onboarding Setup Docs', function () {
 
       const codeBlock = await screen.findByText(/import \* as Sentry/);
       expect(codeBlock).toHaveTextContent(/Session Replay/);
-      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Tracing/);
     });
 
     it('only error monitoring checked', async function () {
@@ -354,7 +356,7 @@ describe('Onboarding Setup Docs', function () {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Tracing/);
       expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
   });

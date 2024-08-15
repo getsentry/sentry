@@ -105,6 +105,7 @@ export default function BreadcrumbsDataSection({
             }
             return true;
           },
+          transitionProps: {stiffness: 1000},
         }
       );
     },
@@ -187,6 +188,7 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
+          fullyExpanded={false}
         />
         {hasViewAll && (
           <ViewAllContainer>

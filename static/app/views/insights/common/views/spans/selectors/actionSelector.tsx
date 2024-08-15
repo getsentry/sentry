@@ -20,16 +20,12 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 const {SPAN_ACTION} = SpanMetricsField;
 
 type Props = {
-  moduleName?: ModuleName;
+  moduleName: ModuleName;
   spanCategory?: string;
   value?: string;
 };
 
-export function ActionSelector({
-  value = '',
-  moduleName = ModuleName.ALL,
-  spanCategory,
-}: Props) {
+export function ActionSelector({value = '', moduleName, spanCategory}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
@@ -111,8 +107,8 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   resource: t('Resource'),
   other: t('Action'),
   'mobile-ui': t('Action'),
+  'mobile-screens': t('Action'),
   ai: 'Action',
-  '': t('Action'),
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {

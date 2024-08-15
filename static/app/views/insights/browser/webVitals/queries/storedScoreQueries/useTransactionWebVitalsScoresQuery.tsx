@@ -14,7 +14,7 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -24,6 +24,7 @@ type Props = {
   query?: string;
   shouldEscapeFilters?: boolean;
   sortName?: string;
+  subregions?: SubregionCode[];
   transaction?: string | null;
   webVital?: WebVitals | 'total';
 };
@@ -38,6 +39,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   query,
   shouldEscapeFilters = true,
   browserTypes,
+  subregions,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -63,6 +65,10 @@ export const useTransactionWebVitalsScoresQuery = ({
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
   }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+  }
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [

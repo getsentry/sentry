@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -85,7 +86,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
+    children: [FieldKey.ASSIGNED, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -100,7 +101,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_4',
     label: 'Category 4',
-    children: [FieldKey.LAST_SEEN],
+    children: [FieldKey.LAST_SEEN, FieldKey.TIMES_SEEN],
   },
   {
     value: 'cat_5',
@@ -300,6 +301,18 @@ export default storyBook(SearchQueryBuilder, story => {
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
+        />
+        <p>
+          If you wish to modify the size of the filter key menu, use
+          <code>filterKeyMenuWidth</code> to define the width in pixels.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          filterKeyMenuWidth={600}
         />
       </Fragment>
     );
@@ -640,6 +653,21 @@ export default storyBook(SearchQueryBuilder, story => {
         searchSource="storybook"
         disabled
       />
+    );
+  });
+
+  story('FormattedQuery', () => {
+    return (
+      <Fragment>
+        <p>
+          If you just need to render a formatted query outside of the search bar,{' '}
+          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+        </p>
+        <FormattedQuery
+          query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
+          filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
     );
   });
 

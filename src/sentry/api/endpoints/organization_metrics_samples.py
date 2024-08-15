@@ -46,14 +46,14 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
         try:
             rollup = get_rollup_from_request(
                 request,
-                params,
+                snuba_params.end_date - snuba_params.start_date,
                 default_interval=None,
                 error=InvalidSearchQuery(),
             )
@@ -78,7 +78,6 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         executor = executor_cls(
             mri=serialized["mri"],
-            params=params,
             snuba_params=snuba_params,
             fields=serialized["field"],
             operation=serialized.get("operation"),
@@ -98,7 +97,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        snuba_params.project_ids,
                         results,
                         standard_meta=True,
                     ),

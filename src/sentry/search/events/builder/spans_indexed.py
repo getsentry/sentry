@@ -7,6 +7,7 @@ from sentry.search.events.builder.discover import TimeseriesQueryBuilder, TopEve
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
+from sentry.snuba.dataset import Dataset
 
 SPAN_UUID_FIELDS = {
     "trace",
@@ -53,6 +54,21 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         self.value_resolver_map[
             constants.SPAN_STATUS
         ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+
+
+class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
+    requires_organization_condition = True
+    uuid_fields = SPAN_UUID_FIELDS
+    span_id_fields = SPAN_ID_FIELDS
+    config_class = SpansIndexedDatasetConfig
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _get_dataset_name(self) -> str:
+        if self.dataset == Dataset.SpansEAP:
+            return "events_analytics_platform"
+        return self.dataset.value
 
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):

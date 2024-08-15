@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,6 +14,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
@@ -45,6 +46,7 @@ import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import {ProfilesChart} from './landing/profileCharts';
 import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
+import {SlowestFunctionsTable} from './landing/slowestFunctionsTable';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
@@ -163,14 +165,23 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
-                <SearchBar
-                  searchSource="profile_landing"
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={query}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {organization.features.includes('search-query-builder-performance') ? (
+                  <TransactionSearchQueryBuilder
+                    projects={selection.projects}
+                    initialQuery={query}
+                    onSearch={handleSearch}
+                    searchSource="profile_landing"
+                  />
+                ) : (
+                  <SearchBar
+                    searchSource="profile_landing"
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
@@ -205,9 +216,9 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                     >
                       {t('Set Up Profiling')}
                     </ProfilingUpgradeButton>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                    <LinkButton href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
-                    </Button>
+                    </LinkButton>
                   </ProfilingOnboardingPanel>
                 </Fragment>
               ) : (
@@ -446,20 +457,40 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
           <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
         </PageFilterBar>
-        <SearchBar
-          searchSource="profile_landing"
-          organization={organization}
-          projectIds={selection.projects}
-          query={query}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
+        {organization.features.includes('search-query-builder-performance') ? (
+          <TransactionSearchQueryBuilder
+            projects={selection.projects}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="profile_landing"
+          />
+        ) : (
+          <SearchBar
+            searchSource="profile_landing"
+            organization={organization}
+            projectIds={selection.projects}
+            query={query}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
+        )}
       </ActionBar>
       {props.shouldShowProfilingOnboardingPanel ? (
         <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
-          {organization.features.includes('profiling-global-suspect-functions') ? (
+          {organization.features.includes('continuous-profiling-compat') ? (
+            <Fragment>
+              <ProfilesChartWidget
+                chartHeight={150}
+                referrer="api.profiling.landing-chart"
+                userQuery={query}
+                selection={selection}
+                continuousProfilingCompat={continuousProfilingCompat}
+              />
+              <SlowestFunctionsTable />
+            </Fragment>
+          ) : organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
@@ -564,9 +595,9 @@ function ProfilingOnboardingCTA() {
         >
           {t('Set Up Profiling')}
         </ProfilingUpgradeButton>
-        <Button href="https://docs.sentry.io/product/profiling/" external>
+        <LinkButton href="https://docs.sentry.io/product/profiling/" external>
           {t('Read Docs')}
-        </Button>
+        </LinkButton>
       </ProfilingOnboardingPanel>
     </Fragment>
   );

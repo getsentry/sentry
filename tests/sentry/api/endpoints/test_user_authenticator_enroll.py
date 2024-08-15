@@ -6,11 +6,11 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.auth.authenticators.sms import SmsInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization.serial import serialize_member
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -18,6 +18,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.useremail import UserEmail
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
@@ -57,7 +59,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("1234")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
-        assert interface
+        assert isinstance(interface, TotpInterface)
+        assert interface.authenticator, "should have authenticator"
         assert interface.secret == "secret12"
         assert interface.config == {"secret": "secret12"}
 
@@ -75,6 +78,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("5678")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="totp")
+        assert isinstance(interface, TotpInterface)
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 
@@ -135,6 +139,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_args == mock.call("123123")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert isinstance(interface, SmsInterface)
         assert interface.phone_number == "1231234"
 
         assert_security_email_sent("mfa-added")
@@ -432,6 +437,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert validate_otp.call_args == mock.call("123123")
 
         interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert isinstance(interface, SmsInterface)
         assert interface.phone_number == "1231234"
 
         self.assert_invite_accepted(resp, om.id)
@@ -479,8 +485,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             om.update(id=om.id + 1)
 
@@ -501,8 +508,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             om.update(token="123")
 

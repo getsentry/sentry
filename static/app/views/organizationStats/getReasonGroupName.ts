@@ -1,4 +1,4 @@
-import {Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
 // List of Relay's current invalid reasons - https://github.com/getsentry/relay/blob/89a8dd7caaad1f126e1cacced0d73bb50fcd4f5a/relay-server/src/services/outcome.rs#L333
 enum DiscardReason {
