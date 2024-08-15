@@ -79,7 +79,6 @@ def get_profiles_with_function(
     result = functions.query(
         selected_columns=["timestamp", "unique_examples()"],
         query=" ".join(cond for cond in conditions if cond),
-        params={},
         snuba_params=snuba_params,
         limit=100,
         orderby=["-timestamp"],

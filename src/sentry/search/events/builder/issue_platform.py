@@ -1,6 +1,6 @@
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder.discover import TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
 
 
@@ -10,9 +10,8 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
-        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         equations: list[str] | None = None,
@@ -21,9 +20,8 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
     ):
         super().__init__(
             dataset,
-            params,
+            snuba_params,
             interval,
-            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=equations,

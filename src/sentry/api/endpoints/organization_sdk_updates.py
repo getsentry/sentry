@@ -14,6 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
@@ -98,12 +99,12 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
                     "last_seen()",
                 ],
                 orderby=["-project"],
-                params={
-                    "start": timezone.now() - timedelta(days=1),
-                    "end": timezone.now(),
-                    "organization_id": organization.id,
-                    "project_id": [p.id for p in projects],
-                },
+                snuba_params=SnubaParams(
+                    start=timezone.now() - timedelta(days=1),
+                    end=timezone.now(),
+                    organization=organization,
+                    projects=projects,
+                ),
                 referrer="api.organization-sdk-updates",
             )
 

@@ -133,7 +133,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
             snuba_response = timeseries_query(
                 selected_columns=["count()"],
                 query=query,
-                params={},
                 snuba_params=snuba_params,
                 rollup=time_params.granularity,
                 referrer="transaction-anomaly-detection",

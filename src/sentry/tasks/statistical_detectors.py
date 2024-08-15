@@ -523,7 +523,6 @@ def emit_function_regression_issue(
     result = functions.query(
         selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=["project.id"],
         limit=len(regressions),
@@ -895,7 +894,6 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
             "p95()",
         ],
         query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=["project.id", "-count()"],
         limitby=("project.id", FUNCTIONS_PER_PROJECT),
@@ -947,7 +945,6 @@ def query_functions_timeseries(
         timeseries_columns=[agg_function],
         selected_columns=["project.id", "fingerprint"],
         user_query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=None,  # unused because top events is specified
         rollup=interval,

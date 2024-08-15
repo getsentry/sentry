@@ -111,7 +111,6 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
                 results = discover.query(
                     selected_columns=["id"],
                     query=query,
-                    params={},
                     snuba_params=snuba_params,
                     limit=1,  # Just want to check for existence of such an event
                     referrer="api.events.measurements",

@@ -48,7 +48,6 @@ from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
     NormalizedArg,
-    ParamsType,
     QueryBuilderConfig,
     QueryFramework,
     SelectType,
@@ -1610,9 +1609,8 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def __init__(
         self,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
-        snuba_params: SnubaParams | None = None,
         dataset: Dataset | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -1624,7 +1622,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         config = config if config is not None else QueryBuilderConfig()
         config.auto_fields = False
         super().__init__(
-            params=params,
             snuba_params=snuba_params,
             query=query,
             dataset=dataset,
@@ -1898,10 +1895,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
         interval: int,
         top_events: list[dict[str, Any]],
-        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -1915,7 +1911,6 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         self.top_events = top_events
         super().__init__(
             dataset=dataset,
-            params=params,
             snuba_params=snuba_params,
             interval=interval,
             query=query,
