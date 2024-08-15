@@ -1387,6 +1387,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_issues(self, issues):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
+                data=json.dumps(issues),
+            ).status_code
+            == 200
+        )
+
     def store_metrics_summary(self, span):
         common_fields = {
             "duration_ms": span["duration_ms"],

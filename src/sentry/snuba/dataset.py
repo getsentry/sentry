@@ -84,3 +84,4 @@ class EntityKey(Enum):
 @unique
 class StorageKey(Enum):
     ProfileChunks = "profile_chunks"
+    SearchIssues = "search_issues"

@@ -133,7 +133,7 @@ simplejson==3.17.6
 six==1.16.0
 slack-sdk==3.27.2
 sniffio==1.3.0
-snuba-sdk==2.0.34
+snuba-sdk==3.0.38
 soupsieve==2.3.2.post1
 sqlparse==0.5.0
 statsd==3.3.0
