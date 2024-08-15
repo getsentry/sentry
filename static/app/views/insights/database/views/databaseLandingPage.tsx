@@ -38,7 +38,6 @@ import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
-import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -48,15 +47,12 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SYSTEM} = SpanMetricsField;
-
 export function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
   const hasModuleData = useHasFirstSpan(moduleName);
-  const {selectedSystem} = useSystemSelectorOptions();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
@@ -64,9 +60,10 @@ export function DatabaseLandingPage() {
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
   // If there is no query parameter for the system, retrieve the current value from the hook instead
-  const systemQueryParam = decodeScalar(location.query?.[SPAN_SYSTEM]);
-  const currentSystem = systemQueryParam ?? selectedSystem;
-  console.dir(currentSystem);
+  // TODO: Use the currently selected system to update the view
+  // const {selectedSystem} = useSystemSelectorOptions();
+  // const systemQueryParam = decodeScalar(location.query?.[SPAN_SYSTEM]);
+  // const currentSystem = systemQueryParam ?? selectedSystem;
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
