@@ -98,13 +98,18 @@ const getFilterKeySections = (
 
   return [
     {
+      value: 'replay_field',
+      label: t('Suggested'),
+      children: Object.keys(REPLAY_FIELDS_AS_TAGS),
+    },
+    {
       value: 'replay_click_field',
-      label: t('Replay Click Fields'),
+      label: t('Click Fields'),
       children: Object.keys(REPLAY_CLICK_FIELDS_AS_TAGS),
     },
     {
       value: FieldKind.TAG,
-      label: t('Custom Tags'),
+      label: t('Tags'),
       children: orderedTagKeys,
     },
   ];
