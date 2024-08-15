@@ -373,7 +373,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         issue_ids = {row.get("issue.id") for row in results if row.get("issue.id")}
         issues = Group.objects.get_issues_mapping(issue_ids, project_ids, organization)
         for result in results:
-            if "issue.id" in result and result["issue.id"]:
+            if "issue.id" in result:
                 result["issue"] = issues.get(result["issue.id"], "unknown")
 
     def handle_readable_device(

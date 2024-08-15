@@ -5909,7 +5909,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["issue"] == ""
+        assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
 
