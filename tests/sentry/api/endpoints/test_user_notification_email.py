@@ -1,6 +1,6 @@
-from sentry.models.options.user_option import UserOption
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 
 
