@@ -65,7 +65,7 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
             organization_id__in=organization_allowlist,
             dataset=DiscoverSavedQueryTypes.DISCOVER,
             dataset_source=DatasetSourcesTypes.UNKNOWN,
-        )
+        ).select_related("organization")
         if not queryset:
             logger.info(
                 "sentry.tasks.split_discover_query_dataset - exit",

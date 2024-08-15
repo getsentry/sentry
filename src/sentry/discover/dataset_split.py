@@ -1,13 +1,14 @@
 import logging
-from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Function, Op, Or
 
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
@@ -15,6 +16,7 @@ from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
+from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
@@ -223,16 +225,30 @@ def get_equation_list(fields: list[str]) -> list[str]:
 def get_snuba_dataclass(
     saved_query: DiscoverSavedQuery, projects
 ) -> tuple[SnubaParams, ParamsType]:
-    # Only query data in the last day
-    now = datetime.now()
-    yesterday = now - timedelta(days=1)
+    # Default
+    start, end = get_date_range_from_stats_period("7d")
+
+    if "start" in saved_query.query:
+        start, end = parse_timestamp(saved_query.query["start"]), parse_timestamp(
+            saved_query.query["end"]
+        )
+        if start and end:
+            expired, _ = outside_retention_with_modified_start(start, end, saved_query.organization)
+            if expired:
+                start, end = get_date_range_from_stats_period("7d")
+
+    elif "range" in saved_query.query:
+        try:
+            start, end = get_date_range_from_stats_period(saved_query.query["range"])
+        except InvalidParams:
+            start, end = get_date_range_from_stats_period("7d")
 
     with sentry_sdk.start_span(
         op="discover.migration.split", description="filter_params(dataclass)"
     ):
         filter_params: dict[str, Any] = {
-            "start": yesterday,
-            "end": now,
+            "start": start,
+            "end": end,
             "project_id": [p.id for p in projects.all()],
             "project_objects": projects,
             "organization_id": saved_query.organization.id,
@@ -252,6 +268,9 @@ def get_snuba_dataclass(
 def get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[DiscoverSavedQueryTypes, bool]:
+    # We use all projects for the clickhouse query but don't do anything
+    # with the data returned other than check if data exists. So this
+    # all projects query should be a safe operation.
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
@@ -260,6 +279,9 @@ def get_and_save_split_decision_for_query(
     equations = get_equation_list(saved_query.query.get("fields", []))
     query = saved_query.query.get("query", "")
 
+    # Optimizing the query we're running a little - we're omitting the order by
+    # and setting limit = 1 since the only check happening with the data returned
+    # is if data exists.
     errors_builder = ErrorsQueryBuilder(
         Dataset.Events,
         params,
