@@ -45,5 +45,3 @@ class OrganizationEventsStatsProfileFunctionsMetricsEndpointTest(
 
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-
-        assert 0
