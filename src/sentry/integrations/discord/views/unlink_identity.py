@@ -29,5 +29,5 @@ class DiscordUnlinkIdentityView(DiscordLinkingView, UnlinkIdentityView):
         return "sentry/integrations/discord/unlinked.html", {}
 
     @property
-    def success_metric(self) -> str | None:
-        return "integrations.discord.identity_unlinked"
+    def analytics_operation_key(self) -> str | None:
+        return "identity_unlinked"

@@ -293,13 +293,15 @@ class LinkingView(BaseView, ABC):
         return event
 
     @property
-    def has_analytics(self) -> bool:
-        return False
+    @abstractmethod
+    def analytics_operation_key(self) -> str | None:
+        """Operation description to use in analytics. Return None to skip."""
+        return None
 
-    def record_analytic(self, event_tag: str, actor_id: int) -> None:
-        if not self.has_analytics:
+    def record_analytic(self, actor_id: int) -> None:
+        if self.analytics_operation_key is None:
             return
-        event = ".".join(("integrations", self.provider_slug, event_tag))
+        event = ".".join(("integrations", self.provider_slug, self.analytics_operation_key))
         analytics.record(
             event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER
         )
