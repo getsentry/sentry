@@ -48,7 +48,7 @@ class UserIP(Model):
     __repr__ = sane_repr("user_id", "ip_address")
 
     @classmethod
-    def log(cls, user: User | RpcUser, ip_address: str):
+    def log(cls, user: User | RpcUser, ip_address: str) -> None:
         # Only log once every 5 minutes for the same user/ip_address pair
         # since this is hit pretty frequently by all API calls in the UI, etc.
         cache_key = f"userip.log:{user.id}:{ip_address}"
@@ -123,7 +123,7 @@ class UserIP(Model):
         sanitizer.set_string(json, SanitizableField(model_name, "region_code"), lambda _: "BC")
 
 
-def _perform_log(user: User | RpcUser, ip_address: str):
+def _perform_log(user: User | RpcUser, ip_address: str) -> None:
     try:
         geo = geo_by_addr(ip_address)
     except Exception:

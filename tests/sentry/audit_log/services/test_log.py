@@ -3,11 +3,11 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.userip import UserIP
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.userip import UserIP
 
 
 @django_db_all
