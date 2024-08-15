@@ -63,7 +63,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
-import type {GroupSearchView, IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
 import IssueListActions from './actions';
@@ -95,7 +95,6 @@ type Params = {
 
 type Props = {
   api: Client;
-  groupSearchView: GroupSearchView | null;
   location: Location;
   organization: Organization;
   params: Params;
@@ -1229,7 +1228,6 @@ class IssueListOverview extends Component<Props, State> {
         {organization.features.includes('issue-stream-custom-views') ? (
           <CustomViewsIssueListHeader
             organization={organization}
-            initalView={this.props.groupSearchView ?? undefined}
             queryCounts={queryCounts}
             router={router}
             selectedProjectIds={selection.projects}

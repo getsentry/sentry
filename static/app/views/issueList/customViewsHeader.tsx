@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {debounce} from 'lodash';
@@ -26,7 +26,6 @@ type CustomViewsIssueListHeaderProps = {
   queryCounts: QueryCounts;
   router: InjectedRouter;
   selectedProjectIds: number[];
-  initalView?: GroupSearchView;
 };
 
 type CustomViewsIssueListHeaderTabsContentProps = {
@@ -36,10 +35,13 @@ type CustomViewsIssueListHeaderTabsContentProps = {
   views: GroupSearchView[];
 };
 
-function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps) {
+function CustomViewsIssueListHeader({
+  selectedProjectIds,
+  ...props
+}: CustomViewsIssueListHeaderProps) {
   const {projects} = useProjects();
   const selectedProjects = projects.filter(({id}) =>
-    props.selectedProjectIds.includes(Number(id))
+    selectedProjectIds.includes(Number(id))
   );
 
   const {data: groupSearchViews} = useFetchGroupSearchViews({
@@ -132,20 +134,24 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {mutate: updateViews} = useUpdateGroupSearchViews();
 
-  const debounceUpdateViews = debounce((newTabs: Tab[]) => {
-    if (newTabs) {
-      updateViews({
-        orgSlug: organization.slug,
-        groupSearchViews: newTabs.map(tab => ({
-          // Do not send over an ID if it's a temporary id
-          ...(tab.id[0] !== '_' ? {id: tab.id} : {}),
-          name: tab.label,
-          query: tab.query,
-          querySort: tab.querySort,
-        })),
-      });
-    }
-  }, 500);
+  const debounceUpdateViews = useMemo(
+    () =>
+      debounce((newTabs: Tab[]) => {
+        if (newTabs) {
+          updateViews({
+            orgSlug: organization.slug,
+            groupSearchViews: newTabs.map(tab => ({
+              // Do not send over an ID if it's a temporary id
+              ...(tab.id[0] !== '_' ? {id: tab.id} : {}),
+              name: tab.label,
+              query: tab.query,
+              querySort: tab.querySort,
+            })),
+          });
+        }
+      }, 500),
+    [organization.slug, updateViews]
+  );
 
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
@@ -262,7 +268,7 @@ function CustomViewsIssueListHeaderTabsContent({
   }, [queryCounts]);
 
   return (
-    <StyledDraggableTabBar
+    <DraggableTabBar
       selectedTabKey={selectedTabKey}
       setSelectedTabKey={setSelectedTabKey}
       tabs={draggableTabs}
@@ -293,9 +299,4 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-top: ${space(2)};
     margin-bottom: 0;
   }
-`;
-
-const StyledDraggableTabBar = styled(DraggableTabBar)`
-  border: none;
-  font: Rubik;
 `;
