@@ -35,6 +35,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
+export const MIN_NAV_HEIGHT = 44;
+
 type EventNavigationProps = {
   event: Event;
   group: Group;
@@ -258,7 +260,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
             </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
-        <NavigationDivider />
         <EventInfoJumpToWrapper>
           <EventInfo>
             <EventIdInfo>
@@ -354,7 +355,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
             </ScrollCarousel>
           </JumpTo>
         </EventInfoJumpToWrapper>
-        <NavigationDivider />
       </div>
     );
   }
@@ -365,6 +365,8 @@ const EventNavigationWrapper = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(1)} ${space(1.5)};
+  min-height: ${MIN_NAV_HEIGHT}px;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const NavigationWrapper = styled('div')`
@@ -390,10 +392,11 @@ const EventInfoJumpToWrapper = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(2)};
   flex-wrap: wrap;
-
+  min-height: ${MIN_NAV_HEIGHT}px;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: nowrap;
   }
+  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
 const EventInfo = styled('div')`
@@ -416,11 +419,6 @@ const JumpTo = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 50%;
   }
-`;
-
-const NavigationDivider = styled('hr')`
-  border-color: ${p => p.theme.border};
-  margin: 0;
 `;
 
 const EventIdInfo = styled('span')`

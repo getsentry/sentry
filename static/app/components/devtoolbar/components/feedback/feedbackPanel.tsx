@@ -7,7 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconAdd, IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/icons';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useConfiguration from '../../hooks/useConfiguration';
@@ -21,6 +21,7 @@ import {
   listItemPlaceholderWrapperCss,
 } from '../../styles/listItem';
 import {
+  panelDescCss,
   panelHeadingRightCss,
   panelInsetContentCss,
   panelSectionCss,
@@ -57,6 +58,7 @@ export default function FeedbackPanel() {
 
   return (
     <PanelLayout
+      showProjectBadge
       title="User Feedback"
       titleRight={
         buttonRef ? (
@@ -66,15 +68,24 @@ export default function FeedbackPanel() {
             ref={buttonRef}
             title="Submit Feedback"
           >
-            <IconAdd size="xs" />
+            <span
+              css={{
+                display: 'flex',
+                gap: 'var(--space75)',
+                alignItems: 'center',
+                color: 'var(--purple300)',
+                fontWeight: 'bold',
+              }}
+            >
+              <IconMegaphone size="xs" />
+              Report Bug
+            </span>
           </button>
         ) : null
       }
     >
-      <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Unresolved feedback related to <code>{transactionName}</code>
-        </span>
+      <div css={[smallCss, panelSectionCss, panelDescCss]}>
+        <span>Unresolved feedback related to this page</span>
       </div>
 
       <div css={resetFlexColumnCss}>
