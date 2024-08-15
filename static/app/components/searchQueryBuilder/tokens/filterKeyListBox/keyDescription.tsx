@@ -5,13 +5,25 @@ import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKey
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
   tag: Tag;
   size?: 'sm' | 'md';
 };
+
+function ValueType({fieldDefinition}: {fieldDefinition: FieldDefinition | null}) {
+  if (!fieldDefinition) {
+    return toTitleCase(FieldValueType.STRING);
+  }
+
+  if (fieldDefinition.parameterDependentValueType) {
+    return t('Dynamic');
+  }
+
+  return toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING);
+}
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
   const {getFieldDefinition} = useSearchQueryBuilder();
@@ -32,7 +44,7 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
       <DescriptionList>
         <Term>{t('Type')}</Term>
         <Details>
-          {toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING)}
+          <ValueType fieldDefinition={fieldDefinition} />
         </Details>
       </DescriptionList>
     </DescriptionWrapper>

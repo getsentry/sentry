@@ -270,6 +270,10 @@ export type AggregateValueParameter = {
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
+export type ParameterDependentValueType = (
+  parameters: Array<string | null>
+) => FieldValueType;
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
@@ -299,6 +303,11 @@ export interface FieldDefinition {
    * Additional keywords used when filtering via autocomplete
    */
   keywords?: string[];
+  /**
+   * Only valid for aggregate fields.
+   * Modifies the value type based on the parameters passed to the function.
+   */
+  parameterDependentValueType?: ParameterDependentValueType;
   /**
    * Only valid for aggregate fields.
    * Defines the number and type of parameters that the function accepts.
