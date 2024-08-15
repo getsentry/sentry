@@ -1,6 +1,6 @@
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {QueryCounts} from 'sentry/views/issueList/utils';
 
 // Copied from CountEndpointParams in overview.tsx
 type FetchIssueCountsParameters = {
@@ -26,11 +26,11 @@ export const makeFetchIssueCounts = ({
   },
 ];
 
-export const useFetchGroupSearchViews = (
+export const useFetchIssueCounts = (
   params: FetchIssueCountsParameters,
-  options: Partial<UseApiQueryOptions<GroupSearchView[]>> = {}
+  options: Partial<UseApiQueryOptions<QueryCounts>> = {}
 ) => {
-  return useApiQuery<GroupSearchView[]>(makeFetchIssueCounts(params), {
+  return useApiQuery<QueryCounts>(makeFetchIssueCounts(params), {
     staleTime: 0,
     ...options,
   });
