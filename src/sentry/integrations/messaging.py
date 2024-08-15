@@ -292,7 +292,13 @@ class LinkingView(BaseView, ABC):
         metrics.incr(event, tags=(tags or {}), sample_rate=1.0)
         return event
 
+    @property
+    def has_analytics(self) -> bool:
+        return False
+
     def record_analytic(self, event_tag: str, actor_id: int) -> None:
+        if not self.has_analytics:
+            return
         event = ".".join(("integrations", self.provider_slug, event_tag))
         analytics.record(
             event, provider=self.provider_slug, actor_id=actor_id, actor_type=ActorType.USER

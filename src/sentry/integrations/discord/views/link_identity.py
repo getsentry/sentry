@@ -50,6 +50,10 @@ class DiscordLinkingView(LinkingView, ABC):
     def expired_link_template(self) -> str:
         return "sentry/integrations/discord/expired-link.html"
 
+    @property
+    def has_analytics(self) -> bool:
+        return True
+
 
 class DiscordLinkIdentityView(DiscordLinkingView, LinkIdentityView):
     def get_success_template_and_context(
