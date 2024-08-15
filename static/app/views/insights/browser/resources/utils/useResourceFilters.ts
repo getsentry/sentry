@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 // TODO - we should probably just use SpanMetricsField here
 export enum BrowserStarfishFields {
@@ -26,7 +26,7 @@ export type ModuleFilters = {
   [BrowserStarfishFields.SPAN_OP]?: ResourceSpanOps;
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
-  [SpanMetricsField.USER_GEO_SUBREGION]?: SubregionCode[];
+  [BrowserStarfishFields.USER_GEO_SUBREGION]?: SubregionCode[];
 };
 
 export const useResourceModuleFilters = () => {
@@ -42,10 +42,10 @@ export const useResourceModuleFilters = () => {
   ]);
 
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[BrowserStarfishFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
   if (subregions.length) {
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = subregions;
+    filters[BrowserStarfishFields.USER_GEO_SUBREGION] = subregions;
   }
 
   return filters;

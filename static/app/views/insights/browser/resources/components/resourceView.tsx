@@ -56,7 +56,7 @@ function ResourceView() {
   const extraQuery = [
     ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
     ...(filters[USER_GEO_SUBREGION]
-      ? [`user.geo.subregion:[${filters[USER_GEO_SUBREGION]}]`]
+      ? [`user.geo.subregion:[${filters[USER_GEO_SUBREGION].join(',')}]`]
       : []),
   ];
 
