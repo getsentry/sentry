@@ -249,12 +249,12 @@ class BitbucketServerIntegration(RepositoryIntegration):
             identity=self.default_identity,
         )
 
-    @property
-    def username(self):
-        return self.model.name
+    # IntegrationInstallation methods
 
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
+
+    # RepositoryIntegration methods
 
     def get_repositories(self, query=None):
         if not query:
@@ -309,6 +309,12 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
         raise IntegrationFeatureNotImplementedError
+
+    # Bitbucket Server only methods
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):
