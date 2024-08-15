@@ -68,10 +68,6 @@ import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
 import {SidebarPanelKey} from './types';
 
-function truncateString(str: string, len: number = 5) {
-  return str.length > len ? `${str.slice(0, len)}.` : str;
-}
-
 function activatePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.activatePanel(panel);
 }
@@ -438,7 +434,7 @@ function Sidebar() {
         icon={<IconLightning />}
         label={
           <GuideAnchor target="performance">
-            {hasNewNav ? truncateString('Performance', 4) : t('Performance')}
+            {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
         to={`/organizations/${organization.slug}/performance/`}
@@ -544,7 +540,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={hasNewNav ? truncateString('Dashboards', 4) : t('Dashboards')}
+        label={hasNewNav ? 'Dash.' : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
