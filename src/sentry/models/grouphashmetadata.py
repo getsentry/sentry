@@ -11,7 +11,7 @@ class GroupHashMetadata(Model):
 
     # GENERAL
     grouphash = models.OneToOneField(
-        "sentry.GroupHash", related_name="metadata", on_delete=models.CASCADE
+        "sentry.GroupHash", related_name="_metadata", on_delete=models.CASCADE
     )
     date_added = models.DateTimeField(default=timezone.now)
 
