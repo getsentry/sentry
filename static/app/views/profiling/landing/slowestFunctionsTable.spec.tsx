@@ -226,8 +226,8 @@ describe('SlowestFunctionsTable', () => {
       url: '/organizations/org-slug/events-stats/',
       match: [
         MockApiClient.matchQuery({
-          fingerprint: 12345,
-          dataSource: 'profilesMetrics',
+          query: 'fingerprint:12345',
+          dataset: 'profileFunctionsMetrics',
         }),
       ],
       body: [],

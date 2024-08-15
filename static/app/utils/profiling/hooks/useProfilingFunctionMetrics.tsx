@@ -1,17 +1,20 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {EventsStatsData} from 'sentry/types/organization';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface UseProfilingFunctionMetricsProps {
   fingerprint: Profiling.FunctionMetric['fingerprint'];
   projects: number[];
-  query?: string;
 }
 
-export function useProfilingFunctionMetrics(props: UseProfilingFunctionMetricsProps) {
+export function useProfilingFunctionMetrics(
+  props: UseProfilingFunctionMetricsProps
+): UseApiQueryResult<EventsStatsData, RequestError> {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -23,23 +26,15 @@ export function useProfilingFunctionMetrics(props: UseProfilingFunctionMetricsPr
       query: {
         project: props.projects,
         environment: selection.environments ?? selection.environments,
+        dataset: 'profileFunctionsMetrics',
+        query: `fingerprint:${props.fingerprint}`,
         ...normalizeDateTimeParams(selection.datetime ?? selection.datetime),
-        dataSource: 'profilesMetrics',
-        fingerprint: props.fingerprint,
-        query: props.query,
       },
     };
-
     return params;
-  }, [
-    props.fingerprint,
-    props.query,
-    props.projects,
-    selection.datetime,
-    selection.environments,
-  ]);
+  }, [props.fingerprint, props.projects, selection.datetime, selection.environments]);
 
-  return useApiQuery([path, endpointOptions], {
+  return useApiQuery<EventsStatsData>([path, endpointOptions], {
     enabled: !!props.fingerprint,
     staleTime: 0,
   });
