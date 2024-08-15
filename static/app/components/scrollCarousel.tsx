@@ -12,6 +12,7 @@ import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 interface ScrollCarouselProps {
   children: React.ReactNode;
   className?: string;
+  'data-test-id'?: string;
   gap?: ValidSize;
 }
 
@@ -51,7 +52,7 @@ const getOffsetRect = (el: HTMLElement, relativeTo: HTMLElement) => {
   };
 };
 
-export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselProps) {
+export function ScrollCarousel({children, gap = 1, ...props}: ScrollCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
@@ -94,11 +95,7 @@ export function ScrollCarousel({children, className, gap = 1}: ScrollCarouselPro
 
   return (
     <ScrollCarouselWrapper>
-      <ScrollContainer
-        ref={scrollContainerRef}
-        className={className}
-        style={{gap: space(gap)}}
-      >
+      <ScrollContainer ref={scrollContainerRef} style={{gap: space(gap)}} {...props}>
         {children}
       </ScrollContainer>
       {!isAtStart && <LeftMask />}
