@@ -5,7 +5,6 @@ import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortc
 
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {IconKeyboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +19,7 @@ export function TraceShortcuts() {
 
   return (
     <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
-      <IconKeyboard />
+      Shortcuts
     </Button>
   );
 }
