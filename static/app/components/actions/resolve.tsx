@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -229,13 +230,20 @@ function ResolveActions({
       {
         key: 'current-release',
         label: t('The current release'),
-        details: actionTitle
-          ? actionTitle
-          : latestRelease
-            ? `${formatVersion(latestRelease.version)} (${
-                isSemver ? t('semver') : t('non-semver')
-              })`
-            : null,
+        details: (
+          <CurrentReleaseWrapper>
+            {actionTitle ? (
+              actionTitle
+            ) : latestRelease ? (
+              <Fragment>
+                <MaxReleaseWidthWrapper>
+                  {formatVersion(latestRelease.version)}
+                </MaxReleaseWidthWrapper>{' '}
+                {isSemver ? t('semver') : t('non-semver')}
+              </Fragment>
+            ) : null}
+          </CurrentReleaseWrapper>
+        ),
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -400,4 +408,14 @@ const SetupReleases = styled('div')`
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1)};
+`;
+
+const CurrentReleaseWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const MaxReleaseWidthWrapper = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  max-width: 250px;
 `;
