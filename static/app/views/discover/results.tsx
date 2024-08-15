@@ -36,6 +36,7 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -46,6 +47,7 @@ import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DatasetSource,
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -705,6 +707,14 @@ export class Results extends Component<Props, State> {
       return <LoadingIndicator />;
     }
 
+    let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
+    if (hasDatasetSelectorFeature) {
+      savedSearchType =
+        eventView.dataset === DiscoverDatasets.TRANSACTIONS
+          ? SavedSearchType.TRANSACTION
+          : SavedSearchType.ERROR;
+    }
+
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <Fragment>
@@ -762,6 +772,7 @@ export class Results extends Component<Props, State> {
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={eventView.dataset}
                       includeTransactions={hasDatasetSelectorFeature ? false : true}
+                      savedSearchType={savedSearchType}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
