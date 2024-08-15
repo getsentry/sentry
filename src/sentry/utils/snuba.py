@@ -168,6 +168,8 @@ SPAN_COLUMN_MAP = {
     "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
+    "user.geo.subregion": "sentry_tags[user.geo.subregion]",
+    "user.geo.country_code": "sentry_tags[user.geo.country_code]",
 }
 
 SPAN_EAP_COLUMN_MAP = {
