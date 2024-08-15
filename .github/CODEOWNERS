@@ -147,6 +147,11 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/utils/test_monitors.py                     @getsentry/crons
 ## End Crons
 
+## Uptime
+/src/sentry/uptime                                     @getsentry/crons
+/tests/sentry/uptime                                   @getsentry/crons
+## End Uptime
+
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
