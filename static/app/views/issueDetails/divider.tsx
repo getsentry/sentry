@@ -12,4 +12,5 @@ const DividerWrapper = styled('div')`
   font-size: 0.75rem;
   display: flex;
   align-items: center;
+  margin: 0 1px;
 `;
