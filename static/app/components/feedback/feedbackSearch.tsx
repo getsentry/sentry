@@ -3,11 +3,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {orderBy} from 'lodash';
 
-import {
-  Dataset,
-  fetchTagValues,
-  useFetchOrganizationTags,
-} from 'sentry/actionCreators/tags';
+import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -29,6 +25,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.BROWSER_VERSION,
@@ -38,7 +35,7 @@ const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.NAME,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,
-  // These are some tags found in issuePlatform dataset
+  // These are found in issue platform and redundant (= __.name, ex os.name)
   'browser',
   'device',
   'os',

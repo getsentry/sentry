@@ -13,6 +13,7 @@ import {
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -202,17 +203,6 @@ export function fetchSpanFieldValues({
     method: 'GET',
     query,
   });
-}
-
-// Snuba dataset names
-export enum Dataset {
-  ERRORS = 'events',
-  TRANSACTIONS = 'transactions',
-  GENERIC_METRICS = 'generic_metrics',
-  SESSIONS = 'sessions',
-  METRICS = 'metrics',
-  ISSUE_PLATFORM = 'search_issues',
-  REPLAYS = 'replays',
 }
 
 type FetchOrganizationTagsParams = {

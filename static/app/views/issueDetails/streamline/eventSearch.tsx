@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {useFetchIssueTags} from 'sentry/actionCreators/group';
-import {Dataset, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -10,6 +10,7 @@ import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
