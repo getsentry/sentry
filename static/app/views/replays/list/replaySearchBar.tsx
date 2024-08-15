@@ -52,6 +52,7 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
+const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user'];
 
 /**
  * Merges a list of supported tags and replay search properties
@@ -63,13 +64,15 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
-        },
-      ])
+      Object.keys(supportedTags)
+        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .map(key => [
+          key,
+          {
+            ...supportedTags[key],
+            kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
+          },
+        ])
     ),
   };
 }
@@ -82,10 +85,9 @@ const getFilterKeySections = (
     return [];
   }
 
-  const excludedTags = ['browser', 'device', 'os', 'user'];
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
-      !excludedTags.includes(tag.key) &&
+      !EXCLUDED_TAGS.includes(tag.key) &&
       !REPLAY_FIELDS.map(String).includes(tag.key) &&
       !REPLAY_CLICK_FIELDS.map(String).includes(tag.key)
   );
