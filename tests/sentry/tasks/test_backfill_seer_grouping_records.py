@@ -9,7 +9,6 @@ from unittest.mock import ANY, call, patch
 
 import pytest
 from django.db.models import Q
-from django.db.utils import OperationalError
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
@@ -1737,28 +1736,120 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch(
-        "sentry.tasks.embeddings_grouping.utils._make_postgres_call_with_filter",
-        side_effect=OperationalError,
-    )
-    def test_backfill_seer_grouping_records_postgres_exception(
-        self, mock_make_postgres_call_with_filter, mock_logger
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_empty_batch(
+        self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test log after postgres query retries with decreased batch size
+        Test that if a backfill batch is empty due to the filtering of invalid groups, the backfill
+        task continues and calls the next batch.
         """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        project_invalid_batch = self.create_project(organization=self.organization)
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
-        with pytest.raises(Exception), TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
 
-        mock_logger.info.assert_called_with(
-            "tasks.backfill_seer_grouping_records.postgres_query_retry",
-            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
-        )
-        mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
-            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
-        )
+        # Create batch size valid groups
+        function_names = [f"another_function_{str(i)}" for i in range(batch_size)]
+        type_names = [f"AnotherError{str(i)}" for i in range(batch_size)]
+        value_names = ["error with value" for _ in range(batch_size)]
+        group_ids = []
+        for i in range(batch_size):
+            data = {
+                "exception": self.create_exception_values(
+                    function_names[i], type_names[i], value_names[i]
+                ),
+                "title": "title",
+                "timestamp": iso_format(before_now(seconds=10)),
+            }
+            event = self.store_event(
+                data=data, project_id=project_invalid_batch.id, assert_no_errors=False
+            )
+            event.group.times_seen = 2
+            # event.group.data["metadata"] = copy.deepcopy(default_metadata)
+            event.group.save()
+            group_ids.append(event.group.id)
+        group_ids.sort()
+
+        # Create batch size invalid groups (some with times seen == 1, others pending deletion)
+        function_names = [f"function_{str(i)}" for i in range(batch_size)]
+        type_names = [f"Error{str(i)}" for i in range(batch_size)]
+        value_names = ["error with value" for _ in range(batch_size)]
+        group_ids_invalid = []
+        for i in range(batch_size):
+            data = {
+                "exception": self.create_exception_values(
+                    function_names[i], type_names[i], value_names[i]
+                ),
+                "title": "title",
+                "timestamp": iso_format(before_now(seconds=10)),
+            }
+            event = self.store_event(
+                data=data, project_id=project_invalid_batch.id, assert_no_errors=False
+            )
+            event.group.times_seen = 1 if i < batch_size / 2 else 2
+            event.group.status = (
+                GroupStatus.PENDING_DELETION if i >= batch_size / 2 else GroupStatus.UNRESOLVED
+            )
+            event.group.save()
+            group_ids_invalid.append(event.group.id)
+        group_ids_invalid.sort()
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(project_invalid_batch.id, None)
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={"project_id": project_invalid_batch.id, "last_processed_index": None},
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "batch_len": 0,
+                    "last_processed_group_id": group_ids_invalid[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "last_processed_index": group_ids_invalid[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "batch_len": batch_size,
+                    "last_processed_group_id": group_ids[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.bulk_update",
+                extra={"project_id": project_invalid_batch.id, "num_updated": batch_size},
+            ),
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "last_processed_index": group_ids[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": project_invalid_batch.id,
+                    "batch_len": 0,
+                    "last_processed_group_id": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.no_more_groups",
+                extra={"project_id": project_invalid_batch.id},
+            ),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list
 
     def test_make_postgres_call_with_filter_invalid(self):
         """
@@ -1779,8 +1870,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event.group.save()
         deleted_group = event.group
 
-        groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
-            Q(), self.project.id, batch_size
-        )
+        (
+            groups_to_backfill_batch,
+            batch_end_group_id,
+            backfill_batch_raw_length,
+        ) = _make_postgres_call_with_filter(Q(), self.project.id, batch_size)
         assert groups_to_backfill_batch == []
         assert batch_end_group_id == deleted_group.id
+        assert backfill_batch_raw_length == 1
