@@ -109,8 +109,13 @@ const getFilterKeySections = (
 
   return [
     {
+      value: 'feedback_field',
+      label: t('Suggested'),
+      children: Object.keys(FEEDBACK_FIELDS_AS_TAGS),
+    },
+    {
       value: FieldKind.TAG,
-      label: t('Custom Tags'),
+      label: t('Tags'),
       children: orderedTagKeys,
     },
   ];
