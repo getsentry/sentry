@@ -54,9 +54,11 @@ const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
 /**
- * Merges a list of supported tags and replay search fields into one collection.
+ * Merges a list of supported tags and replay search properties
+ * (https://docs.sentry.io/concepts/search/searchable-properties/session-replay/)
+ * into one collection.
  */
-function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
+function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
   return {
     ...REPLAY_FIELDS_AS_TAGS,
     ...REPLAY_CLICK_FIELDS_AS_TAGS,
@@ -120,8 +122,8 @@ function ReplaySearchBar(props: Props) {
     loadOrganizationTags(api, organization.slug, pageFilters);
   }, [api, organization.slug, pageFilters]);
 
-  const replayTags = useMemo(
-    () => getReplaySearchTags(organizationTags),
+  const filterKeys = useMemo(
+    () => getReplayFilterKeys(organizationTags),
     [organizationTags]
   );
   const filterKeySections = useMemo(() => {
@@ -196,7 +198,7 @@ function ReplaySearchBar(props: Props) {
         disallowLogicalOperators={undefined} // ^
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
-        filterKeys={replayTags}
+        filterKeys={filterKeys}
         filterKeySections={filterKeySections}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
@@ -215,7 +217,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={replayTags}
+      supportedTags={filterKeys}
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
