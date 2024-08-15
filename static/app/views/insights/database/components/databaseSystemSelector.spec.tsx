@@ -3,8 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   useSpanMetrics: jest.fn(),
@@ -14,14 +16,31 @@ jest.mock('sentry/utils/useLocalStorageState', () => ({
   useLocalStorageState: jest.fn(),
 }));
 
+jest.mock('sentry/utils/useLocation', () => ({
+  useLocation: jest.fn(),
+}));
+
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
 const mockUseSpanMetrics = jest.mocked(useSpanMetrics);
+const mockUseLocation = jest.mocked(useLocation);
 
 describe('DatabaseSystemSelector', function () {
   const organization = OrganizationFixture();
 
   afterAll(() => {
     jest.clearAllMocks();
+  });
+
+  beforeEach(() => {
+    mockUseLocation.mockReturnValue({
+      query: {project: ['1']},
+      pathname: '',
+      search: '',
+      hash: '',
+      state: undefined,
+      action: 'POP',
+      key: '',
+    });
   });
 
   it('is disabled and does not select a system if there are none available', async function () {
@@ -145,5 +164,43 @@ describe('DatabaseSystemSelector', function () {
     const dropdownSelector = await screen.findByRole('button');
     expect(dropdownSelector).toBeInTheDocument();
     expect(mockSetState).not.toHaveBeenCalledWith('chungusdb');
+  });
+
+  it('prioritizes the system set in query parameters but does not replace localStorage valud', async function () {
+    const {SPAN_SYSTEM} = SpanMetricsField;
+
+    mockUseLocation.mockReturnValue({
+      query: {project: ['1'], [SPAN_SYSTEM]: 'mongodb'},
+      pathname: '',
+      search: '',
+      hash: '',
+      state: undefined,
+      action: 'POP',
+      key: '',
+    });
+
+    mockUseSpanMetrics.mockReturnValue({
+      data: [
+        {
+          'span.system': 'postgresql',
+          'count()': 1000,
+        },
+        {
+          'span.system': 'mongodb',
+          'count()': 500,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    } as any);
+
+    const mockSetState = jest.fn();
+    mockUseLocalStorageState.mockReturnValue(['postgresql', mockSetState]);
+
+    render(<DatabaseSystemSelector />, {organization});
+
+    const dropdownSelector = await screen.findByRole('button');
+    expect(dropdownSelector).toHaveTextContent('DB SystemMongoDB');
+    expect(mockSetState).not.toHaveBeenCalledWith('mongodb');
   });
 });
