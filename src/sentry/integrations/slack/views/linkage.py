@@ -43,6 +43,10 @@ class SlackIdentityLinkageView(IdentityLinkageView, ABC):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
+        if integration is None:
+            raise ValueError(
+                'integration is required for linking (params must include "integration_id")'
+            )
         respond_to_slack_command(
             self.command_response, integration, external_id, params.get("response_url")
         )
