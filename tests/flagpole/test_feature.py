@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
+import jsonschema
 import orjson
 import pytest
 import yaml
@@ -31,7 +31,7 @@ class TestParseFeatureConfig:
         )
 
         assert feature.name == "foobar"
-        assert feature.created_at == datetime(2023, 10, 12, tzinfo=timezone.utc)
+        assert feature.created_at == "2023-10-12T00:00:00.000Z"
         assert feature.owner == "test-owner"
         assert feature.segments == []
 
@@ -149,15 +149,90 @@ class TestParseFeatureConfig:
         with pytest.raises(InvalidFeatureFlagConfiguration):
             Feature.from_feature_config_json("foobar", "{")
 
+    def test_validate_invalid_schema(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "",
+                    "rollout": 1,
+                    "conditions": []
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("trash", config)
+        with pytest.raises(jsonschema.ValidationError) as err:
+            feature.validate()
+        assert "is too short" in str(err)
+
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "allowed orgs",
+                    "rollout": 1,
+                    "conditions": [
+                        {
+                            "property": "organization_slug",
+                            "operator": "contains",
+                            "value": ["derp"]
+                        }
+                    ]
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("trash", config)
+        with pytest.raises(jsonschema.ValidationError) as err:
+            feature.validate()
+        assert "'contains'} is not valid" in str(err)
+
+    def test_validate_valid(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "ga",
+                    "rollout": 100,
+                    "conditions": []
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("redpaint", config)
+        assert feature.validate()
+
     def test_empty_string_name(self):
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
             Feature.from_feature_config_json("", '{"segments":[]}')
-        assert "Provided JSON is not a valid feature" in str(exception)
+        assert "Feature name is required" in str(exception)
 
     def test_missing_segments(self):
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
             Feature.from_feature_config_json("foo", "{}")
-        assert "Provided JSON is not a valid feature" in str(exception)
+        assert "Feature has no segments defined" in str(exception)
+
+    def test_invalid_operator_condition(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "derp",
+                    "conditions": [
+                        {"property": "user_email", "operator": "trash", "value": 1}
+                    ]
+                }
+            ]
+        }
+        """
+        with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
+            Feature.from_feature_config_json("foo", config)
+        assert "Provided config_dict is not a valid feature" in str(exception)
 
     def test_enabled_feature(self):
         feature = Feature.from_feature_config_json(
@@ -229,12 +304,11 @@ class TestParseFeatureConfig:
             """,
         )
 
-        parsed_json = orjson.loads(feature.json())
+        parsed_json = orjson.loads(feature.to_json_str())
         parsed_yaml = dict(yaml.safe_load(feature.to_yaml_str()))
-        assert "foo" in parsed_yaml
-        parsed_json.pop("name")
 
-        assert parsed_yaml["foo"] == parsed_json
+        assert "foo" in parsed_yaml
+        assert parsed_yaml == parsed_json
 
         features_from_yaml = Feature.from_bulk_yaml(feature.to_yaml_str())
         assert features_from_yaml == [feature]

@@ -107,14 +107,21 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   tabIndex?: number;
 };
 
-export type CustomComboboxMenu<T> = (props: {
+type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
+
+export type CustomComboboxMenuProps<T> = {
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<T>;
-}) => React.ReactNode;
+};
+
+export type CustomComboboxMenu<T> = (
+  props: CustomComboboxMenuProps<T>
+) => React.ReactNode;
 
 const DESCRIPTION_POPPER_OPTIONS = {
   placement: 'top-start' as const,
@@ -244,12 +251,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   state,
   totalOptions,
+  overlayProps,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<any>;
   totalOptions: number;
@@ -264,29 +273,32 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       hiddenOptions,
       listBoxProps,
       state,
+      overlayProps,
     });
   }
 
   return (
-    <ListBoxOverlay ref={popoverRef}>
-      {isLoading && hiddenOptions.size >= totalOptions ? (
-        <LoadingWrapper>
-          <LoadingIndicator mini />
-        </LoadingWrapper>
-      ) : (
-        <ListBox
-          {...listBoxProps}
-          ref={listBoxRef}
-          listState={state}
-          hasSearch={!!filterValue}
-          hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
-          overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
-          size="sm"
-        />
-      )}
-    </ListBoxOverlay>
+    <StyledPositionWrapper {...overlayProps} visible={isOpen}>
+      <ListBoxOverlay ref={popoverRef}>
+        {isLoading && hiddenOptions.size >= totalOptions ? (
+          <LoadingWrapper>
+            <LoadingIndicator mini />
+          </LoadingWrapper>
+        ) : (
+          <ListBox
+            {...listBoxProps}
+            ref={listBoxRef}
+            listState={state}
+            hasSearch={!!filterValue}
+            hiddenOptions={hiddenOptions}
+            keyDownHandler={() => true}
+            overlayIsOpen={isOpen}
+            showSectionHeaders={!filterValue}
+            size="sm"
+          />
+        )}
+      </ListBoxOverlay>
+    </StyledPositionWrapper>
   );
 }
 
@@ -532,20 +544,19 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
           <DescriptionOverlay>{description}</DescriptionOverlay>
         </StyledPositionWrapper>
       ) : null}
-      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-        <OverlayContent
-          customMenu={customMenu}
-          filterValue={filterValue}
-          hiddenOptions={hiddenOptions}
-          isLoading={isLoading}
-          isOpen={isOpen}
-          listBoxProps={listBoxProps}
-          listBoxRef={listBoxRef}
-          popoverRef={popoverRef}
-          state={state}
-          totalOptions={totalOptions}
-        />
-      </StyledPositionWrapper>
+      <OverlayContent
+        customMenu={customMenu}
+        filterValue={filterValue}
+        hiddenOptions={hiddenOptions}
+        isLoading={isLoading}
+        isOpen={isOpen}
+        listBoxProps={listBoxProps}
+        listBoxRef={listBoxRef}
+        popoverRef={popoverRef}
+        state={state}
+        totalOptions={totalOptions}
+        overlayProps={overlayProps}
+      />
     </Wrapper>
   );
 }

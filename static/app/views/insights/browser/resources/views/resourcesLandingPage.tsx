@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -27,6 +27,7 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
@@ -64,15 +65,18 @@ function ResourcesLandingPage() {
                 <ModulePageFilterBar
                   moduleName={ModuleName.RESOURCE}
                   extraFilters={
-                    <DomainSelector
-                      moduleName={ModuleName.RESOURCE}
-                      emptyOptionLocation="top"
-                      value={filters[SPAN_DOMAIN] || ''}
-                      additionalQuery={[
-                        ...DEFAULT_RESOURCE_FILTERS,
-                        `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                      ]}
-                    />
+                    <Fragment>
+                      <DomainSelector
+                        moduleName={ModuleName.RESOURCE}
+                        emptyOptionLocation="top"
+                        value={filters[SPAN_DOMAIN] || ''}
+                        additionalQuery={[
+                          ...DEFAULT_RESOURCE_FILTERS,
+                          `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                        ]}
+                      />
+                      <SubregionSelector />
+                    </Fragment>
                   }
                 />
               </ToolRibbon>
