@@ -192,7 +192,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables higher limit for alert rules
     manager.add("organizations:more-fast-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Display warning banner for every event issue alerts
