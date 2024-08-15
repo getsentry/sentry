@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -52,7 +52,7 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const openForm = useFeedbackForm();
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
@@ -184,14 +184,14 @@ export default function BreadcrumbsDataSection({
       actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        <div ref={containerRef}>
+        <div ref={setContainer}>
           <BreadcrumbsTimeline
             breadcrumbs={summaryCrumbs}
             startTimeString={startTimeString}
             // We want the timeline to appear connected to the 'View All' button
             showLastLine={hasViewAll}
             fullyExpanded={false}
-            getScrollElement={() => containerRef.current}
+            containerElement={container}
           />
         </div>
         {hasViewAll && (

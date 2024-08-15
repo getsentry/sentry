@@ -17,9 +17,21 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 interface BreadcrumbsTimelineProps {
   breadcrumbs: EnhancedCrumb[];
   /**
-   * Function to get the parent's ref to a DOM element to enable virtualization.
+   * Required reference to parent container for virtualization. It's recommended to use state instead
+   * of useRef since this component will not update when the ref changes, causing it to render empty initially.
+   * To enable virtualization, set a fixed height on the `containerElement` node.
+   *
+   * Example:
+   * ```
+   * const [container, setContainer] = useState<HTMLElement | null>(null);
+   * return (
+   *  <div ref={setContainer}>
+   *    <BreadcrumbsTimeline containerElement={container} />
+   *  </div>
+   * )
+   * ```
    */
-  getScrollElement: () => HTMLElement | null;
+  containerElement: HTMLElement | null;
   /**
    * If true, expands the contents of the breadcrumbs' data payload
    */
@@ -37,14 +49,14 @@ interface BreadcrumbsTimelineProps {
 
 export default function BreadcrumbsTimeline({
   breadcrumbs,
-  getScrollElement,
+  containerElement,
   startTimeString,
   fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const virtualizer = useVirtualizer({
     count: breadcrumbs.length,
-    getScrollElement,
+    getScrollElement: () => containerElement,
     estimateSize: () => 35,
     // Must match rendered item margins.
     gap: 8,

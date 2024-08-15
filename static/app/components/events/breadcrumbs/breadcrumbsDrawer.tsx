@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -73,7 +73,7 @@ export function BreadcrumbsDrawer({
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
-  const containerRef = useRef<HTMLElement>(null);
+  const [container, setContainer] = useState<HTMLElement | null>(null);
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -228,7 +228,7 @@ export function BreadcrumbsDrawer({
         <Header>{t('Breadcrumbs')}</Header>
         {actions}
       </BreadcrumbNavigator>
-      <BreadcrumbDrawerBody ref={containerRef}>
+      <BreadcrumbDrawerBody ref={setContainer}>
         <TimelineContainer>
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
@@ -251,7 +251,7 @@ export function BreadcrumbsDrawer({
             <BreadcrumbsTimeline
               breadcrumbs={displayCrumbs}
               startTimeString={startTimeString}
-              getScrollElement={() => containerRef.current}
+              containerElement={container}
             />
           )}
         </TimelineContainer>
