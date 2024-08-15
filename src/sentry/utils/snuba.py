@@ -22,7 +22,7 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import MetricsQuery, Request
+from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.environment import Environment
@@ -1239,6 +1239,13 @@ def _snuba_query(
                         snuba_request.forward,
                         snuba_request.reverse,
                     )
+                elif isinstance(request.query, DeleteQuery):
+                    return (
+                        referrer,
+                        _raw_delete_query(request, headers),
+                        snuba_request.forward,
+                        snuba_request.reverse,
+                    )
 
                 return (
                     referrer,
@@ -1248,6 +1255,29 @@ def _snuba_query(
                 )
             except urllib3.exceptions.HTTPError as err:
                 raise SnubaError(err)
+
+
+def _raw_delete_query(
+    request: Request, headers: Mapping[str, str]
+) -> urllib3.response.HTTPResponse:
+    query = request.query
+    if not isinstance(query, DeleteQuery):
+        raise ValueError(
+            f"Expected request to contain a DeleteQuery but it was of type {type(request.query)}"
+        )
+
+    # Enter hub such that http spans are properly nested
+    with timer("delete_query"):
+        referrer = headers.get("referer", "unknown")
+        with sentry_sdk.start_span(op="snuba_delete.validation", description=referrer) as span:
+            span.set_tag("snuba.referrer", referrer)
+            body = request.serialize()
+
+        with sentry_sdk.start_span(op="snuba_delete.run", description=body) as span:
+            span.set_tag("snuba.referrer", referrer)
+            return _snuba_pool.urlopen(
+                "DELETE", f"/{query.storage_name}", body=body, headers=headers
+            )
 
 
 def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
