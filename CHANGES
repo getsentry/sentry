@@ -1,3 +1,35 @@
+24.8.0
+------
+
+### Various fixes & improvements
+
+- style(toolbar): adjust alert indicator css (#76189) by @michellewzhang
+- fix(issue-summary): Word break on code (#76217) by @jennmueng
+- fix(issue-details): Prevent event error section from showing up if no errors (#76235) by @roggenkemper
+- nit(scm): group functions by class they come from in main integration class (#76240) by @cathteng
+- chore(migrations): Generalize the migrations_added file filter (#76244) by @wedamija
+- chore(explore): Add new referrer for explore in events (#76256) by @Zylphrex
+- ref(explore): Use sort type from discover (#76220) by @Zylphrex
+- misc(deps): Bump the versions of a few google packages (#76257) by @colin-sentry
+- chore(slack): temporarily track snuba user count queries round 2 (#76216) by @cathteng
+- feat(breadcrumbs): Fix breadcrumbs styles + navigation (#76207) by @leeandher
+- feat(features) Use dataclasses for flagpole instead of pydantic (#75859) by @markstory
+- ref(similarity): Manually filter times seen in backfill query (#76188) by @jangjodi
+- feat(insights): implement geo region selector in web vitals and assets (#76185) by @DominikB2014
+- chore(dashboards): Register feature for auto sized Big Number widgets (#76205) by @gggritso
+- feat(profiling) add function metrics table (#76110) by @JonasBa
+- fix(self-hosted): SOURCE_COMMIT (#76139) by @joshuarli
+- Don't emit Sentry warnings for throttled queries to Snuba (#75879) by @xurui-c
+- chore(uptime): Switch result consumer duration/delay stats to use distribition (#76237) by @wedamija
+- chore: Bump React error codes cache TTL to 3 days (#76243) by @dashed
+- chore(uptime): Bump ACTIVE_FAILURE_THRESHOLD to 3 (#76218) by @wedamija
+- fix(alert): Correct url (#76236) by @schew2381
+- fix(uptime): Always pass span_id from check result to occurrence (#76227) by @evanpurkhiser
+- ref(replay): update missing replay alert to include ad blocker note (#76215) by @michellewzhang
+- Revert "fix(breadcrumbs): Use subgrid to align log levels (#76148)" (d08c8050) by @getsentry-bot
+
+_Plus 1113 more_
+
 24.7.1
 ------
 
