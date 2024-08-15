@@ -1,11 +1,19 @@
 import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
+import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {IconChevron, IconClose} from 'sentry/icons';
 
-import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
+import {
+  buttonRightCss,
+  panelHeadingRightCss,
+  panelInsetContentCss,
+  panelSectionCss,
+  panelSectionCssNoBorder,
+} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import AnalyticsProvider from '../analyticsProvider';
 import PanelLayout from '../panelLayout';
@@ -19,20 +27,54 @@ type Prefilter = 'all' | 'overrides';
 export default function FeatureFlagsPanel() {
   const [prefilter, setPrefilter] = useState<Prefilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddFlagActive, setIsAddFlagActive] = useState(false);
 
   return (
     <FeatureFlagsContextProvider>
-      <PanelLayout title="Feature Flags">
-        <div css={{display: 'grid', gridTemplateRows: 'auto auto 1fr auto', flexGrow: 1}}>
-          <IsDirtyMessage />
+      <PanelLayout
+        title="Feature Flags"
+        titleRight={
+          <button
+            aria-label="Add Flag Override"
+            css={[resetButtonCss, panelHeadingRightCss]}
+            title="Add Flag Override"
+            onClick={() => setIsAddFlagActive(!isAddFlagActive)}
+          >
+            <span css={buttonRightCss}>
+              {isAddFlagActive ? (
+                <IconChevron direction="up" size="xs" />
+              ) : (
+                <IconChevron direction="down" size="xs" />
+              )}
+              Add Flag
+            </span>
+          </button>
+        }
+      >
+        {isAddFlagActive && (
           <div
             css={[
               smallCss,
               panelSectionCss,
               panelInsetContentCss,
+              {background: 'var(--surface200)', padding: 'var(--space150)'},
+            ]}
+          >
+            <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
+              <CustomOverride setComponentActive={setIsAddFlagActive} />
+            </AnalyticsProvider>
+          </div>
+        )}
+        <div css={{display: 'grid', gridTemplateRows: 'auto auto 1fr auto', flexGrow: 1}}>
+          <IsDirtyMessage />
+          <div
+            css={[
+              smallCss,
+              panelSectionCssNoBorder,
+              panelInsetContentCss,
               {
                 display: 'grid',
-                gridTemplateAreas: "'segments clear' 'search search'",
+                gridTemplateAreas: "'search segments'",
                 gap: 'var(--space100)',
               },
             ]}
@@ -52,11 +94,6 @@ export default function FeatureFlagsPanel() {
               </AnalyticsProvider>
             </div>
           </div>
-          <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-            <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
-              <CustomOverride />
-            </AnalyticsProvider>
-          </div>
         </div>
       </PanelLayout>
     </FeatureFlagsContextProvider>
@@ -67,7 +104,9 @@ function IsDirtyMessage() {
   const {isDirty} = useFeatureFlagsContext();
 
   return isDirty ? (
-    <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+    <div
+      css={[smallCss, panelSectionCss, panelInsetContentCss, {color: 'var(--gray300)'}]}
+    >
       <span>Reload to see changes</span>
     </div>
   ) : (
@@ -84,36 +123,26 @@ function Filters({
   setPrefilter: Dispatch<SetStateAction<Prefilter>>;
   setSearchTerm: Dispatch<SetStateAction<string>>;
 }) {
-  const {clearOverrides} = useFeatureFlagsContext();
   return (
     <Fragment>
       <div css={{gridArea: 'segments'}}>
         <SegmentedControl<Prefilter> onChange={setPrefilter} size="xs" value={prefilter}>
-          <SegmentedControl.Item key="all">All Flags</SegmentedControl.Item>
-          <SegmentedControl.Item key="overrides">Overrides Only</SegmentedControl.Item>
+          <SegmentedControl.Item key="all">All</SegmentedControl.Item>
+          <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
         </SegmentedControl>
       </div>
-      <Button
-        size="xs"
-        onClick={() => {
-          clearOverrides();
-        }}
-        css={{gridArea: 'clear'}}
-      >
-        Clear Overrides
-      </Button>
       <Input
         css={{gridArea: 'search'}}
         onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-        placeholder="Search flags"
+        placeholder="Search"
         size="xs"
       />
     </Fragment>
   );
 }
 
-function FlagTable({prefilter, searchTerm}: {prefilter: string; searchTerm: string}) {
-  const {featureFlagMap} = useFeatureFlagsContext();
+function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: string}) {
+  const {featureFlagMap, clearOverrides} = useFeatureFlagsContext();
 
   const filtered = Object.fromEntries(
     Object.entries(featureFlagMap)?.filter(([name, {value, override}]) => {
@@ -128,32 +157,74 @@ function FlagTable({prefilter, searchTerm}: {prefilter: string; searchTerm: stri
   const names = Object.keys(filtered).sort();
 
   return (
-    <PanelTable
-      css={[
-        panelSectionCss,
-        {
-          flexGrow: 1,
-          margin: 0,
-          borderRadius: 0,
-          border: 'none',
-          padding: 0,
-          '& > :first-child': {
-            minHeight: 'unset',
-            padding: 'var(--space50) var(--space150)',
+    <span>
+      <PanelTable
+        disablePadding
+        disableHeaders
+        css={[
+          {
+            flexGrow: 1,
+            margin: 0,
+            borderRadius: 0,
+            border: 'none',
+            padding: 0,
+            '& > :first-child': {
+              minHeight: 'unset',
+            },
           },
-        },
-      ]}
-      headers={[
-        <Fragment key="name">Name</Fragment>,
-        <Fragment key="value">Value</Fragment>,
-      ]}
-      stickyHeaders
-    >
-      {names?.map(name => (
-        <AnalyticsProvider key={name} keyVal="flag-item" nameVal="Flag Item">
-          <FeatureFlagItem flag={{name, ...filtered[name]}} />
-        </AnalyticsProvider>
-      ))}
-    </PanelTable>
+        ]}
+        headers={[undefined, undefined]}
+        stickyHeaders
+      >
+        {names?.map(name => (
+          <AnalyticsProvider key={name} keyVal="flag-item" nameVal="Flag Item">
+            <FeatureFlagItem flag={{name, ...filtered[name]}} />
+          </AnalyticsProvider>
+        ))}
+      </PanelTable>
+      {!names.length && (
+        <div
+          css={[
+            smallCss,
+            panelSectionCssNoBorder,
+            panelInsetContentCss,
+            {display: 'block', textAlign: 'center', color: 'var(--gray300)'},
+          ]}
+        >
+          No flags to display
+        </div>
+      )}
+      {prefilter === 'overrides' && Boolean(names.length) && (
+        <div
+          css={[
+            smallCss,
+            panelSectionCssNoBorder,
+            panelInsetContentCss,
+            {display: 'block', textAlign: 'center'},
+          ]}
+        >
+          <Button
+            size="xs"
+            css={{width: '100%'}}
+            onClick={() => {
+              clearOverrides();
+            }}
+          >
+            <span
+              css={[
+                resetFlexRowCss,
+                {
+                  gap: 'var(--space75)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <IconClose isCircled size="xs" /> Remove All
+            </span>
+          </Button>
+        </div>
+      )}
+    </span>
   );
 }

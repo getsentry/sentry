@@ -9,7 +9,7 @@ import Switch from 'sentry/components/switchButton';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import {inlineLinkCss} from '../../styles/link';
-import {panelInsetContentCss} from '../../styles/panel';
+import {verticalPaddingCss} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import type {FlagValue} from '../../types';
 
@@ -23,7 +23,12 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
 
   return (
     <Fragment>
-      <Cell css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
+      <Cell
+        css={[
+          verticalPaddingCss,
+          {alignItems: 'flex-start', marginLeft: 'var(--space200)'},
+        ]}
+      >
         {featureFlags?.urlTemplate?.(flag.name) ? (
           <ExternalLink
             css={[smallCss, inlineLinkCss]}
@@ -41,7 +46,7 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
           <span>{flag.name}</span>
         )}
       </Cell>
-      <Cell>
+      <Cell css={{marginRight: 'var(--space200)', justifyContent: 'center'}}>
         <FlagValueInput flag={flag} />
       </Cell>
     </Fragment>
