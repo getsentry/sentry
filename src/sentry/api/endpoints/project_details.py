@@ -168,12 +168,14 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     )
     highlightContext = HighlightContextField(
         required=False,
-        help_text="A JSON mapping of context types to lists of strings for their keys. E.g. {'user': ['id', 'email']}",
+        help_text="""A JSON mapping of context types to lists of strings for their keys.
+E.g. `{'user': ['id', 'email']}`""",
     )
     highlightTags = ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="A list of strings with tag keys to highlight on this project's issues. E.g. ['release', 'environment']",
+        help_text="""A list of strings with tag keys to highlight on this project's issues.
+E.g. `['release', 'environment']`""",
     )
     # TODO: Add help_text to all the fields for public documentation
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
