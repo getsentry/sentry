@@ -327,7 +327,10 @@ class LinkingView(BaseView, ABC):
                 body_text="HTTP 404: Could not find the identity.",
             )
 
-        logger.info("get_identity_success", extra={"integration_id": integration_id})
+        logger.info(
+            "get_identity_success",
+            extra={"integration_id": integration_id, "provider": self.provider_slug},
+        )
         metrics.incr(self.get_metric_key("success.get_identity"), sample_rate=1.0)
         params.update({"organization": organization, "integration": integration, "idp": idp})
 
