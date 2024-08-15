@@ -20,7 +20,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +31,11 @@ import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/web
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -67,6 +71,9 @@ export function PagePerformanceTable() {
 
   const query = decodeScalar(location.query.query, '');
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanIndexedField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
   const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
 
@@ -81,6 +88,7 @@ export function PagePerformanceTable() {
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,
+    subregions,
   });
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
