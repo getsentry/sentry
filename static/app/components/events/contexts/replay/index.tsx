@@ -1,6 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {t} from 'sentry/locale';
 import {type Event, type ReplayContext, ReplayContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -73,8 +72,6 @@ export function ReplayEventContext({event, data, meta: propsMeta}: ReplayContext
 }
 
 function getReplayKnownDataDetails({
-  data,
-  organization,
   type,
 }: {
   data: ReplayContext;
@@ -83,18 +80,7 @@ function getReplayKnownDataDetails({
   project?: Project;
 }): KnownDataDetails {
   switch (type) {
-    case ReplayContextKey.REPLAY_ID: {
-      const replayId = data.replay_id || '';
-      if (!replayId) {
-        return undefined;
-      }
-      const link = `/organizations/${organization.slug}/replays/${encodeURIComponent(replayId)}/`;
-      return {
-        subject: t('Replay ID'),
-        value: replayId,
-        action: {link},
-      };
-    }
+    case ReplayContextKey.REPLAY_ID:
     default:
       return undefined;
   }
