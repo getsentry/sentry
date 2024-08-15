@@ -110,6 +110,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
+      window.getSelection()?.removeAllRanges(); // Prevent text selection on expand
       trackAnalytics('issue_details.section_fold', {
         sectionKey,
         organization,
