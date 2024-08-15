@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -123,9 +123,7 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasNewNav = useMemo(() => {
-    return organization?.features.includes('navigation-sidebar-v2');
-  }, [organization]);
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
