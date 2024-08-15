@@ -21,7 +21,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Project, SavedQueryVersions} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -191,7 +193,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
               >
                 {key === 'user' ? (
                   <UserBadge
-                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    user={{...tagValue, id: tagValue.id ?? ''}}
                     avatarSize={20}
                     hideEmail
                   />

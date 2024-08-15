@@ -5,7 +5,8 @@ import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import usePageFilters from 'sentry/utils/usePageFilters';
 

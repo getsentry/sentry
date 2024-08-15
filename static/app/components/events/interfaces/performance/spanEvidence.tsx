@@ -65,9 +65,9 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
             data-test-id="span-evidence-settings-btn"
             to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
             size="xs"
+            icon={<StyledSettingsIcon />}
           >
-            <StyledSettingsIcon size="xs" />
-            Threshold Settings
+            {t('Threshold Settings')}
           </LinkButton>
         )
       }

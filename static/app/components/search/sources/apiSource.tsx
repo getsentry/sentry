@@ -7,18 +7,16 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {EventIdResponse} from 'sentry/types/event';
+import type {ShortIdResponse} from 'sentry/types/group';
 import type {
   DocIntegration,
-  EventIdResponse,
   IntegrationProvider,
-  Member,
-  Organization,
   PluginWithProjectList,
-  Project,
   SentryApp,
-  ShortIdResponse,
-  Team,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
