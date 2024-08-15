@@ -35,7 +35,7 @@ def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
             )
         elif isinstance(cond, MQLOr):
             yield TraceItemFilter(
-                and_filter=OrFilter(filters=list(parse_mql_filters(cond.conditions)))
+                or_filter=OrFilter(filters=list(parse_mql_filters(cond.conditions)))
             )
         elif isinstance(cond, MQLCondition):
             if cond.op == MQLOp.EQ:
@@ -60,12 +60,12 @@ def make_eap_request(
     ts: Timeseries = snuba_sdk.mql.mql.parse_mql(query_mql)
 
     aggregate_map = {
-        "sum": AggregateBucketRequest.SUM,
-        "avg": AggregateBucketRequest.AVG,
-        "p50": AggregateBucketRequest.P50,
-        "p95": AggregateBucketRequest.P95,
-        "P99": AggregateBucketRequest.P99,
-        "count": AggregateBucketRequest.COUNT,
+        "sum": AggregateBucketRequest.FUNCTION_SUM,
+        "avg": AggregateBucketRequest.FUNCTION_AVG,
+        "p50": AggregateBucketRequest.FUNCTION_P50,
+        "p95": AggregateBucketRequest.FUNCTION_P95,
+        "P99": AggregateBucketRequest.FUNCTION_P99,
+        "count": AggregateBucketRequest.FUNCTION_COUNT,
     }
 
     rpc_filters = None

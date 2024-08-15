@@ -175,7 +175,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 if len(mql_queries) == 1 and "a" in mql_queries[0].sub_queries:
                     subquery = mql_queries[0].sub_queries["a"]
                     if "d:eap/" in subquery.mql:
-                        results = mql_eap_bridge.make_eap_request(
+                        res_data = mql_eap_bridge.make_eap_request(
                             subquery.mql,
                             start,
                             end,
@@ -184,7 +184,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                             projects,
                             Referrer.API_ORGANIZATION_METRICS_EAP_QUERY.value,
                         )
-                        return Response(status=200, data=results)
+                        return Response(status=200, data=res_data)
 
             results = run_queries(
                 mql_queries=mql_queries,
