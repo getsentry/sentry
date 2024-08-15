@@ -179,34 +179,28 @@ describe('AlertRulesList', () => {
     expect(screen.getByText('Duplicate')).toBeInTheDocument();
   });
 
-  it('deletes a rule', async () => {
-    const {router, organization} = initializeOrg({
-      organization: defaultOrg,
+  it('deletes an issue rule', async () => {
+    const deletedRuleName = 'Issue Rule';
+    const issueRule = ProjectAlertRuleFixture({
+      name: deletedRuleName,
+      projects: ['project-slug'],
     });
-    const deletedRuleName = 'First Issue Alert';
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
-      body: [
-        {
-          ...ProjectAlertRuleFixture({
-            id: '123',
-            name: deletedRuleName,
-            projects: ['earth'],
-            createdBy: {name: 'Samwise', id: 1, email: ''},
-          }),
-          type: CombinedAlertType.ISSUE,
-        },
-      ],
+      body: [{...issueRule, type: CombinedAlertType.ISSUE}],
     });
+
+    const {router, project, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+    renderGlobalModal();
+
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/earth/rules/123/`,
+      url: `/projects/${organization.slug}/${project.slug}/rules/${issueRule.id}/`,
       method: 'DELETE',
       body: {},
     });
-
-    render(<AlertRulesList />, {router, organization});
-    renderGlobalModal();
 
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
 
@@ -219,7 +213,48 @@ describe('AlertRulesList', () => {
 
     expect(screen.queryByText(deletedRuleName)).toBeInTheDocument();
     await userEvent.click(actions);
-    await userEvent.click(screen.getByText('Delete'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(emptyListMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
+  });
+
+  it('deletes a metric rule', async () => {
+    const deletedRuleName = 'Metric Rule';
+    const metricRule = MetricRuleFixture({
+      name: deletedRuleName,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [{...metricRule, type: CombinedAlertType.METRIC}],
+    });
+
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+    renderGlobalModal();
+
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${metricRule.id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+
+    // Add a new response to the mock with no rules
+    const emptyListMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [],
+    });
+
+    expect(screen.queryByText(deletedRuleName)).toBeInTheDocument();
+    await userEvent.click(actions);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
     await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
