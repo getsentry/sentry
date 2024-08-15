@@ -8,11 +8,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
   dataset?: DiscoverDatasets;
+  subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string;
 };
@@ -22,6 +23,7 @@ export const useProjectRawWebVitalsQuery = ({
   tag,
   dataset,
   browserTypes,
+  subregions,
 }: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -33,8 +35,11 @@ export const useProjectRawWebVitalsQuery = ({
   if (tag) {
     search.addFilterValue(tag.key, tag.name);
   }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+  }
   if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
   }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(

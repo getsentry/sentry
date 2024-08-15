@@ -11,8 +11,10 @@ const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: React.ReactNode;
+  // extra query params to add to the link
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
+  extraLinkQueryParams?: Record<string, string>;
   group?: string;
   spanOp?: string;
 }
@@ -23,6 +25,7 @@ export function SpanGroupDetailsLink({
   projectId,
   spanOp,
   description,
+  extraLinkQueryParams,
 }: Props) {
   const location = useLocation();
 
@@ -32,6 +35,7 @@ export function SpanGroupDetailsLink({
     ...location.query,
     project: projectId,
     ...(spanOp ? {[SPAN_OP]: spanOp} : {}),
+    ...(extraLinkQueryParams ? extraLinkQueryParams : {}),
   };
 
   return (

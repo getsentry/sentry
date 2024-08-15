@@ -34,6 +34,7 @@ const {
   SPAN_SELF_TIME,
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
+  USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
 type Row = {
@@ -55,6 +56,7 @@ function ResourceSummaryTable() {
   const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
+    subregions: filters[USER_GEO_SUBREGION],
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 

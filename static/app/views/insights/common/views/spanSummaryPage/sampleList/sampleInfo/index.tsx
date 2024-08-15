@@ -12,18 +12,19 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 type Props = {
   groupId: string;
   transactionName: string;
   displayedMetrics?: string[];
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
 function SampleInfo(props: Props) {
-  const {groupId, transactionName, transactionMethod} = props;
+  const {groupId, transactionName, transactionMethod, subregions} = props;
   const {setPageError} = usePageAlert();
 
   const ribbonFilters: SpanMetricsQueryFilters = {
@@ -33,6 +34,10 @@ function SampleInfo(props: Props) {
 
   if (transactionMethod) {
     ribbonFilters['transaction.method'] = transactionMethod;
+  }
+
+  if (subregions) {
+    ribbonFilters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const {data, error, isLoading} = useSpanMetrics(

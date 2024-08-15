@@ -17,6 +17,7 @@ interface Props {
   description: string;
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
+  extraLinkQueryParams?: Record<string, string>; // extra query params to add to the link
   group?: string;
   spanOp?: string;
 }
@@ -27,6 +28,7 @@ export function SpanDescriptionCell({
   moduleName,
   spanOp,
   projectId,
+  extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
     if (moduleName !== ModuleName.DB) {
@@ -47,6 +49,7 @@ export function SpanDescriptionCell({
       projectId={projectId}
       spanOp={spanOp}
       description={formatterDescription}
+      extraLinkQueryParams={extraLinkQueryParams}
     />
   );
 
