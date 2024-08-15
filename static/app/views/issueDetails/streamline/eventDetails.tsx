@@ -85,7 +85,7 @@ const SearchFilter = styled(EventSearch)`
 `;
 
 const GroupContent = styled('div')<{navHeight?: number}>`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
