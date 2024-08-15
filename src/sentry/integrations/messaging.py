@@ -293,7 +293,6 @@ class LinkingView(BaseView, ABC):
         return event
 
     @property
-    @abstractmethod
     def analytics_operation_key(self) -> str | None:
         """Operation description to use in analytics. Return None to skip."""
         return None
@@ -391,7 +390,7 @@ class LinkingView(BaseView, ABC):
 
         self.notify_on_success(external_id, params_dict, integration)
         self.capture_metric("success.post")
-        self.record_analytic("identity_linked", request.user.id)
+        self.record_analytic(request.user.id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
