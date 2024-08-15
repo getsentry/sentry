@@ -174,7 +174,7 @@ export default function TagFacets({
   }, [data, tagFormatter, isStatisticalDetector]);
 
   // filter out replayId since we no longer want to
-  // display this on issue or trace details
+  // display this on issue details
   const topTagKeys = tagKeys.filter(
     tagKey => Object.keys(tagsData).includes(tagKey) && tagKey !== 'replayId'
   );
