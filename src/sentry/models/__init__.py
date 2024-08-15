@@ -3,6 +3,7 @@ from sentry.users.models.email import *  # NOQA
 from sentry.users.models.lostpasswordhash import *  # NOQA
 from sentry.users.models.user import *  # NOQA
 from sentry.users.models.useremail import *  # NOQA
+from sentry.users.models.userip import *  # NOQA
 from sentry.users.models.userpermission import *  # NOQA
 from sentry.users.models.userrole import *  # NOQA
 
@@ -123,5 +124,4 @@ from .team import *  # NOQA
 from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
-from .userip import *  # NOQA
 from .userreport import *  # NOQA
