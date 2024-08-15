@@ -132,20 +132,20 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_upgrade.connect(
-    handle_db_failure(create_default_projects, wrap_in_transaction=False),
+    handle_db_failure(create_default_projects, model=Organization, wrap_in_transaction=False),
     dispatch_uid="create_default_project",
     weak=False,
     sender=SiloMode.MONOLITH,
 )
 
 post_save.connect(
-    handle_db_failure(freeze_option_epoch_for_project),
+    handle_db_failure(freeze_option_epoch_for_project, model=Organization),
     sender=Project,
     dispatch_uid="freeze_option_epoch_for_project",
     weak=False,
 )
 post_save.connect(
-    handle_db_failure(create_keys_for_project),
+    handle_db_failure(create_keys_for_project, model=Organization),
     sender=Project,
     dispatch_uid="create_keys_for_project",
     weak=False,
