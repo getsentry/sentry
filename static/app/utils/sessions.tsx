@@ -10,9 +10,12 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import type {SessionApiResponse, SessionFieldWithOperation} from 'sentry/types';
-import {SessionStatus} from 'sentry/types';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {
+  SessionApiResponse,
+  SessionFieldWithOperation,
+} from 'sentry/types/organization';
+import {SessionStatus} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';

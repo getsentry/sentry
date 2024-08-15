@@ -16,11 +16,11 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
-from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.users.models.user import User
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 

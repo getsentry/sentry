@@ -247,7 +247,7 @@ class ProjectOwnership(Model):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
-        from sentry.models.user import User
+        from sentry.users.models.user import User
         from sentry.users.services.user import RpcUser
 
         if logging_extra is None:

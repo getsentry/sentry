@@ -8,7 +8,8 @@ import type {
   SelectSectionWithKey,
 } from 'sentry/components/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
+import {defined} from 'sentry/utils';
+import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -43,18 +44,16 @@ export function useShiftFocusToChild(
 }
 
 export function getDefaultFilterValue({
-  key,
   fieldDefinition,
 }: {
   fieldDefinition: FieldDefinition | null;
-  key: string;
 }): string {
   if (!fieldDefinition) {
     return '""';
   }
 
-  if (key === FieldKey.IS) {
-    return 'unresolved';
+  if (defined(fieldDefinition.defaultValue)) {
+    return fieldDefinition.defaultValue;
   }
 
   switch (fieldDefinition.valueType) {

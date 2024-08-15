@@ -2306,6 +2306,28 @@
       ]
     ]
   },
+  "sentry.grouphashmetadata": {
+    "dangling": false,
+    "foreign_keys": {
+      "grouphash": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.grouphash",
+        "nullable": false
+      }
+    },
+    "model": "sentry.grouphashmetadata",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_grouphashmetadata",
+    "uniques": [
+      [
+        "grouphash"
+      ]
+    ]
+  },
   "sentry.grouphistory": {
     "dangling": false,
     "foreign_keys": {

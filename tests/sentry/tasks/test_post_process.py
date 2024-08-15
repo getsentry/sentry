@@ -1106,7 +1106,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "oh no",
                 "platform": "python",
-                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+                "stacktrace": {"frames": [{"filename": "src/app/example.py", "in_app": True}]},
             },
             project_id=self.project.id,
         )
@@ -1114,7 +1114,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Exception",
                 "platform": "python",
-                "stacktrace": {"frames": [{"filename": "src/app/integration.py"}]},
+                "stacktrace": {"frames": [{"filename": "src/app/integration.py", "in_app": True}]},
             },
             project_id=self.project.id,
         )

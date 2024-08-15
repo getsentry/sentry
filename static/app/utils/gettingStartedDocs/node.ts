@@ -180,7 +180,7 @@ export const getSdkInitSnippet = (
             : ''
 }
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   ${
     params.isProfilingSelected
       ? `integrations: [

@@ -15,7 +15,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -37,6 +37,7 @@ import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_FEATURE,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
@@ -221,10 +222,7 @@ export function ScreensLandingPage() {
   };
 
   return (
-    <ModulePageProviders
-      moduleName="mobile-screens"
-      features={['insights-addon-modules']}
-    >
+    <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
           <Layout.Header>

@@ -19,11 +19,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   Integration,
-  Organization,
-  Project,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';

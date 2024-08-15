@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import {
@@ -36,6 +36,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   },
   attachments: {enabled: false},
   autofix: false,
+  aiSuggestedSolution: false,
   events: {enabled: true},
   mergedIssues: {enabled: false},
   regression: {enabled: false},

@@ -74,6 +74,10 @@ const FILTER_KEYS: TagCollection = {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
   },
+  uncategorized_tag: {
+    key: 'uncategorized_tag',
+    name: 'uncategorized_tag',
+  },
 };
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
@@ -289,7 +293,7 @@ describe('SearchQueryBuilder', function () {
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
-      expect(groups).toHaveLength(2);
+      expect(groups).toHaveLength(3);
 
       // First group (Field) should have age, assigned, browser.name
       const group1 = groups[0];
@@ -303,6 +307,12 @@ describe('SearchQueryBuilder', function () {
       const group2 = groups[1];
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+
+      // There should be a third group for uncategorized keys
+      const group3 = groups[2];
+      expect(
+        within(group3).getByRole('option', {name: 'uncategorized_tag'})
       ).toBeInTheDocument();
 
       // Clicking "Category 2" should filter the options to only category 2
@@ -343,8 +353,8 @@ describe('SearchQueryBuilder', function () {
           url: '/organizations/org-slug/recent-searches/',
           body: [
             {query: 'assigned:me'},
-            {query: 'assigned:me browser:firefox'},
-            {query: 'assigned:me browser:firefox is:unresolved'},
+            {query: 'assigned:me browser.name:firefox'},
+            {query: 'assigned:me browser.name:firefox is:unresolved'},
           ],
         });
       });
@@ -384,6 +394,31 @@ describe('SearchQueryBuilder', function () {
         expect(recentFilterKeys).toHaveLength(2);
         expect(recentFilterKeys[0]).toHaveTextContent('browser');
         expect(recentFilterKeys[1]).toHaveTextContent('is');
+      });
+
+      it('does not display recent filters that are not valid filter keys', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            // Level is not a valid filter key
+            {query: 'assigned:me level:error'},
+          ],
+        });
+
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "level" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(1);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
       });
 
       it('can navigate between filters with arrow keys', async function () {

@@ -1,4 +1,4 @@
-import ActionButton from 'sentry/components/actions/button';
+import {Button} from 'sentry/components/button';
 import {IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -30,7 +30,7 @@ function SubscribeAction({
   const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
 
   return (
-    <ActionButton
+    <Button
       className={className}
       disabled={disabled || disabledNotifications}
       title={getSubscriptionReason(group)}

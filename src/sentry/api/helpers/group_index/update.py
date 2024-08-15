@@ -45,12 +45,12 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
@@ -270,14 +270,17 @@ def update_groups(
                     {"detail": "Cannot set resolved in next release for multiple projects."},
                     status=400,
                 )
+            # may not be a release yet
             release = (
                 status_details.get("inNextRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
+                .order_by("-sort")
+                .first()
             )
+
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet

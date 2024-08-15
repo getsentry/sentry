@@ -96,9 +96,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.user import User
 from sentry.models.userip import UserIP
-from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
@@ -114,6 +112,8 @@ from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 
 __all__ = [

@@ -29,7 +29,7 @@ export const enum FoldSectionKey {
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
 
-  // QuickTraceQuery?
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
 
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
@@ -110,6 +110,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
+      window.getSelection()?.removeAllRanges(); // Prevent text selection on expand
       trackAnalytics('issue_details.section_fold', {
         sectionKey,
         organization,
@@ -170,7 +171,6 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
-  overflow: hidden;
   &::marker,
   &::-webkit-details-marker {
     display: none;

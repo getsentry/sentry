@@ -7,7 +7,6 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Q
-from django.db.utils import OperationalError
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
@@ -39,6 +38,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -120,44 +120,41 @@ def initialize_backfill(
     return project, last_processed_group_id, last_processed_project_index_ret
 
 
-def _make_postgres_call(group_id_filter: Q, project_id: int, batch_size: int):
+def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
+    """
+    Return the filtered batch of group ids to be backfilled, the last group id in the raw batch,
+    and the length of the raw batch.
+    """
+
     groups_to_backfill_batch_raw = (
         Group.objects.filter(
             group_id_filter,
             project_id=project_id,
             type=ErrorGroupType.type_id,
-            times_seen__gt=1,
         )
-        .values_list("id", "data", "status", "last_seen")
+        .values_list("id", "data", "status", "last_seen", "times_seen")
         .order_by("-id")[:batch_size]
     )
-    return groups_to_backfill_batch_raw
 
+    # Filter out groups that are pending deletion and have times_seen > 1 in memory so postgres won't make a bad query plan
+    # Get the last queried group id while we are iterating; even if it's not valid to be backfilled
+    # we want to keep the value to be used as an filter for the next batch
+    groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length = [], None, 0
+    for group in groups_to_backfill_batch_raw:
+        if (
+            group[2]
+            not in [
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+            and group[3] > datetime.now(UTC) - timedelta(days=90)
+            and group[4] > 1
+        ):
+            groups_to_backfill_batch.append((group[0], group[1]))
+        batch_raw_end_group_id = group[0]
+        backfill_batch_raw_length += 1
 
-def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_size: int):
-    """
-    Try making postgres query. If it has an operational error, retry with a decreased batch size.
-    """
-    try:
-        groups_to_backfill_batch_raw = _make_postgres_call(group_id_filter, project_id, batch_size)
-    except OperationalError:
-        batch_size = batch_size // 2
-        try:
-            logger.info(
-                "tasks.backfill_seer_grouping_records.postgres_query_retry",
-                extra={"project_id": project_id, "batch_size": batch_size},
-            )
-            groups_to_backfill_batch_raw = _make_postgres_call(
-                group_id_filter, project_id, batch_size
-            )
-        except OperationalError:
-            logger.exception(
-                "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
-                extra={"project_id": project_id, "batch_size": batch_size},
-            )
-            raise
-
-    return (groups_to_backfill_batch_raw, batch_size)
+    return groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length
 
 
 @sentry_sdk.tracing.trace
@@ -168,35 +165,22 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    (groups_to_backfill_batch_raw, batch_size) = _make_postgres_call_with_retry(
-        group_id_filter, project.id, batch_size
-    )
-
-    total_groups_to_backfill_length = groups_to_backfill_batch_raw.count()
-    batch_end_group_id = (
-        groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
-        if total_groups_to_backfill_length
-        else None
-    )
-
-    # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
-    groups_to_backfill_batch = [
-        (group[0], group[1])
-        for group in groups_to_backfill_batch_raw
-        if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-        and group[3] > datetime.now(UTC) - timedelta(days=90)
-    ]
-    total_groups_to_backfill_length = len(groups_to_backfill_batch)
+    (
+        groups_to_backfill_batch,
+        batch_end_group_id,
+        backfill_batch_raw_length,
+    ) = _make_postgres_call_with_filter(group_id_filter, project.id, batch_size)
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": total_groups_to_backfill_length,
+            "batch_len": len(groups_to_backfill_batch),
             "last_processed_group_id": batch_end_group_id,
         },
     )
-    if total_groups_to_backfill_length == 0:
+
+    if backfill_batch_raw_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
@@ -530,19 +514,25 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
                         )
                     )
                 ]
-            # TODO: if we get a `SimilarHashNotFoundError`, we need to delete the record from seer or this will always happen
             # we should not update the similarity data for this group cause we'd want to try again once we delete it
             except (
                 IncompleteSeerDataError,
                 SimilarHashNotFoundError,
                 SimilarHashMissingGroupError,
-            ):
+            ) as err:
+                parent_hash = groups_with_neighbor[str(group.id)]["parent_hash"]
+
+                if isinstance(err, SimilarHashNotFoundError):
+                    # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
+                    # which doesn't exist
+                    delete_seer_grouping_records_by_hash.delay(project.id, [parent_hash])
+
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.invalid_parent_group",
                     extra={
                         "project_id": project.id,
                         "group_id": group.id,
-                        "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
+                        "parent_hash": parent_hash,
                     },
                 )
                 seer_similarity = {}

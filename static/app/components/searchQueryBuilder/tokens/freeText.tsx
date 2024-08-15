@@ -6,7 +6,6 @@ import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 import type Fuse from 'fuse.js';
 
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
@@ -16,6 +15,7 @@ import type {
   KeySectionItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
+import {createItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   getDefaultFilterValue,
@@ -24,7 +24,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   FieldDefinitionGetter,
-  FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
@@ -37,13 +36,11 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryBuilderInputProps = {
@@ -98,7 +95,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
 }
 
 function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
-  const defaultValue = getDefaultFilterValue({key, fieldDefinition});
+  const defaultValue = getDefaultFilterValue({fieldDefinition});
 
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
 
@@ -143,54 +140,6 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
-function getKeyLabel(
-  tag: Tag,
-  fieldDefinition: FieldDefinition | null,
-  {includeAggregateArgs = false} = {}
-) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters?.length) {
-      if (includeAggregateArgs) {
-        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
-      }
-      return `${tag.key}(...)`;
-    }
-    return `${tag.key}()`;
-  }
-
-  return tag.key;
-}
-
-function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
-  const description = fieldDefinition?.desc;
-
-  return {
-    key: getEscapedKey(tag.key),
-    label: getKeyLabel(tag, fieldDefinition),
-    description: description ?? '',
-    value: tag.key,
-    textValue: tag.key,
-    hideCheck: true,
-    showDetailsInOverlay: true,
-    details: <KeyDescription tag={tag} />,
-    type: 'item',
-  };
-}
-
-function createSection(
-  section: FilterKeySection,
-  keys: TagCollection,
-  getFieldDefinition: FieldDefinitionGetter
-): KeySectionItem {
-  return {
-    key: section.value,
-    value: section.value,
-    label: section.label,
-    options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
-    type: 'section',
-  };
-}
-
 function countPreviousItemsOfType({
   state,
   type,
@@ -233,7 +182,7 @@ function useSortItems({
 }: {
   filterValue: string;
 }): Array<KeySectionItem | KeyItem> {
-  const {filterKeys, filterKeySections, getFieldDefinition} = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
   const flatItems = useMemo<KeyItem[]>(
     () =>
       Object.values(filterKeys).map(filterKey =>
@@ -245,42 +194,11 @@ function useSortItems({
 
   return useMemo(() => {
     if (!filterValue || !search) {
-      if (!filterKeySections.length) {
-        return flatItems;
-      }
-      return filterKeySections.map(section =>
-        createSection(section, filterKeys, getFieldDefinition)
-      );
+      return flatItems;
     }
 
     return search.search(filterValue).map(({item}) => item);
-  }, [filterKeySections, filterKeys, filterValue, flatItems, getFieldDefinition, search]);
-}
-
-function KeyDescription({tag}: {tag: Tag}) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
-
-  const fieldDefinition = getFieldDefinition(tag.key);
-
-  const description =
-    fieldDefinition?.desc ??
-    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
-
-  return (
-    <DescriptionWrapper>
-      <DescriptionKeyLabel>
-        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
-      </DescriptionKeyLabel>
-      {description ? <p>{description}</p> : null}
-      <Separator />
-      <DescriptionList>
-        <Term>{t('Type')}</Term>
-        <Details>
-          {toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING)}
-        </Details>
-      </DescriptionList>
-    </DescriptionWrapper>
-  );
+  }, [filterValue, flatItems, search]);
 }
 
 function shouldHideInvalidTooltip({
@@ -374,7 +292,12 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilder();
 
-  const items = useSortItems({filterValue});
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    filterValue,
+  });
+  const sortedFilteredItems = useSortItems({filterValue});
+
+  const items = customMenu ? sectionItems : sortedFilteredItems;
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -455,11 +378,6 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    items,
-    filterValue,
-  });
-
   return (
     <Fragment>
       <HiddenText
@@ -472,7 +390,7 @@ function SearchQueryBuilderInputInternal({
       <SearchQueryBuilderCombobox
         customMenu={customMenu}
         ref={inputRef}
-        items={sectionItems}
+        items={items}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={value => {
           dispatch({
@@ -697,44 +615,6 @@ const GridCell = styled('div')`
     width: 100%;
   }
 `;
-
-const DescriptionWrapper = styled('div')`
-  padding: ${space(0.75)} ${space(1)};
-  max-width: 220px;
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  p {
-    margin: 0;
-  }
-
-  p + p {
-    margin-top: ${space(0.5)};
-  }
-`;
-
-const DescriptionKeyLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  word-break: break-all;
-`;
-
-const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(1)} 0;
-`;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  margin: 0;
-`;
-
-const Term = styled('dt')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
-const Details = styled('dd')``;
 
 const PositionedTooltip = styled(InvalidTokenTooltip)`
   position: absolute;
