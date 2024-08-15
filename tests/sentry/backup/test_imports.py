@@ -41,7 +41,6 @@ from sentry.models.importchunk import (
 )
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -77,6 +76,7 @@ from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.email import Email
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userpermission import UserPermission

@@ -12,7 +12,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
@@ -22,6 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 
 
