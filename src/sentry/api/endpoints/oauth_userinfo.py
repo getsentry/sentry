@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist, SentryAPIException
 from sentry.models.apitoken import ApiToken
-from sentry.models.useremail import UserEmail
+from sentry.users.models.useremail import UserEmail
 
 
 class InsufficientScopesError(SentryAPIException):
