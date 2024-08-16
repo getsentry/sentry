@@ -2,7 +2,6 @@ import logging
 import math
 import time
 from datetime import timedelta
-from random import randint
 from uuid import uuid4
 
 import orjson
@@ -14,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features, options
+from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -986,10 +985,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-grouping", project) or (
-                project.get_option("sentry:similarity_backfill_completed")
-                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
-            ):
+            if features.has(
+                "projects:similarity-embeddings-grouping", project
+            ) or project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
