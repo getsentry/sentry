@@ -92,6 +92,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );
+    const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
+      getFoldSectionKey(SectionKey.PROCESSING_ERROR),
+      true
+    );
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -293,6 +297,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                     document
                       .getElementById(SectionKey.PROCESSING_ERROR)
                       ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                    setEventErrorCollapsed(false);
                   }}
                 >
                   {t('Processing Error')}
