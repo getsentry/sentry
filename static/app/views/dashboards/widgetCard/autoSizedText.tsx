@@ -22,7 +22,7 @@ export function AutoSizedText({
     const parentElement = childRef.current?.parentElement; // This is the parent of `AutoSizedText`
 
     if (!childElement || !parentElement) {
-      return () => {};
+      return undefined;
     }
 
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
