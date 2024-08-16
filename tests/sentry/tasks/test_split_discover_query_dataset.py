@@ -6,9 +6,15 @@ from sentry.discover.dataset_split import get_and_save_split_decision_for_query
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.split_discover_query_dataset import split_discover_query_dataset
+from sentry.tasks.split_discover_query_dataset import (
+    RATE_LIMIT_CACHE,
+    NoOpException,
+    _split_discover_query_dataset,
+    split_discover_query_dataset,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.users.models.user import User
 
@@ -89,3 +95,37 @@ def test_split_discover_query_dataset_flags(
             mock_get_and_save_split_decision_for_query.called
             == get_and_save_split_decision_for_query_called
         )
+
+
+@django_db_all
+def test_prevent_hitting_ratelimit_strategy(project: Project):
+    RATE_LIMIT_CACHE.clear()
+    options = {
+        "discover.saved-query-dataset-split.organization-allowlist": ([project.organization_id]),
+    }
+    create_discover_query(["transaction", "count()"], "", project)
+
+    assert project.organization.id not in RATE_LIMIT_CACHE
+
+    with (
+        freeze_time("2025-05-01") as frozen_time,
+        override_options(options),
+        mock.patch(
+            "sentry.tasks.split_discover_query_dataset.get_and_save_split_decision_for_query",
+            wraps=get_and_save_split_decision_for_query,
+        ) as mock_get_and_save_split_decision_for_query,
+    ):
+        _split_discover_query_dataset(False)
+        assert mock_get_and_save_split_decision_for_query.call_count == 1
+        assert project.organization.id in RATE_LIMIT_CACHE
+
+        create_discover_query(["transaction", "count()"], "", project)
+
+        frozen_time.shift(5)
+        with pytest.raises(NoOpException):
+            _split_discover_query_dataset(False)
+        assert mock_get_and_save_split_decision_for_query.call_count == 1
+
+        frozen_time.shift(300)
+        _split_discover_query_dataset(False)
+        assert mock_get_and_save_split_decision_for_query.call_count == 2

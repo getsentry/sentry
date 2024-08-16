@@ -6,10 +6,7 @@ from cachetools import LRUCache
 from celery.exceptions import SoftTimeLimitExceeded
 
 from sentry import options
-from sentry.discover.dataset_split import (
-    get_and_save_split_decision_for_query,
-    save_split_decision_for_query,
-)
+from sentry.discover.dataset_split import get_and_save_split_decision_for_query
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
@@ -18,7 +15,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
-SLEEP_FOR = 10 * 60  # 10 minutes
+SLEEP_FOR = 5 * 60  # 5 minutes
 MAX_NOOP_ATTEMPTS = 10
 RATE_LIMIT_CACHE = LRUCache(maxsize=1000)
 
@@ -102,28 +99,10 @@ def _split_discover_query_dataset(dry_run):
             )
             inferred_with_query += 1
 
-            # We've hit rate limits / resource limits, wait 5 minutes
+            # We've hit rate limits / resource limits, wait 1 minute
             # before trying this organization again.
-            RATE_LIMIT_CACHE[saved_query.organization_id] = int(time()) + 300
+            RATE_LIMIT_CACHE[saved_query.organization_id] = int(time()) + 60
             errored_query_count += 1
-
-        except snuba.SnubaError as e:
-            sentry_sdk.capture_exception(
-                e,
-                contexts={
-                    "discover_saved_query_id": saved_query.id,
-                    "organization_id": saved_query.organization.id,
-                },
-            )
-            errored_query_count += 1
-            inferred_with_query += 1
-            if not dry_run:
-                save_split_decision_for_query(
-                    saved_query,
-                    None,
-                    DatasetSourcesTypes.SPLIT_ERRORED.value,
-                )
-            did_process = True
 
         except SoftTimeLimitExceeded:
             errored_query_count += 1
