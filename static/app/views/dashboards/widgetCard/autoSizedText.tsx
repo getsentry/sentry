@@ -1,5 +1,6 @@
 import {useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: React.ReactNode;
@@ -43,6 +44,11 @@ export function AutoSizedText({
 
       let iterationCount = 0;
 
+      const span = Sentry.startInactiveSpan({
+        op: 'function',
+        name: 'AutoSizedText.iterate',
+      });
+
       // Run the resize iteration in a loop. This blocks the main UI thread and prevents
       // visible layout jitter. If this was done through a `ResizeObserver` or React State
       // each step in the resize iteration would be visible to the user
@@ -70,6 +76,9 @@ export function AutoSizedText({
 
         iterationCount += 1;
       }
+
+      span.setAttribute('iterationCount', iterationCount);
+      span.end();
     });
 
     observer.observe(parentElement);
