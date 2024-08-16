@@ -82,7 +82,7 @@ export function FormattedQuery({
   }
 
   return (
-    <QueryWrapper>
+    <QueryWrapper aria-label={query}>
       {parsedQuery.map((token, index) => {
         return <QueryToken key={index} token={token} />;
       })}
