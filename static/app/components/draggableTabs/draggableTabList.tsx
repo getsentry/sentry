@@ -136,7 +136,7 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout active />
+          <TabDivider layout isVisible />
           <MotionWrapper layout>
             {tempTab && (
               <Tab
