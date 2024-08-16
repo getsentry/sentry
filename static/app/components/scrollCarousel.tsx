@@ -14,8 +14,6 @@ interface ScrollCarouselProps {
   className?: string;
   'data-test-id'?: string;
   gap?: ValidSize;
-  jumpItemCount?: number;
-  transparentMask?: boolean;
 }
 
 /**
@@ -54,13 +52,7 @@ const getOffsetRect = (el: HTMLElement, relativeTo: HTMLElement) => {
   };
 };
 
-export function ScrollCarousel({
-  children,
-  gap = 1,
-  transparentMask = false,
-  jumpItemCount = DEFAULT_JUMP_ITEM_COUNT,
-  ...props
-}: ScrollCarouselProps) {
+export function ScrollCarousel({children, gap = 1, ...props}: ScrollCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
@@ -74,19 +66,22 @@ export function ScrollCarousel({
   const scrollLeft = useCallback(() => {
     const scrollIndex = visibility.findIndex(Boolean);
     // Clamp the scroll index to the first visible item
-    const clampedIndex = Math.max(scrollIndex - jumpItemCount, 0);
+    const clampedIndex = Math.max(scrollIndex - DEFAULT_JUMP_ITEM_COUNT, 0);
     // scrollIntoView scrolls the entire page on some browsers
     scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
       // We don't need to do any fancy math for the left edge
       left: getOffsetRect(childrenEls[clampedIndex], childrenEls[0]).left,
     });
-  }, [visibility, childrenEls, jumpItemCount]);
+  }, [visibility, childrenEls]);
 
   const scrollRight = useCallback(() => {
     const scrollIndex = visibility.findLastIndex(Boolean);
     // Clamp the scroll index to the last visible item
-    const clampedIndex = Math.min(scrollIndex + jumpItemCount, visibility.length - 1);
+    const clampedIndex = Math.min(
+      scrollIndex + DEFAULT_JUMP_ITEM_COUNT,
+      visibility.length - 1
+    );
 
     const targetElement = childrenEls[clampedIndex];
     const targetElementRight = getOffsetRect(targetElement, childrenEls[0]).right;
@@ -96,15 +91,15 @@ export function ScrollCarousel({
       behavior: 'smooth',
       left: Math.max(targetElementRight - containerRight, 0),
     });
-  }, [visibility, childrenEls, jumpItemCount]);
+  }, [visibility, childrenEls]);
 
   return (
     <ScrollCarouselWrapper>
       <ScrollContainer ref={scrollContainerRef} style={{gap: space(gap)}} {...props}>
         {children}
       </ScrollContainer>
-      {!isAtStart && <LeftMask transparentMask={transparentMask} />}
-      {!isAtEnd && <RightMask transparentMask={transparentMask} />}
+      {!isAtStart && <LeftMask />}
+      {!isAtEnd && <RightMask />}
       {!isAtStart && (
         <StyledArrowButton
           onClick={scrollLeft}
@@ -177,30 +172,24 @@ const Mask = css`
   z-index: 1;
 `;
 
-const LeftMask = styled('div')<{transparentMask: boolean}>`
+const LeftMask = styled('div')`
   ${Mask}
   left: 0;
-  background: ${p =>
-    p.transparentMask
-      ? `linear-gradient(to left, ${Color(p.theme.background).alpha(0).rgb().string()}, ${p.theme.background})`
-      : `linear-gradient(
+  background: linear-gradient(
     90deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
-  )`};
+    ${p => p.theme.background} 50%,
+    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  );
 `;
 
-const RightMask = styled('div')<{transparentMask: boolean}>`
+const RightMask = styled('div')`
   ${Mask}
   right: 0;
-  background: ${p =>
-    p.transparentMask
-      ? 'linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))'
-      : `linear-gradient(
+  background: linear-gradient(
     270deg,
-    ${p.theme.background} 50%,
-    ${Color(p.theme.background).alpha(0.09).rgb().string()} 100%
-  )`};
+    ${p => p.theme.background} 50%,
+    ${p => Color(p.theme.background).alpha(0.09).rgb().string()} 100%
+  );
 `;
 
 const StyledIconChevron = styled(IconChevron)`
