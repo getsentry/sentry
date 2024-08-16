@@ -42,5 +42,5 @@ def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkEr
 
     # Indicate that a new value needs to be added to SLACK_SDK_ERROR_CATEGORIES
     _logger.warning("unrecognized_slack_api_message", extra={"slack_api_message": dump})
-    capture_message("Unrecognized Slack API message. Api Message: %s", dump, level="warning")
+    capture_message("Unrecognized Slack API message. Api Message: %s" % dump, level="warning")
     return None
