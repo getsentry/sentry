@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -33,6 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
@@ -72,6 +73,7 @@ export function BreadcrumbsDrawer({
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const [container, setContainer] = useState<HTMLElement | null>(null);
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -205,8 +207,8 @@ export function BreadcrumbsDrawer({
   );
 
   return (
-    <Fragment>
-      <DrawerHeader>
+    <BreadcrumbDrawerContainer>
+      <BreadcrumbDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -221,12 +223,12 @@ export function BreadcrumbsDrawer({
             {label: t('Breadcrumbs')},
           ]}
         />
-      </DrawerHeader>
-      <DrawerBody>
-        <HeaderGrid>
-          <Header>{t('Breadcrumbs')}</Header>
-          {actions}
-        </HeaderGrid>
+      </BreadcrumbDrawerHeader>
+      <BreadcrumbNavigator>
+        <Header>{t('Breadcrumbs')}</Header>
+        {actions}
+      </BreadcrumbNavigator>
+      <BreadcrumbDrawerBody ref={setContainer}>
         <TimelineContainer>
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
@@ -249,11 +251,12 @@ export function BreadcrumbsDrawer({
             <BreadcrumbsTimeline
               breadcrumbs={displayCrumbs}
               startTimeString={startTimeString}
+              containerElement={container}
             />
           )}
         </TimelineContainer>
-      </DrawerBody>
-    </Fragment>
+      </BreadcrumbDrawerBody>
+    </BreadcrumbDrawerContainer>
   );
 }
 
@@ -262,12 +265,40 @@ const VisibleFocusButton = styled(Button)`
     0 0 1px;
 `;
 
-const HeaderGrid = styled('div')`
+const BreadcrumbDrawerContainer = styled('div')`
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+`;
+
+const BreadcrumbDrawerHeader = styled(DrawerHeader)`
+  position: unset;
+  max-height: ${MIN_NAV_HEIGHT}px;
+  box-shadow: none;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const BreadcrumbNavigator = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   column-gap: ${space(1)};
-  margin: ${space(1)} 0 ${space(2)};
+  padding: ${space(0.75)} 24px;
+  background: ${p => p.theme.background};
+  z-index: 1;
+  min-height: ${MIN_NAV_HEIGHT}px;
+  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+`;
+
+const BreadcrumbDrawerBody = styled(DrawerBody)`
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Move the scrollbar to the left edge */
+  scroll-margin: 0 ${space(2)};
+  direction: rtl;
+  * {
+    direction: ltr;
+  }
 `;
 
 const Header = styled('h3')`

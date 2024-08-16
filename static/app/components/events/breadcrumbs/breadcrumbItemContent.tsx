@@ -145,7 +145,7 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -163,7 +163,7 @@ function SQLCrumbContent({
   return (
     <Fragment>
       <Timeline.Data>
-        <LightenTextColor className="language-sql">
+        <SQLText className="language-sql">
           {tokens.map((line, i) => (
             <div key={i}>
               {line.map((token, j) => (
@@ -173,7 +173,7 @@ function SQLCrumbContent({
               ))}
             </div>
           ))}
-        </LightenTextColor>
+        </SQLText>
       </Timeline.Data>
       {children}
     </Fragment>
@@ -201,7 +201,7 @@ function ExceptionCrumbContent({
       {children}
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -215,12 +215,12 @@ const Link = styled('a')`
   word-break: break-all;
 `;
 
-const LightenTextColor = styled('pre')`
-  margin: 0;
+const SQLText = styled('pre')`
   &.language-sql {
-    color: ${p => p.theme.subText};
+    margin: 0;
     padding: ${space(0.25)} 0;
     font-size: ${p => p.theme.fontSizeSmall};
+    white-space: pre-wrap;
   }
 `;
 
