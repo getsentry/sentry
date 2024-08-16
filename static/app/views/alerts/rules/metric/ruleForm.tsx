@@ -237,7 +237,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
-      sensitivity: rule.sensitivity || AlertRuleSensitivity.MEDIUM,
+      sensitivity: null,
       thresholdType: rule.thresholdType,
       thresholdPeriod: rule.thresholdPeriod ?? 1,
       comparisonDelta: rule.comparisonDelta ?? undefined,

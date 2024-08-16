@@ -40,6 +40,7 @@ function SensitivityFormItem({
   return (
     <StyledField
       label={'Sensitivity'}
+      id={'sensitivity'}
       help={
         'Lower sensitivity will alert you only when anomalies are larger, higher sensitivity will alert you and your team for even small deviations.'
       }
@@ -48,6 +49,7 @@ function SensitivityFormItem({
       <SelectContainer>
         <SelectControl
           name="sensitivity"
+          inputId={'sensitivity'}
           value={sensitivity}
           options={[
             {
