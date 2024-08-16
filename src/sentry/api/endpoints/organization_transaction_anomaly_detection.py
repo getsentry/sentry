@@ -113,7 +113,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
 
         start, end = get_date_range_from_params(request.GET)
         time_params = get_time_params(start, end)
-        snuba_params, _ = self.get_snuba_dataclass(request, organization)
+        snuba_params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
         query = f"{query} event.type:transaction" if query else "event.type:transaction"
 

@@ -207,9 +207,11 @@ class BaseQueryBuilder:
 
         # filter params is the older style params, shouldn't be used anymore
         self.filter_params = params
+        if snuba_params is not None:
+            self.filter_params = snuba_params.filter_params
         self.params = self._dataclass_params(snuba_params, params)
 
-        org_id = params.get("organization_id")
+        org_id = self.params.organization_id
         self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
@@ -1478,11 +1480,14 @@ class BaseQueryBuilder:
         """
         return self.function_alias_map[function.alias].field
 
+    def _get_dataset_name(self) -> str:
+        return self.dataset.value
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value, sample=self.sample_rate),

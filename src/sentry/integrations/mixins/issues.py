@@ -5,8 +5,10 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from operator import attrgetter
 from typing import Any, ClassVar
 
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
@@ -79,6 +81,26 @@ class IssueBasicMixin:
                 result.append(output)
         return "\n\n".join(result)
 
+    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+        messages = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+        ]
+        others = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+        ]
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        body += "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
+            body += f"| **{evidence.name}** | {evidence.value} |\n"
+
+        return body.rstrip("\n")  # remove the last new line
+
     def get_group_link(self, group, **kwargs):
         params = {}
         if kwargs.get("link_referrer"):
@@ -99,9 +121,19 @@ class IssueBasicMixin:
 
     def get_group_description(self, group, event, **kwargs):
         output = self.get_group_link(group, **kwargs)
-        body = self.get_group_body(group, event)
-        if body:
-            output.extend(["", "```", body, "```"])
+        if (
+            event
+            and isinstance(event, GroupEvent)
+            and event.occurrence is not None
+            and group.issue_category == GroupCategory.FEEDBACK
+        ):
+            body = ""
+            body = self.get_feedback_issue_body(event)
+            output.extend([body])
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
     @all_silo_function

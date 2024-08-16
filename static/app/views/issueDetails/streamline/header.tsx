@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
@@ -23,6 +22,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -125,7 +125,7 @@ export default function StreamlinedGroupHeader({
                 projectSlug={project.slug}
                 releaseVersion={firstRelease.version}
               >
-                <Version version={firstRelease.version} projectId={project.id} />
+                <Version version={firstRelease.version} projectId={project.id} truncate />
               </VersionHoverCard>
               {firstRelease.id === lastRelease.id ? null : (
                 <Fragment>
@@ -135,7 +135,11 @@ export default function StreamlinedGroupHeader({
                     projectSlug={project.slug}
                     releaseVersion={lastRelease.version}
                   >
-                    <Version version={lastRelease.version} projectId={project.id} />
+                    <Version
+                      version={lastRelease.version}
+                      projectId={project.id}
+                      truncate
+                    />
                   </VersionHoverCard>
                 </Fragment>
               )}
@@ -238,11 +242,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   padding: ${space(1)} 24px;
   margin-right: 0;
   margin-left: 0;
+  flex-wrap: wrap;
 `;
 
 const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  column-gap: ${space(2)};
+  flex-wrap: wrap;
 `;
 
 const Wrapper = styled('div')`
@@ -254,6 +260,7 @@ const Wrapper = styled('div')`
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
+  max-width: 40%;
   gap: ${space(0.25)};
   a {
     color: ${p => p.theme.gray300};

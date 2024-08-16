@@ -15,7 +15,7 @@ export function UserFixture(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
-      issueDetailsNewExperienceQ42023: false,
+      prefersIssueDetailsStreamlinedUI: false,
     },
     ip_address: '127.0.0.1',
     hasPasswordAuth: true,
