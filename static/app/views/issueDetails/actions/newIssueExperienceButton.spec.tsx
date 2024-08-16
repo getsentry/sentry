@@ -43,24 +43,24 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
   });
 
-  it('appears when user prefers this UI', function () {
+  it('does not appear even if user prefers this UI', function () {
     act(() => ConfigStore.set('user', user));
     render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
       </div>
     );
-    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
-  it('appears when streamline is set to 1', function () {
+  it('does not appear when query param is set', function () {
     render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
       </div>,
       {router: {location}}
     );
-    expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
+    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
   it('triggers changes to the user config and location', async function () {

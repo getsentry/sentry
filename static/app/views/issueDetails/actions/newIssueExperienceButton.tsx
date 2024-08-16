@@ -21,7 +21,7 @@ export function NewIssueExperienceButton() {
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
 
-  if (!hasStreamlinedUI && !hasStreamlinedUIFlag) {
+  if (!hasStreamlinedUIFlag) {
     return null;
   }
 
