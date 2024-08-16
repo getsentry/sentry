@@ -76,7 +76,7 @@ def make_eap_request(
     req = AggregateBucketRequest(
         meta=RequestMeta(
             organization_id=organization.id,
-            cogs_category="eap",
+            cogs_category="events_analytics_platform",
             referrer=referrer,
             project_ids=[project.id for project in projects],
         ),
