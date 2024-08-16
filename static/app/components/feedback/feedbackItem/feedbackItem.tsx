@@ -143,11 +143,14 @@ function TraceDataSection({
 }) {
   // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
   // TODO: we could add a jest test .spec for this ^
-  const {oneOtherIssueEvent, isLoading, isError} = useTraceTimelineEvents({
+  const {oneOtherIssueEvent, traceEvents, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
   const hide: boolean =
-    isLoading || isError || (hasProject && oneOtherIssueEvent?.id === crashReportId);
+    isLoading ||
+    isError ||
+    traceEvents.length <= 1 || // traceEvents include the current event.
+    (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId);
 
   // Note a timeline will only be shown for >1 same-trace issues.
   return hide ? null : (
