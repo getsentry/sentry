@@ -12,6 +12,7 @@ from rest_framework import status
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
 
 # to avoid a circular import
@@ -101,6 +102,30 @@ class DiscordClient(ApiClient):
         )
         user_id = response["id"]  # type: ignore[index]
         return user_id
+
+    def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
+        headers = {"Authorization": f"Bearer {access_token}"}
+        params = {"before": str(int(guild_id) + 1), "after": str(int(guild_id) - 1), "limit": 1}
+        # Need to do this very convoluted way of getting the guild information because
+        # https://github.com/discord/discord-api-docs/discussions/6846
+
+        response: list[dict[str, Any]] = self.get(
+            "/users/@me/guilds", headers=headers, params=params
+        )
+        guild_information = response[0]
+
+        if "permissions" in guild_information:
+            permissions = int(guild_information["permissions"])
+            can_manage_guild = (
+                permissions & DiscordPermissions.MANAGE_GUILD.value
+            ) == DiscordPermissions.MANAGE_GUILD.value
+            is_admin = (
+                permissions & DiscordPermissions.ADMINISTRATOR.value
+            ) == DiscordPermissions.ADMINISTRATOR.value
+
+            return can_manage_guild or is_admin
+
+        return False
 
     def leave_guild(self, guild_id: str) -> None:
         """
