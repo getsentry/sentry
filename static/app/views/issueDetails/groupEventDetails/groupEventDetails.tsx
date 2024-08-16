@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -168,7 +169,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
         isLoading={loadingEvent}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
+        <StyledLayoutBody
+          data-test-id="group-event-details"
+          hasStreamlinedUi={hasStreamlinedUI}
+        >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
               totalEvents={
@@ -193,7 +197,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                 )}
                 {renderContent()}
               </MainLayoutComponent>
-              <StyledLayoutSide>
+              <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
                 <GroupSidebar
                   organization={organization}
                   project={project}
@@ -210,12 +214,20 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)`
+const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUi: boolean}>`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
+
+  ${p =>
+    p.hasStreamlinedUi &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        gap: ${space(2)};
+      }
+    `}
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
@@ -243,11 +255,21 @@ const GroupContent = styled(Layout.Main)`
   padding: ${space(1.5)};
 `;
 
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
+  ${p =>
+    p.hasStreamlinedUi
+      ? css`
+          padding: ${space(1)} ${space(2)} ${space(3)};
+        `
+      : css`
+          padding: ${space(3)} ${space(2)} ${space(3)};
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            padding-right: ${space(4)};
+          }
+        `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-right: ${space(4)};
     padding-left: 0;
   }
 `;
