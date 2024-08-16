@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 
 export function markEventSeen(
   api: Client,
@@ -273,13 +274,12 @@ export function getGroupEventDetailsQueryData({
 
 export function useHasStreamlinedUI() {
   const location = useLocation();
-  const organization = useOrganization();
+  const user = useUser();
   if (location.query.streamline === '0') {
     return false;
   }
   return (
-    location.query.streamline === '1' ||
-    organization.features.includes('issue-details-streamline')
+    location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
   );
 }
 
