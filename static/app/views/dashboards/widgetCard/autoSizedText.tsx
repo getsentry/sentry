@@ -97,20 +97,20 @@ export function AutoSizedText({
   };
 
   useLayoutEffect(() => {
-    const child = childRef.current;
+    const childElement = childRef.current;
 
-    if (!child) {
+    if (!childElement) {
       return;
     }
 
-    const parent = childRef.current.parentElement;
+    const parentElement = childRef.current.parentElement;
 
-    if (!parent) {
+    if (!parentElement) {
       return;
     }
 
     const observer = new ResizeObserver(entries => {
-      const entry = entries.find(e => e.target === parent);
+      const entry = entries.find(e => e.target === parentElement);
 
       if (!entry) {
         return;
@@ -120,7 +120,7 @@ export function AutoSizedText({
       console.log('Resetting the iteration');
 
       const parentDimensions = entry.contentRect;
-      const childDimensions = getElementDimensions(child);
+      const childDimensions = getElementDimensions(childElement);
 
       calculationCount.current = 0;
       fontSizeLowerBound.current = minFontSize;
@@ -130,8 +130,8 @@ export function AutoSizedText({
       fitChildIntoParent(parentDimensions, childDimensions);
     });
 
-    if (parent) {
-      observer.observe(parent);
+    if (parentElement) {
+      observer.observe(parentElement);
     }
 
     return () => {
@@ -149,15 +149,15 @@ export function AutoSizedText({
 
       console.log('Noticed child element size change');
 
-      const child = entry.target;
-      const parent = child.parentElement;
+      const childElement = entry.target;
+      const parentElement = childElement.parentElement;
 
-      if (!parent) {
+      if (!parentElement) {
         return;
       }
 
       const childDimensions = entry.contentRect;
-      const parentDimensions = getElementDimensions(parent);
+      const parentDimensions = getElementDimensions(parentElement);
 
       if (calculationCount.current >= calculationCountLimit) {
         console.log('Exceeded iteration count');
@@ -176,25 +176,14 @@ export function AutoSizedText({
     };
   }, []);
 
-  return (
-    <ParentSizeMimic>
-      <SizedChild ref={childRef}>{children}</SizedChild>
-    </ParentSizeMimic>
-  );
+  return <SizedChild ref={childRef}>{children}</SizedChild>;
 }
-
-const ParentSizeMimic = styled('div')`
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  position: relative;
-`;
 
 const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const DEFAULT_CALCULATION_COUNT_LIMIT = 5;
+const DEFAULT_CALCULATION_COUNT_LIMIT = 10;
 const MAXIMUM_DISPARITY = 0.05;
 
 type Dimensions = {

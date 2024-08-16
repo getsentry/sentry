@@ -615,12 +615,12 @@ const BigNumber = styled('div')`
 `;
 
 const AutoResizeParent = styled('div')`
-  display: inline-flex;
   position: absolute;
   color: ${p => p.theme.headingColor};
   inset: ${space(1)} ${space(3)} 0 ${space(3)};
 
   * {
+    line-height: 1;
     text-align: left !important;
   }
 `;
