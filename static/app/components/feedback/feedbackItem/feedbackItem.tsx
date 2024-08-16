@@ -53,14 +53,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
 
-  const {oneOtherIssueEvent: onlyOneOtherIssueInTrace} = eventData
-    ? useTraceTimelineEvents({event: eventData})
-    : {oneOtherIssueEvent: undefined};
-  const hasLinkedError: boolean = crashReportId && feedbackItem.project;
-  // If there's a linked error from a crash report and only one other issue, showing both would be redundant.
-  // The TraceTimeline wrapped in TraceDataSection only works for >1 issues.
-  const showTraceDataSection: boolean = !onlyOneOtherIssueInTrace || !hasLinkedError;
-
   return (
     <Fragment>
       <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
@@ -105,10 +97,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           organization={organization}
         />
 
-        {eventData && showTraceDataSection ? (
-          <Section icon={<IconIssues size="xs" />} title={t('Trace-related Issues')}>
-            <TraceDataSection event={eventData} />
-          </Section>
+        {eventData ? (
+          <TraceTimelineSection
+            eventData={eventData}
+            hasLinkedError={!!crashReportId && !!feedbackItem.project}
+          />
         ) : null}
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
@@ -136,6 +129,27 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       </OverflowPanelItem>
     </Fragment>
   );
+}
+
+function TraceTimelineSection({
+  eventData,
+  hasLinkedError,
+}: {
+  eventData: Event;
+  hasLinkedError: boolean;
+}) {
+  // If there's a linked error from a crash report and only one other issue, showing both would be redundant.
+  // We only want to show TraceTimelines (wrapped in TraceDataSection) for >1 issues.
+  const {oneOtherIssueEvent: onlyOneOtherIssueInTrace} = useTraceTimelineEvents({
+    event: eventData,
+  });
+  const show: boolean = !onlyOneOtherIssueInTrace || !hasLinkedError;
+
+  return show ? (
+    <Section icon={<IconIssues size="xs" />} title={t('Trace Timeline')}>
+      <TraceDataSection event={eventData} />
+    </Section>
+  ) : null;
 }
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.
