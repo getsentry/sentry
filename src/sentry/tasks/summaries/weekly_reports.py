@@ -388,7 +388,7 @@ class _DuplicateDeliveryCheck:
             raise ValueError("This object has not had `check_for_duplicate_delivery` called yet")
         cluster = self._get_redis_cluster()
         count_after = cluster.incr(self._redis_name)
-        cluster.expire(self._redis_name, timedelta(days=1))
+        cluster.expire(self._redis_name, timedelta(days=3))
 
         is_duplicate_detected = count_after > self.count + 1
         if is_duplicate_detected:
