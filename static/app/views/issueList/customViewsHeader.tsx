@@ -17,7 +17,7 @@ import {
 } from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {UpdateGroupSearchViewPayload} from 'sentry/views/issueList/types';
 
 import {IssueSortOptions, type QueryCounts} from './utils';
 
@@ -32,7 +32,7 @@ type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   queryCounts: QueryCounts;
   router: InjectedRouter;
-  views: GroupSearchView[];
+  views: UpdateGroupSearchViewPayload[];
 };
 
 function CustomViewsIssueListHeader({
@@ -90,10 +90,11 @@ function CustomViewsIssueListHeaderTabsContent({
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
 
   const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}): Tab => {
+    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+      const tabId = id ?? `default${index}`;
       return {
-        id: id,
-        key: id,
+        id: tabId,
+        key: tabId,
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
@@ -106,6 +107,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {query, sort, viewId} = queryParams;
   const getInitialTabKey = () => {
+    if (draggableTabs[0].key.startsWith('default')) {
+      return draggableTabs[0].key;
+    }
     if (!query && !sort && !viewId) {
       return draggableTabs[0].key;
     }
@@ -186,7 +190,7 @@ function CustomViewsIssueListHeaderTabsContent({
           )
         );
       } else if (!selectedTab) {
-        // if a viewId does not existing, remove it from the query
+        // if a viewId does not exist, remove it from the query
         navigate({
           query: {
             ...queryParams,
@@ -203,7 +207,7 @@ function CustomViewsIssueListHeaderTabsContent({
   useEffect(() => {
     setDraggableTabs(
       draggableTabs.map(tab => {
-        if (tab.id[0] === '_') {
+        if (tab.id && tab.id[0] === '_') {
           // Temp viewIds are prefixed with '_'
           views.forEach(view => {
             if (

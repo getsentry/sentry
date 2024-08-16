@@ -84,7 +84,7 @@ export interface DraggableTabBarProps {
   tempTab?: Tab;
 }
 
-const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
+export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 export function DraggableTabBar({
   selectedTabKey,
