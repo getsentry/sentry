@@ -454,7 +454,6 @@ const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
   overflow: auto;
-  background: ${p => p.theme.red100};
 `;
 
 const ValueObjectKey = styled('span')`
