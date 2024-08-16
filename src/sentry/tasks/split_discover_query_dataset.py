@@ -19,10 +19,136 @@ logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
 SLEEP_FOR = 5 * 60  # 5 minutes
+RATE_LIMIT_CACHE = LRUCache(maxsize=1000)
 
 
-class InterruptedException(Exception):
+class NoOpException(Exception):
     pass
+
+
+class EmptyQueryset(Exception):
+    pass
+
+
+def _split_discover_query_dataset(dry_run):
+    organization_allowlist = options.get(
+        "discover.saved-query-dataset-split.organization-allowlist"
+    )
+
+    # Tracks if any queries were processed this loop
+    did_process = False
+
+    transaction_dataset_count = 0
+    error_dataset_count = 0
+    errored_query_count = 0
+
+    inferred_without_query = 0
+    inferred_with_query = 0
+
+    queryset = DiscoverSavedQuery.objects.filter(
+        organization_id__in=organization_allowlist,
+        dataset=DiscoverSavedQueryTypes.DISCOVER,
+        dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+    ).select_related("organization")
+    if not queryset:
+        logger.info(
+            "sentry.tasks.split_discover_query_dataset - no more queries to process",
+            extra={
+                "transaction_dataset_count": transaction_dataset_count,
+                "error_dataset_count": error_dataset_count,
+                "errored_query_count": errored_query_count,
+                "inferred_with_query": inferred_with_query,
+                "inferred_without_query": inferred_without_query,
+            },
+        )
+        raise EmptyQueryset
+
+    for saved_query in RangeQuerySetWrapper(queryset):
+        last_accessed = RATE_LIMIT_CACHE.get(saved_query.organization_id, None)
+        # Don't try to split if we've run hit snuba for this org in the last 10 seconds
+        if last_accessed is not None and int(time()) - last_accessed < 10:
+            continue
+
+        try:
+            with metrics.timer("sentry.tasks.split_discover_query_dataset.save_split_decision"):
+                split_decision, queried_snuba = get_and_save_split_decision_for_query(
+                    saved_query, dry_run=dry_run
+                )
+                if split_decision == DiscoverSavedQueryTypes.ERROR_EVENTS:
+                    error_dataset_count += 1
+                else:
+                    transaction_dataset_count += 1
+
+                if queried_snuba:
+                    inferred_with_query += 1
+                    RATE_LIMIT_CACHE[saved_query.organization_id] = int(time())
+                else:
+                    inferred_without_query += 1
+                did_process = True
+        except (
+            snuba.RateLimitExceeded,
+            snuba.QueryConnectionFailed,
+            snuba.QueryTooManySimultaneous,
+        ) as e:
+            # These are errors that should be okay to be retried on the next batch,
+            # so not setting a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
+            sentry_sdk.capture_exception(
+                e,
+                contexts={
+                    "discover_saved_query_id": saved_query.id,
+                    "organization_id": saved_query.organization.id,
+                },
+            )
+            inferred_with_query += 1
+
+            # We've hit rate limits / resource limits, wait 5 minutes
+            # before trying this organization again.
+            RATE_LIMIT_CACHE[saved_query.organization_id] = int(time()) + 300
+            errored_query_count += 1
+
+        except snuba.SnubaError as e:
+            sentry_sdk.capture_exception(
+                e,
+                contexts={
+                    "discover_saved_query_id": saved_query.id,
+                    "organization_id": saved_query.organization.id,
+                },
+            )
+            errored_query_count += 1
+            inferred_with_query += 1
+            if not dry_run:
+                save_split_decision_for_query(
+                    saved_query,
+                    None,
+                    DatasetSourcesTypes.SPLIT_ERRORED.value,
+                )
+            did_process = True
+
+        except SoftTimeLimitExceeded:
+            errored_query_count += 1
+            logger.warning(
+                "SoftTimeLimitExceeded",
+                extra={
+                    "transaction_dataset_count": transaction_dataset_count,
+                    "error_dataset_count": error_dataset_count,
+                    "errored_query_count": errored_query_count,
+                    "inferred_with_query": inferred_with_query,
+                    "inferred_without_query": inferred_without_query,
+                },
+            )
+
+        except Exception as e:
+            errored_query_count += 1
+            sentry_sdk.capture_exception(
+                e,
+                contexts={
+                    "discover_saved_query_id": saved_query.id,
+                    "organization_id": saved_query.organization.id,
+                },
+            )
+
+    if not did_process:
+        raise NoOpException
 
 
 @instrumented_task(
@@ -37,134 +163,15 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
     if not options.get("discover.saved-query-dataset-split.enable"):
         return
 
-    organization_allowlist = options.get(
-        "discover.saved-query-dataset-split.organization-allowlist"
-    )
-
-    rate_limit_cache = LRUCache(maxsize=1000)
-
-    transaction_dataset_count = 0
-    error_dataset_count = 0
-    errored_query_count = 0
-
-    inferred_without_query = 0
-    inferred_with_query = 0
-
     consecutive_noop_attempts = 0
     while True:
         try:
-            # Tracks if any queries were processed this loop
-            did_process = False
+            _split_discover_query_dataset(dry_run)
 
-            queryset = DiscoverSavedQuery.objects.filter(
-                organization_id__in=organization_allowlist,
-                dataset=DiscoverSavedQueryTypes.DISCOVER,
-                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
-            ).select_related("organization")
-            if not queryset:
-                logger.info(
-                    "sentry.tasks.split_discover_query_dataset - no more queries to process",
-                    extra={
-                        "transaction_dataset_count": transaction_dataset_count,
-                        "error_dataset_count": error_dataset_count,
-                        "errored_query_count": errored_query_count,
-                        "inferred_with_query": inferred_with_query,
-                        "inferred_without_query": inferred_without_query,
-                    },
-                )
-                break
-
-            for saved_query in RangeQuerySetWrapper(queryset):
-                last_accessed = rate_limit_cache.get(saved_query.organization_id, None)
-                # Don't try to split if we've run hit snuba for this org in the last 10 seconds
-                if last_accessed is not None and int(time()) - last_accessed < 10:
-                    continue
-
-                try:
-                    with metrics.timer(
-                        "sentry.tasks.split_discover_query_dataset.save_split_decision"
-                    ):
-                        split_decision, queried_snuba = get_and_save_split_decision_for_query(
-                            saved_query, dry_run=dry_run
-                        )
-                        if split_decision == DiscoverSavedQueryTypes.ERROR_EVENTS:
-                            error_dataset_count += 1
-                        else:
-                            transaction_dataset_count += 1
-
-                        if queried_snuba:
-                            inferred_with_query += 1
-                            rate_limit_cache[saved_query.organization_id] = int(time())
-                        else:
-                            inferred_without_query += 1
-                        did_process = True
-                except (
-                    snuba.RateLimitExceeded,
-                    snuba.QueryConnectionFailed,
-                    snuba.QueryTooManySimultaneous,
-                ) as e:
-                    # These are errors that should be okay to be retried on the next batch,
-                    # so not setting a DatasetSourcesTypes.SPLIT_ERRORED dataset_source.
-                    sentry_sdk.capture_exception(
-                        e,
-                        contexts={
-                            "discover_saved_query_id": saved_query.id,
-                            "organization_id": saved_query.organization.id,
-                        },
-                    )
-                    inferred_with_query += 1
-
-                    # We've hit rate limits / resource limits, wait 5 minutes
-                    # before trying this organization again.
-                    rate_limit_cache[saved_query.organization_id] = int(time()) + 300
-                    errored_query_count += 1
-
-                except snuba.SnubaError as e:
-                    sentry_sdk.capture_exception(
-                        e,
-                        contexts={
-                            "discover_saved_query_id": saved_query.id,
-                            "organization_id": saved_query.organization.id,
-                        },
-                    )
-                    errored_query_count += 1
-                    inferred_with_query += 1
-                    if not dry_run:
-                        save_split_decision_for_query(
-                            saved_query,
-                            None,
-                            DatasetSourcesTypes.SPLIT_ERRORED.value,
-                        )
-                    did_process = True
-
-                except SoftTimeLimitExceeded:
-                    errored_query_count += 1
-                    logger.warning(
-                        "SoftTimeLimitExceeded",
-                        extra={
-                            "transaction_dataset_count": transaction_dataset_count,
-                            "error_dataset_count": error_dataset_count,
-                            "errored_query_count": errored_query_count,
-                            "inferred_with_query": inferred_with_query,
-                            "inferred_without_query": inferred_without_query,
-                        },
-                    )
-
-                except Exception as e:
-                    errored_query_count += 1
-                    sentry_sdk.capture_exception(
-                        e,
-                        contexts={
-                            "discover_saved_query_id": saved_query.id,
-                            "organization_id": saved_query.organization.id,
-                        },
-                    )
-
-            if not did_process:
-                raise InterruptedException
-            else:
-                consecutive_noop_attempts = 0
-
-        except InterruptedException:
+        except EmptyQueryset:
+            break
+        except NoOpException:
             consecutive_noop_attempts += 1
             sleep(SLEEP_FOR)
+        else:
+            consecutive_noop_attempts = 0
