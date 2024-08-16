@@ -8,8 +8,8 @@ export function Divider() {
  * Using relative font size to match the font size of the parent element
  */
 const DividerWrapper = styled('div')`
-  color: ${p => p.theme.gray200};
-  font-size: 0.75rem;
+  color: ${p => p.theme.translucentBorder};
+  font-size: 0.7em;
   display: flex;
   align-items: center;
   margin: 0 1px;
