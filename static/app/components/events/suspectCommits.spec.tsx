@@ -227,7 +227,7 @@ describe('SuspectCommits', function () {
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         body: {
-          committers: [committers[0]],
+          committers,
         },
       });
     });
@@ -263,14 +263,17 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('commit-row')).not.toBeInTheDocument();
     });
 
-    it('renders multiple suspect commits', async () => {
+    it('renders correct heading for single commit', async () => {
+      // For this one test, undo the `beforeEach` so that we can respond with just a single commit
+      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
         body: {
-          committers,
+          committers: [committers[0]],
         },
       });
+
       render(
         <SuspectCommits
           project={project}
@@ -281,7 +284,8 @@ describe('SuspectCommits', function () {
         {organization}
       );
 
-      expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
+      expect(await screen.findByText(/Suspect Commit/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
     });
   });
 });
