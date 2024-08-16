@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -26,7 +27,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
 from .notifications import SlackNotifyBasicMixin
-from .utils import logger
+
+_logger = logging.getLogger("sentry.integrations.slack")
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -142,8 +144,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             sdk_response = client.team_info()
 
             return sdk_response.get("team")
-        except SlackApiError as e:
-            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+        except SlackApiError:
+            _logger.exception("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:

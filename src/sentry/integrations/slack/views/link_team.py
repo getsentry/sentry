@@ -24,6 +24,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.types import TeamLinkRequest
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
@@ -35,7 +36,6 @@ from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
-from ..utils import is_valid_role
 from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page

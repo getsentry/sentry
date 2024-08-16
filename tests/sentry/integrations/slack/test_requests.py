@@ -10,7 +10,7 @@ from sentry import options
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
-from sentry.integrations.slack.utils import set_signing_secret
+from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test

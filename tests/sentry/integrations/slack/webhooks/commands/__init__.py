@@ -14,7 +14,7 @@ from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
 from sentry import options
-from sentry.integrations.slack.utils import set_signing_secret
+from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity
 from sentry.models.team import Team

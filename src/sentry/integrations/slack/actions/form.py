@@ -9,11 +9,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils import (
-    SLACK_RATE_LIMITED_MESSAGE,
-    strip_channel_name,
-    validate_channel_id,
-)
+from sentry.integrations.slack.utils.channel import strip_channel_name, validate_channel_id
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 
 logger = logging.getLogger("sentry.rules")

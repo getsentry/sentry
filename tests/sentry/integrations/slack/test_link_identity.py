@@ -78,7 +78,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert identity[0].status == IdentityStatus.VALID
         assert self.mock_webhook.call_count == 1
 
-    @patch("sentry.integrations.slack.utils.notifications.logger")
+    @patch("sentry.integrations.slack.utils.notifications._logger")
     def test_basic_flow_with_webhook_client_error(self, mock_logger):
         """Do the auth flow and assert that the identity was created."""
         self.mock_webhook.side_effect = SlackApiError("", response={"ok": False})
@@ -99,7 +99,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "slack.link-identity.error"
+        assert mock_logger.exception.call_args.args[0] == "%serror"
 
     def test_basic_flow_with_web_client(self):
         """No response URL is provided, so we use WebClient."""
@@ -120,7 +120,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert identity[0].status == IdentityStatus.VALID
         assert self.mock_post.call_count == 1
 
-    @patch("sentry.integrations.slack.utils.notifications.logger")
+    @patch("sentry.integrations.slack.utils.notifications._logger")
     def test_basic_flow_with_web_client_error(self, mock_logger):
         """No response URL is provided, so we use WebClient."""
         self.mock_post.side_effect = SlackApiError("", response={"ok": False})
@@ -139,9 +139,9 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "slack.link-identity.error"
+        assert mock_logger.exception.call_args.args[0] == "%serror"
 
-    @patch("sentry.integrations.slack.utils.notifications.logger")
+    @patch("sentry.integrations.slack.utils.notifications._logger")
     def test_basic_flow_with_web_client_expired_url(self, mock_logger):
         self.mock_post.side_effect = SlackApiError(
             "", response={"ok": False, "error": "Expired url"}

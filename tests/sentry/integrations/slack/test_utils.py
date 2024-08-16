@@ -6,11 +6,11 @@ import responses
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
-from sentry.integrations.slack.utils import get_channel_id
 from sentry.integrations.slack.utils.channel import (
     CHANNEL_PREFIX,
     MEMBER_PREFIX,
     SlackChannelIdData,
+    get_channel_id,
 )
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase

@@ -13,7 +13,8 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.silo.base import SiloMode
