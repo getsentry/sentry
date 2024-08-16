@@ -69,7 +69,7 @@ export function AutoSizedText({
           (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
         ) {
           // Stop the iteration, we've found a fit!
-          return;
+          break;
         }
 
         adjustFontSize(childDimensions, parentDimensions);
