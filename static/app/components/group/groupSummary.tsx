@@ -4,6 +4,7 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,7 +52,6 @@ function GroupSummaryFeatureBadge() {
       title={t(
         'This feature is experimental and may produce inaccurate results. Please share feedback to help us improve the experience.'
       )}
-      tooltipProps={{isHoverable: true}}
     />
   );
 }
@@ -68,7 +68,7 @@ export function GroupSummaryHeader({groupId}: GroupSummaryProps) {
 
   const renderContent = () => {
     if (isLoading) {
-      return <StyledLoadingIndicator size={16} mini />;
+      return <Placeholder height="19px" width="256px" />;
     }
 
     return <span>{data?.headline}</span>;
@@ -121,7 +121,15 @@ export function GroupSummary({groupId}: GroupSummaryProps) {
           <ButtonContainer>
             <Button
               onClick={() => {
-                openForm();
+                openForm({
+                  messagePlaceholder: t(
+                    'How can we make this issue summary more useful?'
+                  ),
+                  tags: {
+                    ['feedback.source']: 'issue_details_ai_issue_summary',
+                    ['feedback.owner']: 'ml-ai',
+                  },
+                });
               }}
               size="xs"
               icon={<IconMegaphone />}
