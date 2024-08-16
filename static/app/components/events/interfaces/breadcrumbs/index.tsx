@@ -18,7 +18,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import SearchBarAction from '../searchBarAction';
@@ -316,7 +316,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   return (
     <InterimSection
       showPermalink={!hideTitle}
-      type={FoldSectionKey.BREADCRUMBS}
+      type={SectionKey.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
       guideTarget="breadcrumbs"
       actions={actions}

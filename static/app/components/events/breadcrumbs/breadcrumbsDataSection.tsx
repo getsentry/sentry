@@ -37,7 +37,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
@@ -178,7 +178,7 @@ export default function BreadcrumbsDataSection({
   return (
     <InterimSection
       key="breadcrumbs"
-      type={FoldSectionKey.BREADCRUMBS}
+      type={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}

@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -50,7 +50,7 @@ export function TraceDataSection({event}: {event: Event}) {
   );
 
   return hasStreamlinedUI ? (
-    <InterimSection title={t('Trace Connections')} type={FoldSectionKey.TRACE}>
+    <InterimSection title={t('Trace Connections')} type={SectionKey.TRACE}>
       {traceContent}
     </InterimSection>
   ) : (

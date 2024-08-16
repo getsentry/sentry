@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
@@ -111,7 +111,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
 
   if (isError) {
     return (
-      <InterimSection type={FoldSectionKey.ATTACHMENTS} title={t('Attachments')}>
+      <InterimSection type={SectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
@@ -138,7 +138,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <InterimSection type={FoldSectionKey.ATTACHMENTS} title={title}>
+    <InterimSection type={SectionKey.ATTACHMENTS} title={title}>
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}

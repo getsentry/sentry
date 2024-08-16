@@ -4,7 +4,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
@@ -40,7 +40,7 @@ export function EventPackageData({event}: Props) {
   }
 
   return (
-    <InterimSection title={title} type={FoldSectionKey.PACKAGES}>
+    <InterimSection title={title} type={SectionKey.PACKAGES}>
       <ClippedBox>
         <ErrorBoundary mini>
           <KeyValueList data={packages} longKeys={longKeys} />

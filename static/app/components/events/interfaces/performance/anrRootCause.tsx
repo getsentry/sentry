@@ -18,7 +18,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 enum AnrRootCauseAllowlist {
@@ -117,7 +117,7 @@ export function AnrRootCause({event, organization}: Props) {
   return (
     <InterimSection
       title={t('Suspect Root Cause')}
-      type={FoldSectionKey.SUSPECT_ROOT_CAUSE}
+      type={SectionKey.SUSPECT_ROOT_CAUSE}
       help={helpText}
     >
       {potentialAnrRootCause?.map(issue => {

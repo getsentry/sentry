@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {getKnownData, getKnownStructuredData} from '../contexts/utils';
@@ -41,7 +41,7 @@ export const EventExtraData = memo(
 
     return (
       <InterimSection
-        type={FoldSectionKey.EXTRA}
+        type={SectionKey.EXTRA}
         title={t('Additional Data')}
         actions={
           <SegmentedControl
