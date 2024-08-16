@@ -29,6 +29,10 @@ export function ExploreContent({}: ExploreContentProps) {
 
   const [userQuery, setUserQuery] = useUserQuery();
 
+  const toolbarExtras = organization.features.includes('visibility-explore-dataset')
+    ? ['dataset toggle' as const]
+    : [];
+
   return (
     <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -53,7 +57,7 @@ export function ExploreContent({}: ExploreContentProps) {
           </Layout.Header>
           <Body>
             <Side>
-              <ExploreToolbar />
+              <ExploreToolbar extras={toolbarExtras} />
             </Side>
             <Main fullWidth>
               <ExploreCharts />
