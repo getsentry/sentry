@@ -25,6 +25,8 @@ export const enum SectionKey {
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
 
+  SUSPECT_ROOT_CAUSE = 'suspect-root-cause',
+
   SPAN_EVIDENCE = 'span-evidence',
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',

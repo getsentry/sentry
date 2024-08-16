@@ -300,18 +300,20 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               </Fragment>
             )}
           </EventInfo>
-          <JumpTo>
-            <div>{t('Jump to:')}</div>
-            <ScrollCarousel gap={0.25}>
-              {eventSectionConfigs.map(config => (
-                <EventNavigationLink
-                  key={config.key}
-                  config={config}
-                  propCss={grayText}
-                />
-              ))}
-            </ScrollCarousel>
-          </JumpTo>
+          {eventSectionConfigs.length > 0 && (
+            <JumpTo>
+              <div>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25}>
+                {eventSectionConfigs.map(config => (
+                  <EventNavigationLink
+                    key={config.key}
+                    config={config}
+                    propCss={grayText}
+                  />
+                ))}
+              </ScrollCarousel>
+            </JumpTo>
+          )}
         </EventInfoJumpToWrapper>
       </div>
     );
