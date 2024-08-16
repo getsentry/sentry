@@ -69,6 +69,8 @@ export function AutoSizedText({
           (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
         ) {
           // Stop the iteration, we've found a fit!
+          span.setAttribute('widthDifference', widthDifference);
+          span.setAttribute('heightDifference', heightDifference);
           break;
         }
 
