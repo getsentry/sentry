@@ -291,7 +291,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
         <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
-          {true ? (
+          {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
               hiddenOptions={hiddenOptionsWithRecentsAdded}
