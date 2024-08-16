@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -31,7 +32,7 @@ from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
 
-from . import logger
+_logger = logging.getLogger(__name__)
 
 
 def send_incident_alert_notification(
@@ -140,7 +141,7 @@ def send_incident_alert_notification(
             "incident_status": new_status,
             "attachments": attachments,
         }
-        logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
+        _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         metrics.incr(
             SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
             sample_rate=1.0,
@@ -171,7 +172,11 @@ def respond_to_slack_command(
     log = "slack.link-identity." if command == "link" else "slack.unlink-identity."
 
     if params.response_url:
-        logger.info(log + "respond-webhook", extra={"response_url": params.response_url})
+        _logger.info(
+            "%s, respond-webhook",
+            log,
+            extra={"response_url": params.response_url},
+        )
         try:
             webhook_client = WebhookClient(params.response_url)
             webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
@@ -187,9 +192,9 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "webhook", "command": command},
                 )
-                logger.exception(log + "error", extra={"error": str(e)})
+                _logger.exception("%serror", log)
     else:
-        logger.info(log + "respond-ephemeral")
+        _logger.info("%s respond-ephemeral", log)
         try:
             client = SlackSdkClient(integration_id=params.integration.id)
             client.chat_postMessage(
@@ -210,4 +215,4 @@ def respond_to_slack_command(
                     sample_rate=1.0,
                     tags={"type": "ephemeral", "command": command},
                 )
-                logger.exception(log + "error", extra={"error": str(e)})
+                _logger.exception("%serror", log)

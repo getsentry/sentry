@@ -498,7 +498,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    @patch("sentry.integrations.slack.webhooks.action.logger")
+    @patch("sentry.integrations.slack.webhooks.action._logger")
     def test_assign_issue_error(self, mock_logger):
         mock_slack_response = SlackResponse(
             client=None,
@@ -533,9 +533,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-        mock_logger.error.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "slack.webhook.update_status.response-error",
-            extra={"error": "error\nThe server responded with: {'ok': False}"},
         )
 
     def test_assign_issue_through_unfurl(self):

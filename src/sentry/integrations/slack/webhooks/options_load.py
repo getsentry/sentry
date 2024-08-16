@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
@@ -17,7 +18,7 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 
 class OptionGroup(TypedDict):
@@ -100,7 +101,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         )
 
         if not group:
-            logger.exception(
+            _logger.error(
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,
