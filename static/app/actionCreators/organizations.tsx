@@ -68,7 +68,7 @@ type RemoveParams = {
   /**
    * The organization slug
    */
-  orgId: string;
+  orgSlug: string;
 
   /**
    * An optional error message to be used in a toast, if remove fails
@@ -81,14 +81,17 @@ type RemoveParams = {
   successMessage?: string;
 };
 
-export function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
-  const endpoint = `/organizations/${orgId}/`;
+export function remove(
+  api: Client,
+  {successMessage, errorMessage, orgSlug}: RemoveParams
+) {
+  const endpoint = `/organizations/${orgSlug}/`;
   return api
     .requestPromise(endpoint, {
       method: 'DELETE',
     })
     .then(() => {
-      OrganizationsStore.onRemoveSuccess(orgId);
+      OrganizationsStore.onRemoveSuccess(orgSlug);
 
       if (successMessage) {
         addSuccessMessage(successMessage);
