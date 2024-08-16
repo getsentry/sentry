@@ -14,7 +14,6 @@ export function AutoSizedText({
   maxFontSize,
   calculationCountLimit = DEFAULT_CALCULATION_COUNT_LIMIT,
 }: Props) {
-  const parentRef = useRef<HTMLDivElement>(null);
   const childRef = useRef<HTMLDivElement>(null);
 
   const fontSize = useRef<number>((maxFontSize + minFontSize) / 2);
@@ -98,10 +97,22 @@ export function AutoSizedText({
   };
 
   useLayoutEffect(() => {
-    const observer = new ResizeObserver(entries => {
-      const entry = entries.find(e => e.target === parentRef.current);
+    const child = childRef.current;
 
-      if (!entry || !parentRef.current || !childRef.current) {
+    if (!child) {
+      return;
+    }
+
+    const parent = childRef.current.parentElement;
+
+    if (!parent) {
+      return;
+    }
+
+    const observer = new ResizeObserver(entries => {
+      const entry = entries.find(e => e.target === parent);
+
+      if (!entry) {
         return;
       }
 
@@ -109,11 +120,7 @@ export function AutoSizedText({
       console.log('Resetting the iteration');
 
       const parentDimensions = entry.contentRect;
-      const childDimensions = getElementDimensions(childRef.current);
-
-      if (!childDimensions) {
-        return;
-      }
+      const childDimensions = getElementDimensions(child);
 
       calculationCount.current = 0;
       fontSizeLowerBound.current = minFontSize;
@@ -123,8 +130,8 @@ export function AutoSizedText({
       fitChildIntoParent(parentDimensions, childDimensions);
     });
 
-    if (parentRef.current) {
-      observer.observe(parentRef.current);
+    if (parent) {
+      observer.observe(parent);
     }
 
     return () => {
@@ -136,19 +143,21 @@ export function AutoSizedText({
     const observer = new ResizeObserver(entries => {
       const entry = entries.find(e => e.target === childRef.current);
 
-      if (!entry || !parentRef.current || !childRef.current) {
+      if (!entry) {
         return;
       }
 
       console.log('Noticed child element size change');
 
-      const childDimensions = entry.contentRect;
-      const parentDimensions = getElementDimensions(parentRef.current);
+      const child = entry.target;
+      const parent = child.parentElement;
 
-      if (!parentDimensions || !childDimensions) {
-        // Refs are not ready or cannot be measured, abandon
+      if (!parent) {
         return;
       }
+
+      const childDimensions = entry.contentRect;
+      const parentDimensions = getElementDimensions(parent);
 
       if (calculationCount.current >= calculationCountLimit) {
         console.log('Exceeded iteration count');
@@ -168,7 +177,7 @@ export function AutoSizedText({
   }, []);
 
   return (
-    <ParentSizeMimic ref={parentRef}>
+    <ParentSizeMimic>
       <SizedChild ref={childRef}>{children}</SizedChild>
     </ParentSizeMimic>
   );
@@ -201,12 +210,8 @@ function calculateDimensionDisparity(
   return 1 - Math.abs(a[dimension] / b[dimension]);
 }
 
-function getElementDimensions(element: HTMLDivElement | null): Dimensions | null {
-  const bbox = element?.getBoundingClientRect();
-
-  if (!bbox) {
-    return null;
-  }
+function getElementDimensions(element: HTMLElement): Dimensions {
+  const bbox = element.getBoundingClientRect();
 
   return {
     width: bbox.width,
