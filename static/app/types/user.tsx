@@ -47,10 +47,10 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
+    prefersIssueDetailsStreamlinedUI: boolean;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
-    prefersIssueDetailsStreamlinedUI?: boolean;
   };
   permissions: Set<string>;
   authenticators?: UserEnrolledAuthenticator[];
