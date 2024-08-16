@@ -14,7 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
@@ -79,6 +79,7 @@ export function HTTPSamplesPanel() {
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
       spanSearchQuery: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
@@ -136,20 +137,27 @@ export function HTTPSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
-  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
-  const ribbonFilters: SpanMetricsQueryFilters = {
-    ...BASE_FILTERS,
+  const ADDITONAL_FILTERS = {
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
+    ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+        }
+      : {}),
+  };
+
+  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
+  const ribbonFilters: SpanMetricsQueryFilters = {
+    ...BASE_FILTERS,
+    ...ADDITONAL_FILTERS,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
-    'span.domain':
-      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
-    transaction: query.transaction,
+    ...ADDITONAL_FILTERS,
   };
 
   const responseCodeInRange = query.responseCodeClass
