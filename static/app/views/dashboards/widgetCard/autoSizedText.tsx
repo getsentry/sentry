@@ -3,129 +3,73 @@ import styled from '@emotion/styled';
 
 interface Props {
   children: React.ReactNode;
-  maxFontSize: number;
-  minFontSize: number;
-  calculationCountLimit?: number;
+  maximumDifference?: number;
 }
 
 export function AutoSizedText({
   children,
-  minFontSize,
-  maxFontSize,
-  calculationCountLimit = DEFAULT_CALCULATION_COUNT_LIMIT,
+  maximumDifference = DEFAULT_MAXIMUM_DIFFERENCE,
 }: Props) {
   const childRef = useRef<HTMLDivElement>(null);
 
-  const fontSize = useRef<number>((maxFontSize + minFontSize) / 2);
-  const fontSizeLowerBound = useRef<number>(minFontSize);
-  const fontSizeUpperBound = useRef<number>(maxFontSize);
-
-  console.log(fontSize.current);
-
-  const calculationCount = useRef<number>(0);
-
-  const fitChildIntoParent = (
-    childDimensions: Dimensions,
-    parentDimensions: Dimensions
-  ) => {
-    const childElement = childRef.current;
-
-    if (!childElement) {
-      return;
-    }
-
-    console.log('fitChildIntoParent');
-
-    // Calculate the width and height disparity between the child and parent. A disparity of 0 means they're the same size.
-    const widthDisparity = calculateDimensionDisparity(
-      childDimensions,
-      parentDimensions,
-      'width'
-    );
-
-    const heightDisparity = calculateDimensionDisparity(
-      childDimensions,
-      parentDimensions,
-      'height'
-    );
-
-    const childFitsIntoParent =
-      childDimensions.width <= parentDimensions.width &&
-      childDimensions.height <= parentDimensions.height;
-
-    if (
-      childFitsIntoParent &&
-      (widthDisparity <= MAXIMUM_DISPARITY || heightDisparity <= MAXIMUM_DISPARITY)
-    ) {
-      // The child fits completely into the parent _and_ at least one dimension is very similar to the parent size (i.e., it fits nicely in the parent). Abandon, we're done!
-      console.log('Fit successful');
-
-      return;
-    }
-
-    console.log(childDimensions, parentDimensions);
-    console.log({fontSize: fontSize.current});
-
-    let newFontSize;
-
-    if (
-      childDimensions.width > parentDimensions.width ||
-      childDimensions.height > parentDimensions.height
-    ) {
-      // The element is bigger than the parent, scale down
-      console.log('Too big');
-      newFontSize = (fontSizeLowerBound.current + fontSize.current) / 2;
-
-      fontSizeUpperBound.current = fontSize.current;
-      fontSize.current = newFontSize;
-    } else if (
-      childDimensions.width < parentDimensions.width ||
-      childDimensions.height < parentDimensions.height
-    ) {
-      // The element is too small, scale up
-      console.log('Too small');
-
-      newFontSize = (fontSizeUpperBound.current + fontSize.current) / 2;
-
-      fontSizeUpperBound.current = fontSize.current;
-      fontSize.current = newFontSize;
-    }
-
-    childElement.style.fontSize = `${newFontSize}px`;
-    console.log('Changed font to', childElement.style.fontSize);
-  };
+  const fontSize = useRef<number>(0);
+  const fontSizeLowerBound = useRef<number>(0);
+  const fontSizeUpperBound = useRef<number>(0);
 
   useLayoutEffect(() => {
-    const childElement = childRef.current;
+    const childElement = childRef.current; // This is `SizedChild`
+    const parentElement = childRef.current?.parentElement; // This is the parent of `AutoSizedText`
 
-    if (!childElement) {
-      return;
+    if (!childElement || !parentElement) {
+      return () => {};
     }
 
-    const parentElement = childRef.current.parentElement;
-
-    if (!parentElement) {
-      return;
-    }
-
+    // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
+    // on component mount, and every time the element changes size after that
     const observer = new ResizeObserver(entries => {
-      const entry = entries.find(e => e.target === parentElement);
+      // The entries list contains an array of every observed item. Here it is only one element
+      const entry = entries[0];
 
       if (!entry) {
         return;
       }
 
-      calculationCount.current = 0;
-      fontSizeLowerBound.current = minFontSize;
-      fontSizeUpperBound.current = maxFontSize;
+      // The resize handler passes the parent's dimensions, so we don't have to get the bounding box
+      const parentDimensions = entry.contentRect;
 
-      while (calculationCount.current <= calculationCountLimit) {
+      // Reset the iteration parameters
+      fontSizeLowerBound.current = 0;
+      fontSizeUpperBound.current = parentDimensions.height;
+
+      let calculationCount = 0;
+
+      // Run the resize iteration in a loop. This blocks the main UI thread and prevents
+      // visible layout jitter. If this was done through a `ResizeObserver` or React State
+      // each step in the resize iteration would be visible to the user
+      while (calculationCount <= ITERATION_LIMIT) {
         const childDimensions = getElementDimensions(childElement);
-        const parentDimensions = entry.contentRect;
 
-        calculationCount.current += 1;
+        // Update the font size, which changes the child dimensions
+        adjustFontSize(childDimensions, parentDimensions);
 
-        fitChildIntoParent(childDimensions, parentDimensions);
+        const widthDifference = parentDimensions.width - childDimensions.width;
+        const heightDifference = parentDimensions.height - childDimensions.height;
+
+        const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
+        const childIsWithinWidthTolerance =
+          Math.abs(widthDifference) <= maximumDifference;
+        const childIsWithinHeightTolerance =
+          Math.abs(heightDifference) <= maximumDifference;
+
+        if (
+          childFitsIntoParent &&
+          (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
+        ) {
+          // Stop the iteration, we've found a fit!
+          return;
+        }
+
+        calculationCount += 1;
       }
     });
 
@@ -134,7 +78,37 @@ export function AutoSizedText({
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [maximumDifference]);
+
+  const adjustFontSize = (childDimensions: Dimensions, parentDimensions: Dimensions) => {
+    const childElement = childRef.current;
+
+    if (!childElement) {
+      return;
+    }
+
+    let newFontSize;
+
+    if (
+      childDimensions.width > parentDimensions.width ||
+      childDimensions.height > parentDimensions.height
+    ) {
+      // The element is bigger than the parent, scale down
+      newFontSize = (fontSizeLowerBound.current + fontSize.current) / 2;
+      fontSizeUpperBound.current = fontSize.current;
+    } else if (
+      childDimensions.width < parentDimensions.width ||
+      childDimensions.height < parentDimensions.height
+    ) {
+      // The element is smaller than the parent, scale up
+      newFontSize = (fontSizeUpperBound.current + fontSize.current) / 2;
+      fontSizeLowerBound.current = fontSize.current;
+    }
+
+    // Store font size in a ref so we don't have to measure styles to get it
+    fontSize.current = newFontSize;
+    childElement.style.fontSize = `${newFontSize}px`;
+  };
 
   return <SizedChild ref={childRef}>{children}</SizedChild>;
 }
@@ -143,21 +117,13 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const DEFAULT_CALCULATION_COUNT_LIMIT = 10;
-const MAXIMUM_DISPARITY = 0.05;
+const ITERATION_LIMIT = 50;
+const DEFAULT_MAXIMUM_DIFFERENCE = 5; // px
 
 type Dimensions = {
   height: number;
   width: number;
 };
-
-function calculateDimensionDisparity(
-  a: Dimensions,
-  b: Dimensions,
-  dimension: 'height' | 'width'
-): number {
-  return Math.abs(1 - Math.abs(a[dimension] / b[dimension]));
-}
 
 function getElementDimensions(element: HTMLElement): Dimensions {
   const bbox = element.getBoundingClientRect();

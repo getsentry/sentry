@@ -18,7 +18,7 @@ export default storyBook(AutoSizedText, story => {
         </p>
 
         <SmallSizingWindow>
-          <AutoSizedText minFontSize={10} maxFontSize={600}>
+          <AutoSizedText>
             <OneLineSpan>NEWSFLASH, y'all!</OneLineSpan>
           </AutoSizedText>
         </SmallSizingWindow>
@@ -33,8 +33,8 @@ export default storyBook(AutoSizedText, story => {
           <strong>
             <code>children</code>
           </strong>
-          prop. <JSXNode name="AutoSizedText" /> will mimic the dimensions of the
-          positioned element, and size its children to fit into itself.
+          prop. <JSXNode name="AutoSizedText" /> will set the font size of its children to
+          fit into the parent.
         </p>
       </Fragment>
     );
@@ -47,26 +47,12 @@ export default storyBook(AutoSizedText, story => {
           <ul>
             <li>
               <strong>
-                <code>minFontSize</code>
+                <code>maximumDifference</code>
               </strong>
-              : An integer value for the minimum acceptable font size. This is mostly a
-              safeguard, but it's a good idea to set this to something reasonable.
-            </li>
-            <li>
-              <strong>
-                <code>maxFontSize</code>
-              </strong>
-              : An integer value for the maximum acceptable font size. This is mostly a
-              safeguard, and it should be safe to set this to either the known maximum
-              height of the containing element, or some very high number.
-            </li>
-            <li>
-              <strong>
-                <code>calculationCountLimit</code>
-              </strong>
-              : An integer value for the number of iterations to run when attempting to
-              fit the text. Increase this value for a more precise fit. Decrease this
-              value for better performance, if you're sizing many elements.
+              : An integer value for the maximum acceptable difference in dimensions of
+              the child and parent. Set this as tight as you need it, but the higher this
+              tolerance the more iteration loops the component runs, and the longer the
+              fit takes.
             </li>
           </ul>
         </p>
