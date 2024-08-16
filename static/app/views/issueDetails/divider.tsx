@@ -9,7 +9,7 @@ export function Divider() {
  */
 const DividerWrapper = styled('div')`
   color: ${p => p.theme.translucentBorder};
-  font-size: 0.8em;
+  font-size: 0.75em;
   display: flex;
   align-items: center;
   margin: 0 1px;
