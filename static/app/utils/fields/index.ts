@@ -341,12 +341,10 @@ function validateForNumericAggregate(
   };
 }
 
-function getDynamicFieldValueType() {
-  return function (parameters: Array<string | null>): FieldValueType {
-    const column = parameters[0];
-    const fieldDef = column ? getFieldDefinition(column) : null;
-    return fieldDef?.valueType ?? FieldValueType.NUMBER;
-  };
+function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+  const column = parameters[0];
+  const fieldDef = column ? getFieldDefinition(column) : null;
+  return fieldDef?.valueType ?? FieldValueType.NUMBER;
 }
 
 function validateAndDenyListColumns(
@@ -504,7 +502,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -526,7 +524,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -548,7 +546,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -568,7 +566,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -591,7 +589,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -611,7 +609,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -631,7 +629,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -651,7 +649,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -671,7 +669,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -691,7 +689,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -711,7 +709,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
@@ -738,7 +736,7 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     defaultValue: '300ms',
     valueType: null,
-    parameterDependentValueType: getDynamicFieldValueType(),
+    parameterDependentValueType: getDynamicFieldValueType,
     parameters: [
       {
         name: 'column',
