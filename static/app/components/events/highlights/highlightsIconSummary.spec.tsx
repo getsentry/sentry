@@ -27,4 +27,26 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('Version: 3.8.13')).toBeInTheDocument();
     expect(screen.getAllByRole('img')).toHaveLength(2);
   });
+
+  it('hides device if client_os is present', function () {
+    const eventWithClientOs = EventFixture({
+      contexts: {
+        ...TEST_EVENT_CONTEXTS,
+        device: {
+          type: 'device',
+          name: 'device',
+          version: 'device version',
+        },
+        client_os: {
+          type: 'client_os',
+          name: 'client_os',
+          version: 'client_os version',
+        },
+      },
+    });
+
+    render(<HighlightsIconSummary event={eventWithClientOs} />);
+    expect(screen.queryByText('device')).not.toBeInTheDocument();
+    expect(screen.getByText('client_os')).toBeInTheDocument();
+  });
 });
