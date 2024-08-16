@@ -118,11 +118,14 @@ function BaseDraggableTabList({
                   variant={tabVariant}
                 />
               </Reorder.Item>
-              {(state.selectedKey === 'temporary-tab' ||
-                (state.selectedKey !== item.key &&
-                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
-                <TabDivider layout />
-              )}
+              <TabDivider
+                layout
+                active={
+                  state.selectedKey === 'temporary-tab' ||
+                  (state.selectedKey !== item.key &&
+                    state.collection.getKeyAfter(item.key) !== state.selectedKey)
+                }
+              />
             </Fragment>
           ))}
         </TabListWrap>
@@ -133,7 +136,7 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout />
+          <TabDivider layout active />
           <MotionWrapper layout>
             {tempTab && (
               <Tab
@@ -203,12 +206,18 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled(motion.div)`
-  height: 50%;
-  width: 1px;
-  border-radius: 6px;
-  background-color: ${p => p.theme.gray200};
-  margin: 1px ${space(0.5)} 0px ${space(0.5)};
+const TabDivider = styled(motion.div)<{active: boolean}>`
+  ${p =>
+    p.active &&
+    `
+    background-color: ${p.theme.gray200};
+    height: 50%;
+    width: 1px;
+    border-radius: 6px;
+    margin-right: ${space(0.5)};
+  `}
+  margin-top: 1px;
+  margin-left: ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
