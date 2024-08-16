@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
@@ -14,11 +14,11 @@ import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
+// TODO(michaelsun): Move params that aren't necessary to draggableTabBar to parent
 export interface Tab {
   id: string;
   key: string;
@@ -33,15 +33,12 @@ export interface Tab {
 export interface DraggableTabBarProps {
   orgSlug: string;
   router: InjectedRouter;
-  selectedTabKey: string;
-  setSelectedTabKey: (key: string) => void;
   setTabs: (tabs: Tab[]) => void;
-  setTempTab: (tab: Tab | undefined) => void;
   tabs: Tab[];
   /**
    * Callback function to be called when user clicks the `Add View` button.
    */
-  onAddView?: (newTabs: Tab[]) => void;
+  onAddView?: () => void;
   /**
    * Callback function to be called when user clicks the `Delete` button.
    * Note: The `Delete` button only appears for persistent views
@@ -81,18 +78,13 @@ export interface DraggableTabBarProps {
    * Note: The `Rename` button only appears for persistent views
    */
   onTabRenamed?: (newTabs: Tab[], newLabel: string) => void;
-  tempTab?: Tab;
 }
 
 const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 export function DraggableTabBar({
-  selectedTabKey,
-  setSelectedTabKey,
   tabs,
   setTabs,
-  tempTab,
-  setTempTab,
   orgSlug,
   router,
   onReorder,
@@ -108,9 +100,33 @@ export function DraggableTabBar({
   // TODO: Extract this to a separate component encompassing Tab.Item in the future
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
-  const navigate = useNavigate();
+  const {cursor: _cursor, page: _page, ...queryParams} = router.location?.query ?? {};
+  const selectedTabKey = queryParams.viewId ?? 'temporary-tab';
+  const setSelectedTabKey = useCallback(
+    (key: string) => {
+      router.replace({
+        query: {
+          ...queryParams,
+          viewId: key,
+        },
+        pathname: `/organizations/${orgSlug}/issues/`,
+      });
+    },
+    [orgSlug, queryParams, router]
+  );
 
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
+  const [tempTab, setTempTab] = useState<Tab | undefined>(
+    selectedTabKey === 'temporary-tab' && queryParams.query
+      ? {
+          id: 'temporary-tab',
+          key: 'temporary-tab',
+          label: 'Unsaved',
+          query: queryParams.query,
+          querySort: queryParams.sort,
+          queryCount: undefined,
+        }
+      : undefined
+  );
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
     const newTabs = newOrder
@@ -127,14 +143,12 @@ export function DraggableTabBar({
     const originalTab = tabs.find(tab => tab.key === selectedTabKey);
     if (originalTab) {
       const newTabs = tabs.map(tab => {
-        return tab.key === selectedTabKey && tab.unsavedChanges
-          ? {
-              ...tab,
-              query: tab.unsavedChanges[0],
-              querySort: tab.unsavedChanges[1],
-              unsavedChanges: undefined,
-            }
-          : tab;
+        if (tab.key === selectedTabKey && tab.unsavedChanges) {
+          tab.query = tab.unsavedChanges[0];
+          tab.querySort = tab.unsavedChanges[1];
+          tab.unsavedChanges = undefined;
+        }
+        return tab;
       });
       setTabs(newTabs);
       onSave?.(newTabs);
@@ -146,18 +160,23 @@ export function DraggableTabBar({
     if (originalTab) {
       setTabs(
         tabs.map(tab => {
-          return tab.key === selectedTabKey ? {...tab, unsavedChanges: undefined} : tab;
+          if (tab.key === selectedTabKey) {
+            tab.unsavedChanges = undefined;
+          }
+          return tab;
         })
       );
-      navigate({
-        query: {
-          ...queryParams,
-          query: originalTab.query,
-          sort: originalTab.querySort,
-          ...(originalTab.id ? {viewId: originalTab.id} : {}),
-        },
-        pathname: `/organizations/${orgSlug}/issues/`,
-      });
+      router.push(
+        normalizeUrl({
+          query: {
+            ...queryParams,
+            query: originalTab.query,
+            sort: originalTab.querySort,
+            ...(originalTab.id ? {viewId: originalTab.id} : {}),
+          },
+          pathname: `/organizations/${orgSlug}/issues/`,
+        })
+      );
       onDiscard?.();
     }
   };
@@ -189,7 +208,7 @@ export function DraggableTabBar({
         ...tabs.slice(idx + 1),
       ];
       setTabs(newTabs);
-      setSelectedTabKey(tempId);
+      setSelectedTabKey(duplicatedTab.key);
       onDuplicate?.(newTabs);
     }
   };
@@ -230,30 +249,25 @@ export function DraggableTabBar({
     const tempId = generateTempViewId();
     const currentTab = tabs.find(tab => tab.key === selectedTabKey);
     if (currentTab) {
+      const newTabQuery = currentTab.unsavedChanges
+        ? currentTab.unsavedChanges[0]
+        : currentTab.query;
+      const newTabSort = currentTab.unsavedChanges
+        ? currentTab.unsavedChanges[1]
+        : currentTab.querySort;
       const newTabs = [
         ...tabs,
         {
           id: tempId,
           key: tempId,
           label: 'New View',
-          query: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[0]
-            : currentTab.query,
-          querySort: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[1]
-            : currentTab.querySort,
+          query: newTabQuery,
+          querySort: newTabSort,
         },
       ];
-      navigate({
-        query: {
-          ...queryParams,
-          viewId: tempId,
-        },
-        pathname: `/organizations/${orgSlug}/issues/`,
-      });
       setTabs(newTabs);
       setSelectedTabKey(tempId);
-      onAddView?.(newTabs);
+      onAddView?.();
     }
   };
 
@@ -283,10 +297,11 @@ export function DraggableTabBar({
   const allTabs = tempTab ? [...tabs, tempTab] : tabs;
 
   return (
-    <Tabs onChange={setSelectedTabKey}>
+    <Tabs value={selectedTabKey} onChange={setSelectedTabKey}>
       <DraggableTabList
         onReorder={handleOnReorder}
         selectedKey={selectedTabKey}
+        showTempTab={!!tempTab}
         onAddView={handleOnAddView}
         orientation="horizontal"
         hideBorder
@@ -300,7 +315,7 @@ export function DraggableTabBar({
                 ...queryParams,
                 query: tab.unsavedChanges?.[0] ?? tab.query,
                 sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-                ...(tab.id !== 'temporary-tab' ? {viewId: tab.id} : {}),
+                ...(tab.id !== 'temporary-tab' ? {id: tab.id} : {}),
               },
               pathname: `/organizations/${orgSlug}/issues/`,
             })}

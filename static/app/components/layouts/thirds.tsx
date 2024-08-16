@@ -22,17 +22,14 @@ export const Page = styled('main')<{withPadding?: boolean}>`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('header')<{
-  borderStyle?: 'dashed' | 'solid';
-  noActionWrap?: boolean;
-}>`
+export const Header = styled('header')<{noActionWrap?: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   background-color: transparent;
-  border-bottom: 1px ${p => p.borderStyle ?? 'solid'} ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};

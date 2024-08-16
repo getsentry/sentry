@@ -30,6 +30,7 @@ function BaseDraggableTabList({
   outerWrapStyles,
   onReorder,
   onAddView,
+  showTempTab = false,
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
@@ -71,7 +72,7 @@ function BaseDraggableTabList({
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.selectedItem, state.selectedKey, props.children]);
+  }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
@@ -118,14 +119,11 @@ function BaseDraggableTabList({
                   variant={tabVariant}
                 />
               </Reorder.Item>
-              <TabDivider
-                layout
-                active={
-                  state.selectedKey === 'temporary-tab' ||
-                  (state.selectedKey !== item.key &&
-                    state.collection.getKeyAfter(item.key) !== state.selectedKey)
-                }
-              />
+              {(state.selectedKey === 'temporary-tab' ||
+                (state.selectedKey !== item.key &&
+                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
+                <TabDivider layout />
+              )}
             </Fragment>
           ))}
         </TabListWrap>
@@ -136,9 +134,9 @@ function BaseDraggableTabList({
               {t('Add View')}
             </AddViewButton>
           </MotionWrapper>
-          <TabDivider layout active />
+          <TabDivider layout />
           <MotionWrapper layout>
-            {tempTab && (
+            {showTempTab && tempTab && (
               <Tab
                 key={tempTab.key}
                 item={tempTab}
@@ -175,7 +173,12 @@ export interface DraggableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabList({items, onAddView, ...props}: DraggableTabListProps) {
+export function DraggableTabList({
+  items,
+  onAddView,
+  showTempTab,
+  ...props
+}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -196,6 +199,7 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
     <BaseDraggableTabList
       items={parsedItems}
       onAddView={onAddView}
+      showTempTab={showTempTab}
       disabledKeys={disabledKeys}
       {...props}
     >
@@ -206,18 +210,11 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled(motion.div)<{active: boolean}>`
-  ${p =>
-    p.active &&
-    `
-    background-color: ${p.theme.gray200};
-    height: 50%;
-    width: 1px;
-    border-radius: 6px;
-    margin-right: ${space(0.5)};
-  `}
-  margin-top: 1px;
-  margin-left: ${space(0.5)};
+const TabDivider = styled(motion.div)`
+  height: 50%;
+  width: 1px;
+  border-radius: 6px;
+  background-color: ${p => p.theme.gray200};
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -255,13 +252,14 @@ const TabListWrap = styled('ul')`
 const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
+  padding-right: ${space(0.5)};
+  margin: 4px 2px 2px 2px;
   font-weight: normal;
-  padding: ${space(0.5)};
-  transform: translateY(1px);
 `;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: 4px;
+  margin-left: 2px;
 `;
 
 const MotionWrapper = styled(motion.div)`

@@ -30,10 +30,10 @@ export const useUpdateGroupSearchViews = (
 
   return useMutation<GroupSearchView[], RequestError, UpdateGroupSearchViewsVariables>({
     ...options,
-    mutationFn: ({orgSlug, groupSearchViews}: UpdateGroupSearchViewsVariables) =>
+    mutationFn: ({orgSlug, groupSearchViews: data}: UpdateGroupSearchViewsVariables) =>
       api.requestPromise(`/organizations/${orgSlug}/group-search-views/`, {
         method: 'PUT',
-        data: {views: groupSearchViews},
+        data,
       }),
     onSuccess: (groupSearchViews, parameters, context) => {
       setApiQueryData<GroupSearchView[]>(
