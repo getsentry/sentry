@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.search.events.types import EventsResponse, ParamsType, SnubaParams
 from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
@@ -25,7 +25,8 @@ from sentry.utils.snuba import SnubaTSResult
 def query(
     selected_columns: list[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int | None = None,
@@ -57,6 +58,7 @@ def query(
             result = metrics_query(
                 selected_columns,
                 query,
+                params,
                 snuba_params,
                 equations,
                 orderby,
@@ -99,6 +101,7 @@ def query(
         results = dataset.query(
             selected_columns,
             query,
+            params,
             snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
@@ -126,9 +129,10 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     rollup: int,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -146,13 +150,17 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if metrics_compatible:
         try:
             return metrics_timeseries_query(
                 selected_columns,
                 query,
-                snuba_params,
+                params,
                 rollup,
+                snuba_params=snuba_params,
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 allow_metric_aggregates=allow_metric_aggregates,
@@ -177,7 +185,8 @@ def timeseries_query(
         return discover.timeseries_query(
             selected_columns,
             query,
-            snuba_params,
+            params,
+            snuba_params=snuba_params,
             rollup=rollup,
             referrer=referrer,
             zerofill_results=zerofill_results,
@@ -189,15 +198,13 @@ def timeseries_query(
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill(
-                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
-                )
+                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else []
             ),
         },
-        snuba_params.start_date,
-        snuba_params.end_date,
+        params["start"],
+        params["end"],
         rollup,
     )
 
@@ -206,11 +213,12 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -227,17 +235,21 @@ def top_events_timeseries(
     if not equations:
         metrics_compatible = True
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if metrics_compatible:
         try:
             return metrics_top_events_timeseries(
                 timeseries_columns,
                 selected_columns,
                 user_query,
-                snuba_params,
+                params,
                 orderby,
                 rollup,
                 limit,
                 organization,
+                snuba_params,
                 equations,
                 referrer,
                 top_events,
@@ -264,11 +276,12 @@ def top_events_timeseries(
             timeseries_columns,
             selected_columns,
             user_query,
-            snuba_params,
+            params,
             orderby,
             rollup,
             limit,
             organization,
+            snuba_params,
             equations,
             referrer,
             top_events,
@@ -281,15 +294,13 @@ def top_events_timeseries(
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill(
-                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
-                )
+                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else []
             ),
         },
-        snuba_params.start_date,
-        snuba_params.end_date,
+        params["start"],
+        params["end"],
         rollup,
     )
 
@@ -297,8 +308,9 @@ def top_events_timeseries(
 def histogram_query(
     fields,
     user_query,
-    snuba_params,
+    params,
     num_buckets,
+    snuba_params=None,
     precision=0,
     min_value=None,
     max_value=None,
@@ -326,8 +338,9 @@ def histogram_query(
             return metrics_histogram_query(
                 fields,
                 user_query,
-                snuba_params,
+                params,
                 num_buckets,
+                snuba_params,
                 precision,
                 min_value,
                 max_value,
@@ -356,8 +369,9 @@ def histogram_query(
         return discover.histogram_query(
             fields,
             user_query,
-            snuba_params,
+            params,
             num_buckets,
+            snuba_params,
             precision,
             min_value,
             max_value,

@@ -13,7 +13,7 @@ from sentry.search.events.constants import (
     PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
     PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
 )
-from sentry.search.events.types import EventsResponse, HistogramParams, SnubaParams
+from sentry.search.events.types import EventsResponse, HistogramParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
@@ -40,7 +40,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=[],
                 query="foo(id):<1dino",
-                snuba_params=SnubaParams(projects=[self.project]),
+                params={"project_id": [self.project.id]},
             )
         assert mock_query.call_count == 0
 
@@ -54,7 +54,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=[],
                 query="event.type:transaction",
-                snuba_params=SnubaParams(projects=[self.project]),
+                params={"project_id": [self.project.id]},
             )
         assert "No columns selected" in str(err)
         assert mock_query.call_count == 0
@@ -66,9 +66,7 @@ class QueryTransformTest(TestCase):
             "data": [{"user": "a@example.org", "project_id": self.project.id}],
         }
         discover.query(
-            selected_columns=["user", "project"],
-            query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
             selected_columns=[
@@ -109,7 +107,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["title", "project"],
             query=f"project:{project2.slug}",
-            snuba_params=SnubaParams(projects=[self.project, project2]),
+            params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
             selected_columns=[
@@ -150,7 +148,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["title", "project", "p99()"],
             query=f"project:{project2.slug}",
-            snuba_params=SnubaParams(projects=[self.project, project2]),
+            params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
             selected_columns=[
@@ -190,7 +188,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["count()"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=False,
         )
         mock_query.assert_called_with(
@@ -222,7 +220,7 @@ class QueryTransformTest(TestCase):
                 "count_unique(transaction.duration)",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -250,7 +248,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "p95()", "count_unique(transaction)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -281,7 +279,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "failure_rate()"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -323,7 +321,7 @@ class QueryTransformTest(TestCase):
                 "apdex()",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -364,7 +362,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "user_misery(300)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -412,7 +410,7 @@ class QueryTransformTest(TestCase):
                 "user_misery()",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -453,7 +451,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "count_miserable(user, 300)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -487,7 +485,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "count_miserable(user,0)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -521,7 +519,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "apdex(0)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -569,7 +567,7 @@ class QueryTransformTest(TestCase):
                 "project_threshold_config",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
 
@@ -636,7 +634,7 @@ class QueryTransformTest(TestCase):
                 "project_threshold_config",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
 
@@ -728,7 +726,7 @@ class QueryTransformTest(TestCase):
                 "project_threshold_config",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
 
@@ -855,7 +853,7 @@ class QueryTransformTest(TestCase):
                 "project_threshold_config",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
 
@@ -1001,7 +999,7 @@ class QueryTransformTest(TestCase):
                 "count_miserable(user)",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project], organization=self.organization),
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
             auto_fields=True,
         )
 
@@ -1059,7 +1057,7 @@ class QueryTransformTest(TestCase):
                 "percentile_range(transaction.duration, 0.5, greater, 2020-05-02T14:45:01) as percentile_range_1",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -1099,7 +1097,7 @@ class QueryTransformTest(TestCase):
                 "avg_range(transaction.duration, greater, 2020-05-02T14:45:01) as avg_range_1",
             ],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -1138,7 +1136,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
         )
         mock_query.assert_called_with(
@@ -1166,7 +1164,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["project.id", "title"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             orderby=["project.id"],
             offset=100,
             limit=200,
@@ -1193,7 +1191,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=["transaction", "transaction.duration"],
                 query="",
-                snuba_params=SnubaParams(projects=[self.project]),
+                params={"project_id": [self.project.id]},
                 orderby=["count()"],
             )
         assert mock_query.call_count == 0
@@ -1207,7 +1205,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["count(id)", "project.id", "id"],
             query="",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             orderby=["count_id"],
         )
         mock_query.assert_called_with(
@@ -1235,7 +1233,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["timestamp", "transaction", "transaction.duration", "count()"],
             query="transaction.op:ok transaction.duration:200 sdk.name:python tags[projectid]:123",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             orderby=["-timestamp", "-count"],
         )
         mock_query.assert_called_with(
@@ -1268,7 +1266,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction user.email:*@sentry.io message:recent-searches",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -1299,7 +1297,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
             query="http.method:GET",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
@@ -1328,7 +1326,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
             query="project_id:1",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
@@ -1359,7 +1357,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
             query=f"project.name:{project2.slug}",
-            snuba_params=SnubaParams(projects=[self.project, project2]),
+            params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
@@ -1388,7 +1386,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
             query="http.method:GET",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
@@ -1417,7 +1415,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "avg(transaction.duration)"],
             query="http.method:GET avg(transaction.duration):>5",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
@@ -1447,7 +1445,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "p95()"],
             query="http.method:GET p95():>5",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
 
@@ -1489,7 +1487,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=["transaction", "p95()"],
                 query=f"http.method:GET p95():>{query_string}",
-                snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
 
@@ -1520,7 +1518,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "p95()"],
             query="http.method:GET p95():>5",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
 
@@ -1557,7 +1555,7 @@ class QueryTransformTest(TestCase):
                 "max(timestamp)",
             ],
             query="http.method:GET max(timestamp):>2019-12-01",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
@@ -1604,7 +1602,7 @@ class QueryTransformTest(TestCase):
                     "max(timestamp)",
                 ],
                 query=f"http.method:GET avg(transaction.duration):>{query_string}",
-                snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
             mock_query.assert_called_with(
@@ -1640,7 +1638,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=["transaction"],
                 query="http.method:GET max(timestamp):>5",
-                snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
 
@@ -1657,7 +1655,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=["transaction"],
                 query="http.method:GET max(timestamp):>5",
-                snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
                 auto_aggregations=True,
             )
@@ -1675,7 +1673,7 @@ class QueryTransformTest(TestCase):
             discover.query(
                 selected_columns=["transaction"],
                 query="http.method:GET max(timestamp):>5",
-                snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=False,
                 auto_aggregations=True,
             )
@@ -1692,7 +1690,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "p95()"],
             query="http.method:GET max(timestamp):>5",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
@@ -1727,7 +1725,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "min(timestamp)"],
             query="max(timestamp):>5 AND min(timestamp):<10",
-            snuba_params=SnubaParams(projects=[self.project], start=start_time, end=end_time),
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
             auto_aggregations=True,
         )
@@ -1761,7 +1759,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
             query="percentile(transaction.duration, 0.75):>100",
-            snuba_params=SnubaParams(projects=[self.project]),
+            params={"project_id": [self.project.id]},
             auto_fields=True,
             use_aggregate_conditions=True,
         )
@@ -1788,22 +1786,14 @@ class QueryTransformTest(TestCase):
             # no rows returned from snuba
             mock_query.side_effect = [{"meta": [], "data": []}]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # more than 2 rows returned snuba
             mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
@@ -1818,21 +1808,13 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (None, None), f"failing for {array_column}"
 
             # use the given min/max
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                1,
-                2,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], 1, 2, "", {"project_id": [self.project.id]}
             )
             assert values == (1, 2), f"failing for {array_column}"
 
@@ -1844,11 +1826,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                1.23,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], 1.23, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1864,11 +1842,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                3.5,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], 3.5, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 3.5,
@@ -1884,11 +1858,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                3.4,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, 3.4, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 3.4,
@@ -1903,11 +1873,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                3.45,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, 3.45, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1925,11 +1891,7 @@ class QueryTransformTest(TestCase):
                 },
             ]
             values = discover.find_histogram_min_max(
-                [f"{alias}.foo"],
-                None,
-                None,
-                "",
-                SnubaParams(projects=[self.project]),
+                [f"{alias}.foo"], None, None, "", {"project_id": [self.project.id]}
             )
             assert values == (
                 1.23,
@@ -1964,7 +1926,7 @@ class QueryTransformTest(TestCase):
                 None,
                 None,
                 "",
-                SnubaParams(projects=[self.project]),
+                {"project_id": [self.project.id]},
             )
             assert values == (
                 1.23,
@@ -1999,7 +1961,7 @@ class QueryTransformTest(TestCase):
                 None,
                 None,
                 "",
-                SnubaParams(projects=[self.project]),
+                {"project_id": [self.project.id]},
             )
             assert values == (
                 1.23,
@@ -2422,7 +2384,7 @@ class QueryTransformTest(TestCase):
             results = discover.histogram_query(
                 [f"{alias}.bar", f"{alias}.foo"],
                 "",
-                SnubaParams(projects=[self.project]),
+                {"project_id": [self.project.id]},
                 3,
                 0,
             )
@@ -2446,7 +2408,7 @@ class QueryTransformTest(TestCase):
                 discover.histogram_query(
                     [f"{alias}.bar", "transaction.duration"],
                     "",
-                    SnubaParams(projects=[self.project]),
+                    {"project_id": [self.project.id]},
                     3,
                     0,
                 )
@@ -2499,7 +2461,7 @@ class QueryTransformTest(TestCase):
             results = discover.histogram_query(
                 [f"{alias}.bar", f"{alias}.foo"],
                 "",
-                SnubaParams(projects=[self.project]),
+                {"project_id": [self.project.id]},
                 3,
                 1,
                 min_value=0.5,

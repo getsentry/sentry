@@ -81,6 +81,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                     results = dataset.histogram_query(
                         fields=data["field"],
                         user_query=data.get("query"),
+                        params={},
                         snuba_params=snuba_params,
                         num_buckets=data["numBuckets"],
                         precision=data["precision"],

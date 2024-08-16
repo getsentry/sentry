@@ -36,7 +36,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             DiscoverProcessor.get_projects(organization_id=self.org.id, query={"project": [-1]})
 
     def test_handle_issue_id_fields(self):
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         assert processor.header_fields == ["count_id", "fake_field", "issue"]
         result_list = [{"issue": self.group.id, "issue.id": self.group.id}]
         new_result_list = processor.handle_fields(result_list)
@@ -48,7 +50,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             **self.discover_query,
             "field": ["title", "event.type", "transaction.status"],
         }
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         assert processor.header_fields == ["title", "event.type", "transaction.status"]
         result_list = [
             {"transaction.status": SPAN_STATUS_NAME_TO_CODE.get("ok")},
@@ -59,7 +63,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert new_result_list[1]["transaction.status"] == "not_found"
 
     def test_handle__fields(self):
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         assert processor.header_fields == ["count_id", "fake_field", "issue"]
         result_list = [{"issue": self.group.id, "issue.id": self.group.id}]
         new_result_list = processor.handle_fields(result_list)
@@ -69,7 +75,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
     def test_handle_equations(self):
         self.discover_query["field"] = ["count(id)", "fake(field)"]
         self.discover_query["equations"] = ["count(id) / fake(field)", "count(id) / 2"]
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         assert processor.header_fields == [
             "count_id",
             "fake_field",
@@ -95,7 +103,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             "field": ["title", "transaction.status"],
             "dataset": "transactions",
         }
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         data = processor.data_fn(offset=0, limit=2)["data"]
         assert data[0] == {
             "title": "test transaction",
@@ -115,7 +125,9 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
             "field": ["title"],
             "dataset": "errors",
         }
-        processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
         data = processor.data_fn(offset=0, limit=2)["data"]
         assert data[0] == {
             "title": error_event.message,
@@ -135,7 +147,7 @@ class DiscoverIssuesProcessorTest(TestCase, PerformanceIssueTestCase):
         query["field"] = ["title", "count()"]
         query["dataset"] = "issuePlatform"
         self.create_performance_issue()
-        processor = DiscoverProcessor(organization=self.organization, discover_query=query)
+        processor = DiscoverProcessor(organization_id=self.organization.id, discover_query=query)
         assert processor.header_fields == [
             "title",
             "count",

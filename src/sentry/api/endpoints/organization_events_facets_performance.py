@@ -344,6 +344,7 @@ def query_top_tags(
                 "array_join(tags.value) as tags_value",
             ],
             query=filter_query,
+            params={},
             snuba_params=snuba_params,
             orderby=orderby,
             conditions=[
@@ -523,6 +524,7 @@ def query_facet_performance_key_histogram(
     results = discover.histogram_query(
         fields=[aggregate_column],
         user_query=filter_query,
+        params={},
         snuba_params=snuba_params,
         num_buckets=num_buckets_per_key,
         precision=precision,
