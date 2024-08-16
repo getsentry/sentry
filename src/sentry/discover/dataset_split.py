@@ -223,7 +223,7 @@ def get_equation_list(fields: list[str]) -> list[str]:
 
 
 def get_snuba_dataclass(
-    saved_query: DiscoverSavedQuery, projects
+    saved_query: DiscoverSavedQuery, projects: list[Project]
 ) -> tuple[SnubaParams, ParamsType]:
     # Default
     start, end = get_date_range_from_stats_period({"statsPeriod": "7d"})
@@ -251,7 +251,7 @@ def get_snuba_dataclass(
         filter_params: dict[str, Any] = {
             "start": start,
             "end": end,
-            "project_id": [p.id for p in projects.all()],
+            "project_id": [p.id for p in projects],
             "project_objects": projects,
             "organization_id": saved_query.organization.id,
         }
