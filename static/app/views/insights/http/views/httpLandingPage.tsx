@@ -66,12 +66,12 @@ export function HTTPLandingPage() {
 
   const chartFilters = {
     ...BASE_FILTERS,
-    ...ADDITONAL_FILTERS,
+    ...ADDITIONAL_FILTERS,
   };
 
   const tableFilters = {
     ...BASE_FILTERS,
-    ...ADDITONAL_FILTERS,
+    ...ADDITIONAL_FILTERS,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
