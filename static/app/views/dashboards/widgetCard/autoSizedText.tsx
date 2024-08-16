@@ -41,16 +41,13 @@ export function AutoSizedText({
       fontSizeLowerBound.current = 0;
       fontSizeUpperBound.current = parentDimensions.height;
 
-      let calculationCount = 0;
+      let iterationCount = 0;
 
       // Run the resize iteration in a loop. This blocks the main UI thread and prevents
       // visible layout jitter. If this was done through a `ResizeObserver` or React State
       // each step in the resize iteration would be visible to the user
-      while (calculationCount <= ITERATION_LIMIT) {
+      while (iterationCount <= ITERATION_LIMIT) {
         const childDimensions = getElementDimensions(childElement);
-
-        // Update the font size, which changes the child dimensions
-        adjustFontSize(childDimensions, parentDimensions);
 
         const widthDifference = parentDimensions.width - childDimensions.width;
         const heightDifference = parentDimensions.height - childDimensions.height;
@@ -69,7 +66,9 @@ export function AutoSizedText({
           return;
         }
 
-        calculationCount += 1;
+        adjustFontSize(childDimensions, parentDimensions);
+
+        iterationCount += 1;
       }
     });
 
