@@ -1,9 +1,11 @@
-import {createContext, type Dispatch, useContext} from 'react';
-
-import type {
-  EventDetailsActions,
-  EventDetailsState,
-} from 'sentry/views/issueDetails/streamline/useEventDetailsReducer';
+import {
+  createContext,
+  type Dispatch,
+  type Reducer,
+  useCallback,
+  useContext,
+  useReducer,
+} from 'react';
 
 export const enum SectionKey {
   TRACE = 'trace',
@@ -52,9 +54,14 @@ export const enum SectionKey {
   RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 
+/**
+ * This can be extended to create shared state for each section.
+ * For example, if we needed to know the number of context cards we're rendering,
+ * the <ContextDataSection /> can update the config for other components to read from.
+ */
 export interface SectionConfig {
   key: SectionKey;
-  isOpen?: boolean;
+  initialCollapse?: boolean;
 }
 
 export interface EventDetailsContextType extends EventDetailsState {
@@ -62,11 +69,69 @@ export interface EventDetailsContextType extends EventDetailsState {
 }
 
 export const EventDetailsContext = createContext<EventDetailsContextType>({
-  searchQuery: '',
   sectionData: {},
   dispatch: () => {},
 });
 
 export function useEventDetails() {
   return useContext(EventDetailsContext);
+}
+
+export interface EventDetailsState {
+  sectionData: {
+    [key in SectionKey]?: SectionConfig;
+  };
+}
+
+type UpdateSectionAction = {
+  key: SectionKey;
+  type: 'UPDATE_SECTION';
+  config?: Partial<SectionConfig>;
+};
+
+export type EventDetailsActions = UpdateSectionAction;
+
+function updateSection(
+  state: EventDetailsState,
+  sectionKey: SectionKey,
+  updatedConfig: Partial<SectionConfig>
+): EventDetailsState {
+  const existingConfig = state.sectionData[sectionKey] ?? {key: sectionKey};
+  const nextState: EventDetailsState = {
+    ...state,
+    sectionData: {
+      ...state.sectionData,
+      [sectionKey]: {...existingConfig, ...updatedConfig},
+    },
+  };
+  return nextState;
+}
+
+/**
+ * If trying to use the current state of the event page, you likely want to use `useEventDetails`
+ * instead. This hook is just meant to create state for the provider.
+ */
+export function useEventDetailsReducer() {
+  const initialState: EventDetailsState = {
+    sectionData: {},
+  };
+
+  const reducer: Reducer<EventDetailsState, EventDetailsActions> = useCallback(
+    (state, action): EventDetailsState => {
+      switch (action.type) {
+        case 'UPDATE_SECTION':
+          return updateSection(state, action.key, action.config ?? {});
+        default:
+          return state;
+      }
+    },
+    []
+  );
+
+  const [eventDetails, dispatch] = useReducer(reducer, initialState);
+
+  return {
+    eventDetails,
+    dispatch,
+  };
 }

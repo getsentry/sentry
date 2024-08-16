@@ -25,7 +25,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
     return hasStreamlinedUI ? (
       <Fragment>
         <FoldSection
-          config={{key: type as SectionKey}}
+          sectionKey={type as SectionKey}
           title={title}
           actions={actions}
           ref={ref}

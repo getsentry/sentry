@@ -11,11 +11,13 @@ import {
   EventDetailsContent,
   type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {EventDetailsContext} from 'sentry/views/issueDetails/streamline/context';
+import {
+  EventDetailsContext,
+  useEventDetailsReducer,
+} from 'sentry/views/issueDetails/streamline/context';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useEventDetailsReducer} from 'sentry/views/issueDetails/streamline/useEventDetailsReducer';
 
 export function EventDetails({
   group,
@@ -25,10 +27,10 @@ export function EventDetails({
   const navRef = useRef<HTMLDivElement>(null);
   const {selection} = usePageFilters();
   const {environments} = selection;
-  const {state, dispatch} = useEventDetailsReducer();
+  const {eventDetails, dispatch} = useEventDetailsReducer();
 
   return (
-    <EventDetailsContext.Provider value={{...state, dispatch}}>
+    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
       <SuspectCommits
         project={project}
         eventId={event.id}
@@ -39,11 +41,9 @@ export function EventDetails({
         <EnvironmentPageFilter />
         <SearchFilter
           group={group}
-          handleSearch={searchQuery =>
-            dispatch({type: 'UPDATE_SEARCH_QUERY', searchQuery})
-          }
+          handleSearch={() => {}}
           environments={environments}
-          query={state.searchQuery}
+          query={''}
         />
         <DatePageFilter />
       </FilterContainer>

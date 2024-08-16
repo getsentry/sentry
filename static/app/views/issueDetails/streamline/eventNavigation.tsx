@@ -1,6 +1,6 @@
 import {type CSSProperties, forwardRef} from 'react';
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 import omit from 'lodash/omit';
@@ -31,7 +31,13 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  type SectionConfig,
+  SectionKey,
+  useEventDetails,
+} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
@@ -84,7 +90,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );
-    const {dispatch} = useEventDetails();
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -295,20 +300,11 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
             <div>{t('Jump to:')}</div>
             <StyledButtonBar>
               {eventSectionConfigs.map(config => (
-                <Button
+                <EventNavigationLink
                   key={config.key}
-                  onClick={() => {
-                    dispatch({type: 'OPEN_SECTION', key: config.key});
-                    document
-                      .getElementById(config.key)
-                      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                  }}
-                  borderless
-                  size="xs"
-                  css={grayText}
-                >
-                  {sectionLabels[config.key]}
-                </Button>
+                  config={config}
+                  propCss={grayText}
+                />
               ))}
             </StyledButtonBar>
           </JumpTo>
@@ -318,6 +314,34 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     );
   }
 );
+
+function EventNavigationLink({
+  config,
+  propCss,
+}: {
+  config: SectionConfig;
+  propCss: SerializedStyles;
+}) {
+  const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(config.key),
+    config?.initialCollapse ?? false
+  );
+  return (
+    <Button
+      onClick={() => {
+        document
+          .getElementById(config.key)
+          ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        setIsCollapsed(false);
+      }}
+      borderless
+      size="xs"
+      css={propCss}
+    >
+      {sectionLabels[config.key]}
+    </Button>
+  );
+}
 
 const EventNavigationWrapper = styled('div')`
   display: flex;
@@ -413,6 +437,8 @@ const ProcessingErrorButton = styled(Button)`
 const StyledButtonBar = styled(ButtonBar)`
   overflow-x: auto;
   overflow-y: hidden;
+  color: ${p => p.theme.subText} !important;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   &:after {
     position: sticky;

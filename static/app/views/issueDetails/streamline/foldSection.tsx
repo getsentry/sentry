@@ -1,4 +1,4 @@
-import {type CSSProperties, forwardRef, useCallback, useEffect, useState} from 'react';
+import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -6,18 +6,18 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  type SectionConfig,
-  useEventDetails,
-} from 'sentry/views/issueDetails/streamline/context';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 
-const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
+export function getFoldSectionKey(key: SectionKey) {
+  return `'issue-details-fold-section-collapse:${key}`;
+}
 
 interface FoldSectionProps {
   children: React.ReactNode;
-  config: SectionConfig;
+  sectionKey: SectionKey;
   /**
    * Title of the section, always visible
    */
@@ -43,7 +43,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     children,
     title,
     actions,
-    config,
+    sectionKey,
     initialCollapse = false,
     preventCollapse = false,
     ...props
@@ -52,27 +52,15 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 ) {
   const organization = useOrganization();
   const {sectionData, dispatch} = useEventDetails();
-  const {key: sectionKey} = config;
   // Does not control open/close state. Controls what state is persisted to local storage
-  const [isInitiallyCollapsed, setIsInitiallyCollapsed] = useLocalStorageState(
-    `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
+  const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(sectionKey),
     initialCollapse
   );
-  const isCollapsed = !sectionData[sectionKey]?.isOpen;
 
-  // On initial load we want to reflect the local storage state.
-  // Afterward, it is written to, but ignored.
-  useEffect(() => {
-    dispatch({
-      type: 'UPDATE_SECTION_CONFIG',
-      key: sectionKey,
-      config: {
-        ...config,
-        isOpen: isInitiallyCollapsed,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  if (!sectionData.hasOwnProperty(sectionKey)) {
+    dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
+  }
 
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
   // want selecting an action to appear as though it'll fold/unfold the section.
@@ -86,14 +74,9 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         organization,
         open: !isCollapsed,
       });
-      dispatch({
-        type: 'UPDATE_SECTION_CONFIG',
-        key: sectionKey,
-        config: {isOpen: isCollapsed},
-      });
-      setIsInitiallyCollapsed(collapsed => !collapsed);
+      setIsCollapsed(!isCollapsed);
     },
-    [organization, sectionKey, isCollapsed, setIsInitiallyCollapsed, dispatch]
+    [organization, sectionKey, isCollapsed, setIsCollapsed]
   );
 
   return (
