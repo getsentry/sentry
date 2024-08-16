@@ -179,6 +179,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                       label === EventNavOptions.CUSTOM &&
                       selectedOption !== EventNavOptions.CUSTOM
                     }
+                    textValue={`${EventNavLabels[label]} Event`}
                   >
                     {EventNavLabels[label]} {isMobile ? '' : t('Event')}
                   </TabList.Item>
