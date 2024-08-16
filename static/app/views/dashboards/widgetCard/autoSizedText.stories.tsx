@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
@@ -18,20 +17,11 @@ export default storyBook(AutoSizedText, story => {
           perfectly (within reason) inside the parent. For example:
         </p>
 
-        <SideBySide>
-          <Fragment>
-            <SmallSizingWindow>
-              <AutoSizedText minFontSize={10} maxFontSize={600}>
-                NEWSFLASH, y'all!
-              </AutoSizedText>
-            </SmallSizingWindow>
-            <SmallSizingWindow>
-              <AutoSizedText minFontSize={10} maxFontSize={600}>
-                GASP!
-              </AutoSizedText>
-            </SmallSizingWindow>
-          </Fragment>
-        </SideBySide>
+        <SmallSizingWindow>
+          <AutoSizedText minFontSize={10} maxFontSize={600}>
+            <span>NEWSFLASH, y'all!</span>
+          </AutoSizedText>
+        </SmallSizingWindow>
 
         <p>
           This was built for the "Big Number" widget in our Dashboards product. It's not

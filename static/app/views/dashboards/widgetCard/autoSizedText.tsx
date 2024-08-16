@@ -1,7 +1,5 @@
-import {useLayoutEffect, useRef, useState, useTransition} from 'react';
+import {useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
-import debounce from 'lodash/debounce';
 
 interface Props {
   children: React.ReactNode;
@@ -16,53 +14,24 @@ export function AutoSizedText({
   maxFontSize,
   calculationCountLimit = DEFAULT_CALCULATION_COUNT_LIMIT,
 }: Props) {
-  const [_isPending, startTransition] = useTransition();
-
-  const [parentHeight, setParentHeight] = useState<number | null>(null);
-  const [parentWidth, setParentWidth] = useState<number | null>(null);
-
-  const [fontSize, setFontSize] = useState<number>((maxFontSize + minFontSize) / 2);
-  const [fontSizeLowerBound, setFontSizeLowerBound] = useState<number>(minFontSize);
-  const [fontSizeUpperBound, setFontSizeUpperBound] = useState<number>(maxFontSize);
-
-  const [calculationCount, setCalculationCount] = useState<number>(0);
-
   const parentRef = useRef<HTMLDivElement>(null);
   const childRef = useRef<HTMLDivElement>(null);
 
-  const onResize = debounce(() => {
-    const parentDimensions = getElementDimensions(parentRef.current);
+  const fontSize = useRef<number>((maxFontSize + minFontSize) / 2);
+  const fontSizeLowerBound = useRef<number>(minFontSize);
+  const fontSizeUpperBound = useRef<number>(maxFontSize);
 
-    if (parentDimensions) {
-      // Reset the known font size bounds, they're no longer valid
-      setCalculationCount(0);
-      setFontSizeLowerBound(minFontSize);
-      setFontSizeUpperBound(maxFontSize);
+  const calculationCount = useRef<number>(0);
 
-      // Update state, trigger a re-render
-      setParentHeight(parentDimensions.height);
-      setParentWidth(parentDimensions.width);
-    }
-  }, RESIZE_DEBOUNCE);
-
-  useResizeObserver({
-    ref: parentRef,
-    onResize,
-  });
-
-  useLayoutEffect(() => {
-    if (calculationCount > calculationCountLimit) {
-      // Exceeded the iteration count. This should be unlikely! If it happens, abandon
+  const fitChildIntoParent = (
+    parentDimensions: Dimensions,
+    childDimensions: Dimensions
+  ) => {
+    if (!childRef.current) {
       return;
     }
 
-    const parentDimensions = getElementDimensions(parentRef.current);
-    const childDimensions = getElementDimensions(childRef.current);
-
-    if (!parentDimensions || !childDimensions) {
-      // Refs are not ready or cannot be measured, abandon
-      return;
-    }
+    console.log('Running fitment iteration', calculationCount.current);
 
     // Calculate the width and height disparity between the child and parent. A disparity of 0 means they're the same size.
     const widthDisparity = calculateDimensionDisparity(
@@ -77,6 +46,8 @@ export function AutoSizedText({
       'height'
     );
 
+    console.log({widthDisparity, heightDisparity});
+
     const childFitsIntoParent =
       childDimensions.width <= parentDimensions.width &&
       childDimensions.height <= parentDimensions.height;
@@ -86,6 +57,8 @@ export function AutoSizedText({
       (widthDisparity <= MAXIMUM_DISPARITY || heightDisparity <= MAXIMUM_DISPARITY)
     ) {
       // The child fits completely into the parent _and_ at least one dimension is very similar to the parent size (i.e., it fits nicely in the parent). Abandon, we're done!
+      console.log('Fitment complete! Success');
+
       return;
     }
 
@@ -94,43 +67,109 @@ export function AutoSizedText({
       childDimensions.height > parentDimensions.height
     ) {
       // The element is bigger than the parent, scale down
-      const newFontSize = (fontSizeLowerBound + fontSize) / 2;
+      console.log('Too big!');
 
-      startTransition(() => {
-        setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
-        setFontSizeUpperBound(fontSize);
-        setFontSize(newFontSize);
-      });
+      const newFontSize = (fontSizeLowerBound.current + fontSize.current) / 2;
+
+      fontSizeUpperBound.current = fontSize.current;
+      fontSize.current = newFontSize;
+      calculationCount.current += 1;
+
+      console.log('Setting new size', newFontSize);
+
+      childRef.current.style.fontSize = `${newFontSize}px`;
     } else if (
       childDimensions.width < parentDimensions.width ||
       childDimensions.height < parentDimensions.height
     ) {
       // The element is too small, scale up
-      const midpoint = (fontSizeUpperBound + fontSize) / 2;
+      console.log('Too small!');
 
-      startTransition(() => {
-        setCalculationCount(previousCalculationCount => previousCalculationCount + 1);
-        setFontSizeLowerBound(fontSize);
-        setFontSize(midpoint);
-      });
+      const newFontSize = (fontSizeUpperBound.current + fontSize.current) / 2;
+
+      fontSizeUpperBound.current = fontSize.current;
+      fontSize.current = newFontSize;
+      calculationCount.current += 1;
+
+      console.log('Setting new size', newFontSize);
+
+      childRef.current.style.fontSize = `${newFontSize}px`;
     }
-  }, [
-    fontSize,
-    minFontSize,
-    fontSizeLowerBound,
-    maxFontSize,
-    fontSizeUpperBound,
-    calculationCount,
-    calculationCountLimit,
-    parentHeight,
-    parentWidth,
-  ]);
+  };
+
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      const entry = entries.find(e => e.target === parentRef.current);
+
+      if (!entry || !parentRef.current || !childRef.current) {
+        return;
+      }
+
+      console.log('Noticed parent element size change');
+      console.log('Resetting the iteration');
+
+      const parentDimensions = entry.contentRect;
+      const childDimensions = getElementDimensions(childRef.current);
+
+      if (!childDimensions) {
+        return;
+      }
+
+      calculationCount.current = 0;
+      fontSizeLowerBound.current = minFontSize;
+      fontSizeUpperBound.current = maxFontSize;
+
+      // TODO: Toggle child size change so the calculation kicks off
+      fitChildIntoParent(parentDimensions, childDimensions);
+    });
+
+    if (parentRef.current) {
+      observer.observe(parentRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  });
+
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      const entry = entries.find(e => e.target === childRef.current);
+
+      if (!entry || !parentRef.current || !childRef.current) {
+        return;
+      }
+
+      console.log('Noticed child element size change');
+
+      const childDimensions = entry.contentRect;
+      const parentDimensions = getElementDimensions(parentRef.current);
+
+      if (!parentDimensions || !childDimensions) {
+        // Refs are not ready or cannot be measured, abandon
+        return;
+      }
+
+      if (calculationCount.current >= calculationCountLimit) {
+        console.log('Exceeded iteration count');
+        return;
+      }
+
+      fitChildIntoParent(parentDimensions, childDimensions);
+    });
+
+    if (childRef.current) {
+      observer.observe(childRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <ParentSizeMimic ref={parentRef}>
-      <SizedChild ref={childRef} style={{fontSize}}>
-        {children}
-      </SizedChild>
+      <SizedChild ref={childRef}>{children}</SizedChild>
     </ParentSizeMimic>
   );
 }
@@ -146,7 +185,6 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const RESIZE_DEBOUNCE = 200; // ms
 const DEFAULT_CALCULATION_COUNT_LIMIT = 5;
 const MAXIMUM_DISPARITY = 0.05;
 
