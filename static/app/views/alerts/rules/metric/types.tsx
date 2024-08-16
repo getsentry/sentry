@@ -63,6 +63,10 @@ export enum AlertRuleSensitivity {
   HIGH = 'high',
 }
 
+export enum AlertRuleSeasonality {
+  AUTO = 'auto',
+}
+
 /**
  * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
  * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
@@ -118,8 +122,8 @@ export type UnsavedMetricRule = {
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
-  seasonality?: string | null;
-  sensitivity?: string | null;
+  seasonality?: AlertRuleSeasonality | null;
+  sensitivity?: AlertRuleSensitivity | null;
 };
 
 // Form values for updating a metric alert rule

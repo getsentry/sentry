@@ -14,6 +14,7 @@ import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
 import {
   AlertRuleComparisonType,
+  AlertRuleSeasonality,
   AlertRuleSensitivity,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -360,7 +361,7 @@ describe('Incident Rules Form', () => {
       const rule = MetricRuleFixture({
         detectionType: AlertRuleComparisonType.PERCENT,
         sensitivity: AlertRuleSensitivity.MEDIUM,
-        seasonality: 'auto',
+        seasonality: AlertRuleSeasonality.AUTO,
       });
       createWrapper({
         rule: {
@@ -395,7 +396,7 @@ describe('Incident Rules Form', () => {
             eventTypes: ['error'],
             detectionType: AlertRuleComparisonType.DYNAMIC,
             sensitivity: AlertRuleSensitivity.MEDIUM,
-            seasonality: 'auto',
+            seasonality: AlertRuleSeasonality.AUTO,
           }),
         })
       );

@@ -86,6 +86,7 @@ import {
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
+  AlertRuleSeasonality,
   AlertRuleSensitivity,
   type EventTypes,
   type MetricActionTemplate,
@@ -144,7 +145,6 @@ type State = {
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
   sensitivity: UnsavedMetricRule['sensitivity'];
-  // because it's not passed for now
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
@@ -154,7 +154,7 @@ type State = {
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
   monitorType?: MonitorType;
-  seasonality?: string;
+  seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -937,7 +937,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       value === AlertRuleComparisonType.DYNAMIC
         ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
-    const seasonality = value === AlertRuleComparisonType.DYNAMIC ? 'auto' : undefined; // TODO: replace "auto" with the correct constant
+    const seasonality =
+      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined; // TODO: replace "auto" with the correct constant
     this.setState({
       comparisonType: value,
       comparisonDelta,
