@@ -275,6 +275,15 @@ from sentry.users.api.endpoints.user_identity_config import (
 from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from sentry.users.api.endpoints.user_index import UserIndexEndpoint
 from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
+from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
+from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
+from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
+from sentry.users.api.endpoints.user_permissions_config import UserPermissionsConfigEndpoint
+from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
+from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
+from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
+from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
+from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -661,18 +670,9 @@ from .endpoints.user_notification_settings_providers import (
 )
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-from .endpoints.user_password import UserPasswordEndpoint
-from .endpoints.user_permission_details import UserPermissionDetailsEndpoint
-from .endpoints.user_permissions import UserPermissionsEndpoint
-from .endpoints.user_permissions_config import UserPermissionsConfigEndpoint
-from .endpoints.user_regions import UserRegionsEndpoint
-from .endpoints.user_role_details import UserUserRoleDetailsEndpoint
-from .endpoints.user_roles import UserUserRolesEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
 from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
-from .endpoints.userroles_details import UserRoleDetailsEndpoint
-from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
