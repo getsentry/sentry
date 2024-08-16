@@ -9,7 +9,6 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.samples import load_data
 
 
-@freeze_time("2024-05-01 12:00:00")
 class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -52,7 +51,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(errors_query.id, False)
+        get_and_save_split_decision_for_query(errors_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 1
 
@@ -74,7 +73,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(errors_query.id, False)
+        get_and_save_split_decision_for_query(errors_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 1
 
@@ -96,7 +95,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(transaction_query.id, False)
+        get_and_save_split_decision_for_query(transaction_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 2
 
@@ -118,7 +117,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(transaction_query.id, False)
+        get_and_save_split_decision_for_query(transaction_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
         assert saved_query.dataset == 1
 
@@ -140,7 +139,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         array_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(array_query.id, False)
+        get_and_save_split_decision_for_query(array_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=array_query.id)
         assert saved_query.dataset == 2
 
@@ -169,7 +168,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         )
         measurements_query.set_projects(self.project_ids)
 
-        get_and_save_split_decision_for_query(measurements_query.id, False)
+        get_and_save_split_decision_for_query(measurements_query, False)
         saved_query = DiscoverSavedQuery.objects.get(id=measurements_query.id)
         assert saved_query.dataset == 2
 
@@ -260,11 +259,11 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
     def test_ambiguous_query_with_error_data(self):
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/2"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -294,11 +293,11 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
     def test_ambiguous_query_with_transactions_data(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/2"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -354,11 +353,11 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
     def test_ambiguous_query_with_error_and_transaction_data(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -389,11 +388,11 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["tags"] = {"branch": "/main/"}
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -424,12 +423,12 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["tags"] = {"branch": "/main/"}
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("javascript", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
         data["tags"] = {"branch": "/main/"}
-        self.store_event(data, project_id=self.project.id)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -456,6 +455,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
         assert saved_query.dataset == 1
 
+    @freeze_time("2024-05-01 12:00:00")
     def test_out_of_range_defaults_to_seven_days(self):
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
@@ -484,6 +484,7 @@ class DiscoverSavedQueryTestCase(TestCase, SnubaTestCase):
         assert snuba_dataclass.start == datetime(2024, 4, 24, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
 
+    @freeze_time("2024-05-01 12:00:00")
     def test_respects_range_date_params(self):
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
