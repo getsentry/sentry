@@ -1,5 +1,6 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
+import Pagination from 'sentry/components/pagination';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -39,20 +40,23 @@ export function SpansTable({}: SpansTableProps) {
   });
 
   return (
-    // TODO: make this prettier
-    <table>
-      <tr>
-        {fields.map(field => (
-          <th key={field}>{field}</th>
-        ))}
-      </tr>
-      {result.data?.map((row, i) => (
-        <tr key={i}>
+    <Fragment>
+      {/* TODO: make this prettier */}
+      <table>
+        <tr>
           {fields.map(field => (
-            <th key={field}>{row[field]}</th>
+            <th key={field}>{field}</th>
           ))}
         </tr>
-      ))}
-    </table>
+        {result.data?.map((row, i) => (
+          <tr key={i}>
+            {fields.map(field => (
+              <th key={field}>{row[field]}</th>
+            ))}
+          </tr>
+        ))}
+      </table>
+      <Pagination pageLinks={result.pageLinks} />
+    </Fragment>
   );
 }
