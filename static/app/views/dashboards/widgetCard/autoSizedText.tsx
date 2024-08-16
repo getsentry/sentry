@@ -45,8 +45,6 @@ export function AutoSizedText({
       'height'
     );
 
-    console.log({widthDisparity, heightDisparity});
-
     const childFitsIntoParent =
       childDimensions.width <= parentDimensions.width &&
       childDimensions.height <= parentDimensions.height;
@@ -114,7 +112,6 @@ export function AutoSizedText({
       fontSizeLowerBound.current = minFontSize;
       fontSizeUpperBound.current = maxFontSize;
 
-      // TODO: Toggle child size change so the calculation kicks off
       fitChildIntoParent(parentDimensions, childDimensions);
     });
 
@@ -139,8 +136,6 @@ export function AutoSizedText({
         return;
       }
 
-      console.log('Noticed child element size change');
-
       const childElement = entry.target as HTMLDivElement;
       const parentElement = childElement.parentElement;
 
@@ -152,7 +147,6 @@ export function AutoSizedText({
       const parentDimensions = getElementDimensions(parentElement);
 
       if (calculationCount.current >= calculationCountLimit) {
-        console.log('Exceeded iteration count');
         return;
       }
 
