@@ -458,6 +458,9 @@ def parse_semver(version, operator) -> SemverFilter:
      - 1.2.3.4-alpha
      - 1.*
     """
+    import traceback
+
+    traceback.print_stack()
     (operator, negated) = handle_operator_negation(operator)
     try:
         operator = OPERATOR_TO_DJANGO[operator]
