@@ -378,9 +378,7 @@ export function Actions(props: Props) {
               onClick={() =>
                 onUpdate({
                   status: GroupStatus.UNRESOLVED,
-
                   statusDetails: {},
-
                   substatus: GroupSubstatus.ONGOING,
                 })
               }

@@ -278,7 +278,6 @@ export function useHasStreamlinedUI() {
   if (location.query.streamline === '0') {
     return false;
   }
-
   return (
     location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
   );
