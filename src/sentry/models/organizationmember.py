@@ -33,21 +33,22 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -275,7 +276,7 @@ class OrganizationMember(ReplicatedRegionModel):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):
@@ -390,7 +391,7 @@ class OrganizationMember(ReplicatedRegionModel):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         # Nothing to send if this member isn't associated to a user

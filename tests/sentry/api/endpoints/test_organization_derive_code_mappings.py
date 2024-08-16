@@ -4,8 +4,8 @@ from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write

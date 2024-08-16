@@ -2,9 +2,9 @@ import responses
 
 from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options

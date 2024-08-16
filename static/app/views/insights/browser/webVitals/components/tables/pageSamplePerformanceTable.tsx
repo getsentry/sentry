@@ -23,7 +23,7 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,9 +43,14 @@ import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  SpanIndexedField,
+  SpanMetricsField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -100,6 +105,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const routes = useRoutes();
   const router = useRouter();
 
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
+
   let datatype = Datatype.PAGELOADS;
   switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
     case 'interactions':
@@ -135,6 +145,8 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     query: search,
     withProfiles: true,
     enabled: datatype === Datatype.PAGELOADS,
+    browserTypes,
+    subregions,
   });
 
   const {
@@ -146,6 +158,8 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
     filters: new MutableSearch(query ?? '').filters,
+    browserTypes,
+    subregions,
   });
 
   const {profileExists} = useProfileExists(

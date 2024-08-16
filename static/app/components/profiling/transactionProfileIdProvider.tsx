@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import type {PageFilters} from 'sentry/types/core';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const TransactionProfileContext = createContext<string | null | undefined>(undefined);
 
@@ -20,7 +19,6 @@ export function TransactionProfileIdProvider({
   transactionId,
   children,
 }: TransactionToProfileIdProviderProps) {
-  const organization = useOrganization();
   // create a 24h timeframe relative from the transaction timestamp to use for
   // the profile events query
   const datetime: PageFilters['datetime'] | undefined = useMemo(() => {
@@ -39,11 +37,7 @@ export function TransactionProfileIdProvider({
     };
   }, [timestamp]);
 
-  const transactionIdColumn = organization.features.includes(
-    'profiling-using-transactions'
-  )
-    ? 'id'
-    : 'trace.transaction';
+  const transactionIdColumn = 'id';
 
   const {status, data, error} = useProfileEvents({
     projects: projectId ? [projectId] : undefined,

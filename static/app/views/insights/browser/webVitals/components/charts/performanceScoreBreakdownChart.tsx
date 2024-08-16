@@ -7,17 +7,19 @@ import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {
-  type UnweightedWebVitalsScoreBreakdown,
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes?: BrowserType[];
+  subregions?: SubregionCode[];
   transaction?: string;
 };
 
@@ -43,43 +45,40 @@ export const formatTimeSeriesResultsToChartData = (
   });
 };
 
-export function PerformanceScoreBreakdownChart({transaction}: Props) {
+export function PerformanceScoreBreakdownChart({
+  transaction,
+  browserTypes,
+  subregions,
+}: Props) {
   const theme = useTheme();
   const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({transaction});
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction});
-
-  const projectScore = isProjectScoresLoading
-    ? undefined
-    : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
+    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
+
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
-    timeseriesData,
+    weightedTimeseriesData,
     segmentColors,
     false,
     chartSeriesOrder
   );
 
-  const storedScores = timeseriesData as WebVitalsScoreBreakdown &
-    UnweightedWebVitalsScoreBreakdown;
-
   const unweightedTimeseries = formatTimeSeriesResultsToChartData(
     {
-      lcp: storedScores.unweightedLcp,
-      fcp: storedScores.unweightedFcp,
-      cls: storedScores.unweightedCls,
-      ttfb: storedScores.unweightedTtfb,
-      inp: storedScores.unweightedInp,
-      total: storedScores.total,
+      lcp: timeseriesData.unweightedLcp,
+      fcp: timeseriesData.unweightedFcp,
+      cls: timeseriesData.unweightedCls,
+      ttfb: timeseriesData.unweightedTtfb,
+      inp: timeseriesData.unweightedInp,
+      total: timeseriesData.total,
     },
     segmentColors,
     false,
@@ -87,16 +86,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   );
 
   const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
-    const value =
-      projectScore !== undefined
-        ? {
-            lcp: projectScore.lcpWeight,
-            fcp: projectScore.fcpWeight,
-            inp: projectScore.inpWeight,
-            cls: projectScore.clsWeight,
-            ttfb: projectScore.ttfbWeight,
-          }
-        : undefined;
+    const value = PERFORMANCE_SCORE_WEIGHTS;
     return {name, value};
   });
 
@@ -110,7 +100,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         height={180}
         data={isTimeseriesLoading ? [] : weightedTimeseries}
         disableXAxis
-        loading={isTimeseriesLoading || isProjectScoresLoading}
+        loading={isTimeseriesLoading}
         type={ChartType.AREA}
         grid={{
           left: 5,

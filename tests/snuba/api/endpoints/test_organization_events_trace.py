@@ -1394,7 +1394,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         mock_query.assert_called_once()
         params = mock_query.call_args.args[1]
-        assert abs((params["end"] - params["start"]).days) <= 7
+        assert abs((params.end - params.start).days) <= 7
 
     def test_timestamp_optimization_without_mock(self):
         """Make sure that even if the params are smaller the query still works"""
@@ -1530,11 +1530,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
         assert sorted(
             [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted(mock_query_builder.mock_calls[0].args[1]["project_id"])
-
-        assert sorted(
-            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
+        ) == sorted(mock_query_builder.mock_calls[0].kwargs["snuba_params"].project_ids)
 
         assert response.status_code == 200, response.content
 
@@ -1717,3 +1713,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
+        assert len(data["transaction_child_count_map"]) == 8
+        for item in data["transaction_child_count_map"]:
+            assert item["count"] > 1, item

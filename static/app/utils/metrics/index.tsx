@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -31,9 +31,8 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {isMeasurement} from 'sentry/utils/discover/fields';
-import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
+import {DEFAULT_AGGREGATES, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricsQuery,
@@ -160,6 +159,25 @@ export function getDefaultAggregation(mri: MRI): MetricAggregation {
   }
 
   return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
+}
+
+// Using Records to ensure all MetricAggregations are covered
+const metricAggregationsCheck: Record<MetricAggregation, boolean> = {
+  count: true,
+  count_unique: true,
+  sum: true,
+  avg: true,
+  min: true,
+  max: true,
+  p50: true,
+  p75: true,
+  p90: true,
+  p95: true,
+  p99: true,
+};
+
+export function isMetricsAggregation(value: string): value is MetricAggregation {
+  return !!metricAggregationsCheck[value as MetricAggregation];
 }
 
 export function isAllowedAggregation(aggregation: MetricAggregation) {
@@ -332,8 +350,20 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
+export function isPerformanceMetric({mri}: {mri: MRI}) {
+  return mri.includes(':spans/') || mri.includes(':transactions/');
+}
+
+export function isVirtualMetric({mri}: {mri: MRI}) {
+  return mri.startsWith('v:');
+}
+
+export function isCounterMetric({mri}: {mri: MRI}) {
+  return mri.startsWith('c:');
+}
+
 export function isSpanDuration({mri}: {mri: MRI}) {
-  return mri === 'd:spans/duration@millisecond';
+  return mri === SPAN_DURATION_MRI;
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
@@ -414,24 +444,6 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
-}
-
-// TODO(metrics): remove this when we switch tags to the new meta
-export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
-  if (datetime?.period) {
-    if (statsPeriodToDays(datetime.period) < 14) {
-      return {statsPeriod: '14d'};
-    }
-    return {statsPeriod: datetime.period};
-  }
-  if (datetime?.start && datetime?.end) {
-    return {
-      start: moment(datetime.start).toISOString(),
-      end: moment(datetime.end).toISOString(),
-    };
-  }
-
-  return {statsPeriod: '14d'};
 }
 
 export function areResultsLimited(response: MetricsQueryApiResponse) {

@@ -17,19 +17,19 @@ from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.avatars.user_avatar import UserAvatar
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRoleUser
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRoleUser
+from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -76,10 +76,14 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
-    issueDetailsNewExperienceQ42023: bool
+    prefersIssueDetailsStreamlinedUI: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
+    # NOTE: There is a bug here where trying to move these fields to
+    # UserSerializerResponse and using NotRequired. "identities" is marked as
+    # required for places where UserSerializerResponse is used as a field (e.g
+    # OrganizationMemberResponse).
     identities: list[_Identity]
     avatar: SerializedAvatarFields
     authenticators: list[Any]  # TODO: find out what type this is
@@ -197,10 +201,9 @@ class UserSerializer(Serializer):
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
-                "issueDetailsNewExperienceQ42023": options.get(
-                    "issue_details_new_experience_q4_2023"
-                )
-                or False,
+                "prefersIssueDetailsStreamlinedUI": options.get(
+                    "prefers_issue_details_streamlined_ui", False
+                ),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}

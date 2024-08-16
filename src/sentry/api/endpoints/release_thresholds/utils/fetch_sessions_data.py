@@ -10,7 +10,7 @@ from sentry import release_health
 from sentry.api.bases import FilterParams
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.snuba.sessions_v2 import QueryDefinition
 
 # In minutes

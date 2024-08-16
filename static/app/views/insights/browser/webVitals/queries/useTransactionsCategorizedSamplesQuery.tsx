@@ -3,13 +3,17 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes: BrowserType[];
   enabled: boolean;
+  subregions: SubregionCode[];
   transaction: string;
   webVital: WebVitals | null;
 };
@@ -18,6 +22,8 @@ export function useTransactionsCategorizedSamplesQuery({
   transaction,
   webVital,
   enabled,
+  browserTypes,
+  subregions,
 }: Props) {
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsScoresQuery({
@@ -30,6 +36,8 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserTypes,
+      subregions,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -43,6 +51,8 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserTypes,
+      subregions,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -56,6 +66,8 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserTypes,
+      subregions,
     });
 
   const data = [...goodData, ...mehData, ...poorData];

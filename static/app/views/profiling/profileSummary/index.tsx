@@ -18,6 +18,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
@@ -27,7 +28,6 @@ import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcr
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconPanel} from 'sentry/icons';
@@ -52,15 +52,14 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import type {ProfilingFieldType} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -68,7 +67,6 @@ import {
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 import {ProfilesTable} from 'sentry/views/profiling/profileSummary/profilesTable';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -95,6 +93,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
     sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
   },
 };
+
 interface ProfileSummaryHeaderProps {
   location: Location;
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
@@ -104,6 +103,7 @@ interface ProfileSummaryHeaderProps {
   transaction: string;
   view: 'flamegraph' | 'profiles';
 }
+
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
@@ -174,7 +174,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
@@ -205,28 +205,9 @@ interface ProfileFiltersProps {
   query: string;
   selection: PageFilters;
   transaction: string | undefined;
-  usingTransactions: boolean;
 }
 
 function ProfileFilters(props: ProfileFiltersProps) {
-  const filtersQuery = useMemo(() => {
-    // To avoid querying for the filters each time the query changes,
-    // do not pass the user query to get the filters.
-    const search = new MutableSearch('');
-
-    if (defined(props.transaction)) {
-      search.setFilterValues('transaction_name', [props.transaction]);
-    }
-
-    return search.formatString();
-  }, [props.transaction]);
-
-  const profileFilters = useProfileFilters({
-    query: filtersQuery,
-    selection: props.selection,
-    disabled: props.usingTransactions,
-  });
-
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
       browserHistory.push({
@@ -241,28 +222,26 @@ function ProfileFilters(props: ProfileFiltersProps) {
     [props.location]
   );
 
+  const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
+
   return (
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      {props.usingTransactions ? (
+      {props.organization.features.includes('search-query-builder-performance') ? (
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={props.query}
+          onSearch={handleSearch}
+          searchSource="transaction_profiles"
+        />
+      ) : (
         <SearchBar
           searchSource="profile_summary"
           organization={props.organization}
-          projectIds={props.projectIds}
-          query={props.query}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
-      ) : (
-        <SmartSearchBar
-          organization={props.organization}
-          hasRecentSearches
-          projectIds={props.projectIds}
-          searchSource="profile_summary"
-          supportedTags={profileFilters}
+          projectIds={projectIds}
           query={props.query}
           onSearch={handleSearch}
           maxQueryLength={MAX_QUERY_LENGTH}
@@ -292,11 +271,6 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
-  const {selection} = usePageFilters();
-
-  const profilingUsingTransactions = organization.features.includes(
-    'profiling-using-transactions'
-  );
 
   const transaction = decodeScalar(props.location.query.transaction);
 
@@ -329,10 +303,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
 
   const query = useMemo(() => {
     const search = new MutableSearch(rawQuery);
-
-    if (defined(transaction)) {
-      search.setFilterValues('transaction', [transaction]);
-    }
+    search.setFilterValues('transaction', [transaction]);
 
     // there are no aggregations happening on this page,
     // so remove any aggregate filters
@@ -346,10 +317,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   }, [rawQuery, transaction]);
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    transaction,
-    environments: selection.environments,
-    projects: selection.projects,
-    datetime: selection.datetime,
+    query,
   });
 
   const [visualization, setVisualization] = useLocalStorageState<
@@ -431,11 +399,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
           shouldForceProject={defined(project)}
           forceProject={project}
           specificProjectSlugs={projectSlugs}
-          defaultSelection={
-            profilingUsingTransactions
-              ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
-              : undefined
-          }
+          defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
         >
           <ProfileSummaryHeader
             view={view}
@@ -443,7 +407,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             organization={organization}
             location={props.location}
             project={project}
-            query={query}
+            query={rawQuery}
             transaction={transaction}
           />
           <ProfileFilters
@@ -453,7 +417,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             query={rawQuery}
             selection={props.selection}
             transaction={transaction}
-            usingTransactions={profilingUsingTransactions}
           />
           <ProfilesSummaryChart
             referrer="api.profiling.profile-summary-chart"
@@ -566,6 +529,7 @@ interface AggregateFlamegraphToolbarProps {
   setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
+
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraph = useFlamegraph();
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);

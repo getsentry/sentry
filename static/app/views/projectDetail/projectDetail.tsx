@@ -11,8 +11,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -25,7 +24,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
@@ -178,6 +177,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
+                  <FeedbackWidgetButton />
                   <Button
                     size="sm"
                     to={
@@ -207,11 +207,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
             <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <StyledGlobalAppStoreConnectUpdateAlert
-                project={project}
-                organization={organization}
-              />
-              <FloatingFeedbackWidget />
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
@@ -304,13 +299,3 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-bottom: 0;
   }
 `;
-
-const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};

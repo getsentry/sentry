@@ -20,16 +20,16 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
         with handle_query_errors():
             metric_meta = get_custom_measurements(
-                project_ids=params["project_id"],
+                project_ids=snuba_params.project_ids,
                 organization_id=organization.id,
-                start=params["start"],
-                end=params["end"],
+                start=snuba_params.start_date,
+                end=snuba_params.end_date,
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 

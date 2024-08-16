@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry import features
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 

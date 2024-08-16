@@ -19,7 +19,10 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetricsExtractionRules,
+  hasMetricsNewInputs,
+} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -29,16 +32,19 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 interface Props {
   addCustomMetric: () => void;
-  showCustomMetricButton: boolean;
+  showAddMetricButton: boolean;
 }
 
-export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const formulaDependencies = useFormulaDependencies();
+
   const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
     useMetricsContext();
   const createDashboard = useCreateDashboard(
@@ -94,7 +100,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       },
       {
         leadingItems: [<IconSettings key="icon" />],
-        key: 'metrics-settings',
+        key: 'Metrics Settings',
         label: t('Metrics Settings'),
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
@@ -110,15 +116,10 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             query.type === MetricExpressionType.QUERY
         )
         .map((widget, index) => {
-          const createAlert = getCreateAlert(organization, {
-            query: widget.query,
-            mri: widget.mri,
-            groupBy: widget.groupBy,
-            aggregation: widget.aggregation,
-          });
+          const createAlert = getCreateAlert(organization, widget);
           return {
             leadingItems: showQuerySymbols
-              ? [<span key="symbol">{getQuerySymbol(widget.id)}:</span>]
+              ? [<span key="symbol">{getQuerySymbol(widget.id, metricsNewInputs)}:</span>]
               : [],
             key: `add-alert-${index}`,
             label: widget.mri
@@ -137,19 +138,24 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             },
           };
         }),
-    [organization, showQuerySymbols, widgets]
+    [widgets, showQuerySymbols, metricsNewInputs, organization]
   );
 
   return (
     <ButtonBar gap={1}>
-      {showCustomMetricButton &&
+      {showAddMetricButton &&
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => navigateTo(`/settings/projects/:projectId/metrics/`, router)}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                organization,
+                source: 'ddm.header.create-metric',
+              })
+            }
             size="sm"
           >
-            {t('Add New Metric')}
+            {t('Create Metric')}
           </Button>
         ) : (
           <Button priority="primary" onClick={() => addCustomMetric()} size="sm">

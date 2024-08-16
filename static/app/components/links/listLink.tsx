@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
 

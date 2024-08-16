@@ -381,7 +381,7 @@
   "/static/app/components/groupPreviewTooltip/spanEvidencePreview.spec.tsx": 1890,
   "/static/app/views/settings/account/accountSecurity/components/twoFactorRequired.spec.jsx": 1758,
   "/static/app/components/eventOrGroupExtraDetails.spec.tsx": 1109,
-  "/static/app/components/projects/useProjectCreationAccess.spec.jsx": 844,
+  "/static/app/components/projects/canCreateProject.spec.jsx": 844,
   "/static/app/views/admin/adminSettings.spec.jsx": 2003,
   "/static/app/components/noProjectMessage.spec.tsx": 2481,
   "/static/app/utils/profiling/hooks/useProfileEvents.spec.tsx": 861,

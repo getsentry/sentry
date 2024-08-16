@@ -15,13 +15,13 @@ from responses import matchers
 from fixtures.vsts import VstsIntegrationTestCase
 from sentry.integrations.vsts.client import VstsApiClient
 from sentry.integrations.vsts.integration import VstsIntegration, VstsIntegrationProvider
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider
 
 
 @control_silo_test
@@ -47,7 +47,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         self._stub_vsts()
 
         # Make a request with expired token
-        installation.get_client(base_url=self.vsts_base_url).get_projects()
+        installation.get_client().get_projects()
 
         # Second to last request, before the Projects request, was to refresh
         # the Access Token.
@@ -91,7 +91,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         self._stub_vsts()
 
         # Make a request
-        installation.get_client(base_url=self.vsts_base_url).get_projects()
+        installation.get_client().get_projects()
         assert len(responses.calls) == 1
         assert (
             responses.calls[0].request.url
@@ -122,7 +122,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             callback=request_callback,
         )
 
-        projects = installation.get_client(base_url=self.vsts_base_url).get_projects()
+        projects = installation.get_client().get_projects()
         assert len(projects) == 220
 
     @responses.activate
@@ -150,7 +150,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         responses.calls.reset()
         assert repo.external_id is not None
@@ -206,7 +206,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         path = "src/sentry/integrations/vsts/client.py"
         version = "master"
@@ -219,7 +219,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
         resp = client.check_file(repo, path, version)
-        assert resp.status_code == 200
+        assert resp
+        assert getattr(resp, "status_code") == 200
 
     @responses.activate
     def test_check_no_file(self):
@@ -239,7 +240,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         path = "src/sentry/integrations/vsts/client.py"
         version = "master"

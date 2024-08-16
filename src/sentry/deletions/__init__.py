@@ -93,8 +93,13 @@ def load_defaults():
         AlertRuleTrigger,
         AlertRuleTriggerAction,
     )
+    from sentry.integrations.models.organization_integration import OrganizationIntegration
+    from sentry.integrations.models.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.monitors import models as monitor_models
+    from sentry.snuba import models as snuba_models
 
     from . import defaults
 
@@ -119,7 +124,8 @@ def load_defaults():
     default_manager.register(models.GroupCommitResolution, BulkModelDeletionTask)
     default_manager.register(models.GroupEmailThread, BulkModelDeletionTask)
     default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.GroupHash, BulkModelDeletionTask)
+    default_manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
+    default_manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
     default_manager.register(models.GroupHistory, BulkModelDeletionTask)
     default_manager.register(models.GroupLink, BulkModelDeletionTask)
     default_manager.register(models.GroupMeta, BulkModelDeletionTask)
@@ -136,9 +142,7 @@ def load_defaults():
         monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
     )
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
-    default_manager.register(
-        models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
-    )
+    default_manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     default_manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
     default_manager.register(
@@ -148,6 +152,7 @@ def load_defaults():
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
     default_manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
+    default_manager.register(snuba_models.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
     default_manager.register(models.Release, defaults.ReleaseDeletionTask)
     default_manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     default_manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
@@ -156,7 +161,7 @@ def load_defaults():
     default_manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
     default_manager.register(models.Repository, defaults.RepositoryDeletionTask)
     default_manager.register(
-        models.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
+        RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
     )
     default_manager.register(models.SentryApp, defaults.SentryAppDeletionTask)
     default_manager.register(

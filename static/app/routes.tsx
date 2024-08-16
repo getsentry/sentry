@@ -398,6 +398,13 @@ function buildRoutes() {
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
+          />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
@@ -532,16 +539,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
       <Route path="metrics/" name={t('Metrics')}>
-        <Redirect from="extract-metric/" to="configure-metric/" />
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Configure Metric')}
-          path="configure-metric/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/extractMetric')
-          )}
         />
         <Route
           name={t('Metrics Details')}
@@ -555,13 +554,6 @@ function buildRoutes() {
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
-      />
-      <Route
-        path="remote-config/"
-        name={t('Remote Config')}
-        component={make(
-          () => import('sentry/views/settings/project/projectRemoteConfig')
-        )}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -591,13 +583,6 @@ function buildRoutes() {
         </Route>
         <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
-      <Route
-        path="processing-issues/"
-        name={t('Processing Issues')}
-        component={make(
-          () => import('sentry/views/settings/project/projectProcessingIssues')
-        )}
-      />
       <Route
         path="filters/"
         name={t('Inbound Filters')}
@@ -1201,6 +1186,15 @@ function buildRoutes() {
               )}
             />
           </Route>
+          <Route
+            path="uptime/"
+            component={make(() => import('sentry/views/alerts/rules/uptime'))}
+          >
+            <Route
+              path=":projectId/:uptimeRuleId/details/"
+              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect
@@ -1219,6 +1213,17 @@ function buildRoutes() {
                   : '/organizations/:orgId/alerts/rules/'
               }
             />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="uptime-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
@@ -1369,14 +1374,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const activityRoutes = (
-    <Route
-      path="/activity/"
-      component={make(() => import('sentry/views/organizationActivity'))}
-      withOrgPath
-    />
-  );
-
   const statsRoutes = (
     <Fragment>
       <Route path="/stats/" withOrgPath>
@@ -1453,8 +1450,8 @@ function buildRoutes() {
         moduleBaseURL && (
           <Redirect
             key={moduleBaseURL}
-            from={`${moduleBaseURL}`}
-            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/`}
+            from={`${moduleBaseURL}/*`}
+            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/:splat`}
           />
         )
     )
@@ -1585,6 +1582,19 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+          )}
+        />
+        <Route
+          path="details/"
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1708,7 +1718,9 @@ function buildRoutes() {
       path="/traces/"
       component={make(() => import('sentry/views/traces'))}
       withOrgPath
-    />
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
@@ -1965,6 +1977,17 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
       <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
+      </Route>
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
@@ -2091,7 +2114,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
@@ -2153,10 +2175,6 @@ function buildRoutes() {
         <Redirect
           from="debug-symbols/"
           to="/settings/:orgId/projects/:projectId/debug-symbols/"
-        />
-        <Redirect
-          from="processing-issues/"
-          to="/settings/:orgId/projects/:projectId/processing-issues/"
         />
         <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
         <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />

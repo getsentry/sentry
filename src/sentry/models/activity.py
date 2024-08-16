@@ -29,8 +29,8 @@ from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 _default_logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ class Activity(Model):
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(null=True)
 
     objects: ClassVar[ActivityManager] = ActivityManager()
 
@@ -168,7 +168,7 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
@@ -181,7 +181,7 @@ class Activity(Model):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)

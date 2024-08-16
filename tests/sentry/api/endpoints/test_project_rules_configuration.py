@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction
+from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
@@ -190,21 +191,8 @@ class ProjectRuleConfigurationTest(APITestCase):
         filter_ids = {f["id"] for f in response.data["filters"]}
         assert IssueCategoryFilter.id in filter_ids
 
-    def test_high_priority_issue_condition_feature(self):
-        # Hide the high priority issue condition when high-priority-alerts is off
-        with self.feature({"projects:high-priority-alerts": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert (
-                "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
-                not in [filter["id"] for filter in response.data["conditions"]]
-            )
-            assert (
-                "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
-                not in [filter["id"] for filter in response.data["conditions"]]
-            )
-
-        # Show the high priority issue condition when high-priority-alerts is on
-        with self.feature({"projects:high-priority-alerts": True}):
+    def test_high_priority_issue_condition(self):
+        with self.feature({"organizations:priority-ga-features": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             assert "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition" in [
                 filter["id"] for filter in response.data["conditions"]
@@ -213,3 +201,20 @@ class ProjectRuleConfigurationTest(APITestCase):
                 "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
                 in [filter["id"] for filter in response.data["conditions"]]
             )
+
+    def test_is_in_feature(self):
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        tagged_event_filter = next(
+            (
+                filter
+                for filter in response.data["filters"]
+                if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+            ),
+            None,
+        )
+        assert tagged_event_filter
+        filter_list = [
+            choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+        ]
+        assert MatchType.IS_IN in filter_list
+        assert MatchType.NOT_IN in filter_list

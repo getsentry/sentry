@@ -333,6 +333,10 @@ def shim_to_feedback(
                 feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
                     "replay"
                 ]["replay_id"]
+
+            if get_path(event.data, "contexts", "trace", "trace_id"):
+                feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
+
             feedback_event["timestamp"] = event.datetime.timestamp()
             feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform

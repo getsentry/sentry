@@ -20,7 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -130,7 +130,7 @@ class AuditLogEntry(Model):
         could have been created from previous code versions -- the events are stored on an async queue for indefinite
         delivery and from possibly older code versions.
         """
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         if event.actor_label:
             label = event.actor_label[:MAX_ACTOR_LABEL_LENGTH]

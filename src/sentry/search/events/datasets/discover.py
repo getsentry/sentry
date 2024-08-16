@@ -26,7 +26,8 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events import builder
+from sentry.search.events.builder import discover
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
@@ -107,7 +108,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     }
     non_nullable_keys = {"event.type"}
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
         self.total_count: int | None = None
         self.total_sum_transaction_duration: float | None = None
@@ -1345,7 +1346,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         self.builder.requires_other_aggregates = True
         if self.total_count is not None:
             return Function("toUInt64", [self.total_count], alias)
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1367,7 +1368,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if self.total_sum_transaction_duration is not None:
             return Function("toFloat64", [self.total_sum_transaction_duration], alias)
         # TODO[Shruthi]: Figure out parametrization of the args to sum()
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -2013,7 +2014,5 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ["transaction"],
             ]:
                 return None
-            raise InvalidSearchQuery(
-                "Invalid value for event.type condition. Allowed value is transaction."
-            )
+
         return self.builder.default_filter_converter(search_filter)

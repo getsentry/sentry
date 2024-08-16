@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SavedSearch
 from sentry.testutils.cases import TestMigrations
@@ -19,6 +21,7 @@ class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
             sort="date",
         )
 
+    @pytest.mark.skip(reason="old migration test")
     def test(self):
         custom_views = GroupSearchView.objects.filter(organization=self.org, user_id=self.user.id)
         assert custom_views.count() == 2

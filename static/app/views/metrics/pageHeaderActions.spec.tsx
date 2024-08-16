@@ -1,11 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 
-jest.mock('sentry/actionCreators/navigation');
 jest.mock('sentry/views/metrics/useCreateDashboard');
 
 describe('Metrics Page Header Actions', function () {
@@ -13,9 +16,7 @@ describe('Metrics Page Header Actions', function () {
     it('display "add custom metrics" button', async function () {
       const addCustomMetric = jest.fn();
 
-      render(
-        <PageHeaderActions showCustomMetricButton addCustomMetric={addCustomMetric} />
-      );
+      render(<PageHeaderActions showAddMetricButton addCustomMetric={addCustomMetric} />);
 
       const button = screen.getByRole('button', {name: 'Add Custom Metrics'});
 
@@ -26,30 +27,29 @@ describe('Metrics Page Header Actions', function () {
       expect(addCustomMetric).toHaveBeenCalled();
     });
 
-    it('display "add new metric" button', async function () {
+    it('display "Create Metric" button', async function () {
       render(
-        <PageHeaderActions showCustomMetricButton addCustomMetric={() => jest.fn()} />,
+        <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
         {
           organization: OrganizationFixture({
-            features: ['custom-metrics-extraction-rule'],
+            features: [
+              'custom-metrics-extraction-rule',
+              'custom-metrics-extraction-rule-ui',
+            ],
           }),
         }
       );
+      renderGlobalModal();
 
-      const button = screen.getByRole('button', {name: 'Add New Metric'});
+      const button = screen.getByRole('button', {name: 'Create Metric'});
 
       expect(button).toBeInTheDocument();
 
       await userEvent.click(button);
 
-      expect(navigateTo).toHaveBeenCalledWith(
-        `/settings/projects/:projectId/metrics/`,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            projectId: 'project-slug',
-          }),
-        })
-      );
+      expect(
+        await screen.findByRole('heading', {name: 'Create Metric'})
+      ).toBeInTheDocument();
     });
   });
 });

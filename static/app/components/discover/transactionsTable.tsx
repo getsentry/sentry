@@ -2,11 +2,13 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
+import {LinkButton} from 'sentry/components/button';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -145,22 +147,24 @@ class TransactionsTable extends PureComponent<Props> {
 
       const target = generateLink?.[field]?.(organization, row, location);
 
-      if (target && !isEmptyObject(target)) {
+      if (fields[index] === 'profile.id') {
+        rendered = (
+          <LinkButton
+            data-test-id={`view-${fields[index]}`}
+            disabled={!target || isEmptyObject(target)}
+            to={target || {}}
+            onClick={getProfileAnalyticsHandler(organization, referrer)}
+            size="xs"
+          >
+            <IconProfiling size="xs" />
+          </LinkButton>
+        );
+      } else if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
             <ViewReplayLink replayId={row.replayId} to={target}>
               {rendered}
             </ViewReplayLink>
-          );
-        } else if (fields[index] === 'profile.id') {
-          rendered = (
-            <Link
-              data-test-id={`view-${fields[index]}`}
-              to={target}
-              onClick={getProfileAnalyticsHandler(organization, referrer)}
-            >
-              {rendered}
-            </Link>
           );
         } else {
           rendered = (

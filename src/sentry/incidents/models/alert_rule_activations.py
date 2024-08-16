@@ -94,15 +94,3 @@ class AlertRuleActivations(Model):
         NOTE: AlertRule attr's may change and may not be reliable indicators of incident trigger reasons
         """
         return self.alert_rule.alertruletrigger_set.get()
-
-    def get_window(self):
-        """
-        Window represents the monitor window
-
-        NOTE: AlertRule attr's may change and may not be a reliable indicator of window periods for past activations
-        """
-        return {
-            "start": self.date_added,
-            "expected_end": self.date_added + self.alert_rule.snuba_query.time_window,
-            "actual_end": self.finished_at,
-        }

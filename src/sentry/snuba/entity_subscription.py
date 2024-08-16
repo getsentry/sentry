@@ -14,6 +14,8 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -165,7 +167,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-        from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
+        from sentry.search.events.builder.errors import ErrorsQueryBuilder
 
         if params is None:
             params = {}
@@ -176,7 +178,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        query_builder_cls = QueryBuilder
+        query_builder_cls = DiscoverQueryBuilder
         parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
         if self.dataset == Dataset.Events:
             from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
@@ -289,7 +291,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-        from sentry.search.events.builder import AlertMetricsQueryBuilder
 
         if params is None:
             params = {}
@@ -313,6 +314,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+                insights_metrics_override_metric_layer=True,
             ),
         )
 

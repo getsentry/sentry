@@ -35,13 +35,13 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
-from sentry.models.user import User
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
 
@@ -107,7 +107,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
+def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -166,10 +166,10 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
-            with configure_scope() as scope:
-                scope.set_tag(entity_id_tag, auth_token.entity_id)
-                for k, v in tags.items():
-                    scope.set_tag(k, v)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag(entity_id_tag, auth_token.entity_id)
+            for k, v in tags.items():
+                scope.set_tag(k, v)
 
         return (user, auth_token)
 
@@ -210,9 +210,13 @@ class RelayAuthentication(BasicAuthentication):
             raise AuthenticationFailed("Missing relay signature")
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
-    def authenticate_credentials(self, relay_id, relay_sig, request):
-        with configure_scope() as scope:
-            scope.set_tag("relay_id", relay_id)
+    def authenticate_credentials(
+        self, relay_id: str, relay_sig: str, request=None
+    ) -> tuple[AnonymousUser, None]:
+        Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+
+        if request is None:
+            raise AuthenticationFailed("missing request")
 
         relay, static = relay_from_id(request, relay_id)
 
@@ -400,7 +404,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
@@ -492,9 +496,9 @@ class DSNAuthentication(StandardAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
 
-        with configure_scope() as scope:
-            scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_project_key", key.id)
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("api_token_type", self.token_name)
+        scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
 
@@ -528,7 +532,6 @@ class RpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        with configure_scope() as scope:
-            scope.set_tag("rpc_auth", True)
+        Scope.get_isolation_scope().set_tag("rpc_auth", True)
 
         return (AnonymousUser(), token)

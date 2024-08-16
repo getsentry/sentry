@@ -16,7 +16,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["alertRuleTriggerId"] == str(action.alert_rule_trigger_id)
         assert (
             result["type"]
-            == AlertRuleTriggerAction.get_registered_type(
+            == AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type(action.type)
             ).slug
         )

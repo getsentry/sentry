@@ -1,5 +1,5 @@
 import type {PlainRoute} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';

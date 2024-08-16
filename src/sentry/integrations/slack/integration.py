@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -17,16 +18,17 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 
-from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
-from .utils import logger
+
+_logger = logging.getLogger("sentry.integrations.slack")
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -71,8 +73,8 @@ metadata = IntegrationMetadata(
 
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
-    def get_client(self) -> SlackClient:
-        return SlackClient(integration_id=self.model.id)
+    def get_client(self) -> SlackSdkClient:
+        return SlackSdkClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
@@ -142,8 +144,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             sdk_response = client.team_info()
 
             return sdk_response.get("team")
-        except SlackApiError as e:
-            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+        except SlackApiError:
+            _logger.exception("slack.install.team-info.error")
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:

@@ -13,7 +13,7 @@ from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
+    from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 
 
 @control_silo_model
@@ -49,6 +49,9 @@ class OrganizationMapping(Model):
     disable_new_visibility_features = models.BooleanField(default=False)
     require_email_verification = models.BooleanField(default=False)
     codecov_access = models.BooleanField(default=False)
+    disable_member_project_creation = models.BooleanField(default=False)
+    prevent_superuser_access = models.BooleanField(default=False)
+    disable_member_invite = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"

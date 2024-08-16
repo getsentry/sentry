@@ -72,6 +72,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
     span.sentry_tags?.category
   );
 
+  const hasNewSpansUIFlag =
+    props.organization.features.includes('performance-spans-new-ui') &&
+    props.organization.features.includes('insights-initial-modules');
+
+  // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself.
+  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+
   if (
     ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule) &&
     span.description
@@ -87,7 +94,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
               orgSlug: props.organization.slug,
               transaction: event.title,
               query: props.location.query,
-              spanSlug: {op: span.op, group: span.hash},
+              spanSlug: {op: span.op, group: groupHash},
               projectID: event.projectID,
             })}
             linkText={t('View Similar Spans')}

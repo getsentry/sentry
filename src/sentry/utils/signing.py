@@ -17,19 +17,24 @@ def sign(**kwargs):
     Signs all passed kwargs and produces a base64 string which may be passed to
     unsign which will verify the string has not been tampered with.
     """
+    salt = SALT
+    if "salt" in kwargs:
+        salt = kwargs["salt"]
+        del kwargs["salt"]
+
     return force_str(
         base64.urlsafe_b64encode(
-            TimestampSigner(salt=SALT).sign(dumps(kwargs)).encode("utf-8")
+            TimestampSigner(salt=salt).sign(dumps(kwargs)).encode("utf-8")
         ).rstrip(b"=")
     )
 
 
-def unsign(data, max_age=60 * 60 * 24 * 2):
+def unsign(data, salt=SALT, max_age=60 * 60 * 24 * 2):
     """
     Unsign a signed base64 string. Accepts the base64 value as a string or bytes
     """
     return loads(
-        TimestampSigner(salt=SALT).unsign(urlsafe_b64decode(data).decode("utf-8"), max_age=max_age)
+        TimestampSigner(salt=salt).unsign(urlsafe_b64decode(data).decode("utf-8"), max_age=max_age)
     )
 
 

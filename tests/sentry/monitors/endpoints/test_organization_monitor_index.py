@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
@@ -522,101 +523,21 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_valid_slugs(self):
-        self._create_monitor(slug="monitor_one")
+    def test_valid_ids(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
         self._create_monitor(slug="monitor_two")
 
         data = {
-            "slugs": ["monitor_three", "monitor_two"],
+            "ids": [uuid.uuid4().hex, monitor_one.guid],
             "isMuted": True,
         }
         response = self.get_error_response(self.organization.slug, **data)
         assert response.status_code == 400
         assert response.data == {
-            "slugs": [
-                ErrorDetail(string="Not all slugs are valid for this organization.", code="invalid")
+            "ids": [
+                ErrorDetail(string="Not all ids are valid for this organization.", code="invalid")
             ]
         }
-
-    def test_bulk_mute_unmute_legacy(self):
-        monitor_one = self._create_monitor(slug="monitor_one")
-        monitor_two = self._create_monitor(slug="monitor_two")
-
-        data = {
-            "slugs": ["monitor_one", "monitor_two"],
-            "isMuted": True,
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-        assert response.status_code == 200
-
-        monitor_one.refresh_from_db()
-        monitor_two.refresh_from_db()
-        assert monitor_one.is_muted
-        assert monitor_two.is_muted
-
-        data = {
-            "slugs": ["monitor_one", "monitor_two"],
-            "isMuted": False,
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-        assert response.status_code == 200
-
-        monitor_one.refresh_from_db()
-        monitor_two.refresh_from_db()
-        assert not monitor_one.is_muted
-        assert not monitor_two.is_muted
-
-    def test_bulk_disable_enable_legacy(self):
-        monitor_one = self._create_monitor(slug="monitor_one")
-        monitor_two = self._create_monitor(slug="monitor_two")
-        data = {
-            "slugs": ["monitor_one", "monitor_two"],
-            "status": "disabled",
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-        assert response.status_code == 200
-
-        monitor_one.refresh_from_db()
-        monitor_two.refresh_from_db()
-        assert monitor_one.status == ObjectStatus.DISABLED
-        assert monitor_two.status == ObjectStatus.DISABLED
-
-        data = {
-            "slugs": ["monitor_one", "monitor_two"],
-            "status": "active",
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-
-        assert response.status_code == 200
-
-        monitor_one.refresh_from_db()
-        monitor_two.refresh_from_db()
-        assert monitor_one.status == ObjectStatus.ACTIVE
-        assert monitor_two.status == ObjectStatus.ACTIVE
-
-    @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota_legacy(self, check_assign_monitor_seats):
-        monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
-        monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
-        result = SeatAssignmentResult(
-            assignable=False,
-            reason="Over quota",
-        )
-        check_assign_monitor_seats.return_value = result
-
-        data = {
-            "slugs": ["monitor_one", "monitor_two"],
-            "status": "active",
-        }
-        response = self.get_error_response(self.organization.slug, **data)
-        assert response.status_code == 400
-        assert response.data == "Over quota"
-
-        # Verify monitors are still disabled
-        monitor_one.refresh_from_db()
-        monitor_two.refresh_from_db()
-        assert monitor_one.status == ObjectStatus.DISABLED
-        assert monitor_two.status == ObjectStatus.DISABLED
 
     def test_bulk_mute_unmute(self):
         monitor_one = self._create_monitor(slug="monitor_one")

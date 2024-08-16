@@ -1,20 +1,24 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from 'sentry/components/dropdownMenu';
+import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import KeyValueData, {
+  CardPanel,
   type KeyValueDataContentProps,
+  Subject,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -25,7 +29,6 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -39,6 +42,9 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
+import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
   NoDataNode,
@@ -66,14 +72,14 @@ const FlexBox = styled('div')`
 
 const Actions = styled(FlexBox)`
   gap: ${space(0.5)};
-  flex-wrap: wrap;
   justify-content: end;
   width: 100%;
 `;
 
 const Title = styled(FlexBox)`
   gap: ${space(1)};
-  width: 50%;
+  flex-grow: 1;
+  overflow: hidden;
   > span {
     min-width: 30px;
   }
@@ -87,11 +93,34 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
+function TitleOp({text}: {text: string}) {
+  return (
+    <Tooltip
+      title={
+        <Fragment>
+          {text}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={text}
+            tooltipProps={{disabled: true}}
+          />
+        </Fragment>
+      }
+      showOnlyOnOverflow
+      isHoverable
+    >
+      <TitleOpText>{text}</TitleOpText>
+    </Tooltip>
+  );
+}
+
 const Type = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const TitleOp = styled('div')`
+const TitleOpText = styled('div')`
   font-size: 15px;
   font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
@@ -128,11 +157,25 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled(Title)`
+const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
-  width: 100%;
-  z-index: 10;
-  flex: 1 1 auto;
+  gap: ${space(3)};
+  container-type: inline-size;
+
+  @container (max-width: 780px) {
+    .DropdownMenu {
+      display: block;
+    }
+    .Actions {
+      display: none;
+    }
+  }
+
+  @container (min-width: 781px) {
+    .DropdownMenu {
+      display: none;
+    }
+  }
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -254,56 +297,25 @@ function TableRow({
   );
 }
 
-function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node) || isTraceErrorNode(node)) {
-    return `id:${node.value.event_id}`;
-  }
-
-  // Issues associated to a span or autogrouped node are not queryable, so we query by
-  // the parent transaction's id
-  const parentTransaction = node.parent_transaction;
-  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
-    return `id:${parentTransaction.value.event_id}`;
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    throw new Error('Missing instrumentation nodes do not have associated issues');
-  }
-
-  return '';
-}
-
 function IssuesLink({
   node,
   children,
 }: {
   children: React.ReactNode;
-  node?: TraceTreeNode<TraceTree.NodeValue>;
+  node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
-
-  const dateSelection = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
-      allowAbsolutePageDatetime: true,
-    });
-    const start = decodeScalar(normalizedParams.start);
-    const end = decodeScalar(normalizedParams.end);
-    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-
-    return {start, end, statsPeriod};
-  }, []);
 
   return (
     <Link
       to={{
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
-          query: `trace:${traceSlug} ${node ? getSearchParamFromNode(node) : ''}`,
-          start: dateSelection.start,
-          end: dateSelection.end,
-          statsPeriod: dateSelection.statsPeriod,
+          query: `trace:${traceSlug}`,
+          start: new Date(node.space[0]).toISOString(),
+          end: new Date(node.space[0] + node.space[1]).toISOString(),
           // If we don't pass the project param, the issues page will filter by the last selected project.
           // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
           project: -1,
@@ -360,6 +372,35 @@ const ValueTd = styled('td')`
   position: relative;
 `;
 
+function getThreadIdFromNode(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  transaction: EventTransaction | undefined
+): string | undefined {
+  if (isSpanNode(node) && node.value.data?.['thread.id']) {
+    return node.value.data['thread.id'];
+  }
+
+  if (transaction) {
+    return transaction.contexts?.trace?.data?.['thread.id'];
+  }
+
+  return undefined;
+}
+
+// Renders the dropdown menu list at the root trace drawer content container level, to prevent
+// being stacked under other content.
+function DropdownMenuWithPortal(props: DropdownMenuProps) {
+  const drawerContainerRef = useDrawerContainerRef();
+
+  return (
+    <DropdownMenu
+      {...props}
+      usePortal={!!drawerContainerRef}
+      portalContainerRef={drawerContainerRef}
+    />
+  );
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -373,6 +414,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
+  const organization = useOrganization();
   const items = useMemo(() => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
@@ -429,9 +471,37 @@ function NodeActions(props: {
     return [showInView];
   }, [props]);
 
+  const profilerId = useMemo(() => {
+    if (isTransactionNode(props.node)) {
+      return props.node.value.profiler_id;
+    }
+    if (isSpanNode(props.node)) {
+      return props.node.value.sentry_tags?.profiler_id ?? '';
+    }
+    return '';
+  }, [props]);
+
+  const {data: transaction} = useTransaction({
+    node: isTransactionNode(props.node) ? props.node : null,
+    organization,
+  });
+
+  const params = useParams<{traceSlug?: string}>();
+  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
+    orgSlug: props.organization.slug,
+    projectSlug: props.node.metadata.project_slug ?? '',
+    traceId: params.traceSlug ?? '',
+    threadId: getThreadIdFromNode(props.node, transaction),
+  });
+
   return (
     <ActionsContainer>
       <Actions className="Actions">
+        {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
+          <LinkButton size="xs" to={profileLink}>
+            {t('Continuous Profile')}
+          </LinkButton>
+        ) : null}
         <Button
           size="xs"
           onClick={_e => {
@@ -443,7 +513,7 @@ function NodeActions(props: {
         </Button>
 
         {isTransactionNode(props.node) ? (
-          <Button
+          <LinkButton
             size="xs"
             icon={<IconOpen />}
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
@@ -451,10 +521,10 @@ function NodeActions(props: {
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
-          </Button>
+          </LinkButton>
         ) : null}
       </Actions>
-      <DropdownMenu
+      <DropdownMenuWithPortal
         items={items}
         className="DropdownMenu"
         position="bottom-end"
@@ -482,31 +552,13 @@ const ActionsContainer = styled('div')`
   justify-content: end;
   align-items: center;
   gap: ${space(1)};
-  container-type: inline-size;
-  min-width: 24px;
-  width: 100%;
-
-  @container (max-width: 380px) {
-    .DropdownMenu {
-      display: block;
-    }
-    .Actions {
-      display: none;
-    }
-  }
-
-  @container (min-width: 381px) {
-    .DropdownMenu {
-      display: none;
-    }
-  }
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <Tags event={event} projectSlug={projectSlug} />
+        <EventTagsDataSection event={event} projectSlug={projectSlug} />
       </TagsWrapper>
     </LazyRender>
   );
@@ -536,14 +588,31 @@ function SectionCard({
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
-    <KeyValueData.Card
-      title={title}
-      contentItems={contentItems}
-      sortAlphabetically={sortAlphabetically}
-      truncateLength={disableTruncate ? Infinity : 5}
-    />
+    <CardWrapper>
+      <KeyValueData.Card
+        title={title}
+        contentItems={contentItems}
+        sortAlphabetically={sortAlphabetically}
+        truncateLength={disableTruncate ? Infinity : 5}
+      />
+    </CardWrapper>
   );
 }
+
+// This is trace-view specific styling. The card is rendered in a number of different places
+// with tests failing otherwise, since @container queries are not supported by the version of
+// jsdom currently used by jest.
+const CardWrapper = styled('div')`
+  ${CardPanel} {
+    container-type: inline-size;
+  }
+
+  ${Subject} {
+    @container (width < 350px) {
+      max-width: 200px;
+    }
+  }
+`;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
   return <KeyValueData.Container>{children}</KeyValueData.Container>;
@@ -645,6 +714,7 @@ const TraceDrawerComponents = {
   EventTags,
   TraceDataSection,
   SectionCardGroup,
+  DropdownMenuWithPortal,
 };
 
 export {TraceDrawerComponents};

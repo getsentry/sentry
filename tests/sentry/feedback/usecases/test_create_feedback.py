@@ -64,7 +64,7 @@ def create_dummy_response(*args, **kwargs):
                 finish_reason="stop",
             )
         ],
-        created=time.time(),
+        created=int(time.time()),
         model="gpt3.5-trubo",
         object="chat.completion",
     )
@@ -683,7 +683,6 @@ def test_create_feedback_spam_detection_set_status_ignored(
             "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-filter-ingest": True,
             "organizations:feedback-ingest": True,
-            "organizations:feedback-post-process-group": True,
         }
     ):
         event = {

@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import usePageFilters from 'sentry/utils/usePageFilters';

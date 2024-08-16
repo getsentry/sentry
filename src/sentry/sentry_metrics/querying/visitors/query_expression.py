@@ -1,11 +1,13 @@
 from collections.abc import Sequence
 from typing import Any
 
+import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleCondition
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
 from sentry.sentry_metrics.querying.data.mapping.base import (
     Mapper,
@@ -126,6 +128,12 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         if self._query_namespace is None:
             self._query_namespace = namespace
         elif self._query_namespace != namespace:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_extra("query_namespace", self._query_namespace)
+                scope.set_extra("namespace", namespace)
+                sentry_sdk.capture_message(
+                    "Querying metrics belonging to different namespaces is not allowed"
+                )
             raise InvalidMetricsQueryError(
                 "Querying metrics belonging to different namespaces is not allowed"
             )
@@ -415,6 +423,15 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
         parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
+            if parsed_mri.entity == "c":
+                return None
+
+            if rule_id := parsed_mri.span_attribute_rule_id:
+                try:
+                    return SpanAttributeExtractionRuleCondition.objects.get(id=rule_id).config.unit
+                except SpanAttributeExtractionRuleCondition.DoesNotExist:
+                    return None
+
             return parsed_mri.unit
 
         return None

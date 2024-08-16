@@ -9,6 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
 import ErrorHeaderCell, {
   COLUMN_COUNT,
@@ -30,7 +31,8 @@ const cellMeasurer = {
 };
 
 function ErrorList() {
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const errorFrames = replay?.getErrorFrames();

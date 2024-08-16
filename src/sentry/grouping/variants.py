@@ -96,7 +96,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
-    `GroupComponent` it encloses.
+    `GroupingComponent` it encloses.
     """
 
     type = "component"

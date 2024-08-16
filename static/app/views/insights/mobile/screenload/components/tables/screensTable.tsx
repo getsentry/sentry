@@ -28,6 +28,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -98,18 +99,19 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
       return (
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
-          <Link
-            to={`${moduleURL}/spans/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-              primaryRelease,
-              secondaryRelease,
-            })}`}
-            style={{display: `block`, width: `100%`}}
-          >
-            {row.transaction}
-          </Link>
+          <OverflowEllipsisTextContainer>
+            <Link
+              to={`${moduleURL}/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`}
+            >
+              {row.transaction}
+            </Link>
+          </OverflowEllipsisTextContainer>
         </Fragment>
       );
     }
@@ -128,8 +130,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
     ) {
       const docsUrl =
         project?.platform === 'android'
-          ? 'https://docs.sentry.io/platforms/android/performance/instrumentation/automatic-instrumentation/#time-to-full-display'
-          : 'https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display';
+          ? 'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display'
+          : 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display';
       return (
         <div style={{textAlign: 'right'}}>
           <Tooltip

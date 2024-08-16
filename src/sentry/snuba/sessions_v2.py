@@ -12,7 +12,10 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
-from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from sentry.search.events.builder.sessions import (
+    SessionsV2QueryBuilder,
+    TimeseriesSessionsV2QueryBuilder,
+)
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import to_intervals

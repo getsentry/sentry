@@ -10,7 +10,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAu
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )

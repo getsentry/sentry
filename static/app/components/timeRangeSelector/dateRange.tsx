@@ -4,7 +4,7 @@ import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DateRangePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';

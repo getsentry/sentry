@@ -36,7 +36,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
@@ -32,7 +33,9 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -57,10 +60,16 @@ export function WebVitalsDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanIndexedField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({});
+  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
+    browserTypes,
+    subregions,
   });
 
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
@@ -80,6 +89,8 @@ export function WebVitalsDetailPanel({
       : {}),
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
+    browserTypes,
+    subregions,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -111,7 +122,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectScoresData?.data, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({});
+    useProjectRawWebVitalsValuesTimeseriesQuery({browserTypes, subregions});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -210,6 +221,7 @@ export function WebVitalsDetailPanel({
                 ...location.query,
                 transaction: row.transaction,
                 webVital,
+                project: row['project.id'],
               },
             }}
           >

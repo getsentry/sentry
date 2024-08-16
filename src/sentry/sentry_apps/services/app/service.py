@@ -21,8 +21,8 @@ from sentry.sentry_apps.services.app import (
     SentryAppInstallationFilterArgs,
 )
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
 
 
 class AppService(RpcService):
@@ -91,6 +91,16 @@ class AppService(RpcService):
         This method is a cached wrapper around get_installation_by_id()
         """
         return get_installation(id)
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
+        """
+        Get the organization id for an installation by installation token_id
+
+        This is a specialized RPC call used by ratelimit middleware
+        """
+        pass
 
     @rpc_method
     @abc.abstractmethod

@@ -14,10 +14,10 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
@@ -35,7 +35,6 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
-  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -80,7 +79,14 @@ class ResultsHeader extends Component<Props, State> {
     if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({savedQuery, loading: false});
+        this.setState({
+          savedQuery: organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
+            : savedQuery,
+          loading: false,
+        });
       });
     }
   }
@@ -89,7 +95,14 @@ class ResultsHeader extends Component<Props, State> {
     const {api, organization} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
-      this.setState({homepageQuery, loading: false});
+      this.setState({
+        homepageQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
+          : homepageQuery,
+        loading: false,
+      });
     });
   }
 
@@ -140,7 +153,6 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
-      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -192,9 +204,14 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
             setHomepageQuery={updatedHomepageQuery => {
-              this.setState({homepageQuery: updatedHomepageQuery});
+              this.setState({
+                homepageQuery: organization.features.includes(
+                  'performance-discover-dataset-selector'
+                )
+                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
+                  : updatedHomepageQuery,
+              });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }

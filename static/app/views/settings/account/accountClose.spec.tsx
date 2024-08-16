@@ -64,7 +64,7 @@ describe('AccountClose', function () {
 
     expect(
       screen.getByText(
-        'This is permanent and cannot be undone, are you really sure you want to do this?'
+        'WARNING! This is permanent and cannot be undone, are you really sure you want to do this?'
       )
     ).toBeInTheDocument();
     await userEvent.click(screen.getByText('Confirm'));

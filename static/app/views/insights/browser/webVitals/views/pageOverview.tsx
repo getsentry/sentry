@@ -14,17 +14,17 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
@@ -34,9 +34,12 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum LandingDisplayField {
@@ -91,10 +94,18 @@ export function PageOverview() {
   const crumbs = useModuleBreadcrumbs('vital');
 
   const query = decodeScalar(location.query.query);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanIndexedField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
-  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
+  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({
+    transaction,
+    browserTypes,
+    subregions,
+  });
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction});
+    useProjectWebVitalsScoresQuery({transaction, browserTypes, subregions});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -180,22 +191,13 @@ export function PageOverview() {
           <Layout.Body>
             <Layout.Main>
               <TopMenuContainer>
-                {transaction && (
-                  <ViewAllPagesButton
-                    to={{
-                      ...location,
-                      pathname: '/performance/browser/pageloads/',
-                      query: {...location.query, transaction: undefined},
-                    }}
-                  >
-                    <IconChevron direction="left" /> {t('View All Pages')}
-                  </ViewAllPagesButton>
-                )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
+                <BrowserTypeSelector />
+                <SubregionSelector />
               </TopMenuContainer>
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
@@ -228,6 +230,8 @@ export function PageOverview() {
                 projectScore={projectScore}
                 transaction={transaction}
                 projectScoreIsLoading={isLoading}
+                browserTypes={browserTypes}
+                subregions={subregions}
               />
             </Layout.Side>
           </Layout.Body>
@@ -257,13 +261,10 @@ function PageWithProviders() {
 
 export default PageWithProviders;
 
-const ViewAllPagesButton = styled(LinkButton)`
-  margin-right: ${space(1)};
-`;
-
 const TopMenuContainer = styled('div')`
   margin-bottom: ${space(1)};
   display: flex;
+  gap: ${space(2)};
 `;
 
 const Flex = styled('div')`

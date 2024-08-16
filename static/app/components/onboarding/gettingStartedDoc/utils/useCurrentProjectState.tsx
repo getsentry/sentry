@@ -5,8 +5,8 @@ import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {
   allPlatforms: readonly PlatformKey[];
@@ -21,12 +21,11 @@ function useCurrentProjectState({
   onboardingPlatforms,
   allPlatforms,
 }: Props) {
-  const params = useParams<{projectId?: string}>();
-  const projectSlug = params.projectId;
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
-
+  const {getParamValue: projectIds} = useUrlParams('project');
+  const projectId = projectIds()?.split('&').at(0);
   const isActive = currentPanel === targetPanel;
 
   // Projects with onboarding instructions
@@ -55,8 +54,8 @@ function useCurrentProjectState({
       return;
     }
 
-    if (projectSlug) {
-      setCurrentProject(projects.find(p => p.slug === projectSlug) ?? undefined);
+    if (projectId) {
+      setCurrentProject(projects.find(p => p.id === projectId) ?? undefined);
       return;
     }
 
@@ -100,7 +99,7 @@ function useCurrentProjectState({
     selection.projects,
     projectsWithOnboarding,
     supportedProjects,
-    projectSlug,
+    projectId,
   ]);
 
   return {

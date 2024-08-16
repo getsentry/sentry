@@ -104,6 +104,18 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Notifications about spikes on a per project basis.'),
   },
+  brokenMonitors: {
+    name: 'brokenMonitors',
+    type: 'select',
+    label: t('Broken Monitors'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t(
+      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+    ),
+  },
   // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',

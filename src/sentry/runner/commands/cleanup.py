@@ -175,6 +175,7 @@ def cleanup(
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
+        from sentry.users.models.lostpasswordhash import LostPasswordHash
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -234,10 +235,10 @@ def cleanup(
         ]
 
         debug_output("Removing expired values for LostPasswordHash")
-        if is_filtered(models.LostPasswordHash):
+        if is_filtered(LostPasswordHash):
             debug_output(">> Skipping LostPasswordHash")
         else:
-            models.LostPasswordHash.objects.filter(
+            LostPasswordHash.objects.filter(
                 date_added__lte=timezone.now() - timedelta(hours=48)
             ).delete()
 
@@ -248,7 +249,7 @@ def cleanup(
             expired_threshold = timezone.now() - timedelta(days=days)
             models.OrganizationMember.objects.delete_expired(expired_threshold)
 
-        for model_tp in [models.ApiGrant, models.ApiToken]:
+        for model_tp in (models.ApiGrant, models.ApiToken):
             debug_output(f"Removing expired values for {model_tp.__name__}")
 
             if is_filtered(model_tp):
@@ -273,8 +274,8 @@ def cleanup(
         if is_filtered(ExportedData):
             debug_output(">> Skipping ExportedData files")
         else:
-            queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
-            for item in queryset:
+            export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+            for item in export_data_queryset:
                 item.delete_file()
 
         project_id = None

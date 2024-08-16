@@ -22,13 +22,11 @@ export function Sql({breadcrumb, searchTerm}: Props) {
         <code>
           {tokens.map((line, i) => (
             <div key={i}>
-              <div>
-                {line.map((token, j) => (
-                  <span key={j} className={token.className}>
-                    <Highlight text={searchTerm}>{token.children}</Highlight>
-                  </span>
-                ))}
-              </div>
+              {line.map((token, j) => (
+                <span key={j} className={token.className}>
+                  <Highlight text={searchTerm}>{token.children}</Highlight>
+                </span>
+              ))}
             </div>
           ))}
         </code>

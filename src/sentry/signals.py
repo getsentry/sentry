@@ -55,7 +55,7 @@ class receivers_raise_on_send:
 
 
 class BetterSignal(Signal):
-    def connect(self, receiver=None, **kwargs):
+    def connect(self, receiver=None, *args, **kwargs):
         """
         Support decorator syntax:
 
@@ -66,7 +66,7 @@ class BetterSignal(Signal):
         """
 
         def wrapped(func):
-            return super(BetterSignal, self).connect(func, **kwargs)
+            return super(BetterSignal, self).connect(func, *args, **kwargs)
 
         if receiver is None:
             return wrapped

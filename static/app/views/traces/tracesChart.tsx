@@ -5,8 +5,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {RateUnit} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,13 +59,32 @@ export function TracesChart({}: Props) {
     (enabled[1] && secondCountSeries.isLoading) ||
     (enabled[2] && thirdCountSeries.isLoading);
 
+  const error = useMemo(() => {
+    const errors = [
+      firstCountSeries.error,
+      secondCountSeries.error,
+      thirdCountSeries.error,
+    ];
+
+    for (let i = 0; i < errors.length; i++) {
+      if (!enabled[i]) {
+        continue;
+      }
+
+      if (errors[i]) {
+        return errors[i];
+      }
+    }
+    return null;
+  }, [enabled, firstCountSeries, secondCountSeries, thirdCountSeries]);
+
   const chartData = useMemo<Series[]>(() => {
     const series = [firstCountSeries.data, secondCountSeries.data, thirdCountSeries.data];
 
     const allData: Series[] = [];
 
     for (let i = 0; i < series.length; i++) {
-      if (!enabled[i]) {
+      if (!enabled[i] || error) {
         continue;
       }
       const data = series[i]['count()'];
@@ -80,6 +98,7 @@ export function TracesChart({}: Props) {
   }, [
     enabled,
     queries,
+    error,
     firstCountSeries.data,
     secondCountSeries.data,
     thirdCountSeries.data,
@@ -99,13 +118,14 @@ export function TracesChart({}: Props) {
             bottom: '0',
           }}
           data={chartData}
+          error={error}
           loading={seriesAreLoading}
           chartColors={CHART_PALETTE[2]}
           type={ChartType.LINE}
           aggregateOutputFormat="number"
           showLegend
           tooltipFormatterOptions={{
-            valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
+            valueFormatter: value => tooltipFormatter(value),
           }}
         />
       </ChartPanel>

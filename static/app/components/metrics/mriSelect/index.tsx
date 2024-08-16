@@ -1,10 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
-import {IconWarning} from 'sentry/icons';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
+import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -14,11 +19,19 @@ import {
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import {
+  hasCustomMetricsExtractionRules,
+  hasMetricsNewInputs,
+} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 import {MetricListItemDetails} from './metricListItemDetails';
 
@@ -30,6 +43,7 @@ type MRISelectProps = {
   onTagClick: (mri: MRI, tag: string) => void;
   projects: number[];
   value: MRI;
+  isModal?: boolean;
 };
 
 const isVisibleTransactionMetric = (metric: MetricMeta) =>
@@ -67,7 +81,7 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   for (const metric of metrics) {
     const parsedMri = parseMRI(metric.mri);
     // Include the use case to avoid warning of conflicts between different use cases
-    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
+    const metricName = `${parsedMri.type}_${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);
@@ -105,6 +119,7 @@ const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
   ignoreLocation: true,
   includeScore: false,
   includeMatches: false,
+  minMatchCharLength: 1,
 };
 
 function useFilteredMRIs(
@@ -145,13 +160,26 @@ export const MRISelect = memo(function MRISelect({
   metricsMeta,
   isLoading,
   value,
+  isModal,
 }: MRISelectProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
   const {projects} = useProjects();
   const mriMode = useMriMode();
   const [inputValue, setInputValue] = useState('');
+  const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
+  const breakpoints = useBreakpoints();
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
+
+  // If the mri is not in the list of metrics, set it to the default metric
+  const selectedMeta = metricsMeta.find(metric => metric.mri === value);
+  useEffect(() => {
+    if (!selectedMeta) {
+      onChange(emptyMetricsQueryWidget.mri);
+    }
+  }, [onChange, selectedMeta]);
 
   const handleFilterOption = useCallback(
     (option: ComboBoxOption<MRI>) => {
@@ -204,25 +232,72 @@ export const MRISelect = memo(function MRISelect({
     [onChange]
   );
 
+  const maxLength = useMemo(() => {
+    if (breakpoints.small) {
+      // at least small size screen, no problem with fitting 100 characters
+      return 100;
+    }
+    if (breakpoints.xsmall) {
+      return 35; // at least xsmall size screen, no problem with fitting 35 characters
+    }
+
+    // screen smaller than xsmall, 20 characters is optimal
+    return 20;
+  }, [breakpoints]);
+
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
+        const parsedMRI = parseMRI(metric.mri);
         const isDuplicateWithDifferentUnit = metricsWithDuplicateNames.has(metric.mri);
+        const isUnresolvedExtractedMetric = isExtractedCustomMetric(metric);
+        const showProjectBadge = hasExtractionRules && selectedProjects.length > 1;
+        const projectToShow =
+          selectedProjects.length > 1 && metric.projectIds.length === 1
+            ? projects.find(p => metric.projectIds[0] === parseInt(p.id, 10))
+            : undefined;
+
+        let projectBadge: React.ReactNode = null;
+
+        if (showProjectBadge) {
+          projectBadge = projectToShow ? (
+            <ProjectBadge
+              project={projectToShow}
+              key={projectToShow.slug}
+              avatarSize={12}
+              disableLink
+              hideName
+            />
+          ) : (
+            <IconProject key="generic-project" size="xs" />
+          );
+        }
 
         const trailingItems: React.ReactNode[] = [];
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parseMRI(metric.mri).useCase === 'custom' && !mriMode) {
+        if (
+          parsedMRI.useCase === 'custom' &&
+          parsedMRI.type !== 'v' &&
+          !isUnresolvedExtractedMetric &&
+          !mriMode
+        ) {
           trailingItems.push(
-            <CustomMetricInfoText key="text">{t('Custom')}</CustomMetricInfoText>
+            <CustomMetricInfoText key="text">
+              {hasExtractionRules ? t('Deprecated') : t('Custom')}
+            </CustomMetricInfoText>
           );
         }
         return {
           label: mriMode
             ? metric.mri
-            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+            : isUnresolvedExtractedMetric
+              ? t('Deleted Metric')
+              : middleEllipsis(formatMRI(metric.mri) ?? '', maxLength, /\.|-|_/),
           value: metric.mri,
+          leadingItems: [projectBadge],
+          disabled: isUnresolvedExtractedMetric,
           details:
             metric.projectIds.length > 0 ? (
               <MetricListItemDetails
@@ -236,11 +311,83 @@ export const MRISelect = memo(function MRISelect({
           trailingItems,
         };
       }),
-    [displayedMetrics, metricsWithDuplicateNames, mriMode, onTagClick, selectedProjects]
+    [
+      displayedMetrics,
+      hasExtractionRules,
+      metricsWithDuplicateNames,
+      mriMode,
+      onTagClick,
+      projects,
+      selectedProjects,
+      maxLength,
+    ]
   );
 
+  if (hasMetricsNewInputs(organization)) {
+    return (
+      <QueryFieldGroup.ComboBox
+        aria-label={t('Metric')}
+        filterOption={option => handleFilterOption(option as ComboBoxOption<MRI>)}
+        growingInput
+        isLoading={isLoading}
+        loadingMessage={t('Loading\u2026')}
+        menuSize="sm"
+        menuWidth="450px" // TODO(priscilawebdev): update this value for small screens
+        onChange={handleMRIChange}
+        onInputChange={setInputValue}
+        onOpenChange={onOpenMenu}
+        options={mriOptions}
+        placeholder={t('Select a metric')}
+        size="md"
+        sizeLimit={100}
+        value={value}
+        css={
+          !isModal
+            ? css`
+                @media (min-width: ${theme.breakpoints.xxlarge}) {
+                  max-width: min(500px, 100%);
+                }
+              `
+            : undefined
+        }
+        menuFooter={
+          isLoading
+            ? undefined
+            : ({closeOverlay}) => (
+                <FlexBlock>
+                  <Button
+                    icon={<IconAdd isCircled />}
+                    priority="primary"
+                    onClick={() => {
+                      closeOverlay();
+                      openExtractionRuleCreateModal({
+                        organization,
+                        source: 'ddm.metric-select.create-metric',
+                      });
+                    }}
+                    size="xs"
+                  >
+                    {t('Create Metric')}
+                  </Button>
+                  <FlexBlock
+                    css={css`
+                      gap: ${space(0.75)};
+                      color: ${theme.subText};
+                      font-size: ${theme.fontSizeSmall};
+                    `}
+                  >
+                    <IconInfo size="xs" />
+                    {t('Don’t see your span attribute? Create Metric.')}
+                  </FlexBlock>
+                </FlexBlock>
+              )
+        }
+      />
+    );
+  }
+
   return (
-    <MetricComboBox
+    <ComboBox
       aria-label={t('Metric')}
       filterOption={handleFilterOption}
       growingInput
@@ -256,6 +403,10 @@ export const MRISelect = memo(function MRISelect({
       size="md"
       sizeLimit={100}
       value={value}
+      css={css`
+        min-width: 200px;
+        max-width: min(500px, 100%);
+      `}
     />
   );
 });
@@ -264,7 +415,8 @@ const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const MetricComboBox = styled(ComboBox<MRI>)`
-  min-width: 200px;
-  max-width: min(500px, 100%);
+const FlexBlock = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;

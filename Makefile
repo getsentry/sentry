@@ -8,8 +8,12 @@ POSTGRES_CONTAINER := sentry_postgres
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
-bootstrap \
-develop \
+bootstrap:
+	@echo "devenv bootstrap is typically run on new machines."
+	@echo "you probably want to run devenv sync to bring the"
+	@echo "sentry dev environment up to date!"
+
+build-platform-assets \
 clean \
 init-config \
 run-dependent-services \
@@ -17,17 +21,19 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-setup-git \
-node-version-check \
-install-js-dev \
-install-py-dev :
+node-version-check :
 	@./scripts/do.sh $@
 
-build-platform-assets \
-direnv-help \
-upgrade-pip \
-setup-git-config :
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
+develop \
+install-js-dev \
+install-py-dev :
+	@make devenv-sync
+
+# This is to ensure devenv sync's only called once if the above
+# macros are combined e.g. `make install-js-dev install-py-dev`
+.PHONY: devenv-sync
+devenv-sync:
+	devenv sync
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -87,7 +93,7 @@ build-chartcuterie-config:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log
+	python3 -b -m pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
@@ -135,7 +141,9 @@ test-python-ci:
 		--cov . $(COV_ARGS) \
 		--json-report \
 		--json-report-file=".artifacts/pytest.json" \
-		--json-report-omit=log
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -158,20 +166,22 @@ test-monolith-dbs:
 	  --json-report \
 	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
 	  --json-report-omit=log \
+	  --junit-xml=.artifacts/monolith-dbs.junit.xml \
+	  -o junit_suite_name=monolith-dbs \
 	;
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml" --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `sentry devservices up kafka` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	python3 -b -m pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
 	python3 -b -m pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
@@ -206,11 +216,5 @@ accept-python-snapshots:
 reject-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta reject --workspace-root `pwd` -e pysnap
-
-lint-js:
-	@echo "--> Linting javascript"
-	bin/lint --js --parseable
-	@echo ""
-
 
 .PHONY: build

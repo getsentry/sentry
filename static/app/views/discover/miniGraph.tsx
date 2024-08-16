@@ -91,6 +91,7 @@ class MiniGraph extends Component<Props> {
       expired: eventView.expired,
       name: eventView.name,
       display,
+      dataset: eventView.dataset,
     };
   }
 
@@ -141,6 +142,7 @@ class MiniGraph extends Component<Props> {
       expired,
       name,
       display,
+      dataset,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -162,6 +164,7 @@ class MiniGraph extends Component<Props> {
         expired={expired}
         name={name}
         referrer={referrer}
+        dataset={dataset}
         hideError
         partial
       >

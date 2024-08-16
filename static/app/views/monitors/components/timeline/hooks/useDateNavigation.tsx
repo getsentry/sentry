@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import getDuration from 'sentry/utils/duration/getDuration';

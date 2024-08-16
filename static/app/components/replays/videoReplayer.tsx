@@ -412,6 +412,10 @@ export class VideoReplayer {
     // This is the soon-to-be previous video that needs to be hidden
     if (this._currentVideo) {
       this._currentVideo.style.display = 'none';
+      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+      if (this._currentVideo.ended) {
+        this.setVideoTime(this._currentVideo, 0);
+      }
     }
 
     nextVideo.style.display = 'block';
@@ -445,6 +449,14 @@ export class VideoReplayer {
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
+    // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
+    // Setting currentTime will cause a side-effect of resetting 'ended' to false.
+    // The additional assignment of currentTime is required to make sure ended is reset before we assign the actual currentTime
+    if (video.ended && timeMs > 0) {
+      // we set it to 1ms before to reduce flickering
+      video.currentTime = (timeMs - 1) / 1000;
+    }
+
     // Needs to be in seconds
     video.currentTime = timeMs / 1000;
   }

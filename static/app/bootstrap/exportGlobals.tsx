@@ -2,7 +2,7 @@ import * as React from 'react';
 import {findDOMNode} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import * as Sentry from '@sentry/react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import plugins from 'sentry/plugins';
 

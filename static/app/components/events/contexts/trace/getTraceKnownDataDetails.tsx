@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
@@ -34,23 +33,11 @@ export function getTraceKnownDataDetails({
         return undefined;
       }
 
-      if (!organization.features.includes('discover-basic')) {
-        return {
-          subject: t('Trace ID'),
-          value: traceId,
-        };
-      }
-
       const link = generateTraceTarget(event, organization, location);
       return {
         subject: t('Trace ID'),
         value: traceId,
         action: {link},
-        actionButton: (
-          <LinkButton size="xs" to={link}>
-            {t('Search by Trace')}
-          </LinkButton>
-        ),
       };
     }
 
@@ -99,7 +86,7 @@ export function getTraceKnownDataDetails({
         };
       }
 
-      const to = transactionSummaryRouteWithQuery({
+      const link = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
         transaction: transactionName,
         projectID: event.projectID,
@@ -109,12 +96,7 @@ export function getTraceKnownDataDetails({
       return {
         subject: t('Transaction'),
         value: transactionName,
-        action: {link: to},
-        actionButton: (
-          <LinkButton size="xs" to={to}>
-            {t('View Summary')}
-          </LinkButton>
-        ),
+        action: {link},
       };
     }
 

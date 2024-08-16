@@ -14,11 +14,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Release, ReleaseMeta} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {isReleaseArchived} from '../../utils';
 

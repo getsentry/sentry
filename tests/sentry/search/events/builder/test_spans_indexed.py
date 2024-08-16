@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta, timezone
+from itertools import chain
 
 import pytest
-from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op, Or
 
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.builder.spans_indexed import (
+    SPAN_ID_FIELDS,
+    SPAN_UUID_FIELDS,
+    SpansIndexedQueryBuilder,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -395,3 +401,98 @@ def test_free_text_search(params, query, expected):
         selected_columns=["count"],
     )
     assert expected in builder.where
+
+
+@pytest.mark.parametrize(
+    ["column"],
+    [pytest.param(column) for column in chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS)],
+)
+@pytest.mark.parametrize(
+    ["query", "message"],
+    [
+        pytest.param("bad_span_id", "must be a valid", id="bad span id"),
+        pytest.param("*wild*card*", "Wildcard conditions are not permitted", id="wildcard"),
+    ],
+)
+@django_db_all
+def test_id_column_validation_failed(params, column, query, message):
+    with pytest.raises(InvalidSearchQuery) as err:
+        SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params,
+            query=f"{column}:{query}",
+            selected_columns=["count"],
+        )
+
+    assert message in str(err)
+    assert f"`{column}`" in str(err)
+
+
+@pytest.mark.parametrize(
+    ["column"],
+    [pytest.param(column) for column in ["profile.id", "profile_id"]],
+)
+@django_db_all
+def test_profile_id_column_has(params, column):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"has:{column}",
+        selected_columns=["count"],
+    )
+
+    assert (
+        Condition(
+            Function("isNull", [Column("profile_id")]),
+            Op.NEQ,
+            1,
+        )
+        in builder.where
+    )
+
+
+@pytest.mark.parametrize(
+    ["column", "query"],
+    [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS]
+    + [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
+    + [pytest.param(column, "0" * 10, id=column) for column in SPAN_ID_FIELDS],
+)
+@pytest.mark.parametrize(
+    ["operator"],
+    [pytest.param("", id="IN"), pytest.param("!", id="NOT IN")],
+)
+@django_db_all
+def test_id_column_permit_in_operator(params, column, query, operator):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"{operator}{column}:[{query}]",
+        selected_columns=["count"],
+    )
+
+    resolved_column = builder.resolve_column(column)
+
+    condition = Condition(
+        resolved_column,
+        Op.IN if operator == "" else Op.NOT_IN,
+        [query],
+    )
+
+    nullable_condition = Or(
+        conditions=[
+            Condition(Function("isNull", [resolved_column]), Op.EQ, 1),
+            condition,
+        ],
+    )
+
+    non_nullable_condition = Condition(
+        Function("ifNull", [resolved_column, ""]),
+        Op.IN if operator == "" else Op.NOT_IN,
+        [query],
+    )
+
+    assert (
+        condition in builder.where
+        or nullable_condition in builder.where
+        or non_nullable_condition in builder.where
+    )

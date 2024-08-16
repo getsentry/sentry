@@ -19,14 +19,12 @@ from sentry.hybridcloud.rpc.service import (
     dispatch_to_local_service,
 )
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -34,6 +32,8 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 
 _REGIONS = [

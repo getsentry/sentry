@@ -9,7 +9,6 @@ from sentry_sdk import Scope
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    customer_domain_path,
     get_date_range_from_params,
     handle_query_errors,
     print_and_capture_handler_exception,
@@ -162,75 +161,6 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
             assert isinstance(capture_exception_scope_kwarg, Scope)
             assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
             assert capture_exception_scope_kwarg._tags == expected_scope_tags
-
-
-def test_customer_domain_path():
-    scenarios = [
-        # Input, expected
-        ["/settings/", "/settings/"],
-        # Organization settings views.
-        ["/settings/acme/", "/settings/organization/"],
-        ["/settings/organization", "/settings/organization/"],
-        ["/settings/sentry/members/", "/settings/members/"],
-        ["/settings/sentry/members/3/", "/settings/members/3/"],
-        ["/settings/sentry/teams/peeps/", "/settings/teams/peeps/"],
-        ["/settings/sentry/billing/receipts/", "/settings/billing/receipts/"],
-        [
-            "/settings/acme/developer-settings/release-bot/",
-            "/settings/developer-settings/release-bot/",
-        ],
-        # Settings views for orgs with acccount/billing in their slugs.
-        ["/settings/account-on/", "/settings/organization/"],
-        ["/settings/billing-co/", "/settings/organization/"],
-        ["/settings/account-on/integrations/", "/settings/integrations/"],
-        [
-            "/settings/account-on/projects/billing-app/source-maps/",
-            "/settings/projects/billing-app/source-maps/",
-        ],
-        ["/settings/billing-co/integrations/", "/settings/integrations/"],
-        [
-            "/settings/billing-co/projects/billing-app/source-maps/",
-            "/settings/projects/billing-app/source-maps/",
-        ],
-        # Account settings should stay the same
-        ["/settings/account/", "/settings/account/"],
-        ["/settings/account/security/", "/settings/account/security/"],
-        ["/settings/account/details/", "/settings/account/details/"],
-        ["/join-request/acme", "/join-request/"],
-        ["/join-request/acme/", "/join-request/"],
-        ["/onboarding/acme/", "/onboarding/"],
-        ["/onboarding/acme/project/", "/onboarding/project/"],
-        ["/organizations/new/", "/organizations/new/"],
-        ["/organizations/albertos-apples/issues/", "/issues/"],
-        ["/organizations/albertos-apples/issues/?_q=all#hash", "/issues/?_q=all#hash"],
-        ["/acme/project-slug/getting-started/", "/getting-started/project-slug/"],
-        [
-            "/acme/project-slug/getting-started/python",
-            "/getting-started/project-slug/python",
-        ],
-        ["/settings/projects/python/filters/", "/settings/projects/python/filters/"],
-        ["/settings/projects/onboarding/abc123/", "/settings/projects/onboarding/abc123/"],
-        [
-            "/settings/projects/join-request/abc123/",
-            "/settings/projects/join-request/abc123/",
-        ],
-        [
-            "/settings/projects/python/filters/discarded/",
-            "/settings/projects/python/filters/discarded/",
-        ],
-        [
-            "/settings/projects/getting-started/abc123/",
-            "/settings/projects/getting-started/abc123/",
-        ],
-        ["/settings/teams/peeps/", "/settings/teams/peeps/"],
-        ["/settings/billing/checkout/?_q=all#hash", "/settings/billing/checkout/?_q=all#hash"],
-        [
-            "/settings/billing/bundle-checkout/?_q=all#hash",
-            "/settings/billing/bundle-checkout/?_q=all#hash",
-        ],
-    ]
-    for input_path, expected in scenarios:
-        assert expected == customer_domain_path(input_path)
 
 
 class FooBarError(Exception):

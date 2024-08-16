@@ -28,6 +28,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
 MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
+DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
 
 
 def _generate_suffix() -> str:
@@ -89,6 +90,10 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         if not features.has("organizations:team-roles", organization):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
+        if organization.flags.disable_member_project_creation and not request.access.has_scope(
+            "org:write"
+        ):
+            raise PermissionDenied(detail=DISABLED_FEATURE_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
         parsed_email = fetch_slugifed_email_username(request.user.email)

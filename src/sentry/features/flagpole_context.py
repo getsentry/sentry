@@ -6,11 +6,11 @@ from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.project import RpcProject
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.projects.services.project import RpcProject
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class InvalidContextDataException(Exception):
@@ -20,9 +20,9 @@ class InvalidContextDataException(Exception):
 @dataclass()
 class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
-    organization: Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None = (
-        None
-    )
+    organization: (
+        Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None
+    ) = None
     project: Project | RpcProject | None = None
 
 
@@ -49,9 +49,7 @@ def organization_context_transformer(data: SentryContextData) -> EvaluationConte
         context_data["organization_slug"] = org.slug
         context_data["organization_name"] = org.name
         context_data["organization_id"] = org.id
-        # TODO(hybridcloud) Remove this guard once org.flags has been deployed to all regions
-        if hasattr(org, "flags"):
-            context_data["organization_is-early-adopter"] = bool(org.flags.early_adopter)
+        context_data["organization_is-early-adopter"] = bool(org.flags.early_adopter)
     else:
         raise InvalidContextDataException("Invalid organization object provided")
 
@@ -91,7 +89,7 @@ def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     if isinstance(user, RpcUser):
         verified_emails = list(user.emails)
     else:
-        verified_emails = user.get_verified_emails().values_list("email", flat=True)
+        verified_emails = list(user.get_verified_emails().values_list("email", flat=True))
 
     if user.email in verified_emails:
         context_data["user_email"] = user.email

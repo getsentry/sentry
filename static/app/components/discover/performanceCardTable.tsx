@@ -18,11 +18,13 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
@@ -118,7 +120,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {WEB_VITAL_DETAILS[vital.title].name} (
             {WEB_VITAL_DETAILS[vital.title].acronym})
           </Link>
@@ -132,7 +142,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {span.title}
           </Link>
         </SubTitle>
@@ -310,7 +328,15 @@ function PerformanceCardTable({
       ]);
       return (
         <SubTitle key={idx}>
-          <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
+          <Link
+            to={newView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
+          >
             {span.title}
           </Link>
         </SubTitle>

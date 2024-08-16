@@ -201,6 +201,7 @@ class SiloRouter:
                 raise RuntimeError(
                     "Migration tables resolve to multiple databases. "
                     f"Got {dbs} when only one database should be used."
+                    "Please also ensure your table names in the hint are correct."
                 )
             return dbs.pop() == db
 

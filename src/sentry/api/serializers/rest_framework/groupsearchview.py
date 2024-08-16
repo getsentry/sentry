@@ -1,8 +1,20 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 
-from sentry.models.savedsearch import SortOptions
+from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
 MAX_VIEWS = 50
+
+
+class GroupSearchViewValidatorResponse(TypedDict):
+    id: NotRequired[str]
+    name: str
+    query: str
+    querySort: SORT_LITERALS
+    position: int
+    dateCreated: str | None
+    dateUpdated: str | None
 
 
 class ViewValidator(serializers.Serializer):

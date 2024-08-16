@@ -15,7 +15,6 @@ import {
   getReplayDiffOffsetsFromFrame,
 } from 'sentry/utils/replays/getDiffTimestamps';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
-import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {
   IncrementalSource,
@@ -90,11 +89,9 @@ function getMockReplayWithCrumbFrame(
     })
   );
 
-  const {rrwebFrames} = hydrateFrames(attachments);
   const [hydrationErrorFrame] = hydrateBreadcrumbs(
     replayRecord,
-    crumbFrame ? [crumbFrame] : [],
-    rrwebFrames
+    crumbFrame ? [crumbFrame] : []
   );
 
   const replay = ReplayReader.factory({
@@ -119,12 +116,12 @@ describe('getReplayDiffOffsetsFromFrame', () => {
     );
 
     expect(getReplayDiffOffsetsFromFrame(replay, hydrationErrorFrame)).toEqual({
-      leftOffsetMs: 1_350, // offset of CRUMB_1_DATE
+      leftOffsetMs: 200, // offset of FULL_DATE
       rightOffsetMs: 5_000, // offset of the INCR_DATE
     });
   });
 
-  it('should return the offset of the requested frame, and 0 if there is no next frame', () => {
+  it('should return the offset of the requested frame, and 1 if there is no next frame', () => {
     const rawHydrationCrumbFrame = ReplayHydrationErrorFrameFixture({
       timestamp: CRUMB_2_DATE,
     });
@@ -135,8 +132,8 @@ describe('getReplayDiffOffsetsFromFrame', () => {
     );
 
     expect(getReplayDiffOffsetsFromFrame(replay, hydrationErrorFrame)).toEqual({
-      leftOffsetMs: 5_350, // offset of CRUMB_2_DATE
-      rightOffsetMs: 0, // no next mutation date, so offset is 0
+      leftOffsetMs: 5_000, // offset of INCR_DATE
+      rightOffsetMs: 1, // no next mutation date, so offset is 1
     });
   });
 });
@@ -152,7 +149,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
     ]);
 
     expect(getReplayDiffOffsetsFromEvent(replay!, errorEvent)).toEqual({
-      leftOffsetMs: 1_350, // offset of CRUMB_1_DATE
+      leftOffsetMs: 200, // offset of FULL_DATE
       rightOffsetMs: 5_000, // offset of the INCR_DATE
     });
   });

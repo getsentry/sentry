@@ -7,7 +7,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from .base import Newsletter
 
@@ -26,7 +26,7 @@ class NewsletterSubscription:
         unsubscribed_date=None,
         **kwargs,
     ):
-        from sentry.models.useremail import UserEmail
+        from sentry.users.models.useremail import UserEmail
 
         self.email = user.email or email
         self.list_id = list_id
@@ -77,7 +77,7 @@ class DummyNewsletter(Newsletter):
         self._enabled = enabled
 
     @contextlib.contextmanager
-    def enable(self) -> Generator[None, None, None]:
+    def enable(self) -> Generator[None]:
         self._enabled = True
         try:
             yield

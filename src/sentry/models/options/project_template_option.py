@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 
@@ -9,10 +9,13 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager.option import OptionManager
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.utils.cache import cache
 
 Value = Any | None
+TProjectOptions = Mapping[str, Value]
+
+if TYPE_CHECKING:
+    from sentry.models.projecttemplate import ProjectTemplate
 
 
 class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
@@ -55,7 +58,7 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
 
         return created or inst > 0
 
-    def get_all_values(self, project_template: ProjectTemplate | int) -> Mapping[str, Value]:
+    def get_all_values(self, project_template: ProjectTemplate | int) -> TProjectOptions:
         if isinstance(project_template, models.Model):
             project_template_id = project_template.id
         else:
@@ -80,7 +83,9 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
         cache.set(cache_key, result)
         self._option_cache[cache_key] = result
 
-    def post_save(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:
+    def post_save(
+        self, *, instance: ProjectTemplateOption, created: bool, **kwargs: object
+    ) -> None:
         self.reload_cache(instance.project_template_id, "projecttemplateoption.post_save")
 
     def post_delete(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:

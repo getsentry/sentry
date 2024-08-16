@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -71,7 +71,7 @@ class GroupLink(Model):
         default=Relationship.references,
         choices=((Relationship.resolves, _("Resolves")), (Relationship.references, _("Linked"))),
     )
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     objects: ClassVar[GroupLinkManager] = GroupLinkManager()

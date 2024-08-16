@@ -618,8 +618,8 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             end = self.now
             start = end + timedelta(days=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.call_args.args[0][0][0].query.limit == Limit(120)
-            assert snuba.call_args.args[0][0][0].flags.consistent is True
+            assert snuba.call_args.args[0][0].request.query.limit == Limit(120)
+            assert snuba.call_args.args[0][0].request.flags.consistent is True
 
 
 class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin):

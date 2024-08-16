@@ -22,7 +22,6 @@ const prismStyles = (theme: Theme) => css`
 
     code {
       background: unset;
-      vertical-align: middle;
     }
   }
 

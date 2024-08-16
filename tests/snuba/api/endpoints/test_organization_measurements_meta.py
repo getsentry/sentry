@@ -14,6 +14,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
         "d:transactions/measurements.something_custom@millisecond",
     ]
+    features = {"organizations:discover-basic": True}
 
     def setUp(self):
         super().setUp()
@@ -24,13 +25,6 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             self.endpoint, kwargs={"organization_id_or_slug": self.project.organization.slug}
         )
         self.features = {"organizations:performance-use-metrics": True}
-
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_simple(self):
         self.store_transaction_metric(

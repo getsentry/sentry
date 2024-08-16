@@ -1,6 +1,6 @@
-import {AutofixRootCauseSuggestedFix} from 'sentry-fixture/autofixRootCauseSuggestedFix';
+import { AutofixRootCauseCodeContext } from 'sentry-fixture/autofixRootCauseCodeContext';
 
-import type {AutofixRootCauseData} from 'sentry/components/events/autofix/types';
+import type { AutofixRootCauseData } from 'sentry/components/events/autofix/types';
 
 export function AutofixRootCauseData(
   params: Partial<AutofixRootCauseData> = {}
@@ -11,7 +11,7 @@ export function AutofixRootCauseData(
     description: 'This is the description of a root cause.',
     actionability: 0.8,
     likelihood: 0.9,
-    suggested_fixes: [AutofixRootCauseSuggestedFix()],
+    code_context: [AutofixRootCauseCodeContext()],
     ...params,
   };
 }

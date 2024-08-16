@@ -11,14 +11,15 @@ import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/as
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {Group} from 'sentry/types/group';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackEvent: FeedbackEvent | undefined;
-  feedbackIssue: FeedbackIssue;
+  feedbackIssue: Group;
   showActorName: boolean;
 }
 

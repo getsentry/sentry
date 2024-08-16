@@ -16,7 +16,7 @@ SUCCESS = """{
 
 
 class UnicodeTestInterface(Interface):
-    def to_string(self, event):
+    def to_string(self, event) -> str:
         return self.body
 
     def get_title(self):

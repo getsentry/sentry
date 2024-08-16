@@ -5,7 +5,7 @@ from sentry.utils.eventuser import EventUser
 
 @register(EventUser)
 class EventUserSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id) if obj.id is not None else obj.id,
             "tagValue": obj.tag_value,

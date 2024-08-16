@@ -6,11 +6,12 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.audit_log.services.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
-from sentry.models.user import User
-from sentry.models.userip import UserIP
 from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
+from sentry.users.models.userip import UserIP
 
 
 class DatabaseBackedLogService(LogService):
@@ -81,7 +82,7 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
@@ -91,7 +92,7 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def find_last_log(

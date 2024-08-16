@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {t} from 'sentry/locale';
+import type {RequestState} from 'sentry/types/core';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -17,7 +18,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -36,11 +37,14 @@ interface FlamegraphChartProps {
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
   chartView: CanvasView<FlamegraphChartModel> | null;
+  configViewUnit: ProfilingFormatterUnit;
   noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  status: RequestState<any>['type'];
 }
 
 export function FlamegraphChart({
+  status,
   chart,
   canvasPoolManager,
   chartView,
@@ -49,10 +53,10 @@ export function FlamegraphChart({
   setChartCanvasRef,
   canvasBounds,
   noMeasurementMessage,
+  configViewUnit,
 }: FlamegraphChartProps) {
-  const profiles = useProfiles();
-  const scheduler = useCanvasScheduler(canvasPoolManager);
   const theme = useFlamegraphTheme();
+  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
@@ -261,15 +265,20 @@ export function FlamegraphChart({
     [configSpaceCursor, chartView]
   );
 
+  const isInsufficientDuration = useMemo(() => {
+    if (!chart) return false;
+    return formatTo(chart?.configSpace.width, configViewUnit, 'millisecond') < 200;
+  }, [chart, configViewUnit]);
+
   let message: string | undefined;
 
   if (chart) {
     if (
-      chart.configSpace.width < 200 * 1e6 &&
+      isInsufficientDuration &&
       (chart.status === 'insufficient data' || chart.status === 'empty metrics')
     ) {
       message = t('Profile duration was too short to collect enough metrics');
-    } else if (chart.configSpace.width >= 200 && chart.status === 'insufficient data') {
+    } else if (!isInsufficientDuration && chart.status === 'insufficient data') {
       message =
         noMeasurementMessage ||
         t(
@@ -300,12 +309,13 @@ export function FlamegraphChart({
           chartView={chartView}
           chartRenderer={chartRenderer}
           canvasBounds={canvasBounds}
+          configViewUnit={configViewUnit}
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {profiles.type === 'loading' || profiles.type === 'initial' ? (
+      {status === 'loading' || status === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && chart?.status !== 'ok' ? (
+      ) : status === 'resolved' && chart?.status !== 'ok' ? (
         <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>

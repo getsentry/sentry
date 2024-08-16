@@ -14,15 +14,15 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics
-from sentry.utils.forms import set_field_choices, set_widget_choices
+from sentry.utils.forms import set_field_choices
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
@@ -113,7 +113,6 @@ class NotifyEventServiceForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         set_field_choices(self.fields["service"], service_choices)
-        set_widget_choices(self.fields["service"].widget, service_choices)
 
 
 class NotifyEventServiceAction(EventAction):
@@ -140,7 +139,7 @@ class NotifyEventServiceAction(EventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         service = self.get_option("service")
 
         extra: dict[str, object] = {"event_id": event.event_id}

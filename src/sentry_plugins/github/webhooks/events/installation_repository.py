@@ -1,5 +1,5 @@
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 
 from . import Webhook
@@ -7,7 +7,7 @@ from . import Webhook
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization):
         installation = event["installation"]
 
         integration = integration_service.get_integration(

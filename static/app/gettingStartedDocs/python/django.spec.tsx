@@ -15,13 +15,11 @@ describe('django onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[django\]'/)
-      )
+      screen.getByText(textWithMarkupMatcher('pip install --upgrade sentry-sdk'))
     ).toBeInTheDocument();
   });
 
-  it('renders without performance monitoring', function () {
+  it('renders without tracing', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });

@@ -23,14 +23,15 @@ import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MetricAggregation, MRI, ParsedMRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type Field as SelectedField,
   getSummaryValueForAggregation,
@@ -39,6 +40,7 @@ import {
   type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -69,6 +71,7 @@ export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
   aggregation?: MetricAggregation;
+  condition?: number;
   focusArea?: SelectionRange;
   hasPerformance?: boolean;
   mri?: MRI;
@@ -149,12 +152,22 @@ export function MetricSamplesTable({
   mri,
   onRowHover,
   aggregation,
+  condition,
   query,
   setMetricsSamples,
   sortKey = 'sort',
   hasPerformance = true,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
+
+  let resolvedMRI = mri;
+  let resolvedAggregation = aggregation;
+  if (mri && isVirtualMetric({mri}) && condition && aggregation) {
+    const resolved = resolveVirtualMRI(mri, condition, aggregation);
+    resolvedMRI = resolved.mri;
+    resolvedAggregation = resolved.aggregation;
+  }
 
   const enabled = defined(mri);
 
@@ -188,14 +201,14 @@ export function MetricSamplesTable({
     }
 
     if (OPTIONALLY_SORTABLE_COLUMNS.has(key as ResultField)) {
-      const column = getColumnForMRI(parsedMRI);
+      const column = getColumnForMRI(mri);
       if (column.key === key) {
         return {key, direction};
       }
     }
 
     return undefined;
-  }, [location.query, parsedMRI, sortKey]);
+  }, [location.query, mri, sortKey]);
 
   const sortQuery = useMemo(() => {
     if (!defined(currentSort)) {
@@ -211,8 +224,8 @@ export function MetricSamplesTable({
     datetime,
     max: focusArea?.max,
     min: focusArea?.min,
-    mri,
-    aggregation,
+    mri: resolvedMRI,
+    aggregation: resolvedAggregation,
     query,
     referrer: 'api.organization.metrics-samples',
     enabled,
@@ -238,7 +251,7 @@ export function MetricSamplesTable({
     if (!hasPerformance) {
       return (
         <PerformanceEmptyState withIcon={false}>
-          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <p>{t('You need to set up tracing to collect samples.')}</p>
           <LinkButton
             priority="primary"
             external
@@ -335,7 +348,7 @@ export function MetricSamplesTable({
         isLoading={enabled && result.isLoading}
         error={enabled && result.isError && supportedMRI}
         data={result.data?.data ?? []}
-        columnOrder={getColumnOrder(parsedMRI)}
+        columnOrder={getColumnOrder(mri)}
         columnSortBy={[]}
         grid={{
           renderBodyCell: _renderBodyCell,
@@ -348,20 +361,25 @@ export function MetricSamplesTable({
   );
 }
 
-function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField> {
+function getColumnForMRI(mri?: MRI): GridColumnOrder<ResultField> {
+  const parsedMRI = parseMRI(mri);
   return parsedMRI?.useCase === 'spans' && parsedMRI?.name === 'span.self_time'
     ? {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'}
     : parsedMRI?.useCase === 'transactions' && parsedMRI?.name === 'transaction.duration'
       ? {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'}
-      : {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'};
+      : {
+          key: 'summary',
+          width: COL_WIDTH_UNDEFINED,
+          name: mri ? formatMRI(mri) : 'Summary',
+        };
 }
 
-function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
+function getColumnOrder(mri?: MRI): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
-    getColumnForMRI(parsedMRI),
+    getColumnForMRI(mri),
     {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
     {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   ];
@@ -733,9 +751,12 @@ function ProfileId({
   if (!defined(profileId)) {
     return (
       <Container>
-        <Button href={undefined} disabled size="xs">
-          <IconProfiling size="xs" />
-        </Button>
+        <Button
+          disabled
+          size="xs"
+          icon={<IconProfiling />}
+          aria-label={t('Open Profile')}
+        />
       </Container>
     );
   }

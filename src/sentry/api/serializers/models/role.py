@@ -3,8 +3,8 @@ from typing import Any, TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer
-from sentry.models.user import User
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
+from sentry.users.models.user import User
 
 
 class BaseRoleSerializerResponse(TypedDict):
@@ -16,6 +16,7 @@ class BaseRoleSerializerResponse(TypedDict):
     allowed: bool
     isAllowed: bool
     isRetired: bool
+    isTeamRolesAllowed: bool
 
 
 class OrganizationRoleSerializerResponse(BaseRoleSerializerResponse):

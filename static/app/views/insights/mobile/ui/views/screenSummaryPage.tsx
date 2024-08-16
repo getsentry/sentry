@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -11,8 +12,10 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
@@ -32,15 +35,7 @@ type Query = {
 
 function ScreenSummary() {
   const location = useLocation<Query>();
-  const router = useRouter();
-
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName} = location.query;
 
   const crumbs = useModuleBreadcrumbs('mobile-ui');
 
@@ -64,52 +59,72 @@ function ScreenSummary() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
-            <HeaderContainer>
-              <ControlsContainer>
-                <PageFilterBar condensed>
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <ReleaseComparisonSelector />
-              </ControlsContainer>
-            </HeaderContainer>
-            <SamplesContainer>
-              <SamplesTables
-                transactionName={transactionName}
-                SpanOperationTable={SpanOperationTable}
-                // TODO(nar): Add event samples component specific to ui module
-                EventSamples={_props => <div />}
-              />
-            </SamplesContainer>
-
-            {spanGroup && spanOp && (
-              <SpanSamplesPanel
-                additionalFilters={{
-                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-                }}
-                groupId={spanGroup}
-                moduleName={ModuleName.OTHER}
-                transactionName={transactionName}
-                spanDescription={spanDescription}
-                spanOp={spanOp}
-                onClose={() => {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: omit(
-                      router.location.query,
-                      'spanGroup',
-                      'transactionMethod',
-                      'spanDescription',
-                      'spanOp'
-                    ),
-                  });
-                }}
-              />
-            )}
+            <ScreenSummaryContent />
           </Layout.Main>
         </Layout.Body>
       </PageAlertProvider>
     </Layout.Page>
+  );
+}
+
+export function ScreenSummaryContent() {
+  const location = useLocation<Query>();
+  const router = useRouter();
+
+  const {
+    transaction: transactionName,
+    spanGroup,
+    spanDescription,
+    spanOp,
+    'device.class': deviceClass,
+  } = location.query;
+
+  return (
+    <Fragment>
+      <HeaderContainer>
+        <ToolRibbon>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <ReleaseComparisonSelector />
+        </ToolRibbon>
+      </HeaderContainer>
+
+      <SamplesContainer>
+        <SamplesTables
+          transactionName={transactionName}
+          SpanOperationTable={SpanOperationTable}
+          // TODO(nar): Add event samples component specific to ui module
+          EventSamples={_props => <div />}
+        />
+      </SamplesContainer>
+
+      {spanGroup && spanOp && (
+        <SpanSamplesPanel
+          additionalFilters={{
+            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+          }}
+          groupId={spanGroup}
+          moduleName={ModuleName.OTHER}
+          transactionName={transactionName}
+          spanDescription={spanDescription}
+          spanOp={spanOp}
+          onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(
+                router.location.query,
+                'spanGroup',
+                'transactionMethod',
+                'spanDescription',
+                'spanOp'
+              ),
+            });
+          }}
+        />
+      )}
+    </Fragment>
   );
 }
 
@@ -126,18 +141,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  justify-content: space-between;
-`;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

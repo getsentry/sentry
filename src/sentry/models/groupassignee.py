@@ -24,8 +24,8 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.team import Team
-    from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
 
     def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple[str, str, str]:
         from sentry.models.team import Team
-        from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.models.user import User
+        from sentry.users.services.user import RpcUser
 
         if isinstance(assigned_to, (User, RpcUser)):
             assignee_type = "user"

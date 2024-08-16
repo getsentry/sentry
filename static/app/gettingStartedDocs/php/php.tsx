@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
-  'dsn' => '${params.dsn}',${
+  'dsn' => '${params.dsn.public}',${
     params.isPerformanceSelected
       ? `
   // Specify a fixed sample rate
@@ -100,7 +100,7 @@ const onboarding: OnboardingConfig = {
                 'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
                 {
                   instrumentationLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/php/performance/instrumentation/custom-instrumentation/" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
                   ),
                 }
               )}

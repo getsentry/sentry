@@ -95,7 +95,9 @@ class RedisRateLimiter(RateLimiter):
     ) -> tuple[bool, int, int]:
         """
         Does a rate limit check as well as returning the new rate limit value and when the next
-        rate limit window will start
+        rate limit window will start.
+
+        Note that the counter is incremented when the check is done.
         """
         request_time = time()
         if window is None or window == 0:

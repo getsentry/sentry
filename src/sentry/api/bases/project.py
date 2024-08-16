@@ -6,7 +6,6 @@ from typing import Any
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
@@ -17,7 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 from .organization import OrganizationPermission
 
@@ -105,6 +104,15 @@ class ProjectOwnershipPermission(ProjectPermission):
     }
 
 
+class ProjectMetricsExtractionRulesPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:read", "project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:read", "project:write", "project:admin"],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 
@@ -175,8 +183,7 @@ class ProjectEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
+        Scope.get_isolation_scope().set_tag("project", project.id)
 
         bind_organization_context(project.organization)
 

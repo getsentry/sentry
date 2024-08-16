@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 from sentry import analytics, features
 from sentry.db.models import Model
-from sentry.digests import Digest
+from sentry.digests.notifications import DigestInfo
 from sentry.digests.utils import (
     get_digest_as_context,
     get_participants_by_event,
@@ -49,7 +49,7 @@ class DigestNotification(ProjectNotification):
     def __init__(
         self,
         project: Project,
-        digest: Digest,
+        digest: DigestInfo,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
@@ -106,7 +106,7 @@ class DigestNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
-        rule_details = get_rules(list(self.digest.keys()), self.project.organization, self.project)
+        rule_details = get_rules(list(self.digest.digest), self.project.organization, self.project)
         context = DigestNotification.build_context(
             self.digest,
             self.project,
@@ -130,7 +130,7 @@ class DigestNotification(ProjectNotification):
 
     @staticmethod
     def build_context(
-        digest: Digest,
+        digest: DigestInfo,
         project: Project,
         organization: Organization,
         rule_details: Sequence[NotificationRuleDetails],
@@ -140,7 +140,9 @@ class DigestNotification(ProjectNotification):
         has_session_replay = features.has("organizations:session-replay", organization)
         show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
         return {
-            **get_digest_as_context(digest),
+            **get_digest_as_context(digest.digest),
+            "event_counts": digest.event_counts,
+            "user_counts": digest.user_counts,
             "has_alert_integration": has_alert_integration(project),
             "project": project,
             "slack_link": get_integration_link(organization, "slack"),
@@ -160,7 +162,7 @@ class DigestNotification(ProjectNotification):
         participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
     ) -> Mapping[Actor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
-            self.digest, participants_by_provider_by_event
+            self.digest.digest, participants_by_provider_by_event
         )
         return {
             actor: get_digest_as_context(digest) for actor, digest in personalized_digests.items()
@@ -176,7 +178,7 @@ class DigestNotification(ProjectNotification):
             )
 
         participants_by_provider_by_event = get_participants_by_event(
-            self.digest,
+            self.digest.digest,
             self.project,
             self.target_type,
             self.target_identifier,
@@ -230,7 +232,7 @@ class DigestNotification(ProjectNotification):
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
-            alert_id = list(self.digest.keys())[0].id
+            alert_id = list(self.digest.digest)[0].id
         except Exception:
             alert_id = None
 

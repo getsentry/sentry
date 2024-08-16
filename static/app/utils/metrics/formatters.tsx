@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
-const metricTypeToReadable: Record<MetricType, string> = {
+const metricTypeToReadable: Record<Exclude<MetricType, 'v'>, string> = {
   c: t('counter'),
   g: t('gauge'),
   d: t('distribution'),
@@ -180,7 +180,7 @@ const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
 };
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
-  if (!defined(value)) {
+  if (!defined(value) || Math.abs(value) === Infinity) {
     return '\u2014';
   }
 

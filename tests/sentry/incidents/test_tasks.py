@@ -31,13 +31,14 @@ from sentry.incidents.tasks import (
 from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -208,7 +209,7 @@ class HandleTriggerActionTest(TestCase):
         )
 
     def test(self):
-        with patch.object(AlertRuleTriggerAction, "_type_registrations", new={}):
+        with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler

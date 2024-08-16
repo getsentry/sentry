@@ -17,7 +17,7 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {getDashboardFiltersFromURL} from '../../utils';
@@ -38,6 +38,7 @@ interface Props {
   error?: string;
   noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
 
 export function VisualizationStep({
@@ -52,6 +53,7 @@ export function VisualizationStep({
   dashboardFilters,
   location,
   isWidgetInvalid,
+  onWidgetSplitDecision,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -129,6 +131,8 @@ export function VisualizationStep({
           noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
+          onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
         />
       </VisualizationWrapper>
     </StyledBuildStep>

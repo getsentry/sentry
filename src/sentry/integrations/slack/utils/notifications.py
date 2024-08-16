@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -18,19 +19,20 @@ from sentry.integrations.repository.metric_alert import (
     NewMetricAlertNotificationMessage,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
+    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+    SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
     SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.errors import EXPIRED_URL, unpack_slack_api_error
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
-from . import logger
+_logger = logging.getLogger(__name__)
 
 
 def send_incident_alert_notification(
@@ -139,7 +141,7 @@ def send_incident_alert_notification(
             "incident_status": new_status,
             "attachments": attachments,
         }
-        logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
+        _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         metrics.incr(
             SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
             sample_rate=1.0,
@@ -169,16 +171,30 @@ def respond_to_slack_command(
 ) -> None:
     log = "slack.link-identity." if command == "link" else "slack.unlink-identity."
 
-    # TODO: ignore expired url errors
     if params.response_url:
-        logger.info(log + "respond-webhook", extra={"response_url": params.response_url})
+        _logger.info(
+            "%s, respond-webhook",
+            log,
+            extra={"response_url": params.response_url},
+        )
         try:
             webhook_client = WebhookClient(params.response_url)
             webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
+            metrics.incr(
+                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "webhook", "command": command},
+            )
         except (SlackApiError, SlackRequestError) as e:
-            logger.exception(log + "error", extra={"error": str(e)})
+            if unpack_slack_api_error(e) != EXPIRED_URL:
+                metrics.incr(
+                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "webhook", "command": command},
+                )
+                _logger.exception("%serror", log)
     else:
-        logger.info(log + "respond-ephemeral")
+        _logger.info("%s respond-ephemeral", log)
         try:
             client = SlackSdkClient(integration_id=params.integration.id)
             client.chat_postMessage(
@@ -187,53 +203,16 @@ def respond_to_slack_command(
                 replace_original=False,
                 response_type="ephemeral",
             )
-        except SlackApiError as e:
-            logger.exception(log + "error", extra={"error": str(e)})
-
-
-def send_slack_response(
-    params: IdentityParams,
-    text: str,
-    command: str,
-) -> None:
-    integration = params.integration
-    payload = {
-        "replace_original": False,
-        "response_type": "ephemeral",
-        "text": text,
-    }
-    default_path = "/chat.postMessage"
-
-    client = SlackClient(integration_id=integration.id)
-
-    if not params.response_url:
-        logger.info(
-            "slack.send_slack_response.no-response-url",
-            extra={"integration_id": integration.id, "payload": payload},
-        )
-
-    if params.response_url:
-        path = params.response_url
-
-    else:
-        # Command has been invoked in a DM, not as a slash command
-        # we do not have a response URL in this case
-        payload["channel"] = params.slack_id
-        path = default_path
-
-    try:
-        client.post(path, data=payload, json=True)
-    except ApiError as e:
-        message = str(e)
-        # If the user took their time to link their slack account, we may no
-        # longer be able to respond, and we're not guaranteed able to post into
-        # the channel. Ignore Expired url errors.
-        #
-        # XXX(epurkhiser): Yes the error string has a space in it.
-        if message != "Expired url":
-            log_message = (
-                "slack.link-notify.response-error"
-                if command == "link"
-                else "slack.unlink-notify.response-error"
+            metrics.incr(
+                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "ephemeral", "command": command},
             )
-            logger.error(log_message, extra={"error": message})
+        except SlackApiError as e:
+            if unpack_slack_api_error(e) != EXPIRED_URL:
+                metrics.incr(
+                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "ephemeral", "command": command},
+                )
+                _logger.exception("%serror", log)

@@ -1,14 +1,14 @@
 import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from '@sentry/react/types/types';
+import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMouseTracking from 'sentry/utils/useMouseTracking';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
@@ -162,21 +162,7 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const weights = [
-    'lcpWeight',
-    'fcpWeight',
-    'inpWeight',
-    'clsWeight',
-    'ttfbWeight',
-  ].every(key => projectScore[key] === 0)
-    ? PERFORMANCE_SCORE_WEIGHTS
-    : {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: projectScore.inpWeight,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      };
+  const weights = PERFORMANCE_SCORE_WEIGHTS;
 
   const commonWebVitalLabelProps = {
     organization,

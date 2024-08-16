@@ -5,7 +5,6 @@ from hashlib import md5 as _md5
 from django.utils.encoding import force_bytes
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.cache import cache
 from sentry_plugins.client import ApiClient
 
 log = logging.getLogger(__name__)
@@ -31,6 +30,8 @@ class JiraClient(ApiClient):
     COMMENT_URL = "/rest/api/2/issue/{}/comment"
     HTTP_TIMEOUT = 5
     plugin_name = "jira"
+
+    cache_time = 60
 
     def __init__(self, instance_uri, username, password):
         self.base_url = instance_uri.rstrip("/")
@@ -98,17 +99,3 @@ class JiraClient(ApiClient):
             jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
         jql = f'project="{project}" AND {jql}'
         return self.get(self.SEARCH_URL, params={"jql": jql})
-
-    # Steve(XXX): Might consider moving this method to the base plugin API client
-    def get_cached(self, full_url):
-        """
-        Basic Caching mechanism for requests and responses. It only caches responses
-        based on URL
-        TODO: Implement GET attr in cache as well. (see self.create_meta for example)
-        """
-        key = "sentry-jira:" + md5(full_url, self.base_url).hexdigest()
-        cached_result = cache.get(key)
-        if not cached_result:
-            cached_result = self.get(full_url)
-            cache.set(key, cached_result, 60)
-        return cached_result

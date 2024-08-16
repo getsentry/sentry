@@ -1,4 +1,4 @@
-import {unix} from 'moment';
+import {unix} from 'moment-timezone';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import type {NewQuery} from 'sentry/types/organization';

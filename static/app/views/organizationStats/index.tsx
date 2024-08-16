@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -23,7 +23,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, PageFilters} from 'sentry/types/core';
+import {
+  DataCategoryExact,
+  type DataCategoryInfo,
+  type PageFilters,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -52,6 +56,8 @@ export const PAGE_QUERY_PARAMS = [
   'query',
   'cursor',
   'spikeCursor',
+  // From show data discarded on client toggle
+  'clientDiscard',
 ];
 
 export type OrganizationStatsProps = {
@@ -65,6 +71,16 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const categories = Object.values(DATA_CATEGORY_INFO);
     const info = categories.find(c => c.plural === dataCategoryPlural);
+
+    if (
+      info?.name === DataCategoryExact.SPAN &&
+      this.props.organization.features.includes('spans-usage-tracking')
+    ) {
+      return {
+        ...info,
+        apiName: 'span_indexed',
+      };
+    }
 
     // Default to errors
     return info ?? DATA_CATEGORY_INFO.error;
@@ -117,6 +133,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     }
 
     return {period: DEFAULT_STATS_PERIOD};
+  }
+
+  get clientDiscard(): boolean {
+    return this.props.location?.query?.clientDiscard === 'true';
   }
 
   // Validation and type-casting should be handled by chart
@@ -186,6 +206,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    */
   setStateOnUrl = (
     nextState: {
+      clientDiscard?: boolean;
       cursor?: string;
       dataCategory?: DataCategoryInfo['plural'];
       query?: string;
@@ -218,6 +239,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   renderProjectPageControl = () => {
     const {organization} = this.props;
+
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
@@ -228,7 +250,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
-        return organization.features.includes('spans-usage-tracking');
+        return organization.features.includes('span-stats');
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
@@ -270,8 +292,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         organization={organization}
         dataCategory={this.dataCategory}
         dataCategoryName={this.dataCategoryInfo.titleName}
+        dataCategoryApiName={this.dataCategoryInfo.apiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
+        clientDiscard={this.clientDiscard}
         handleChangeState={this.setStateOnUrl}
         router={router}
         location={location}

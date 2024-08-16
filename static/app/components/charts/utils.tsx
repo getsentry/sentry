@@ -3,11 +3,12 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

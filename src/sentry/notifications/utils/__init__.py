@@ -37,8 +37,8 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import region_silo_function
+from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
@@ -107,7 +107,7 @@ def get_repos(
     # These commits are in order so they should end up in the list of commits still in order.
     for commit in commits:
         # Get the user object if it exists
-        user_option = users_by_email.get(commit.author.email) if commit.author_id else None
+        user_option = users_by_email.get(commit.author.email) if commit.author is not None else None
         repositories_by_id[commit.repository_id]["commits"].append((commit, user_option))
 
     return list(repositories_by_id.values())

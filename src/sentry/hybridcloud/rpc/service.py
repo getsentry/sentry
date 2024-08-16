@@ -387,7 +387,6 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     # Several packages contain RPC services in them.
     # This eventually could end up being sentry.*.services
     service_packages = (
-        "sentry.services.hybrid_cloud",
         "sentry.auth.services",
         "sentry.audit_log.services",
         "sentry.backup.services",
@@ -396,7 +395,10 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.integrations.services",
         "sentry.issues.services",
         "sentry.notifications.services",
+        "sentry.organizations.services",
+        "sentry.projects.services",
         "sentry.sentry_apps.services",
+        "sentry.users.services",
     )
     for package_name in service_packages:
         package = importlib.import_module(package_name)
@@ -580,7 +582,7 @@ class _RemoteSiloCall:
             self._raise_from_response_status_error(response)
 
     @contextmanager
-    def _open_request_context(self) -> Generator[None, None, None]:
+    def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",
@@ -594,9 +596,9 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         rpc_method = f"{self.service_name}.{self.method_name}"
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("rpc_method", rpc_method)
-            scope.set_tag("rpc_status_code", response.status_code)
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope.set_tag("rpc_method", rpc_method)
+        scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
             if response.status_code == 500:

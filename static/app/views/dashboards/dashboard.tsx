@@ -22,12 +22,13 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -516,17 +517,7 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
       this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-rh-widget');
-      }
-      if (widgetType === WidgetType.METRICS) {
-        return hasCustomMetrics(organization);
-      }
-      return true;
-    });
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 

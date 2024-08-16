@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import Well from 'sentry/components/well';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
@@ -32,8 +32,7 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
     setCurrentTime(lastOffsetMs);
   }, [setCurrentTime, lastOffsetMs]);
 
-  const now = showPlayerTime(startTimestampMs + currentTime, startTimestampMs, false);
-
+  const now = formatReplayDuration(currentTime, false);
   return (
     <StyledWell>
       <Flex

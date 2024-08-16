@@ -17,7 +17,8 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
@@ -34,6 +35,10 @@ const PlatformList = styled('div')`
 const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
+
+function startsWithPunctuation(name: string) {
+  return /^[\p{P}]/u.test(name);
+}
 
 export type Category = (typeof categoryList)[number]['id'];
 
@@ -89,6 +94,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
     // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
     const tempSelectablePlatforms = selectablePlatforms;
+
     if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
       const nintendo = platforms.find(p => p.id === 'nintendo-switch');
       if (nintendo) {
@@ -100,9 +106,23 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
     const filtered = tempSelectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .sort((a, b) => {
+        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+          return 1;
+        }
+        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+          return -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
 
-    return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
+    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+      // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
+      return [otherPlatform];
+    }
+
+    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
+    return filtered;
   }
 
   logSearch = debounce(() => {

@@ -152,6 +152,13 @@ def ingest_events_options() -> list[click.Option]:
             default=False,
         )
     )
+    options.append(
+        click.Option(
+            ["--stop-at-timestamp", "stop_at_timestamp"],
+            type=int,
+            help="Unix timestamp after which to stop processing messages",
+        )
+    )
     return options
 
 
@@ -304,6 +311,15 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_topic": Topic.INGEST_ATTACHMENTS_DLQ,
     },
     "ingest-transactions": {
+        "topic": Topic.INGEST_TRANSACTIONS,
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
+        "click_options": ingest_events_options(),
+        "static_args": {
+            "consumer_type": ConsumerType.Transactions,
+        },
+        "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
+    },
+    "ingest-transactions-inc847": {
         "topic": Topic.INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": ingest_events_options(),

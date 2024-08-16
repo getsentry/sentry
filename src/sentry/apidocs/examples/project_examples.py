@@ -84,7 +84,9 @@ BASE_PROJECT = {
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
     "hasCustomMetrics": False,
+    "hasFeedbacks": False,
     "hasMonitors": False,
+    "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
     "hasSessions": False,
@@ -118,7 +120,6 @@ DETAILED_PROJECT = {
         "version": "backend@3e90a5d9e767ebcfa70e921d7a7ff6c037461168",
     },
     "options": {
-        "sentry:grouping_auto_update": False,
         "sentry:span_description_cluster_rules": [],
         "sentry:transaction_name_cluster_rules": [],
         "digests:mail:maximum_delay": 600,
@@ -172,8 +173,8 @@ DETAILED_PROJECT = {
     "groupingEnhancementsBase": None,
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": "newstyle:2019-10-29",
-    "groupingAutoUpdate": False,
     "fingerprintingRules": "",
+    "uptimeAutodetection": True,
     "organization": {
         "id": "1",
         "slug": "sentry",
@@ -182,7 +183,6 @@ DETAILED_PROJECT = {
         "dateCreated": "2014-12-15T04:06:24.263571Z",
         "isEarlyAdopter": True,
         "require2FA": False,
-        "requireEmailVerification": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
             "performance-uncompressed-assets-ingest",
@@ -225,7 +225,6 @@ DETAILED_PROJECT = {
             "performance-n-plus-one-api-calls-detector",
             "performance-render-blocking-asset-span-post-process-group",
             "performance-uncompressed-assets-post-process-group",
-            "performance-issues-search",
             "performance-slow-db-issue",
             "performance-db-main-thread-ingest",
             "session-replay",

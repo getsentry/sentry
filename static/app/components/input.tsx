@@ -38,7 +38,8 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     opacity: 1;
   }
 
-  &[disabled] {
+  &[disabled],
+  &[aria-disabled='true'] {
     background: ${p.theme.backgroundSecondary};
     color: ${p.theme.disabled};
     cursor: not-allowed;

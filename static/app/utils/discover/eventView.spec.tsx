@@ -18,6 +18,7 @@ import {
   DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -1694,6 +1695,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1724,6 +1726,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1754,6 +1757,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);

@@ -134,7 +134,7 @@ export function ApiTokens() {
           )}
 
           {tokenList?.map(token => (
-            <ApiTokenRow key={token.id} token={token} onRemove={deleteToken} />
+            <ApiTokenRow key={token.id} token={token} onRemove={deleteToken} canEdit />
           ))}
         </PanelBody>
       </Panel>

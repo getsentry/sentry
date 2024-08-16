@@ -86,7 +86,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"
         yield self.future(

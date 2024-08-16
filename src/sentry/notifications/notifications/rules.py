@@ -41,10 +41,10 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user_option import user_option_service
+from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 

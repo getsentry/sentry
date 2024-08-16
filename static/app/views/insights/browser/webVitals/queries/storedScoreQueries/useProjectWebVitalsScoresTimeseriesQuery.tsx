@@ -1,6 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import type {Tag} from 'sentry/types';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Tag} from 'sentry/types/group';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -11,9 +11,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes?: BrowserType[];
   enabled?: boolean;
+  subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string | null;
   weighted?: boolean;
@@ -40,6 +44,8 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   transaction,
   tag,
   enabled = true,
+  browserTypes,
+  subregions,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -50,6 +56,12 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   ]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+  }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
   }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {

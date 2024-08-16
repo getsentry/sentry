@@ -264,6 +264,12 @@ class ApiTokensStaffTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.staff_token.id)
 
+    def test_get_as_invalid_user(self):
+        self.login_as(self.staff_user, staff=True)
+
+        response = self.client.get(self.url, {"userId": "abc"})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
     def test_delete_as_staff(self):
         self.login_as(self.staff_user, staff=True)
 
@@ -295,5 +301,13 @@ class ApiTokensStaffTest(APITestCase):
             self.url, {"userId": self.user.id, "tokenId": self.user_token.id}
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+        assert ApiToken.objects.filter(id=self.staff_token.id).exists()
+
+    def test_delete_as_invalid_user(self):
+        self.login_as(self.staff_user, staff=True)
+
+        response = self.client.delete(self.url, {"userId": "abc", "tokenId": self.user_token.id})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
         assert ApiToken.objects.filter(id=self.user_token.id).exists()
         assert ApiToken.objects.filter(id=self.staff_token.id).exists()

@@ -12,7 +12,7 @@ class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
     provider = "github_enterprise"
     base_url = "https://github.example.org/api/v3"
 
-    def create_integration(self):
+    def _create_integration(self):
         future = datetime.now() + timedelta(hours=1)
         return self.create_provider_integration(
             provider=self.provider,

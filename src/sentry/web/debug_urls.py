@@ -2,6 +2,7 @@ from django.urls import re_path
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
+from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -28,14 +29,9 @@ from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidI
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
 from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMissingMembersNudgeView
-from sentry.web.frontend.debug.debug_new_processing_issues_email import (
-    DebugNewProcessingIssuesEmailView,
-    DebugNewProcessingIssuesNoReprocessingEmailView,
-)
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
-from sentry.web.frontend.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,
@@ -149,11 +145,6 @@ urlpatterns = [
         DebugRecoveryCodesRegeneratedEmailView.as_view(),
     ),
     re_path(r"^debug/mail/password-changed/$", DebugPasswordChangedEmailView.as_view()),
-    re_path(r"^debug/mail/new-processing-issues/$", DebugNewProcessingIssuesEmailView.as_view()),
-    re_path(
-        r"^debug/mail/new-processing-issues-no-reprocessing/$",
-        DebugNewProcessingIssuesNoReprocessingEmailView.as_view(),
-    ),
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(

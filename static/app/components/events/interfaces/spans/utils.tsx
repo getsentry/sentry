@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {

@@ -2,8 +2,8 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models.incident import IncidentActivity
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 @register(IncidentActivity)
@@ -17,7 +17,7 @@ class IncidentActivitySerializer(Serializer):
         user_lookup = {user["id"]: user for user in serialized_users}
         return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         incident = obj.incident
 
         return {

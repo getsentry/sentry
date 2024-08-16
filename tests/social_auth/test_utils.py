@@ -1,8 +1,8 @@
 from django.contrib.contenttypes.models import ContentType
 
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
 from social_auth.utils import ctype_to_model, model_to_ctype
 
 

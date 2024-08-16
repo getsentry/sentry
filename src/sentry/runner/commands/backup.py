@@ -290,9 +290,7 @@ def print_elapsed_time(kind: str, interval_ms: int, done_event: Event, printer: 
 
 
 @contextmanager
-def write_import_findings(
-    findings_file: IO[str] | None, printer: Printer
-) -> Generator[None, None, None]:
+def write_import_findings(findings_file: IO[str] | None, printer: Printer) -> Generator[None]:
     """
     Helper that ensures that we write findings for the `import ...` command regardless of outcome.
     """
@@ -319,9 +317,7 @@ def write_import_findings(
 
 
 @contextmanager
-def write_export_findings(
-    findings_file: IO[str] | None, printer: Printer
-) -> Generator[None, None, None]:
+def write_export_findings(findings_file: IO[str] | None, printer: Printer) -> Generator[None]:
     """
     Helper that ensures that we write findings for the `export ...` command regardless of outcome.
     """

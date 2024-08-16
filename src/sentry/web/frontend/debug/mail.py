@@ -23,12 +23,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from sentry import eventstore
 from sentry.constants import LOG_LEVELS
-from sentry.digests import Record
-from sentry.digests.notifications import Notification, build_digest
+from sentry.digests.notifications import DigestInfo, _build_digest_impl
+from sentry.digests.types import Notification, Record
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
+from sentry.eventstore.models import Event
 from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
@@ -36,7 +36,6 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -61,6 +60,7 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
 )
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.utils import json, loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.dates import to_datetime
@@ -146,7 +146,7 @@ def make_group_metadata(random: Random) -> dict[str, Any]:
     }
 
 
-def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
+def make_group_generator(random: Random, project: Project) -> Generator[Group]:
     epoch = int(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
@@ -430,9 +430,8 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = get_event_type(data)
 
-        event = eventstore.backend.create_event(
-            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data
-        )
+        event = Event(event_id="a" * 32, project_id=project.id, data=data)
+        event.group = group
 
         group.message = event.search_message
         group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
@@ -501,19 +500,15 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state: dict[str, Any] = {
-        "project": project,
-        "groups": {},
-        "rules": rules,
-        "event_counts": {},
-        "user_counts": {},
-    }
+    groups = {}
+    event_counts = {}
+    user_counts = {}
     records = []
     group_generator = make_group_generator(random, project)
     notification_uuid = str(uuid.uuid4())
     for _ in range(random.randint(1, 30)):
         group = next(group_generator)
-        state["groups"][group.id] = group
+        groups[group.id] = group
 
         offset = timedelta(seconds=0)
         for _ in range(random.randint(1, 10)):
@@ -531,25 +526,22 @@ def digest(request):
                 int(group.first_seen.timestamp()), int(group.last_seen.timestamp())
             )
 
-            event = eventstore.backend.create_event(
-                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data
-            )
+            event = Event(event_id=uuid.uuid4().hex, project_id=project.id, data=data)
+            event.group = group
             records.append(
                 Record(
                     event.event_id,
                     Notification(
                         event,
-                        random.sample(
-                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                        ),
+                        random.sample(list(rules.keys()), random.randint(1, len(rules))),
                         notification_uuid,
                     ),
                     event.datetime.timestamp(),
                 )
             )
 
-            state["event_counts"][group.id] = random.randint(10, 10000)
-            state["user_counts"][group.id] = random.randint(10, 10000)
+            event_counts[group.id] = random.randint(10, 10000)
+            user_counts[group.id] = random.randint(10, 10000)
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
@@ -557,52 +549,53 @@ def digest(request):
         # don't clobber error issue ids
         perf_event.group.id = i + 100
         perf_group = perf_event.group
+        perf_group.project = project
 
         records.append(
             Record(
                 perf_event.event_id,
                 Notification(
                     perf_event,
-                    random.sample(
-                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                    ),
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
-        state["groups"][perf_group.id] = perf_group
-        state["event_counts"][perf_group.id] = random.randint(10, 10000)
-        state["user_counts"][perf_group.id] = random.randint(10, 10000)
+        groups[perf_group.id] = perf_group
+        event_counts[perf_group.id] = random.randint(10, 10000)
+        user_counts[perf_group.id] = random.randint(10, 10000)
 
     # add in generic issues
     for i in range(random.randint(1, 3)):
         generic_event = make_generic_event(project)
         generic_group = generic_event.group
         generic_group.id = i + 200  # don't clobber other issue ids
+        generic_group.project = project
 
         records.append(
             Record(
                 generic_event.event_id,
                 Notification(
                     generic_event,
-                    random.sample(
-                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                    ),
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
-        state["groups"][generic_group.id] = generic_group
-        state["event_counts"][generic_group.id] = random.randint(10, 10000)
-        state["user_counts"][generic_group.id] = random.randint(10, 10000)
+        groups[generic_group.id] = generic_group
+        event_counts[generic_group.id] = random.randint(10, 10000)
+        user_counts[generic_group.id] = random.randint(10, 10000)
 
-    digest, _ = build_digest(project, records, state)
-    assert digest is not None
-    start, end, counts = get_digest_metadata(digest)
+    digest = DigestInfo(
+        digest=_build_digest_impl(records, groups, rules, event_counts, user_counts),
+        event_counts=event_counts,
+        user_counts=user_counts,
+    )
+    start, end, counts = get_digest_metadata(digest.digest)
 
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)

@@ -62,7 +62,6 @@ class DiscordIntegrationStatus(analytics.Event):
     )
 
 
-analytics.register(DiscordIntegrationNotificationSent)
 analytics.register(DiscordIntegrationCommandInteractionReceived)
 analytics.register(DiscordIntegrationIdentityLinked)
 analytics.register(DiscordIntegrationIdentityUnlinked)

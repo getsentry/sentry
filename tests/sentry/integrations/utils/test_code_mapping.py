@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
@@ -17,7 +18,6 @@ from sentry.integrations.utils.code_mapping import (
     get_sorted_code_mapping_configs,
     should_include,
 )
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode

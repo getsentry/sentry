@@ -72,7 +72,7 @@ const ItemContainer = styled('div')`
 `;
 
 const ContentContainer = styled('div')`
-  padding: ${space(0)} ${space(0.25)};
+  padding: 0 ${space(0.25)};
 `;
 
 const LineItemWrapper = styled('div')`

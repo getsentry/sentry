@@ -23,7 +23,7 @@ from sentry.utils.linksign import generate_signed_unsubscribe_link
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:

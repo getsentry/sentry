@@ -23,7 +23,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -33,12 +33,11 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 
 export type OnboardingLayoutProps = {
   docsConfig: Docs<any>;
-  dsn: string;
+  dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
-  cdn?: string;
   configType?: ConfigType;
   newOrg?: boolean;
 };
@@ -46,7 +45,6 @@ export type OnboardingLayoutProps = {
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -66,7 +64,6 @@ export function OnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
       dsn,
       organization,
       platformKey,
@@ -97,7 +94,6 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
-    cdn,
     activeProductSelection,
     docsConfig,
     dsn,

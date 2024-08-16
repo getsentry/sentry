@@ -1,4 +1,4 @@
-import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useTimelineZoom} from './timelineZoom';
 
@@ -57,22 +57,22 @@ function setupTestComponent() {
 }
 
 describe('TimelineZoom', function () {
-  it('triggers onSelect', function () {
+  it('triggers onSelect', async function () {
     const {handleSelect, body, container} = setupTestComponent();
 
     // Selector has not appeared
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
 
     // Selection does not start when clicking outside the container
-    fireEvent.mouseDown(body, {button: 0, clientX: 0, clientY: 0});
+    act(() => fireEvent.mouseDown(body, {button: 0, clientX: 0, clientY: 0}));
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
 
     // Move cursor into the container, selection still not present
-    fireEvent.mouseMove(body, {clientX: 20, clientY: 20});
+    act(() => fireEvent.mouseMove(body, {clientX: 20, clientY: 20}));
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
 
     // Left click starts selection
-    fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20});
+    act(() => fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20}));
 
     const selection = screen.getByRole('presentation');
     expect(selection).toBeInTheDocument();
@@ -85,22 +85,26 @@ describe('TimelineZoom', function () {
     expect(document.body).toHaveStyle({userSelect: 'none'});
 
     // Move right 15px
-    fireEvent.mouseMove(body, {clientX: 35, clientY: 20});
+    act(() => fireEvent.mouseMove(body, {clientX: 35, clientY: 20}));
     expect(container.style.getPropertyValue('--selectionWidth')).toBe('15px');
 
     // Move left 25px, at the edge of the container
-    fireEvent.mouseMove(body, {clientX: 10, clientY: 20});
+    act(() => fireEvent.mouseMove(body, {clientX: 10, clientY: 20}));
     expect(container.style.getPropertyValue('--selectionStart')).toBe('0px');
     expect(container.style.getPropertyValue('--selectionWidth')).toBe('10px');
 
     // Move left 5px more, selection does not move out of the container
-    fireEvent.mouseMove(body, {clientX: 5, clientY: 20});
+    act(() => fireEvent.mouseMove(body, {clientX: 5, clientY: 20}));
     expect(container.style.getPropertyValue('--selectionStart')).toBe('0px');
     expect(container.style.getPropertyValue('--selectionWidth')).toBe('10px');
 
     // Release to make selection
-    fireEvent.mouseUp(body, {clientX: 5, clientY: 20});
-    expect(handleSelect).toHaveBeenCalledWith(0, 10);
+    act(() => {
+      fireEvent.mouseUp(body, {clientX: 5, clientY: 20});
+    });
+    await waitFor(() => {
+      expect(handleSelect).toHaveBeenCalledWith(0, 10);
+    });
   });
 
   it('does not start selection with right click', function () {
@@ -114,13 +118,13 @@ describe('TimelineZoom', function () {
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
   });
 
-  it('does not select for very small regions', function () {
+  it('does not select for very small regions', async function () {
     const {handleSelect, body, container} = setupTestComponent();
 
     // Left click starts selection
-    fireEvent.mouseMove(body, {clientX: 20, clientY: 20});
-    fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20});
-    fireEvent.mouseMove(body, {clientX: 22, clientY: 20});
+    act(() => fireEvent.mouseMove(body, {clientX: 20, clientY: 20}));
+    act(() => fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20}));
+    act(() => fireEvent.mouseMove(body, {clientX: 22, clientY: 20}));
 
     const selection = screen.getByRole('presentation');
     expect(selection).toBeInTheDocument();
@@ -130,7 +134,10 @@ describe('TimelineZoom', function () {
     expect(container.style.getPropertyValue('--selectionWidth')).toBe('2px');
 
     // Relase does not make selection for such a small range
-    fireEvent.mouseUp(body, {clientX: 22, clientY: 20});
+    act(() => fireEvent.mouseUp(body, {clientX: 22, clientY: 20}));
+
+    // Can't wait for the handleSelect to be called, as it's not called
+    await act(tick);
     expect(handleSelect).not.toHaveBeenCalledWith(0, 10);
   });
 });

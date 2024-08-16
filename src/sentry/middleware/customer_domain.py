@@ -11,8 +11,8 @@ from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
 
 from sentry import features
-from sentry.api.utils import generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri

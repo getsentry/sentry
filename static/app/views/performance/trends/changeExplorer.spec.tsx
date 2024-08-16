@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

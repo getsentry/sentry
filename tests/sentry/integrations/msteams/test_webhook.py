@@ -8,12 +8,12 @@ import responses
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity
 from sentry.utils import jwt
 
 from .test_helpers import (

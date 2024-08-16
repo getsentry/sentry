@@ -289,6 +289,7 @@ const MenuItemWrap = styled('li')`
   margin: 0;
   padding: 0 ${space(0.5)};
   cursor: pointer;
+  scroll-margin: ${space(0.5)} 0;
 
   &:focus {
     outline: none;
@@ -427,6 +428,7 @@ const LeadingItems = styled('div')<{
   gap: ${space(1)};
   margin-top: ${p => getVerticalPadding(p.size)};
   margin-right: ${space(1)};
+  flex-shrink: 0;
 
   ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}

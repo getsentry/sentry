@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.signals import issue_update_priority
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

@@ -6,8 +6,9 @@ import omit from 'lodash/omit';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -158,6 +159,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       customDidUpdateComparator
         ? customDidUpdateComparator(prevProps, this.props)
         : widget.limit !== prevProps.widget.limit ||
+          !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||

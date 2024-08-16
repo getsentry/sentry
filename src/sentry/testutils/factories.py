@@ -33,7 +33,9 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -42,6 +44,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -57,6 +60,19 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
@@ -66,12 +82,16 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+)
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -81,19 +101,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.integration_feature import (
-    Feature,
-    IntegrationFeature,
-    IntegrationTypes,
-)
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -106,18 +113,17 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -129,11 +135,8 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
-from sentry.models.userrole import UserRole
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -141,9 +144,7 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -151,9 +152,23 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeStatus,
+    UptimeSubscription,
+)
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole
+from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -492,6 +507,17 @@ class Factories:
                     project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                 )
         return project
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_project_template(project=None, organization=None, **kwargs) -> ProjectTemplate:
+        if not kwargs.get("name"):
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
+
+        with transaction.atomic(router.db_for_write(Project)):
+            project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
+
+        return project_template
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1167,6 +1193,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
                 assert install.api_grant is not None
+                assert install.sentry_app.application is not None
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1191,6 +1218,13 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_span_attribute_extraction_config(
+        dictionary: dict[str, Any], user_id: int, project: Project
+    ) -> SpanAttributeExtractionRuleConfig:
+        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1525,6 +1559,9 @@ class Factories:
         monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
+        sensitivity=None,
+        seasonality=None,
+        detection_type=AlertRuleDetectionType.STATIC,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1554,6 +1591,9 @@ class Factories:
             monitor_type=monitor_type,
             activation_condition=activation_condition,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if date_added is not None:
@@ -1732,7 +1772,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity_provider(
         integration: Integration | None = None,
-        config: Mapping[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> IdentityProvider:
         if integration is not None:
@@ -1905,6 +1945,7 @@ class Factories:
         url: str,
         interval_seconds: int,
         timeout_ms: int,
+        date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1913,11 +1954,85 @@ class Factories:
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
+            date_updated=date_updated,
         )
 
     @staticmethod
-    def create_project_uptime_subscription(project, uptime_subscription):
+    def create_project_uptime_subscription(
+        project: Project,
+        uptime_subscription: UptimeSubscription,
+        mode: ProjectUptimeSubscriptionMode,
+        name: str,
+        owner: Actor | None,
+        uptime_status: UptimeStatus,
+    ):
+        owner_team_id = None
+        owner_user_id = None
+        if owner:
+            if owner.is_team:
+                owner_team_id = owner.id
+            elif owner.is_user:
+                owner_user_id = owner.id
+
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            mode=mode,
+            name=name,
+            owner_team_id=owner_team_id,
+            owner_user_id=owner_user_id,
+            uptime_status=uptime_status,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard(
+        organization: Organization | None = None,
+        title: str | None = None,
+        created_by: User | None = None,
+        **kwargs,
+    ):
+        if organization is None:
+            organization = Factories.create_organization()
+        if created_by is None:
+            created_by = Factories.create_user()
+            Factories.create_member(organization=organization, user=created_by, role="owner")
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+        return Dashboard.objects.create(
+            organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget(
+        order: int,
+        dashboard: Dashboard | None = None,
+        title: str | None = None,
+        display_type: int | None = None,
+        **kwargs,
+    ):
+        if dashboard is None:
+            dashboard = Factories.create_dashboard()
+        if display_type is None:
+            display_type = DashboardWidgetDisplayTypes.AREA_CHART
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+
+        return DashboardWidget.objects.create(
+            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget_query(
+        order: int,
+        widget: DashboardWidget | None = None,
+        name: str | None = None,
+        **kwargs,
+    ):
+        if widget is None:
+            widget = Factories.create_dashboard_widget(order=order)
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)

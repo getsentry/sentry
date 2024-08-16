@@ -12,12 +12,11 @@ import sentry_sdk
 from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import options, reprocessing, reprocessing2
+from sentry import options, reprocessing2
 from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
-from sentry.features.rollout import in_random_rollout
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -64,13 +63,9 @@ def submit_process(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
-    is_proguard: bool = False,
 ) -> None:
     if from_reprocessing:
         task = process_event_from_reprocessing
-    elif is_proguard and in_random_rollout("store.separate-proguard-queue-rate"):
-        # route *some* proguard events to a separate queue
-        task = process_event_proguard
     else:
         task = process_event
     task.delay(
@@ -126,7 +121,6 @@ def _do_preprocess_event(
     project: Project | None,
     has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.java.utils import has_proguard_file
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
         get_symbolication_function_for_platform,
@@ -206,7 +200,6 @@ def _do_preprocess_event(
             start_time=start_time,
             data_has_changed=False,
             has_attachments=has_attachments,
-            is_proguard=has_proguard_file(data),
         )
         return
 
@@ -467,41 +460,6 @@ def process_event(
 
 
 @instrumented_task(
-    name="sentry.tasks.store.process_event_proguard",
-    queue="events.process_event_proguard",
-    time_limit=65,
-    soft_time_limit=60,
-    silo_mode=SiloMode.REGION,
-)
-def process_event_proguard(
-    cache_key: str,
-    start_time: float | None = None,
-    event_id: str | None = None,
-    data_has_changed: bool = False,
-    from_symbolicate: bool = False,
-    has_attachments: bool = False,
-    **kwargs: Any,
-) -> None:
-    """
-    Handles event processing (for those events that need it)
-
-    :param string cache_key: the cache key for the event data
-    :param int start_time: the timestamp when the event was ingested
-    :param string event_id: the event identifier
-    :param boolean data_has_changed: set to True if the event data was changed in previous tasks
-    """
-    return do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        from_reprocessing=False,
-        data_has_changed=data_has_changed,
-        from_symbolicate=from_symbolicate,
-        has_attachments=has_attachments,
-    )
-
-
-@instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
     queue="events.reprocessing.process_event",
     time_limit=65,
@@ -526,21 +484,6 @@ def process_event_from_reprocessing(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
     )
-
-
-@sentry_sdk.tracing.trace
-def delete_raw_event(project_id: int, event_id: str | None) -> None:
-    set_current_event_project(project_id)
-
-    if event_id is None:
-        error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
-        return
-
-    from sentry.models.rawevent import RawEvent
-    from sentry.models.reprocessingreport import ReprocessingReport
-
-    RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
-    ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
 
 
 def _do_save_event(
@@ -578,12 +521,6 @@ def _do_save_event(
             assert data is not None
             project_id = data.pop("project")
             set_current_event_project(project_id)
-
-        # We only need to delete raw events for events that support
-        # reprocessing.  If the data cannot be found we want to assume
-        # that we need to delete the raw event.
-        if not data or reprocessing.event_supports_reprocessing(data):
-            delete_raw_event(project_id, event_id)
 
         # This covers two cases: where data is None because we did not manage
         # to fetch it from the default cache or the empty dictionary was

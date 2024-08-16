@@ -5,7 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import selectEvent from 'sentry-test/selectEvent';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 
 import {KeySettings} from './keySettings';
 import {LoaderSettings} from './loaderSettings';
@@ -300,6 +301,65 @@ describe('Loader Script Settings', function () {
         'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
         {exact: false}
       )
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows performance message when it is enabled', function () {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const data = {
+      ...(ProjectKeysFixture()[0] as ProjectKey),
+      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+    } as ProjectKey;
+
+    const {rerender} = render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.getByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    data.dynamicSdkLoaderOptions.hasPerformance = false;
+
+    rerender(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.queryByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
     ).not.toBeInTheDocument();
   });
 });

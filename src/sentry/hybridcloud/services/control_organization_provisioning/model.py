@@ -1,7 +1,7 @@
-import pydantic
+from sentry.hybridcloud.rpc import RpcModel
 
 
-class RpcOrganizationSlugReservation(pydantic.BaseModel):
+class RpcOrganizationSlugReservation(RpcModel):
     id: int
     organization_id: int
     user_id: int | None

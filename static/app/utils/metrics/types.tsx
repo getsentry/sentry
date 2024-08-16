@@ -12,7 +12,7 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | 'total' | undefined;
+  name: 'name' | MetricAggregation | undefined;
   order: 'asc' | 'desc';
 };
 
@@ -29,6 +29,7 @@ export interface FocusedMetricsSeries {
 export interface MetricsQuery {
   aggregation: MetricAggregation;
   mri: MRI;
+  condition?: number;
   groupBy?: string[];
   query?: string;
 }

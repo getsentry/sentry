@@ -110,7 +110,16 @@ export default function ContextCard({
       title={
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
-          <div>{getContextIcon({alias, type, value})}</div>
+          <div>
+            {getContextIcon({
+              alias,
+              type,
+              value,
+              contextIconProps: {
+                size: 'sm',
+              },
+            })}
+          </div>
         </Title>
       }
       sortAlphabetically

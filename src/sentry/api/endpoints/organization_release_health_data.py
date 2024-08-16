@@ -11,6 +11,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricException, QueryDefinition, get_series
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
+from sentry.snuba.metrics.query_builder import parse_field
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -44,8 +45,35 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
 
+    def _validate_fields(self, request: Request):
+        """
+        Validates fields request parameter.
+        Checks if metric field is public (InvalidParams exception is raised if it is not),
+        and checks if every generic metric that is requested has operation assigned, because
+        it is not possible to query generic metrics without assigned operation.
+
+        NOTE 'd:sessions/duration.exited@second' is a derived metric but for unknown
+        reason entity is not 'e', so we do extra check just for that metric.
+        """
+        fields = request.GET.getlist("field", [])
+        for field in fields:
+            try:
+                metric_field = parse_field(field, allow_mri=True)
+                if (
+                    metric_field.op is None
+                    and not metric_field.metric_mri.startswith("e:")
+                    and metric_field.metric_mri
+                    != "d:sessions/duration.exited@second"  # this is special case, derived metric without 'e' as entity
+                ):
+                    raise ParseError(
+                        detail="You can not use generic metric public field without operation"
+                    )
+            except InvalidParams as exc:
+                raise ParseError(detail=str(exc))
+
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
+        self._validate_fields(request)
 
         def data_fn(offset: int, limit: int):
             try:

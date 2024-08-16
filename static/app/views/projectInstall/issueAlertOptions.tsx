@@ -6,7 +6,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
@@ -193,11 +193,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   }
 
   shouldUseNewDefaultSetting(): boolean {
-    return (
-      this.props.organization.features.includes('default-high-priority-alerts') &&
-      (this.props.platformLanguage === SupportedLanguages.PYTHON ||
-        this.props.platformLanguage === SupportedLanguages.JAVASCRIPT)
-    );
+    return this.props.organization.features.includes('priority-ga-features');
   }
 
   getUpdatedData(): RequestDataFragment {

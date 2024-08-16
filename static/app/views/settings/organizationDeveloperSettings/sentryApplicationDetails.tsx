@@ -37,16 +37,13 @@ import {
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  InternalAppApiToken,
-  NewInternalAppApiToken,
-  Organization,
-  Scope,
-  SentryApp,
-} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';

@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type BaseChart from 'sentry/components/charts/baseChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';

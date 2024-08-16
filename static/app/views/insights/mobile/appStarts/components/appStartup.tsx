@@ -18,7 +18,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {AverageComparisonChart} from 'sentry/views/insights/mobile/appStarts/components/charts/averageComparisonChart';
 import {CountChart} from 'sentry/views/insights/mobile/appStarts/components/charts/countChart';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
@@ -155,8 +154,6 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     enabled: !topTransactionsLoading,
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
-
-  useHasDataTrackAnalytics(ModuleName.APP_START, 'insight.page_loads.app_start');
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (

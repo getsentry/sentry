@@ -3,15 +3,15 @@ from unittest import mock
 import pytest
 
 from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
 
 pytestmark = requires_snuba
 

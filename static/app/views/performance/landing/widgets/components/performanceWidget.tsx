@@ -171,16 +171,16 @@ function DefaultErrorComponent(props: {height: number}) {
 }
 
 const defaultGrid = {
-  left: space(0),
-  right: space(0),
+  left: 0,
+  right: 0,
   top: space(2),
   bottom: space(1),
 };
 
 const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
-  padding-left: ${p => (p.noPadding ? space(0) : space(2))};
-  padding-right: ${p => (p.noPadding ? space(0) : space(2))};
-  padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
+  padding-left: ${p => (p.noPadding ? 0 : space(2))};
+  padding-right: ${p => (p.noPadding ? 0 : space(2))};
+  padding-bottom: ${p => (p.bottomPadding ? space(1) : 0)};
 `;
 
 const ContentBodyContainer = styled(ContentContainer)`

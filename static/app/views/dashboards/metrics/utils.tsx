@@ -2,8 +2,13 @@ import {useMemo} from 'react';
 
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import {unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+import {
+  getDefaultAggregation,
+  isVirtualMetric,
+  unescapeMetricsFormula,
+} from 'sentry/utils/metrics';
+import {NO_QUERY_ID, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
@@ -80,7 +85,15 @@ function fillMissingExpressionIds(
 
 export function getMetricQueries(
   widget: Widget,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters: DashboardFilters | undefined,
+  getVirtualMRIQuery: (
+    mri: MRI,
+    aggregation: MetricAggregation
+  ) => {
+    aggregation: MetricAggregation;
+    conditionId: number;
+    mri: MRI;
+  } | null
 ): DashboardMetricsQuery[] {
   const usedIds = new Set<number>();
   const indizesWithoutId: number[] = [];
@@ -102,12 +115,25 @@ export function getMetricQueries(
       return null;
     }
 
+    let mri = parsed.mri;
+    let condition: number | undefined = undefined;
+    let aggregation = parsed.aggregation;
+    const resolved = getVirtualMRIQuery(mri, aggregation);
+    if (resolved) {
+      if (resolved) {
+        aggregation = resolved.aggregation;
+        mri = resolved.mri;
+        condition = resolved.conditionId;
+      }
+    }
+
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
       id: id,
       type: MetricExpressionType.QUERY,
-      mri: parsed.mri,
-      aggregation: parsed.aggregation,
+      condition: condition,
+      mri: mri,
+      aggregation: aggregation,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
@@ -155,9 +181,20 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
 export function getMetricExpressions(
   widget: Widget,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters: DashboardFilters | undefined,
+  getVirtualMRIQuery: (
+    mri: MRI,
+    aggregation: MetricAggregation
+  ) => {
+    aggregation: MetricAggregation;
+    conditionId: number;
+    mri: MRI;
+  } | null
 ): DashboardMetricsExpression[] {
-  return [...getMetricQueries(widget, dashboardFilters), ...getMetricEquations(widget)];
+  return [
+    ...getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery),
+    ...getMetricEquations(widget),
+  ];
 }
 
 export function useGenerateExpressionId(expressions: DashboardMetricsExpression[]) {
@@ -168,7 +205,8 @@ export function useGenerateExpressionId(expressions: DashboardMetricsExpression[
 }
 
 export function expressionsToApiQueries(
-  expressions: DashboardMetricsExpression[]
+  expressions: DashboardMetricsExpression[],
+  metricsNewInputs: boolean
 ): MetricsQueryApiQueryParams[] {
   return expressions
     .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
@@ -177,9 +215,9 @@ export function expressionsToApiQueries(
         ? {
             alias: e.alias,
             formula: e.formula,
-            name: getEquationSymbol(e.id),
+            name: getEquationSymbol(e.id, metricsNewInputs),
           }
-        : {...e, name: getQuerySymbol(e.id), isQueryOnly: e.isHidden}
+        : {...e, name: getQuerySymbol(e.id, metricsNewInputs), isQueryOnly: e.isHidden}
     );
 }
 
@@ -259,8 +297,8 @@ export function defaultMetricWidget(): Widget {
       {
         id: 0,
         type: MetricExpressionType.QUERY,
-        mri: 'd:transactions/duration@millisecond',
-        aggregation: 'avg',
+        mri: SPAN_DURATION_MRI,
+        aggregation: getDefaultAggregation(SPAN_DURATION_MRI),
         query: '',
         orderBy: 'desc',
         isHidden: false,
@@ -270,3 +308,30 @@ export function defaultMetricWidget(): Widget {
     DisplayType.LINE
   );
 }
+
+export const isVirtualExpression = (expression: DashboardMetricsExpression) => {
+  if ('mri' in expression) {
+    return isVirtualMetric(expression);
+  }
+  return false;
+};
+
+export const isVirtualAlias = (alias?: string) => {
+  return alias?.startsWith('v|');
+};
+
+export const formatAlias = (alias?: string) => {
+  if (!alias) {
+    return alias;
+  }
+
+  if (!isVirtualAlias(alias)) {
+    return alias;
+  }
+
+  return alias.replace('v|', '');
+};
+
+export const getVirtualAlias = (aggregation, spanAttribute) => {
+  return `v|${aggregation}(${spanAttribute})`;
+};

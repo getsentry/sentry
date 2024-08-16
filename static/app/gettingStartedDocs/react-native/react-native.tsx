@@ -22,10 +22,10 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: "${params.dsn}",${
+  dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
   tracesSampleRate: 1.0,`
       : ''
@@ -149,13 +149,13 @@ const onboarding: OnboardingConfig = {
         {
           language: 'javascript',
           description: tct(
-            'Wrap your app with Sentry to automatically instrument it with [touchEventTrakingLink:touch event tracking] and [automaticPerformanceMonitoringLink:automatic performance monitoring]:',
+            'Wrap your app with Sentry to automatically instrument it with [touchEventTrakingLink:touch event tracking] and [automaticPerformanceMonitoringLink:automatic tracing]:',
             {
               touchEventTrakingLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/react-native/touchevents/" />
               ),
               automaticPerformanceMonitoringLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
               ),
             }
           ),
@@ -198,7 +198,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance'),
+            title: t('Tracing'),
             description: (
               <Fragment>
                 {t(
@@ -206,18 +206,23 @@ const onboarding: OnboardingConfig = {
                 )}
                 <List symbol="bullet">
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/">
                       {t('React Navigation')}
                     </ExternalLink>
                   </ListItem>
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation-v4">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation-v4/">
                       {t('React Navigation V4 and prior')}
                     </ExternalLink>
                   </ListItem>
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-native-navigation">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/">
                       {t('React Native Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/">
+                      {t('Expo Router')}
                     </ExternalLink>
                   </ListItem>
                 </List>
@@ -235,7 +240,7 @@ const onboarding: OnboardingConfig = {
                   'For more information, please refer to the [docLink: Sentry React Native documentation].',
                   {
                     docLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/" />
                     ),
                   }
                 ),

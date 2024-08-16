@@ -1,17 +1,17 @@
 from unittest.mock import patch
 
-from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.services.user.service import user_service
 
 pytestmark = requires_snuba
 

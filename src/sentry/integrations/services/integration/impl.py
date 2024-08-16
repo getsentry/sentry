@@ -14,6 +14,9 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.integrations.services.integration import (
     IntegrationService,
@@ -31,8 +34,6 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
@@ -383,7 +384,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
-        sentry_app = SentryApp.objects.get(id=sentry_app_id)
+        try:
+            sentry_app = SentryApp.objects.get(id=sentry_app_id)
+        except SentryApp.DoesNotExist:
+            logger.info(
+                "metric_alert_webhook.missing_sentryapp",
+                extra={
+                    "sentry_app_id": sentry_app_id,
+                    "organization_id": organization_id,
+                },
+            )
+            return False
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
@@ -486,7 +497,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         identity_provider_external_id: str | None = None,
     ) -> RpcIntegrationIdentityContext:
         from sentry.identity.services.identity.service import identity_service
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         integration = self.get_integration(
             provider=integration_provider,

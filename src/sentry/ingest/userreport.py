@@ -7,7 +7,7 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, features, options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     shim_to_feedback,
@@ -89,6 +89,8 @@ def save_userreport(
             )
             report_instance = existing_report
 
+            metrics.incr("user_report.create_user_report.overwrite_duplicate")
+
         else:
             if report_instance.group_id:
                 report_instance.notify()
@@ -107,6 +109,11 @@ def save_userreport(
                 "has_feedback_ingest": has_feedback_ingest,
             },
         )
+        metrics.incr(
+            "user_report.create_user_report.saved",
+            tags={"has_event": bool(event), "has_feedback_ingest": has_feedback_ingest},
+        )
+
         if has_feedback_ingest and event:
             logger.info(
                 "ingest.user_report.shim_to_feedback",
@@ -117,11 +124,10 @@ def save_userreport(
         return report_instance
 
 
-def find_event_user(event: Event):
+def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
     if not event:
         return None
-    eventuser = EventUser.from_event(event)
-    return eventuser
+    return EventUser.from_event(event)
 
 
 def should_filter_user_report(comments: str):

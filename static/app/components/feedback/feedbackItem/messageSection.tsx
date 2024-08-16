@@ -21,6 +21,7 @@ interface Props {
 
 export default function MessageSection({eventData, feedbackItem}: Props) {
   const organization = useOrganization();
+  const project = feedbackItem.project;
   return (
     <Fragment>
       <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
@@ -39,19 +40,19 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
       <Blockquote>
         <pre>{feedbackItem.metadata.message}</pre>
 
-        {eventData && (
+        {eventData && project ? (
           <Role organization={organization} role={organization.attachmentsRole}>
             {({hasRole}) =>
               hasRole ? (
                 <ScreenshotSection
                   event={eventData}
                   organization={organization}
-                  projectSlug={feedbackItem.project.slug}
+                  projectSlug={project.slug}
                 />
               ) : null
             }
           </Role>
-        )}
+        ) : null}
       </Blockquote>
       <Flex justify="flex-end">
         <Flex gap={space(1)} align="center">

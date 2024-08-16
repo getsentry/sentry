@@ -1,5 +1,5 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -12,15 +12,19 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes?: BrowserType[];
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
   query?: string;
   shouldEscapeFilters?: boolean;
   sortName?: string;
+  subregions?: SubregionCode[];
   transaction?: string | null;
   webVital?: WebVitals | 'total';
 };
@@ -34,12 +38,22 @@ export const useTransactionWebVitalsScoresQuery = ({
   webVital = 'total',
   query,
   shouldEscapeFilters = true,
+  browserTypes,
+  subregions,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
 
   const sort = useWebVitalsSort({sortName, defaultSort});
+  if (sort !== undefined) {
+    if (sort.field === 'avg(measurements.score.total)') {
+      sort.field = 'performance_score(measurements.score.total)';
+    }
+    if (sort.field === 'opportunity_score(measurements.score.total)') {
+      sort.field = 'total_opportunity_score()';
+    }
+  }
 
   const search = new MutableSearch([
     'avg(measurements.score.total):>=0',
@@ -48,9 +62,18 @@ export const useTransactionWebVitalsScoresQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+  }
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
+        'project.id',
+        'project',
         'transaction',
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
@@ -61,13 +84,14 @@ export const useTransactionWebVitalsScoresQuery = ({
           ? [`performance_score(measurements.score.${webVital})`]
           : []),
         `opportunity_score(measurements.score.${webVital})`,
-        'avg(measurements.score.total)',
+        'performance_score(measurements.score.total)',
         'count()',
         `count_scores(measurements.score.lcp)`,
         `count_scores(measurements.score.fcp)`,
         `count_scores(measurements.score.cls)`,
         `count_scores(measurements.score.inp)`,
         `count_scores(measurements.score.ttfb)`,
+        'total_opportunity_score()',
       ],
       name: 'Web Vitals',
       query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
@@ -94,10 +118,17 @@ export const useTransactionWebVitalsScoresQuery = ({
   const tableData: RowWithScoreAndOpportunity[] =
     !isLoading && data?.data.length
       ? data.data.map(row => {
+          // Map back performance score key so we don't have to handle both keys in the UI
+          if (row['performance_score(measurements.score.total)'] !== undefined) {
+            row['avg(measurements.score.total)'] =
+              row['performance_score(measurements.score.total)'];
+          }
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
+            project: row.project?.toString(),
+            'project.id': parseInt(row['project.id'].toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
@@ -125,8 +156,11 @@ export const useTransactionWebVitalsScoresQuery = ({
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             inpScore: inpScore ?? 0,
+            // Map back opportunity score key so we don't have to handle both keys in the UI
             opportunity: row[
-              `opportunity_score(measurements.score.${webVital})`
+              webVital === 'total'
+                ? 'total_opportunity_score()'
+                : `opportunity_score(measurements.score.${webVital})`
             ] as number,
           };
         })
@@ -134,6 +168,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
+    meta: data?.meta as EventsMetaType,
     isLoading,
     ...rest,
   };

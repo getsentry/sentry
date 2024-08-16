@@ -9,8 +9,8 @@ from sentry_sdk.api import capture_exception
 
 from sentry import features, options
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.region import get_local_region
+from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import base36_decode, base36_encode
 
 

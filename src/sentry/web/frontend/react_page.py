@@ -12,10 +12,10 @@ from django.urls import resolve
 from rest_framework.request import Request
 
 from sentry import features, options
-from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.types.region import subdomain_is_region
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response

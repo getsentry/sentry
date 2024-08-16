@@ -3,12 +3,12 @@ from unittest import mock
 import pytest
 
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.user import User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user import User
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -27,11 +27,6 @@ class PluginWithoutFields(IssueTrackingPlugin2):
 
 
 class IssueTrackingPlugin2Test(TestCase):
-    def test_issue_label_as_dict(self):
-        plugin = PluginWithFields()
-        result = plugin.get_issue_label(mock.Mock(), {"id": "1"})
-        assert result == "#1"
-
     def test_issue_label_legacy(self):
         plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")

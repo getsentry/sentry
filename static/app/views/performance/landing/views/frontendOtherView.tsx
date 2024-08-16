@@ -40,11 +40,9 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
   if (props.organization.features.includes('insights-initial-modules')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
-  }
-
-  if (props.organization.features.includes('starfish-browser-webvitals')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
+
   return (
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}

@@ -10,6 +10,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -174,7 +175,7 @@ export function SpanOperationTable({
     if (data.meta.fields[column.key] === 'percent_change') {
       return (
         <PercentChangeCell
-          deltaValue={parseFloat(row[column.key] as string)}
+          deltaValue={defined(row[column.key]) ? parseFloat(row[column.key]) : Infinity}
           preferredPolarity="-"
         />
       );

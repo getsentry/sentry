@@ -1,4 +1,3 @@
-import {LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
@@ -90,18 +89,10 @@ function getReplayKnownDataDetails({
         return undefined;
       }
       const link = `/organizations/${organization.slug}/replays/${encodeURIComponent(replayId)}/`;
-
       return {
         subject: t('Replay ID'),
         value: replayId,
-        action: {
-          link,
-        },
-        actionButton: link && (
-          <LinkButton size="xs" href={link}>
-            {t('View Replay')}
-          </LinkButton>
-        ),
+        action: {link},
       };
     }
     default:

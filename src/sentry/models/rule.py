@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
@@ -46,7 +48,7 @@ class Rule(Model):
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
-    data = GzippedDictField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE,
         choices=((ObjectStatus.ACTIVE, "Active"), (ObjectStatus.DISABLED, "Disabled")),

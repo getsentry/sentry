@@ -213,39 +213,6 @@ def test_project_config_uses_filter_features(
 
 @django_db_all
 @region_silo_test
-def test_project_config_with_react_hydration_errors_filter(default_project):
-    default_project.update_option("filters:chunk-load-error", "0")
-
-    # We want to test both string and boolean option representations. See implementation for more details
-    # on this.
-    for value in ("1", True):
-        default_project.update_option("filters:react-hydration-errors", value)
-        project_cfg = get_project_config(default_project)
-
-        cfg = project_cfg.to_dict()
-        _validate_project_config(cfg["config"])
-        cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
-
-        assert len(cfg_error_messages) == 1
-
-
-@django_db_all
-@region_silo_test
-def test_project_config_with_chunk_load_error_filter(default_project):
-    default_project.update_option("filters:react-hydration-errors", "0")
-    default_project.update_option("filters:chunk-load-error", "1")
-
-    project_cfg = get_project_config(default_project)
-
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
-
-    assert len(cfg_error_messages) == 1
-
-
-@django_db_all
-@region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):
@@ -766,10 +733,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[0] == {
         "name": "Chrome",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -786,7 +753,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -801,7 +768,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -819,7 +786,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -834,7 +801,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -847,10 +814,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[3] == {
         "name": "Edge",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -862,10 +829,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[4] == {
         "name": "Opera",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -935,10 +902,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[8] == {
         "name": "Chrome Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -950,10 +917,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[9] == {
         "name": "Firefox Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
             {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -965,10 +932,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[10] == {
         "name": "Safari Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
             {"measurement": "lcp", "weight": 0.0, "p10": 2500.0, "p50": 4000.0, "optional": False},
             {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -980,10 +947,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[11] == {
         "name": "Edge Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -996,10 +963,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[12] == {
         "name": "Opera Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -1266,28 +1233,11 @@ def test_project_config_cardinality_limits_organization_options_override_options
         ]
 
 
-@patch(
-    "sentry.relay.config._get_generic_project_filters",
-    lambda *args, **kwargs: {
-        "version": 1,
-        "filters": [
-            {
-                "id": "test-id",
-                "isEnabled": True,
-                "condition": {
-                    "op": "not",
-                    "inner": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Firefox",
-                    },
-                },
-            }
-        ],
-    },
-)
 @django_db_all
 @region_silo_test
-def test_project_config_valid_with_generic_filters(default_project):
+@override_options({"relay.emit-generic-inbound-filters": True})
+def test_project_config_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
+
+    assert config["config"]["filterSettings"]["generic"]["filters"]

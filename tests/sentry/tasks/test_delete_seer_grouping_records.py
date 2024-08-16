@@ -33,7 +33,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             "args": [project_id, hashes, 100]
         }
 
-    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @with_feature("projects:similarity-embeddings-grouping")
     @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_simple(self, mock_logger):
         group_ids, hashes = [], []
@@ -49,6 +49,23 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             "calling seer record deletion by hash",
             extra={"project_id": self.project.id, "hashes": hashes},
         )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    @patch("sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash")
+    @patch("sentry.tasks.delete_seer_grouping_records.logger")
+    def test_call_delete_seer_grouping_records_by_hash_no_hashes(
+        self, mock_logger, mock_delete_seer_grouping_records_by_hash
+    ):
+        group_ids = []
+        for _ in range(5):
+            group = self.create_group(project=self.project)
+            group_ids.append(group.id)
+        call_delete_seer_grouping_records_by_hash(group_ids)
+        mock_logger.info.assert_called_with(
+            "calling seer record deletion by hash",
+            extra={"project_id": self.project.id, "hashes": []},
+        )
+        mock_delete_seer_grouping_records_by_hash.assert_not_called()
 
     @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_no_group_ids(self, mock_logger):

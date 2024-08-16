@@ -1,49 +1,29 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
+import {
+  type ApiQueryKey,
+  useApiQuery,
+  type UseApiQueryOptions,
+} from 'sentry/utils/queryClient';
 
-import type {Organization, Project, ProjectKey, RequestState} from 'sentry/types';
+interface ProjectKeysParameters {
+  orgSlug: Organization['slug'];
+  projSlug?: Project['slug'];
+}
 
-import useApi from './useApi';
+const makeProjectKeysQueryKey = ({
+  orgSlug,
+  projSlug,
+}: ProjectKeysParameters): ApiQueryKey => [`/projects/${orgSlug}/${projSlug}/keys/`];
 
-export function useProjectKeys({
-  organization,
-  project,
-}: {
-  organization: Organization | null;
-  project: Project | null;
-}) {
-  const api = useApi();
-  const [response, setResponse] = useState<RequestState<ProjectKey[]>>({
-    type: 'initial',
+export function useProjectKeys(
+  params: ProjectKeysParameters,
+  options: Partial<UseApiQueryOptions<ProjectKey[]>> = {}
+) {
+  return useApiQuery<ProjectKey[]>(makeProjectKeysQueryKey(params), {
+    staleTime: Infinity,
+    retry: false,
+    enabled: !!params.projSlug,
+    ...options,
   });
-  useEffect(() => {
-    if (!organization || !project) {
-      return () => {};
-    }
-    setResponse({type: 'loading'});
-    const request: Promise<ProjectKey[]> = api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/keys/`
-    );
-
-    request
-      .then(data => {
-        setResponse({
-          type: 'resolved',
-          data,
-        });
-      })
-      .catch(error => {
-        setResponse({
-          type: 'errored',
-          error,
-        });
-        Sentry.captureException(error);
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [organization, project, api]);
-
-  return response;
 }

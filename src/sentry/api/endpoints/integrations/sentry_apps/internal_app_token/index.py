@@ -22,8 +22,8 @@ from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission,)

@@ -11,6 +11,7 @@ export interface DashboardMetricsQuery {
   orderBy: Order;
   type: MetricExpressionType.QUERY;
   alias?: string;
+  condition?: number;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -23,6 +24,7 @@ export interface DashboardMetricsEquation {
   isHidden: boolean;
   type: MetricExpressionType.EQUATION;
   alias?: string;
+  isQueryOnly?: boolean;
 }
 
 export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;

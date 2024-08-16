@@ -6,7 +6,6 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from django.test import override_settings
 
 from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
@@ -72,7 +71,7 @@ class EventManagerGroupingTest(TestCase):
     def test_adds_default_fingerprint_if_none_in_event(self):
         event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-        assert event.data.get("fingerprint") == ["{{ default }}"]
+        assert event.data["fingerprint"] == ["{{ default }}"]
 
     def test_ignores_fingerprint_on_transaction_event(self):
         error_event = save_new_event(
@@ -116,7 +115,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 1
         assert group.last_seen == event1.datetime
         assert group.message == event1.message
-        assert group.data.get("metadata").get("title") == event1.title
+        assert group.data["metadata"]["title"] == event1.title
 
         # Normally this should go into a different group, since the messages don't match, but the
         # fingerprint takes precedence. (We need to make the messages different in order to show
@@ -131,45 +130,40 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
-        assert group.data.get("metadata").get("title") == event2.title
+        assert group.data["metadata"]["title"] == event2.title
 
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
 
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
-            save_new_event({"message": "Dogs are great!"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+        save_new_event({"message": "Adopt don't shop"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            save_new_event({"message": "Adopt don't shop"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_log_entry = AuditLogEntry.objects.get()
 
-            with assume_test_silo_mode_of(AuditLogEntry):
-                audit_log_entry = AuditLogEntry.objects.first()
+        assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_entry.actor_label == "Sentry"
 
-            assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
-            assert audit_log_entry.actor_label == "Sentry"
+        assert audit_log_entry.data == {
+            "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+            "sentry:secondary_grouping_config": "mobile:2021-02-12",
+            "sentry:secondary_grouping_expiry": ANY,  # tested separately below
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": 0,
+            "public": False,
+        }
 
-            assert audit_log_entry.data == {
-                "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-                "sentry:secondary_grouping_config": LEGACY_CONFIG,
-                "sentry:secondary_grouping_expiry": ANY,  # tested separately below
-                "id": self.project.id,
-                "slug": self.project.slug,
-                "name": self.project.name,
-                "status": 0,
-                "public": False,
-            }
-
-            # When the config upgrade is actually happening, the expiry value is set before the
-            # audit log entry is created, which means the expiry is based on a timestamp
-            # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
-            # necessary.
-            actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
-            expected_expiry = (
-                int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-            )
-            assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+        # When the config upgrade is actually happening, the expiry value is set before the
+        # audit log entry is created, which means the expiry is based on a timestamp
+        # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
+        # necessary.
+        actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
+        expected_expiry = (
+            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        )
+        assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
 
 
 class PlaceholderTitleTest(TestCase):
@@ -237,8 +231,8 @@ class PlaceholderTitleTest(TestCase):
         assert group.title == event2.title == "<unlabeled event>"
         assert group.data["title"] == event2.data["title"] == "<unlabeled event>"
         assert (
-            group.data["metadata"].get("title")
-            == event2.data["metadata"].get("title")
+            group.data["metadata"]["title"]
+            == event2.data["metadata"]["title"]
             == "<unlabeled event>"
         )
         assert group.message == "<unlabeled event>"
@@ -318,7 +312,7 @@ class PlaceholderTitleTest(TestCase):
         assert event2.data["title"] == "<unlabeled event>"
         assert group.data["title"] == "DogsAreNeverAnError: Dogs are great!"
         assert group.data["metadata"].get("title") is None
-        assert event2.data["metadata"].get("title") == "<unlabeled event>"
+        assert event2.data["metadata"]["title"] == "<unlabeled event>"
         assert group.message == "Dogs are great! DogsAreNeverAnError"
 
         # An event after the bug was fixed
@@ -374,18 +368,24 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, 1],
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
+            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
         ]
 
-        for primary_config, secondary_config, transition_expiry, expected_total_calcs in cases:
+        for (
+            message,
+            primary_config,
+            secondary_config,
+            transition_expiry,
+            expected_total_calcs,
+        ) in cases:
             mock_metrics_incr.reset_mock()
 
             project.update_option("sentry:grouping_config", primary_config)
             project.update_option("sentry:secondary_grouping_config", secondary_config)
             project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-            save_new_event({"message": "Dogs are great!"}, self.project)
+            save_new_event({"message": message}, self.project)
 
             total_calculations_calls = get_relevant_metrics_calls(
                 mock_metrics_incr, "grouping.total_calculations"
@@ -429,9 +429,16 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for has_flag, expected_using_optimization in optimized_logic_cases:
-                with self.feature(
-                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+            for using_optimization, expected_using_optimization in optimized_logic_cases:
+                with (
+                    mock.patch(
+                        "sentry.event_manager.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
+                    mock.patch(
+                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
                 ):
                     mock_metrics_incr.reset_mock()
 

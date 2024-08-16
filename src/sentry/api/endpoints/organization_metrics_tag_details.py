@@ -2,11 +2,13 @@ from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata import convert_metric_names_to_mris, get_tag_values
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricParseException
@@ -21,7 +23,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     """Get all existing tag values for a metric"""
 
-    def get(self, request: Request, organization, tag_name) -> Response:
+    def get(self, request: Request, organization: Organization, tag_name: str) -> Response:
         metric_names = request.GET.getlist("metric") or []
         tag_value_prefix = request.GET.get("prefix") or ""
         if len(metric_names) > 1:
@@ -34,6 +36,28 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
 
+        if all(
+            features.has("projects:use-eap-spans-for-metrics-explorer", project)
+            for project in projects
+        ):
+            if len(metric_names) == 1 and metric_names[0].startswith("d:eap"):
+                # TODO hack for EAP, hardcode some metric names
+                if tag_name == "color":
+                    return Response(
+                        [
+                            {"key": tag_name, "value": "red"},
+                            {"key": tag_name, "value": "blue"},
+                            {"key": tag_name, "value": "green"},
+                        ]
+                    )
+                if tag_name == "location":
+                    return Response(
+                        [
+                            {"key": tag_name, "value": "mobile"},
+                            {"key": tag_name, "value": "frontend"},
+                            {"key": tag_name, "value": "backend"},
+                        ]
+                    )
         try:
             mris = convert_metric_names_to_mris(metric_names)
             tag_values: set[str] = set()

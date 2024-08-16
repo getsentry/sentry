@@ -16,21 +16,18 @@ from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
-from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.user import UserSerializeType
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
     Region,
@@ -38,6 +35,10 @@ from sentry.types.region import (
     find_all_multitenant_region_names,
     get_region_by_name,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user import UserSerializeType
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled

@@ -27,10 +27,10 @@ class PivotalPluginTest(PluginTestCase):
         assert self.plugin.get_issue_url(group, 1) == "https://www.pivotaltracker.com/story/show/1"
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("token", "1", self.project)
         self.plugin.set_option("project", "1", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     def test_no_secrets(self):
         self.user = self.create_user("foo@example.com")

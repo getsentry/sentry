@@ -6,12 +6,14 @@ import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder, QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.issue_platform import IssuePlatformTimeseriesQueryBuilder
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
+from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 
@@ -39,6 +41,8 @@ def query(
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -74,7 +78,7 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         snuba_params=snuba_params,
@@ -98,7 +102,7 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -108,6 +112,7 @@ def timeseries_query(
     query: str,
     params: dict[str, str],
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -117,6 +122,7 @@ def timeseries_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -141,12 +147,17 @@ def timeseries_query(
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     with sentry_sdk.start_span(op="issueplatform", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
             params,
             rollup,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=columns,
             equations=equations,
@@ -173,7 +184,7 @@ def timeseries_query(
             query_list.append(comparison_builder)
 
         query_results = bulk_snuba_queries(
-            [query.get_snql_query() for query in query_list], referrer
+            [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
     with sentry_sdk.start_span(op="issueplatform", description="timeseries.transform_results"):

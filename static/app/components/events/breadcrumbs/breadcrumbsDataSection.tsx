@@ -1,223 +1,244 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  BreadcrumbControlOptions,
+  BreadcrumbsDrawer,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
-  applyBreadcrumbSearch,
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
-  getBreadcrumbFilters,
+  getEnhancedBreadcrumbs,
+  getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-  BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {PANEL_INITIAL_HEIGHT} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
-import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import Input from 'sentry/components/input';
-import {IconClock, IconFilter, IconSort} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import useDrawer from 'sentry/components/globalDrawer';
+import {
+  IconClock,
+  IconEllipsis,
+  IconMegaphone,
+  IconSearch,
+  IconTimer,
+} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, type Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
+  group: Group;
+  project: Project;
 }
 
-export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionProps) {
-  const [search, setSearch] = useState('');
-  const [filterSet, setFilterSet] = useState(new Set<string>());
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+export default function BreadcrumbsDataSection({
+  event,
+  group,
+  project,
+}: BreadcrumbsDataSectionProps) {
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const openForm = useFeedbackForm();
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
+  const organization = useOrganization();
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
-    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+
+  const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
+  const summaryCrumbs = useMemo(
+    () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
+    [enhancedCrumbs, sort]
+  );
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? summaryCrumbs?.at(0)?.breadcrumb?.timestamp
+        : undefined,
+    [summaryCrumbs, timeDisplay]
   );
 
-  const breadcrumbEntryIndex =
-    event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs: RawCrumb[] = useMemo(
-    () => event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [],
-    [event, breadcrumbEntryIndex]
+  const onViewAllBreadcrumbs = useCallback(
+    (focusControl?: BreadcrumbControlOptions) => {
+      trackAnalytics('breadcrumbs.issue_details.drawer_opened', {
+        control: focusControl ?? 'view all',
+        organization,
+      });
+      openDrawer(
+        () => (
+          <BreadcrumbsDrawer
+            breadcrumbs={enhancedCrumbs}
+            focusControl={focusControl}
+            project={project}
+            event={event}
+            group={group}
+          />
+        ),
+        {
+          ariaLabel: 'breadcrumb drawer',
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+          transitionProps: {stiffness: 1000},
+        }
+      );
+    },
+    [group, event, project, openDrawer, enhancedCrumbs, organization]
   );
-  const allCrumbs = useMemo(() => [...breadcrumbs], [breadcrumbs]);
-  // Mapping of breadcrumb index -> breadcrumb meta
-  const meta: Record<number, any> =
-    event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
-  // The virtual crumb is a representation of this event, displayed alongside
-  // the rest of the breadcrumbs for more additional context.
-  const virtualCrumb = getVirtualCrumb(event);
-  let virtualCrumbIndex: number | undefined;
-  if (virtualCrumb) {
-    virtualCrumbIndex = allCrumbs.length;
-    allCrumbs.push(virtualCrumb);
-  }
-
-  const filterOptions = useMemo(() => getBreadcrumbFilters(allCrumbs), [allCrumbs]);
-  const filteredCrumbs = allCrumbs.filter(bc =>
-    filterSet.size === 0 ? true : filterSet.has(bc.type)
-  );
-  const searchedCrumbs = useMemo(
-    () => applyBreadcrumbSearch(search, filteredCrumbs),
-    [search, filteredCrumbs]
-  );
-
-  const hasFilters = filterSet.size > 0 || search.length > 0;
-
-  if (!breadcrumbEntryIndex) {
+  if (enhancedCrumbs.length === 0) {
     return null;
   }
 
-  if (breadcrumbs.length <= 0) {
-    return null;
-  }
+  const nextTimeDisplay =
+    timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+      ? BreadcrumbTimeDisplay.RELATIVE
+      : BreadcrumbTimeDisplay.ABSOLUTE;
 
   const actions = (
     <ButtonBar gap={1}>
-      <Input
+      {openForm && (
+        <Button
+          aria-label={t('Give Feedback')}
+          icon={<IconMegaphone />}
+          size={'xs'}
+          onClick={() =>
+            openForm({
+              messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
+              tags: {
+                ['feedback.source']: 'issue_details_breadcrumbs',
+                ['feedback.owner']: 'issues',
+              },
+            })
+          }
+        >
+          {t('Give Feedback')}
+        </Button>
+      )}
+      <Button
+        aria-label={t('Open Breadcrumb Search')}
+        icon={<IconSearch size="xs" />}
         size="xs"
-        placeholder={t('Search')}
-        value={search}
-        onChange={e => setSearch(e.target.value)}
+        title={t('Open Search')}
+        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
-      <CompactSelect
+      <Button
+        aria-label={t('Change Time Format for Breadcrumbs')}
+        title={tct('Use [format] Timestamps', {
+          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+        })}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
+        onClick={() => {
+          setTimeDisplay(nextTimeDisplay);
+          trackAnalytics('breadcrumbs.issue_details.change_time_display', {
+            value: nextTimeDisplay,
+            organization,
+          });
+        }}
         size="xs"
-        onChange={options => {
-          const newFilters = options.map(({value}) => value);
-          setFilterSet(new Set(newFilters));
-        }}
-        multiple
-        options={filterOptions}
-        maxMenuHeight={400}
-        trigger={(props, isOpen) => (
-          <DropdownButton
-            isOpen={isOpen}
-            size="xs"
-            icon={<IconFilter size="xs" />}
-            {...props}
-          >
-            {filterSet.size
-              ? tn('%s Active Filter', '%s Active Filters', filterSet.size)
-              : t('Filter')}
-          </DropdownButton>
-        )}
-      />
-      <CompactSelect
-        size="xs"
-        triggerProps={{
-          icon: <IconSort size="xs" />,
-        }}
-        onChange={selectedOption => {
-          setSort(selectedOption.value);
-        }}
-        value={sort}
-        options={BREADCRUMB_SORT_OPTIONS}
-      />
-      <CompactSelect
-        size="xs"
-        triggerProps={{
-          icon: <IconClock size="xs" />,
-        }}
-        onChange={selectedOption => {
-          setTimeDisplay(selectedOption.value);
-        }}
-        value={timeDisplay}
-        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
       />
     </ButtonBar>
   );
 
+  const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
+
   return (
-    <EventDataSection
+    <InterimSection
       key="breadcrumbs"
-      type="breadcrmbs"
+      type={SectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
-      actions={actions}
       data-test-id="breadcrumbs-data-section"
+      actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        {searchedCrumbs.length ? (
-          <ScrollBox>
-            <BreadcrumbsTimeline
-              breadcrumbs={searchedCrumbs}
-              virtualCrumbIndex={virtualCrumbIndex}
-              meta={meta}
-              sort={sort}
-              timeDisplay={timeDisplay}
-            />
-          </ScrollBox>
-        ) : (
-          <EmptyBreadcrumbsMessage>
-            {t('No breadcrumbs found. ')}
-            {hasFilters && (
-              <ClearFiltersButton
-                size="xs"
-                onClick={() => {
-                  setFilterSet(new Set());
-                  setSearch('');
-                }}
+        <div ref={setContainer}>
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            startTimeString={startTimeString}
+            // We want the timeline to appear connected to the 'View All' button
+            showLastLine={hasViewAll}
+            fullyExpanded={false}
+            containerElement={container}
+          />
+        </div>
+        {hasViewAll && (
+          <ViewAllContainer>
+            <VerticalEllipsis />
+            <div>
+              <ViewAllButton
+                size="sm"
+                // Since we've disabled the button as an 'outside click' for the drawer we can change
+                // the operation based on the drawer state.
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
+                aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
               >
-                {t('Clear filters')}
-              </ClearFiltersButton>
-            )}
-          </EmptyBreadcrumbsMessage>
+                {t('View All')}
+              </ViewAllButton>
+            </div>
+          </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
-const EmptyBreadcrumbsMessage = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  border-radius: 4px;
-  padding: ${space(3)} ${space(1)};
-`;
-
-const ClearFiltersButton = styled(Button)`
-  margin-top: ${space(1)};
-`;
-
-const ScrollBox = styled('div')`
+const ViewAllContainer = styled('div')`
   position: relative;
-  overflow-y: scroll;
-  resize: vertical;
-  max-height: ${PANEL_INITIAL_HEIGHT}px;
-  /* Unsets max-height when resized */
-  &[style*='height'] {
-    max-height: unset;
-  }
-  padding-right: ${space(2)};
-  &:after {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-top: ${space(1)};
+  &::after {
     content: '';
-    position: sticky;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 20px;
-    display: block;
-    background-image: linear-gradient(
-      to bottom,
-      ${p => color(p.theme.background).alpha(0.15).string()},
-      ${p => p.theme.background}
-    );
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: -${space(1)};
+    height: ${space(1)};
+    background: ${p => p.theme.border};
   }
+`;
+
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.subText};
+  margin: ${space(0.5)};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
 `;

@@ -10,8 +10,9 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import type {EventTransaction, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -151,6 +152,7 @@ export function SpanProfileDetails({
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
+        sorting: 'call order',
       },
     });
 

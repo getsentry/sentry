@@ -2,9 +2,10 @@ import re
 
 import pytest
 
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
-from sentry.services.hybrid_cloud.organization_actions.impl import (
+from sentry.organizations.services.organization_actions.impl import (
     generate_deterministic_organization_slug,
     mark_organization_as_pending_deletion_with_outbox_message,
     unmark_organization_as_pending_deletion_with_outbox_message,

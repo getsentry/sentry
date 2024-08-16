@@ -56,6 +56,10 @@ function SimilarStackTrace({params, location, project}: Props) {
   const hasSimilarityEmbeddingsFeature =
     project.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';
+  // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
+  // backend option is using its default value of `True`). This is just so we can turn it off
+  // on demand to see if/how that changes the results.
+  const useReranking = String(location.query.useReranking !== '0');
 
   const fetchData = useCallback(() => {
     setStatus('loading');
@@ -68,6 +72,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           {
             k: 10,
             threshold: 0.01,
+            useReranking,
           }
         )}`,
         dataKey: 'similar',
@@ -89,6 +94,7 @@ function SimilarStackTrace({params, location, project}: Props) {
     orgId,
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
+    useReranking,
   ]);
 
   const onGroupingChange = useCallback(
@@ -167,12 +173,12 @@ function SimilarStackTrace({params, location, project}: Props) {
           showIcon
           defaultExpanded
           expand={
-            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made. If you have any questions, you can feel free to reach out to the team at #proj-ml-grouping.'
+            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made.'
           }
         >
-          Hi there! We're running an internal POC to improve grouping with ML techniques.
-          Each similar issue has been scored as "Would Group: Yes" and "Would Group: No,"
-          which refers to whether or not we'd group the similar issue into the main issue.
+          Hi there! We're working on improving grouping with ML techniques. Each similar
+          issue has been scored as "Would Group: Yes" and "Would Group: No," which refers
+          to whether or not we'd group the similar issue into the main issue.
         </Alert>
       )}
       <HeaderWrapper>

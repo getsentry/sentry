@@ -5,6 +5,8 @@ from enum import Enum
 from typing import TypedDict
 
 from django.db.models import Max
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry import features, options
@@ -23,7 +25,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -96,6 +98,7 @@ def is_table_display_type(display_type):
     )
 
 
+@extend_schema_field(field=OpenApiTypes.OBJECT)
 class LayoutField(serializers.Field):
     REQUIRED_KEYS = {
         "x",
@@ -439,24 +442,54 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     self.query_warnings["columns"][
                         field
                     ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+
+        widget_type = data.get("widget_type")
+        if widget_type and widget_type in {
+            DashboardWidgetTypes.ERROR_EVENTS,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        }:
+            data["discover_widget_split"] = widget_type
+
         return data
 
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
-    id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, max_length=255)
-    widgets = DashboardWidgetSerializer(many=True, required=False)
-    projects = serializers.ListField(child=serializers.IntegerField(), required=False, default=[])
-    environment = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True
+    id = serializers.CharField(required=False, help_text="A dashboard's unique id.")
+    title = serializers.CharField(
+        required=False, max_length=255, help_text="The user-defined dashboard title."
     )
-    period = serializers.CharField(required=False, allow_null=True)
-    start = serializers.DateTimeField(required=False, allow_null=True)
-    end = serializers.DateTimeField(required=False, allow_null=True)
-    filters = serializers.DictField(required=False)
-    utc = serializers.BooleanField(required=False)
-
+    widgets = DashboardWidgetSerializer(
+        many=True, required=False, help_text="A json list of widgets saved in this dashboard."
+    )
+    projects = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=[],
+        help_text="The saved projects filter for this dashboard.",
+    )
+    environment = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="The saved environment filter for this dashboard.",
+    )
+    period = serializers.CharField(
+        required=False, allow_null=True, help_text="The saved time range period for this dashboard."
+    )
+    start = serializers.DateTimeField(
+        required=False, allow_null=True, help_text="The saved start time for this dashboard."
+    )
+    end = serializers.DateTimeField(
+        required=False, allow_null=True, help_text="The saved end time for this dashboard."
+    )
+    filters = serializers.DictField(
+        required=False, help_text="The saved filters for this dashboard."
+    )
+    utc = serializers.BooleanField(
+        required=False,
+        help_text="Setting that lets you display saved time range for this dashboard in UTC.",
+    )
     validate_id = validate_id
 
     def validate_projects(self, projects):
@@ -513,7 +546,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         self.instance = Dashboard.objects.create(
-            organization=self.context.get("organization"),
+            organization=self.context["organization"],
             title=validated_data["title"],
             created_by_id=self.context["request"].user.id,
         )
@@ -719,7 +752,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
 
 class DashboardSerializer(DashboardDetailsSerializer):
-    title = serializers.CharField(required=True, max_length=255)
+    title = serializers.CharField(
+        required=True, max_length=255, help_text="The user defined title for this dashboard."
+    )
 
 
 def schedule_update_project_configs(dashboard: Dashboard):

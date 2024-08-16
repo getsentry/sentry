@@ -66,8 +66,25 @@ export class VideoReplayerWithInteractions {
 
     root?.classList.add('video-replayer');
 
+    const isTouchStart = (e: eventWithTime) => {
+      return e.type === 3 && 'type' in e.data && e.data.type === 7;
+    };
+
+    const isTouchEnd = (e: eventWithTime) => {
+      return e.type === 3 && 'type' in e.data && e.data.type === 9;
+    };
+
     const eventsWithSnapshots: eventWithTime[] = [];
-    events.forEach(e => {
+    events.forEach((e, index) => {
+      // For taps, sometimes the timestamp difference between TouchStart
+      // and TouchEnd is too small. This clamps the tap to a min time
+      // if the difference is less, so that the rrweb tap is visible and obvious.
+      if (isTouchStart(e) && index < events.length - 2) {
+        const nextEvent = events[index + 1];
+        if (isTouchEnd(nextEvent)) {
+          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+        }
+      }
       eventsWithSnapshots.push(e);
       if (e.type === 4) {
         // Create a mock full snapshot event, in order to render rrweb gestures properly

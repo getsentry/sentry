@@ -1,68 +1,71 @@
-import {Children, useState} from 'react';
-import {css} from '@emotion/react';
+import {Children, type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-type CollapsibleValueProps = {
-  children: React.ReactNode;
+interface Props {
+  children: ReactNode;
   closeTag: string;
-  depth: number;
-  maxDefaultDepth: number;
   openTag: string;
-  /**
-   * Forces the value to start expanded, otherwise it will expand if there are
-   * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
-   */
-  forceDefaultExpand?: boolean;
-  prefix?: React.ReactNode;
-};
-
-const MAX_ITEMS_BEFORE_AUTOCOLLAPSE = 5;
+  path: string;
+  prefix?: ReactNode;
+}
 
 export function CollapsibleValue({
   children,
-  openTag,
   closeTag,
+  openTag,
+  path,
   prefix = null,
-  depth,
-  maxDefaultDepth,
-  forceDefaultExpand,
-}: CollapsibleValueProps) {
+}: Props) {
+  const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
+  const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
+
   const numChildren = Children.count(children);
-  const [isExpanded, setIsExpanded] = useState(
-    forceDefaultExpand ??
-      (numChildren <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE && depth < maxDefaultDepth)
-  );
 
   const shouldShowToggleButton = numChildren > 0;
-  const isBaseLevel = depth === 0;
+  const isBaseLevel = path === '$';
 
   // Toggle buttons get placed to the left of the open tag, but if this is the
   // base level there is no room for it. So we add padding in this case.
   const baseLevelPadding = isBaseLevel && shouldShowToggleButton;
 
   return (
-    <CollapsibleDataContainer baseLevelPadding={baseLevelPadding}>
+    <CollapsibleDataContainer data-base-with-toggle={baseLevelPadding}>
       {numChildren > 0 ? (
         <ToggleButton
           size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          onClick={() => {
+            if (isExpanded) {
+              collapse();
+              setIsExpanded(false);
+            } else {
+              expand();
+              setIsExpanded(true);
+            }
+          }}
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
           borderless
-          baseLevelPadding={baseLevelPadding}
+          data-base-with-toggle={baseLevelPadding}
         />
       ) : null}
       {prefix}
       <span>{openTag}</span>
       {shouldShowToggleButton && !isExpanded ? (
-        <NumItemsButton size="zero" onClick={() => setIsExpanded(true)}>
+        <NumItemsButton
+          size="zero"
+          onClick={() => {
+            expand();
+            setIsExpanded(true);
+          }}
+        >
           {tn('%s item', '%s items', numChildren)}
         </NumItemsButton>
       ) : null}
@@ -74,15 +77,13 @@ export function CollapsibleValue({
   );
 }
 
-const CollapsibleDataContainer = styled('span')<{baseLevelPadding: boolean}>`
+const CollapsibleDataContainer = styled('span')`
   position: relative;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      display: block;
-      padding-left: ${space(3)};
-    `}
+  &[data-base-with-toggle='true'] {
+    display: block;
+    padding-left: ${space(3)};
+  }
 `;
 
 const IndentedValues = styled('div')`
@@ -101,7 +102,7 @@ const NumItemsButton = styled(Button)`
   margin: 0 ${space(0.5)};
 `;
 
-const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
+const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
   top: 2px;
@@ -111,9 +112,7 @@ const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
   background: none;
   border: none;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      left: 0;
-    `}
+  &[data-base-with-toggle='true'] {
+    left: 0;
+  }
 `;

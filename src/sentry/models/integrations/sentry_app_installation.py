@@ -14,10 +14,11 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.projects.services.project import RpcProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
-from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
 
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 
 
 def default_uuid():
@@ -225,7 +226,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                     for ob in ApiToken(id=api_token_id, user_id=user_id).outboxes_for_update():
                         ob.save()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         from sentry.models.apitoken import ApiToken
 
         try:

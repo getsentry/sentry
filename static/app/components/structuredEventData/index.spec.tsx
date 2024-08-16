@@ -8,7 +8,7 @@ import {
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 
-describe('ContextData', function () {
+describe('StructuredEventData', function () {
   describe('strings', function () {
     it('should render urls w/ an additional <a> link', async function () {
       const URL = 'https://example.org/foo/bar/';
@@ -126,14 +126,154 @@ describe('ContextData', function () {
     });
   });
 
-  it('auto-collapses objects/arrays after max depth', async function () {
-    render(<StructuredEventData data={[1, [2, 3]]} maxDefaultDepth={1} />);
+  describe('initial expanded state', () => {
+    const data = {
+      foo: 'bar',
+      'the_real_world?': {
+        the_city: {
+          the_hotel: {
+            the_fortress: 'a pinwheel',
+          },
+        },
+      },
+      arr_en: ['one', 'two', 'three', 'four', 'five'],
+      arr_de: ['eins', 'zwei', 'drei', 'vier', 'funf', 'sechs'],
+    };
 
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.queryByText('2')).not.toBeInTheDocument();
+    it('auto-expands two levels by default', () => {
+      render(<StructuredEventData data={data} />);
 
-    // Click the "2 items" button to expand the array
-    await userEvent.click(screen.getByRole('button', {name: '2 items'}));
-    expect(screen.getByText('3')).toBeInTheDocument();
+      // String value, visible
+      expect(screen.getByText('foo')).toBeInTheDocument();
+      expect(screen.getByText('bar')).toBeInTheDocument();
+
+      // Deep object, expanded 2 levels
+      expect(screen.getByText('the_real_world?')).toBeInTheDocument();
+      expect(screen.getByText('the_city')).toBeInTheDocument();
+      expect(screen.queryByText('the_hotel')).not.toBeInTheDocument();
+      expect(screen.getByText('1 item')).toBeInTheDocument();
+
+      // object with 5 items, expanded
+      expect(screen.getByText('arr_en')).toBeInTheDocument();
+      expect(screen.getByText('one')).toBeInTheDocument();
+
+      // object with 6 items, collapsed
+      expect(screen.getByText('arr_de')).toBeInTheDocument();
+      expect(screen.queryByText('eins')).not.toBeInTheDocument();
+      expect(screen.getByText('6 items')).toBeInTheDocument();
+    });
+
+    it('auto-expands whatever is listed by `initialExpandedPaths`', () => {
+      render(
+        <StructuredEventData
+          data={data}
+          initialExpandedPaths={[
+            '$',
+            '$.the_real_world?',
+            '$.the_real_world?.the_city',
+            '$.the_real_world?.the_city.the_hotel',
+            '$.the_real_world?.the_city.the_hotel.the_fortress',
+          ]}
+        />
+      );
+
+      // because '$' is expanded:
+      expect(screen.getByText('foo')).toBeInTheDocument();
+      expect(screen.getByText('bar')).toBeInTheDocument();
+
+      // each of these are explicitly expanded
+      expect(screen.getByText('the_real_world?')).toBeInTheDocument();
+      expect(screen.getByText('the_city')).toBeInTheDocument();
+      expect(screen.getByText('the_hotel')).toBeInTheDocument();
+      expect(screen.getByText('the_fortress')).toBeInTheDocument();
+      expect(screen.getByText('a pinwheel')).toBeInTheDocument();
+
+      // Not expanded, but their counts are visible
+      expect(screen.getByText('arr_en')).toBeInTheDocument();
+      expect(screen.queryByText('one')).not.toBeInTheDocument();
+      expect(screen.getByText('5 items')).toBeInTheDocument();
+      expect(screen.getByText('arr_de')).toBeInTheDocument();
+      expect(screen.queryByText('eins')).not.toBeInTheDocument();
+      expect(screen.getByText('6 items')).toBeInTheDocument();
+    });
+
+    it('auto-expands nothing when forceDefaultExpand=false', () => {
+      render(<StructuredEventData data={data} forceDefaultExpand={false} />);
+
+      expect(screen.getByText('4 items')).toBeInTheDocument();
+    });
+
+    it('auto-expands at least one level when forceDefaultExpand=true, even if maxDefaultDepth=0', () => {
+      render(<StructuredEventData data={data} forceDefaultExpand maxDefaultDepth={0} />);
+
+      expect(screen.queryByText('4 items')).not.toBeInTheDocument();
+
+      // because '$' is expanded:
+      expect(screen.getByText('foo')).toBeInTheDocument();
+      expect(screen.getByText('bar')).toBeInTheDocument();
+
+      expect(screen.getByText('the_real_world?')).toBeInTheDocument();
+      expect(screen.getByText('1 item')).toBeInTheDocument();
+      expect(screen.getByText('arr_en')).toBeInTheDocument();
+      expect(screen.getByText('5 items')).toBeInTheDocument();
+      expect(screen.getByText('arr_de')).toBeInTheDocument();
+      expect(screen.getByText('6 items')).toBeInTheDocument();
+    });
+
+    it('auto-expands N levels when forceDefaultExpand=undefined maxDefaultDepth=N', () => {
+      render(<StructuredEventData data={data} maxDefaultDepth={2} />);
+
+      // String value, visible
+      expect(screen.getByText('foo')).toBeInTheDocument();
+      expect(screen.getByText('bar')).toBeInTheDocument();
+
+      // Deep object, expanded 2 levels
+      expect(screen.getByText('the_real_world?')).toBeInTheDocument();
+      expect(screen.getByText('the_city')).toBeInTheDocument();
+      expect(screen.queryByText('the_hotel')).not.toBeInTheDocument();
+      expect(screen.getByText('1 item')).toBeInTheDocument();
+
+      // object with 5 items, expanded
+      expect(screen.getByText('arr_en')).toBeInTheDocument();
+      expect(screen.getByText('one')).toBeInTheDocument();
+
+      // object with 6 items, collapsed
+      expect(screen.getByText('arr_de')).toBeInTheDocument();
+      expect(screen.queryByText('eins')).not.toBeInTheDocument();
+      expect(screen.getByText('6 items')).toBeInTheDocument();
+    });
+
+    it('invokes a callback whenever something is toggled open/closed for tracking', async () => {
+      const callback = jest.fn();
+      render(<StructuredEventData data={data} onToggleExpand={callback} />);
+
+      expect(screen.queryByText('eins')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: '6 items'}));
+
+      expect(screen.getByText('eins')).toBeInTheDocument();
+      expect(callback).toHaveBeenCalledWith(
+        ['$', '$.the_real_world?', '$.arr_en', '$.arr_de'],
+        '$.arr_de',
+        'expanded'
+      );
+
+      const buttons = screen.getAllByRole('button', {name: 'Collapse'});
+      const rootButton = buttons.at(0);
+      await userEvent.click(rootButton!);
+
+      expect(callback).toHaveBeenCalledWith(
+        ['$.the_real_world?', '$.arr_en', '$.arr_de'],
+        '$',
+        'collapsed'
+      );
+
+      await userEvent.click(rootButton!);
+
+      expect(callback).toHaveBeenCalledWith(
+        ['$.the_real_world?', '$.arr_en', '$.arr_de', '$'],
+        '$',
+        'expanded'
+      );
+    });
   });
 });

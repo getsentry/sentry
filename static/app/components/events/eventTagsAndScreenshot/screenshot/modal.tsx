@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -14,8 +14,10 @@ import NotAvailable from 'sentry/components/notAvailable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {EventAttachment, IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -42,7 +44,7 @@ type Props = ModalRenderProps & {
   pageLinks?: string | null | undefined;
 };
 
-function Modal({
+export default function ScreenshotModal({
   eventAttachment,
   orgSlug,
   projectSlug,
@@ -225,16 +227,14 @@ function Modal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button onClick={onDownload} href={downloadUrl}>
+          <LinkButton onClick={onDownload} href={downloadUrl}>
             {t('Download')}
-          </Button>
+          </LinkButton>
         </Buttonbar>
       </Footer>
     </Fragment>
   );
 }
-
-export default Modal;
 
 const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
   ${p =>

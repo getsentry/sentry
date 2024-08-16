@@ -1,4 +1,3 @@
-import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   MetricChartOverlayType,
   MetricDisplayType,
@@ -11,18 +10,15 @@ function testParsing(input: any, result: MetricsWidget[]) {
   expect(parseMetricWidgetsQueryParam(JSON.stringify(input))).toStrictEqual(result);
 }
 
-describe('parseMetricWidgetQueryParam', () => {
-  const defaultState = [{...emptyMetricsQueryWidget, id: 0}];
-  it('returns default widget for invalid param', () => {
-    testParsing(undefined, defaultState);
-    testParsing({}, defaultState);
-    testParsing(true, defaultState);
-    testParsing(2, defaultState);
-    testParsing('', defaultState);
-    testParsing('test', defaultState);
-
-    // empty array is not valid
-    testParsing([], defaultState);
+describe('parseMetricWidgetsQueryParam', () => {
+  it('returns empty array for invalid param', () => {
+    testParsing(undefined, []);
+    testParsing({}, []);
+    testParsing(true, []);
+    testParsing(2, []);
+    testParsing('', []);
+    testParsing('test', []);
+    testParsing([], []);
   });
 
   it('returns a single widget', () => {
@@ -34,6 +30,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: 'line',
@@ -50,6 +47,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: MetricDisplayType.LINE,
@@ -72,6 +70,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: 'line',
@@ -94,6 +93,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:custom/sentry.event_manager.save@second',
           aggregation: 'avg',
+          condition: 1,
           query: '',
           groupBy: ['event_type'],
           displayType: 'line',
@@ -110,6 +110,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: MetricDisplayType.LINE,
@@ -124,6 +125,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:custom/sentry.event_manager.save@second',
           aggregation: 'avg',
+          condition: 1,
           query: '',
           groupBy: ['event_type'],
           displayType: MetricDisplayType.LINE,
@@ -170,6 +172,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'avg',
+          condition: undefined,
           query: '',
           groupBy: [],
           displayType: MetricDisplayType.LINE,
@@ -201,6 +204,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: 123,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 1,
+          condition: 'test',
           query: 12,
           groupBy: true,
           displayType: 'aasfcsdf',
@@ -217,6 +221,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'avg',
+          condition: undefined,
           query: '',
           groupBy: [],
           displayType: MetricDisplayType.LINE,
@@ -262,6 +267,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'avg',
+          condition: undefined,
           query: '',
           groupBy: [],
           displayType: MetricDisplayType.LINE,
@@ -275,7 +281,7 @@ describe('parseMetricWidgetQueryParam', () => {
     );
   });
 
-  it('returns default widget if there is no valid widget', () => {
+  it('returns empty array if there is no valid widget', () => {
     testParsing(
       // INPUT
       [
@@ -288,7 +294,7 @@ describe('parseMetricWidgetQueryParam', () => {
         },
       ],
       // RESULT
-      defaultState
+      []
     );
   });
 
@@ -300,6 +306,7 @@ describe('parseMetricWidgetQueryParam', () => {
           id: 0,
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
+          condition: 1,
           aggregation: 'sum',
           query: 'test:query',
           groupBy: 'dist',
@@ -316,6 +323,7 @@ describe('parseMetricWidgetQueryParam', () => {
           id: 0,
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
+          condition: 1,
           aggregation: 'sum',
           query: 'test:query',
           groupBy: ['dist'],
@@ -338,6 +346,7 @@ describe('parseMetricWidgetQueryParam', () => {
           id: 0,
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
+          condition: 1,
           aggregation: 'sum',
           query: 'test:query',
           groupBy: 'dist',
@@ -355,6 +364,7 @@ describe('parseMetricWidgetQueryParam', () => {
           id: 0,
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
+          condition: 1,
           aggregation: 'sum',
           query: 'test:query',
           groupBy: ['dist'],
@@ -376,6 +386,7 @@ describe('parseMetricWidgetQueryParam', () => {
         type: MetricExpressionType.QUERY as const,
         mri: 'd:transactions/duration@millisecond' as const,
         aggregation: 'sum' as const,
+        condition: 1,
         query: 'test:query',
         groupBy: ['dist'],
         displayType: MetricDisplayType.LINE,
@@ -419,6 +430,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: 'line',
@@ -435,6 +447,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'sum',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: MetricDisplayType.LINE,
@@ -456,6 +469,7 @@ describe('parseMetricWidgetQueryParam', () => {
           id: 0,
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: 'line',
@@ -473,6 +487,7 @@ describe('parseMetricWidgetQueryParam', () => {
           type: MetricExpressionType.QUERY,
           mri: 'd:transactions/duration@millisecond',
           aggregation: 'avg',
+          condition: 1,
           query: 'test:query',
           groupBy: ['dist'],
           displayType: MetricDisplayType.LINE,

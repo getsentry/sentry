@@ -14,6 +14,8 @@ class ConditionActivityType(Enum):
     REAPPEARED = 2
     # condition activity created from frequency condition buckets
     FREQUENCY_CONDITION = 3
+    NEW_HIGH_PRIORITY_ISSUE = 4
+    EXISTING_HIGH_PRIORITY_ISSUE = 5
 
 
 @dataclass

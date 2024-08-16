@@ -13,6 +13,7 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import Breakdown from 'sentry/views/insights/mobile/appStarts/components/breakdown';
@@ -63,6 +64,13 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     'count_starts(measurements.app_start_warm)': t('Warm Start Count'),
   };
 
+  const columnTooltipMap = {
+    [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
+      t('Average Cold Start difference'),
+    [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
+      t('Average Warm Start difference'),
+  };
+
   function renderBodyCell(column, row): React.ReactNode {
     if (!data) {
       return null;
@@ -76,18 +84,19 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
       return (
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
-          <Link
-            to={`${moduleURL}/spans/?${qs.stringify({
-              ...location.query,
-              project: row['project.id'],
-              transaction: row.transaction,
-              primaryRelease,
-              secondaryRelease,
-            })}`}
-            style={{display: `block`, width: `100%`}}
-          >
-            {row.transaction}
-          </Link>
+          <OverflowEllipsisTextContainer>
+            <Link
+              to={`${moduleURL}/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`}
+            >
+              {row.transaction}
+            </Link>
+          </OverflowEllipsisTextContainer>
         </Fragment>
       );
     }
@@ -119,6 +128,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}

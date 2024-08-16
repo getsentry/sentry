@@ -18,7 +18,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
-from sentry.search.events.builder import SpansMetricsQueryBuilder
+from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource

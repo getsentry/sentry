@@ -11,7 +11,12 @@ from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes, TeamKeyTransaction
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryTypes,
+    TeamKeyTransaction,
+)
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -160,6 +165,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
+    def test_multi_project_feature_gate_rejection(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert "events from multiple projects" in response.data["detail"]
+
     def test_multi_project_feature_gate_replays(self):
         team = self.create_team(organization=self.organization, members=[self.user])
 
@@ -189,7 +205,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.parent_span:invalid"}
@@ -197,7 +213,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.parent_span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.parent_span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.span:*"}
@@ -5700,6 +5716,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
 
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
         features = {
             "organizations:discover-basic": True,
@@ -5720,6 +5737,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
     def test_saves_discover_saved_query_split_transaction(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -5755,6 +5773,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        assert model.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_saves_discover_saved_query_split_error(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -5782,8 +5801,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "organizations:performance-discover-dataset-selector": True,
         }
         query = {
-            "field": ["stack.filename"],
-            "query": "stack.filename:*.js",
+            "field": ["project", "user"],
+            "query": "has:user event.type:error",
             "statsPeriod": "14d",
             "discoverSavedQueryId": model.id,
         }
@@ -5796,7 +5815,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.ERROR_EVENTS
 
-    def test_saves_discover_saved_query_ambiguous_as_discover(self):
+    def test_saves_discover_saved_query_ambiguous_as_error(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         data = self.load_data(platform="javascript")
@@ -5822,7 +5841,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "organizations:performance-discover-dataset-selector": True,
         }
         query = {
-            "field": ["stack.filename"],
+            "field": ["transaction"],
             "query": "",
             "statsPeriod": "14d",
             "discoverSavedQueryId": model.id,
@@ -5831,10 +5850,50 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["discoverSplitDecision"] == "discover"
+        assert response.data["meta"]["discoverSplitDecision"] == "error-events"
 
         model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.ERROR_EVENTS
+
+    def test_applies_inferred_dataset_by_columns(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        data = self.load_data(platform="javascript")
+        data["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:performance-discover-dataset-selector": True,
+        }
+        query = {
+            "field": ["transaction.status"],
+            "query": "",
+            "statsPeriod": "14d",
+            "discoverSavedQueryId": model.id,
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["discoverSplitDecision"] == "transaction-like"
+
+        model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):

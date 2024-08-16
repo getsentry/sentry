@@ -1,7 +1,6 @@
 import functools
 import logging
-import random
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
@@ -41,8 +40,10 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
-            span_kwargs["sampled"] = random.random() < getattr(
-                settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0
+            # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
+            span_kwargs.setdefault(
+                "custom_sampling_context",
+                {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},
             )
             with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
@@ -186,6 +187,11 @@ def process_event(
                 event_id=event_id,
                 project_id=project_id,
             )
+
+            try:
+                collect_span_metrics(project, data)
+            except Exception:
+                pass
         elif data.get("type") == "feedback":
             if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
                 save_event_feedback.delay(
@@ -323,3 +329,20 @@ def process_userreport(message: IngestMessage, project: Project) -> bool:
         # If you want to remove this make sure to have triaged all errors in Sentry
         logger.exception("userreport.save.crash")
         return False
+
+
+def collect_span_metrics(
+    project: Project,
+    data: MutableMapping[str, Any],
+):
+    if not features.has("organizations:am3-tier", project.organization) and not features.has(
+        "organizations:dynamic-sampling", project.organization
+    ):
+        amount = (
+            len(data.get("spans", [])) + 1
+        )  # Segment spans also get added to the total span count.
+        metrics.incr(
+            "event.save_event.unsampled.spans.count",
+            amount=amount,
+            tags={"organization": project.organization.slug},
+        )

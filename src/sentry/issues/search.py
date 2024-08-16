@@ -81,14 +81,11 @@ def group_categories_from(
     for search_filter in search_filters or ():
         if search_filter.key.name in ("issue.category", "issue.type"):
             if search_filter.is_negation:
+                # get all group categories except the ones in the negation filter
                 group_categories.update(
                     get_group_type_by_type_id(value).category
-                    for value in list(
-                        filter(
-                            lambda x: x not in get_all_group_type_ids(),
-                            search_filter.value.raw_value,
-                        )
-                    )
+                    for value in get_all_group_type_ids()
+                    if value not in search_filter.value.raw_value
                 )
             else:
                 group_categories.update(
@@ -156,70 +153,6 @@ def _query_params_for_error(
     )
 
     return SnubaQueryParams(**params)
-
-
-def _query_params_for_perf(
-    query_partial: SearchQueryPartial,
-    selected_columns: Sequence[Any],
-    aggregations: Sequence[Any],
-    organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
-    group_ids: Sequence[int] | None,
-    filters: Mapping[str, Sequence[int]],
-    conditions: Sequence[Any],
-    actor: Any | None = None,
-) -> SnubaQueryParams | None:
-    organization = Organization.objects.filter(id=organization_id).first()
-    if organization:
-        transaction_conditions = _updated_conditions(
-            "event.type",
-            "=",
-            "transaction",
-            organization_id,
-            project_ids,
-            environments,
-            conditions,
-        )
-
-        if group_ids:
-            transaction_conditions = [
-                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
-                *transaction_conditions,
-            ]
-            selected_columns = [
-                [
-                    "arrayJoin",
-                    [
-                        [
-                            "arrayIntersect",
-                            [
-                                ["array", group_ids],
-                                "group_ids",
-                            ],
-                        ]
-                    ],
-                    "group_id",
-                ],
-                *selected_columns,
-            ]
-        else:
-            aggregations = list(aggregations).copy() if aggregations else []
-            aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
-
-        params = query_partial(
-            dataset=Dataset.Discover,
-            selected_columns=selected_columns,
-            filter_keys=filters,
-            conditions=transaction_conditions,
-            aggregations=aggregations,
-            condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=Dataset.Transactions
-            ),
-        )
-
-        return SnubaQueryParams(**params)
-    return None
 
 
 def _query_params_for_generic(

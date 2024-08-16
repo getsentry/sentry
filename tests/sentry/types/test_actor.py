@@ -2,11 +2,11 @@ import pytest
 from rest_framework import serializers
 
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.actor import Actor, ActorType, parse_and_validate_actor
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 @django_db_all(transaction=True)

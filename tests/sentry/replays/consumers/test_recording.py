@@ -203,7 +203,7 @@ class RecordingTestCase(TransactionTestCase):
             user_id=self.organization.default_owner_id,
         )
 
-        assert not track_outcome.called
+        assert track_outcome.called
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")

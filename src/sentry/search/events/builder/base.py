@@ -56,9 +56,10 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
+from sentry.snuba.query_sources import QuerySource
+from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -72,18 +73,20 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     profile_functions_metrics_builder = False
     entity: Entity | None = None
-    config_class: type[DatasetConfig] | None
+    config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    uuid_fields: set[str] = set()
+    span_id_fields: set[str] = set()
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -122,11 +125,11 @@ class BaseQueryBuilder:
             return snuba_params
 
         if "project_objects" in params:
-            projects = cast(Sequence[Project], params["project_objects"])
+            projects = params["project_objects"]
         elif "project_id" in params and (
             isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
         ):
-            projects = Project.objects.filter(id__in=params["project_id"])
+            projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
 
@@ -160,9 +163,9 @@ class BaseQueryBuilder:
         user_id = params.get("user_id")
         user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
         teams = (
-            Team.objects.filter(id__in=params["team_id"])  # type: ignore[typeddict-item]
-            if "team_id" in params and isinstance(params["team_id"], list)  # type: ignore[typeddict-item]
-            else None
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
+            else []
         )
         return SnubaParams(
             start=cast(datetime, params.get("start")),
@@ -204,9 +207,11 @@ class BaseQueryBuilder:
 
         # filter params is the older style params, shouldn't be used anymore
         self.filter_params = params
+        if snuba_params is not None:
+            self.filter_params = snuba_params.filter_params
         self.params = self._dataclass_params(snuba_params, params)
 
-        org_id = params.get("organization_id")
+        org_id = self.params.organization_id
         self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
@@ -1202,9 +1207,32 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.uuid_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_event_id():
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
+
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.span_id_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter
     ) -> WhereType | None:
+        self.validate_uuid_like_filters(search_filter)
+        self.validate_span_id_like_filters(search_filter)
+
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -1279,6 +1307,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_tag
             and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
@@ -1451,11 +1480,14 @@ class BaseQueryBuilder:
         """
         return self.function_alias_map[function.alias].field
 
+    def _get_dataset_name(self) -> str:
+        return self.dataset.value
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
         return Request(
-            dataset=self.dataset.value,
+            dataset=self._get_dataset_name(),
             app_id="default",
             query=Query(
                 match=Entity(self.dataset.value, sample=self.sample_rate),
@@ -1483,10 +1515,12 @@ class BaseQueryBuilder:
             return None
         return value
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
-        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
+        return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
         with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:

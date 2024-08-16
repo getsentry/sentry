@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, Self, Union, overload
+from typing import Any, Literal, Self, TypedDict, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -29,6 +29,16 @@ from ..track_response import TrackResponseMixin
 
 # TODO(mgaeta): HACK Fix the line where _request() returns "{}".
 BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
+
+
+class SessionSettings(TypedDict):
+    timeout: int
+    allow_redirects: bool
+    # the below are taken from session.merge_environment_settings
+    proxies: Any
+    stream: Any
+    verify: Any
+    cert: Any
 
 
 class BaseApiClient(TrackResponseMixin):
@@ -136,7 +146,7 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: tuple[str, str] | str | None = None,
+        auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,
@@ -173,7 +183,7 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: str | None = None,
+        auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,
@@ -202,9 +212,8 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        with sentry_sdk.configure_scope() as scope:
-            if self.integration_type:
-                scope.set_tag(self.integration_type, self.name)
+        if self.integration_type:
+            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -232,15 +241,12 @@ class BaseApiClient(TrackResponseMixin):
                     verify=self.verify_ssl,
                     cert=None,
                 )
-                send_kwargs = {
+                session_settings: SessionSettings = {
                     "timeout": timeout,
                     "allow_redirects": allow_redirects,
                     **environment_settings,
                 }
-                resp: Response = session.send(
-                    finalized_request,
-                    **send_kwargs,
-                )
+                resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
                     return resp
                 resp.raise_for_status()

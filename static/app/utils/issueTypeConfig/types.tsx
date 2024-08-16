@@ -1,4 +1,5 @@
-import type {IssueType, PlatformKey} from 'sentry/types';
+import type {IssueType} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 
 export type ResourceLink = {
   link: string;
@@ -23,6 +24,10 @@ export type IssueTypeConfig = {
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
+  /**
+   * Should show AI Suggested Fix for this issue type
+   */
+  aiSuggestedSolution: boolean;
   /**
    * Is the Attachments tab shown for this issue
    */
@@ -89,10 +94,6 @@ export type IssueTypeConfig = {
    * Is the Tags tab show for this issue
    */
   tags: DisabledWithReasonConfig;
-  /**
-   * Displays the trace timeline and trace link for this issue
-   */
-  traceTimeline: boolean;
   /**
    * Is the User Feedback tab shown for this issue
    */

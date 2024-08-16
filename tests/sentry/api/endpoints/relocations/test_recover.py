@@ -36,6 +36,7 @@ class RecoverRelocationTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.FAILURE.value,
             step=Relocation.Step.PREPROCESSING.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             want_org_slugs=["foo"],
             want_usernames=["alice", "bob"],
             latest_notified=Relocation.EmailKind.STARTED.value,

@@ -509,3 +509,73 @@ default_manager.add(
         template="Deleted issue {issue_id} for project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=187,
+        name="SPAN_BASED_METRIC_CREATE",
+        api_name="span_extraction_rule_config.create",
+        template="Created span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=188,
+        name="SPAN_BASED_METRIC_UPDATE",
+        api_name="span_extraction_rule_config.update",
+        template="Updated span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=189,
+        name="SPAN_BASED_METRIC_DELETE",
+        api_name="span_extraction_rule_config.delete",
+        template="Deleted span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=190,
+        name="PROJECT_TEMPLATE_CREATED",
+        api_name="project_template.create",
+        template="Created project template {name} for organization {organization_id}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=200,
+        name="UPTIME_MONITOR_ADD",
+        api_name="uptime_monitor.add",
+        template="added uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=201,
+        name="UPTIME_MONITOR_EDIT",
+        api_name="uptime_monitor.edit",
+        template="edited uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=202,
+        name="UPTIME_MONITOR_REMOVE",
+        api_name="uptime_monitor.remove",
+        template="removed uptime monitor {name}",
+    )
+)
+
+default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1142,
+        name="DATA_SECRECY_REINSTATED",
+        api_name="data-secrecy.reinstated",
+    )
+)

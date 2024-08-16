@@ -1,14 +1,15 @@
 import ipaddress
 import logging
+from collections.abc import Mapping
 from datetime import timezone
+from typing import Any
 
 import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -27,7 +28,7 @@ PROVIDER_NAME = "integrations:bitbucket"
 
 
 class Webhook:
-    def __call__(self, organization, event):
+    def __call__(self, organization: Organization, event: Mapping[str, Any]):
         raise NotImplementedError
 
     def update_repo_data(self, repo, event):
@@ -60,7 +61,7 @@ class Webhook:
 
 class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
-    def __call__(self, organization, event):
+    def __call__(self, organization: Organization, event: Mapping[str, Any]):
         authors = {}
 
         try:
@@ -116,19 +117,19 @@ class BitbucketWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
-    _handlers = {"repo:push": PushEventWebhook}
+    _handlers: dict[str, type[Webhook]] = {"repo:push": PushEventWebhook}
 
-    def get_handler(self, event_type):
+    def get_handler(self, event_type) -> type[Webhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id) -> HttpResponse:
+    def post(self, request: HttpRequest, organization_id: int) -> HttpResponse:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

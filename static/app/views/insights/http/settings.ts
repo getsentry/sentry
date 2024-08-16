@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export const MODULE_TITLE = t('Requests');
+export const MODULE_TITLE = t('Outbound API Requests');
+export const MODULE_SIDEBAR_TITLE = t('Requests');
+export const DATA_TYPE = t('Request');
+export const DATA_TYPE_PLURAL = t('Requests');
 export const BASE_URL = 'http';
 
 export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');

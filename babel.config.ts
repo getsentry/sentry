@@ -25,16 +25,12 @@ const config: TransformOptions = {
   plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
-      plugins: [
-        ['babel-plugin-add-react-displayname'],
-        '@sentry/babel-plugin-component-annotate',
-      ],
+      plugins: [['babel-plugin-add-react-displayname']],
     },
     development: {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
-        '@sentry/babel-plugin-component-annotate',
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },

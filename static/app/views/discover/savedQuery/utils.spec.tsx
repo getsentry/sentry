@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {ALL_VIEWS} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/data';
 import {
   handleCreateQuery,
   handleDeleteQuery,
@@ -13,7 +13,9 @@ describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title')!;
+  const errorsQuery = getAllViews(organization).find(
+    view => view.name === 'Errors by Title'
+  )!;
   const errorsView = EventView.fromSavedQuery(errorsQuery);
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
   const yAxis = ['count()', 'failure_count()'];

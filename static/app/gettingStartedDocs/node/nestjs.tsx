@@ -19,7 +19,6 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getSdkInitSnippet,
-  getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -28,34 +27,49 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet('esm')}
 
 // All other imports below
-${getSentryImportSnippet('node', 'esm')}
-import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  const { httpAdapter } = app.get(HttpAdapterHost);
-  Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
-
   await app.listen(3000);
 }
 
 bootstrap();
 `;
 
+const getAppModuleSnippet = () => `
+import { Module } from '@nestjs/common';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+@Module({
+  imports: [
+    SentryModule.forRoot(),
+    // ...other modules
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+`;
+
 const getVerifySnippet = () => `
-app.use(async function () {
+@Get("/debug-sentry")
+getError() {
   throw new Error("My first Sentry error!");
-});
+}
 `;
 
 const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params),
+      description: t('Add the Sentry NestJS SDK as a dependency:'),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/nestjs',
+      }),
     },
   ],
   configure: params => [
@@ -76,19 +90,18 @@ const onboarding: OnboardingConfig = {
               value: 'javascript',
               language: 'javascript',
               filename: 'instrument.(js|ts)',
-              code: getSdkInitSnippet(params, 'node', 'esm'),
+              code: getSdkInitSnippet(params, 'nestjs', 'esm'),
             },
           ],
         },
         {
           description: tct(
-            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file. Set up the error handler by passing the [code3:BaseExceptionFilter].',
+            'Import [code1:instrument.js/mjs] in your [code2:main.ts/js] file:',
             {
               code1: <code />,
               code2: <code />,
-              code3: <code />,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
             }
           ),
@@ -102,10 +115,31 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        {
+          description: tct(
+            'Then you can add the [code1:SentryModule] as a root module. The [code2:SentryModule] needs to be registered before any other module that should be instrumented by Sentry.',
+            {
+              code1: <code />,
+              code2: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
+              ),
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'app.module.(js|ts)',
+              code: getAppModuleSnippet(),
+            },
+          ],
+        },
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hapi/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/sourcemaps/',
       ...params,
     }),
   ],
@@ -169,7 +203,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],

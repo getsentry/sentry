@@ -15,11 +15,11 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformKey, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
@@ -27,6 +27,7 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
+import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -172,12 +173,11 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  trace_id: string;
+  trace_id: string | undefined;
 }
 
 export function Trace({
   trace,
-  trace_id,
   onRowClick,
   manager,
   scrollQueueRef,
@@ -188,6 +188,7 @@ export function Trace({
   scheduler,
   initializedRef,
   forceRerender,
+  trace_id,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -216,6 +217,7 @@ export function Trace({
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
+      manager.syncResetZoomButton();
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
@@ -297,13 +299,17 @@ export function Trace({
         // else the screen could jump around while we fetch span data
         scrollQueueRef.current = null;
         rerenderRef.current();
+        // Allow react to rerender before dispatching the init event
+        requestAnimationFrame(() => {
+          scheduler.dispatch('initialize virtualized list');
+        });
       });
   }, [
     api,
     trace,
-    trace_id,
     manager,
     onTraceLoad,
+    scheduler,
     traceDispatch,
     scrollQueueRef,
     initializedRef,
@@ -440,7 +446,6 @@ export function Trace({
           isSearchResult={traceState.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
-          trace_id={trace_id}
           projects={projectLookup}
           node={n.item}
           manager={manager}
@@ -449,6 +454,8 @@ export function Trace({
           onZoomIn={onNodeZoomIn}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
+          tree={trace}
+          trace_id={trace_id}
         />
       );
     },
@@ -469,7 +476,6 @@ export function Trace({
       traceState.search.resultsLookup,
       traceState.search.resultIndex,
       theme,
-      trace_id,
       trace.type,
       forceRerender,
     ]
@@ -481,6 +487,9 @@ export function Trace({
       : r => renderVirtualizedRow(r);
   }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
 
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
+
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
   const virtualizedList = useVirtualizedList({
     manager,
@@ -490,14 +499,11 @@ export function Trace({
     scheduler,
   });
 
-  const traceNode = trace.root.children[0];
-  const traceStartTimestamp = traceNode?.space?.[0];
-
   return (
     <TraceStylingWrapper
       ref={manager.registerContainerRef}
       className={`
-        ${trace?.root?.space?.[1] === 0 ? 'Empty' : ''}
+        ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
         ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
@@ -609,7 +615,8 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  trace_id: string;
+  trace_id: string | undefined;
+  tree: TraceTree;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
@@ -1004,20 +1011,26 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={''}
-                  status={'idle'}
+                  status={props.node.fetchStatus}
                   expanded
                   onClick={() => void 0}
                   onDoubleClick={onExpandDoubleClick}
                 >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  {props.node.fetchStatus === 'loading'
+                    ? null
+                    : props.node.children.length > 0
+                      ? COUNT_FORMATTER.format(props.node.children.length)
+                      : null}
                 </ChildrenButton>
               ) : null}
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.trace_id}</span>
+            {props.trace_id ? (
+              <Fragment>
+                <strong className="TraceEmDash"> — </strong>
+                <span className="TraceDescription">{props.trace_id}</span>
+              </Fragment>
+            ) : null}
           </div>
         </div>
         <div
@@ -1825,6 +1838,17 @@ const TraceStylingWrapper = styled('div')`
   grid-area: trace;
   padding-top: 26px;
 
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --debug: ${p => p.theme.blue300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
+
   &.WithIndicators {
     padding-top: 44px;
 
@@ -2141,6 +2165,8 @@ const TraceStylingWrapper = styled('div')`
     }
     &.warning {
     }
+    &.debug {
+    }
     &.error,
     &.fatal,
     &.performance_issue {
@@ -2186,6 +2212,9 @@ const TraceStylingWrapper = styled('div')`
       }
       &.warning {
         background-color: var(--warning);
+      }
+      &.debug {
+        background-color: var(--debug);
       }
       &.error,
       &.fatal {

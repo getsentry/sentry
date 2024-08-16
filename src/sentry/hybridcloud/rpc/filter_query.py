@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
     from sentry.auth.services.auth import AuthenticationContext
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
@@ -111,7 +111,7 @@ class FilterQueryDatabaseImpl(
         serializer: SERIALIZER_ENUM | None = None,
     ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.services.user import RpcUser
 
         if as_user is not None and SiloMode.get_current_mode() != SiloMode.MONOLITH:
             if not isinstance(as_user, RpcUser):

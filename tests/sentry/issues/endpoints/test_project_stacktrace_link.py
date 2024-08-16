@@ -3,8 +3,8 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

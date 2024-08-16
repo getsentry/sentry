@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -13,10 +13,10 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {
   platform: Platform;
@@ -127,9 +127,9 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
           </Button>
         </Confirm>
         {platform.key !== 'other' && (
-          <Button size="sm" href={platform.link ?? undefined} external>
+          <LinkButton size="sm" href={platform.link ?? ''} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         )}
       </ButtonBar>
     </StyledPageHeader>

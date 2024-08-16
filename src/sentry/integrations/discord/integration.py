@@ -17,9 +17,9 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 

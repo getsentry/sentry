@@ -15,8 +15,8 @@ from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCK
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
-from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.utils import json
 from sentry.utils.email import parse_email
 

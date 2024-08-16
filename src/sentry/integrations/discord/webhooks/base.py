@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class DiscordInteractionsEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     All Discord -> Sentry communication will come through our interactions

@@ -12,15 +12,15 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import Tab from '../transactionSummary/tabs';
 
 interface TraceMetadataHeaderProps {
   organization: Organization;
-  projectID: string;
-  title: string;
   traceEventView: EventView;
   traceSlug: string;
 }
@@ -38,6 +38,7 @@ export const enum TraceViewSources {
   CACHES_MODULE = 'caches_module',
   QUEUES_MODULE = 'queues_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
+  PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
 }
 
@@ -158,7 +159,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
     label: t('Insights'),
   });
 
-  switch (location.query.referrer) {
+  switch (location.query.source) {
     case TraceViewSources.REQUESTS_MODULE:
       crumbs.push({
         label: t('Requests'),
@@ -301,7 +302,7 @@ function getTraceViewBreadcrumbs(
   organization: Organization,
   location: Location
 ): Crumb[] {
-  switch (location.query.referrer) {
+  switch (location.query.source) {
     case TraceViewSources.TRACES:
       return [
         {
@@ -368,7 +369,13 @@ export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
         <ButtonBar gap={1}>
           <DiscoverButton
             size="sm"
-            to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
+            to={props.traceEventView.getResultsViewUrlTarget(
+              props.organization.slug,
+              false,
+              hasDatasetSelector(props.organization)
+                ? SavedQueryDatasets.ERRORS
+                : undefined
+            )}
             onClick={trackOpenInDiscover}
           >
             {t('Open in Discover')}

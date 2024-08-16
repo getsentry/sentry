@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import SearchBar from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import type {Organization, PageFilters} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
@@ -20,6 +22,8 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  dataset?: DiscoverDatasets;
+  savedSearchType?: SavedSearchType;
 }
 
 export function EventsSearchBar({
@@ -28,6 +32,8 @@ export function EventsSearchBar({
   getFilterWarning,
   onClose,
   widgetQuery,
+  dataset,
+  savedSearchType = SavedSearchType.EVENT,
 }: Props) {
   const {customMeasurements} = useCustomMeasurements();
   const projectIds = pageFilters.projects;
@@ -49,8 +55,10 @@ export function EventsSearchBar({
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}
       maxMenuHeight={MAX_MENU_HEIGHT}
-      savedSearchType={SavedSearchType.EVENT}
+      savedSearchType={savedSearchType}
       customMeasurements={customMeasurements}
+      dataset={dataset}
+      includeTransactions={hasDatasetSelector(organization) ? false : true}
     />
   );
 }

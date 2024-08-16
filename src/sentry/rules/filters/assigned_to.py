@@ -11,12 +11,12 @@ from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class AssignedToFilter(EventFilter):

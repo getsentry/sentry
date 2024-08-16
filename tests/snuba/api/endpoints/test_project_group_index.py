@@ -8,6 +8,8 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -23,16 +25,14 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header, with_feature
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 
@@ -795,7 +795,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    @with_feature("organizations:resolve-in-upcoming-release")
     def test_set_resolved_in_upcoming_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -834,27 +833,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
-    def test_upcoming_release_flag_validation(self):
-        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
-        release.add_project(self.project)
-
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        self.login_as(user=self.user)
-
-        url = f"{self.path}?id={group.id}"
-        response = self.client.put(
-            url,
-            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
-            format="json",
-        )
-        assert response.status_code == 400
-        assert (
-            response.data["statusDetails"]["inUpcomingRelease"][0]
-            == "Your organization does not have access to this feature."
-        )
-
-    @with_feature("organizations:resolve-in-upcoming-release")
     def test_upcoming_release_release_validation(self):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -1078,6 +1056,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["times_seen"] == 1
 
         assert response.data["status"] == "ignored"
@@ -1119,6 +1098,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["users_seen"] == 10
 
         assert response.data["status"] == "ignored"

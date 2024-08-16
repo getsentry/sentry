@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {UIScreens} from 'sentry/views/insights/mobile/ui/components/uiScreens';
@@ -28,10 +28,10 @@ const createMockTablePayload = ({
     null,
   'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.5)': 0,
   'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.3+42)': 0.259326119,
-  'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.5)': 0,
-  'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.3+42)': 0,
-  'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.5)': 0,
-  'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.3+42)': 2,
+  'division_if(mobile.frozen_frames,mobile.total_frames,release,com.example.vu.android@2.10.5)': 0,
+  'division_if(mobile.frozen_frames,mobile.total_frames,release,com.example.vu.android@2.10.3+42)': 0,
+  'division_if(mobile.slow_frames,mobile.total_frames,release,com.example.vu.android@2.10.5)': 0,
+  'division_if(mobile.slow_frames,mobile.total_frames,release,com.example.vu.android@2.10.3+42)': 2,
   'project.id': project.id,
   transaction,
 });
@@ -88,10 +88,10 @@ describe('Performance Mobile UI Screens', () => {
           field: [
             'project.id',
             'transaction',
-            'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.5)',
-            'avg_if(mobile.slow_frames,release,com.example.vu.android@2.10.3+42)',
-            'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.5)',
-            'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.3+42)',
+            'division_if(mobile.slow_frames,mobile.total_frames,release,com.example.vu.android@2.10.5)',
+            'division_if(mobile.slow_frames,mobile.total_frames,release,com.example.vu.android@2.10.3+42)',
+            'division_if(mobile.frozen_frames,mobile.total_frames,release,com.example.vu.android@2.10.5)',
+            'division_if(mobile.frozen_frames,mobile.total_frames,release,com.example.vu.android@2.10.3+42)',
             'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.5)',
             'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.3+42)',
             'avg_compare(mobile.frames_delay,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
@@ -143,7 +143,7 @@ describe('Performance Mobile UI Screens', () => {
             'avg(mobile.frames_delay)',
           ],
           query:
-            'release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42] transaction:["top 1","top 2","top 3","top 4","top 5"]',
+            '( release:com.example.vu.android@2.10.5 OR release:com.example.vu.android@2.10.3+42 ) transaction:["top 1","top 2","top 3","top 4","top 5"]',
         }),
       })
     );

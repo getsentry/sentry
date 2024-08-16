@@ -7,7 +7,8 @@ from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import profile_functions_metrics
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -17,7 +18,7 @@ from sentry.search.events.types import SelectType, WhereType
 class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.ProfileFunctionsMetricsQueryBuilder):
+    def __init__(self, builder: profile_functions_metrics.ProfileFunctionsMetricsQueryBuilder):
         self.builder = builder
 
     def resolve_mri(self, value: str) -> Column:
@@ -60,6 +61,16 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
+    def _resolve_avg(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
     def _resolve_cpm(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -101,8 +112,8 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     def _resolve_cpm_cond(
         self,
         args: Mapping[str, str | Column | SelectType | int | float | datetime],
-        alias: str | None,
         cond: str,
+        alias: str | None,
     ) -> SelectType:
         timestmp = args["timestamp"]
         if cond == "greater":
@@ -158,8 +169,8 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         return Function(
             "minus",
             [
-                self._resolve_cpm_cond(args, None, "greater"),
-                self._resolve_cpm_cond(args, None, "less"),
+                self._resolve_cpm_cond(args, "greater", None),
+                self._resolve_cpm_cond(args, "less", None),
             ],
             alias,
         )
@@ -175,10 +186,10 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_cpm_cond(args, alias, "greater"),
+                        self._resolve_cpm_cond(args, "greater", None),
                         function_aliases.resolve_metrics_percentile(
                             args=args,
-                            alias=alias,
+                            alias=None,
                             extra_conditions=[
                                 Function("greater", [Column("timestamp"), args["timestamp"]])
                             ],
@@ -188,10 +199,10 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_cpm_cond(args, alias, "less"),
+                        self._resolve_cpm_cond(args, "less", None),
                         function_aliases.resolve_metrics_percentile(
                             args=args,
-                            alias=alias,
+                            alias=None,
                             extra_conditions=[
                                 Function("less", [Column("timestamp"), args["timestamp"]])
                             ],
@@ -244,7 +255,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     "cpm_before",
                     required_args=[fields.TimestampArg("timestamp")],
                     snql_distribution=lambda args, alias: self._resolve_cpm_cond(
-                        args, alias, "less"
+                        args, "less", alias
                     ),
                     default_result_type="number",
                 ),
@@ -252,7 +263,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     "cpm_after",
                     required_args=[fields.TimestampArg("timestamp")],
                     snql_distribution=lambda args, alias: self._resolve_cpm_cond(
-                        args, alias, "greater"
+                        args, "greater", alias
                     ),
                     default_result_type="number",
                 ),
@@ -364,11 +375,9 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "avg",
-                        [self.resolve_mri(args["column"])],
-                        alias,
-                    ),
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg,
+                    snql_distribution=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),

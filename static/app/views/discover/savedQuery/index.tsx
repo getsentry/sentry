@@ -23,22 +23,25 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
-import {DatasetSelector} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
+  getDatasetFromLocationOrSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -144,7 +147,6 @@ type Props = DefaultProps & {
   yAxis: string[];
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
-  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -389,12 +391,36 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, location, savedQuery} = this.props;
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    let alertType;
+    let buttonEventView = eventView;
+    if (hasDatasetSelector(organization)) {
+      alertType = defined(currentDataset)
+        ? {
+            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+            [DiscoverDatasets.ERRORS]: 'num_errors',
+          }[currentDataset]
+        : undefined;
+
+      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        // Inject the event.type:transaction filter for to avoid triggering
+        // the event.type missing banner error in the alerts form
+        buttonEventView = eventView.clone();
+        buttonEventView.query = eventView.query
+          ? `(${eventView.query}) AND (event.type:transaction)`
+          : 'event.type:transaction';
+      }
+    }
 
     return (
       <GuideAnchor target="create_alert_from_discover">
         <CreateAlertFromViewButton
-          eventView={eventView}
+          eventView={buttonEventView}
           organization={organization}
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
@@ -402,6 +428,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          alertType={alertType}
         />
       </GuideAnchor>
     );
@@ -524,16 +551,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      eventView,
-      savedQuery,
-      yAxis,
-      router,
-      location,
-      isHomepage,
-      splitDecision,
-    } = this.props;
+    const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
+      this.props;
 
     const contextMenuItems: MenuItemProps[] = [];
 
@@ -586,20 +605,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
-        <Feature
-          organization={organization}
-          features="performance-discover-dataset-selector"
-        >
-          {({hasFeature}) =>
-            hasFeature && (
-              <DatasetSelector
-                isHomepage={isHomepage}
-                savedQuery={savedQuery}
-                splitDecision={splitDecision}
-              />
-            )
-          }
-        </Feature>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features="incidents">

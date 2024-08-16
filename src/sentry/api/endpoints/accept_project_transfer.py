@@ -10,6 +10,7 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.project_transfer import SALT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializerWithProjectsAndTeams,
@@ -28,15 +29,15 @@ class InvalidPayload(Exception):
 @region_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_validated_data(self, data, user):
         try:
-            data = unsign(force_str(data))
+            data = unsign(force_str(data), salt=SALT)
         except SignatureExpired:
             raise InvalidPayload("Project transfer link has expired.")
         except BadSignature:

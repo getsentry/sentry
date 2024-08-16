@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import functools
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from django.urls import reverse
 
@@ -736,17 +739,14 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     def test_download(self):
-        make_request = functools.partial(
-            self.client.get,
-            reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
-        )
-        response = make_request(
-            {
-                "statsPeriod": "2d",
-                "interval": "1d",
-                "field": ["sum(quantity)", "sum(times_seen)"],
-                "download": True,
-            }
+        req: dict[str, Any] = {
+            "statsPeriod": "2d",
+            "interval": "1d",
+            "field": ["sum(quantity)", "sum(times_seen)"],
+            "download": True,
+        }
+        response = self.client.get(
+            reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]), req
         )
 
         assert response.headers["Content-Type"] == "text/csv"

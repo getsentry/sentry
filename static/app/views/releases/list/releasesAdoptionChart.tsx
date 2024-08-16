@@ -5,7 +5,7 @@ import type {LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import compact from 'lodash/compact';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -37,13 +37,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';

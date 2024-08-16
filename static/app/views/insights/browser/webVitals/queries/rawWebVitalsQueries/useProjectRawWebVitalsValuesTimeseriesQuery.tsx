@@ -11,15 +11,21 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes?: BrowserType[];
   datetime?: PageFilters['datetime'];
+  subregions?: SubregionCode[];
   transaction?: string | null;
 };
 
 export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   transaction,
   datetime,
+  browserTypes,
+  subregions,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -27,6 +33,12 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
+  }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {

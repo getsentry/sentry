@@ -43,14 +43,14 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.services.auth import auth_service
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
-from ...services.hybrid_cloud.auth import auth_service
 from .constants import (
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
@@ -532,107 +532,108 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        with sentry_sdk.configure_scope() as scope:
-            if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
-                role = request.data["sentryOrgRole"].lower()
-                idp_role_restricted = True
-                update_role = True
-            else:
-                role = organization.default_role
-                idp_role_restricted = False
-            scope.set_tag("role_restricted", idp_role_restricted)
+        scope = sentry_sdk.Scope.get_isolation_scope()
 
-            # Allow any role as long as it doesn't have `org:admin` permissions
-            allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
+        if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
+            role = request.data["sentryOrgRole"].lower()
+            idp_role_restricted = True
+            update_role = True
+        else:
+            role = organization.default_role
+            idp_role_restricted = False
+        scope.set_tag("role_restricted", idp_role_restricted)
 
-            # Check for roles not found
-            # TODO: move this to the serializer verification
-            if role not in {role.id for role in allowed_roles}:
-                scope.set_tag("invalid_role_selection", True)
+        # Allow any role as long as it doesn't have `org:admin` permissions
+        allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
+
+        # Check for roles not found
+        # TODO: move this to the serializer verification
+        if role not in {role.id for role in allowed_roles}:
+            scope.set_tag("invalid_role_selection", True)
+            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+        scope.set_tag("invalid_role_selection", False)
+        serializer = OrganizationMemberRequestSerializer(
+            data={
+                "email": request.data.get("userName"),
+                "role": roles.get(role).id,
+            },
+            context={
+                "organization": organization,
+                "allowed_roles": allowed_roles,
+                "allow_existing_invite_request": True,
+            },
+        )
+
+        if not serializer.is_valid():
+            if "email" in serializer.errors and any(
+                ("is already a member" in error) for error in serializer.errors["email"]
+            ):
+                # we include conflict logic in the serializer, check to see if that was
+                # our error and if so, return a 409 so the scim IDP knows how to handle
+                raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+            if "role" in serializer.errors:
+                # TODO: Change this to an error pointing to a doc showing the workaround if they
+                # tried to provision an org admin
                 raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+            raise SCIMApiError(detail=json.dumps(serializer.errors))
 
-            scope.set_tag("invalid_role_selection", False)
-            serializer = OrganizationMemberRequestSerializer(
-                data={
-                    "email": request.data.get("userName"),
-                    "role": roles.get(role).id,
-                },
-                context={
-                    "organization": organization,
-                    "allowed_roles": allowed_roles,
-                    "allow_existing_invite_request": True,
-                },
+        result = serializer.validated_data
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            member_query = OrganizationMember.objects.filter(
+                organization=organization, email=result["email"], role=result["role"]
             )
 
-            if not serializer.is_valid():
-                if "email" in serializer.errors and any(
-                    ("is already a member" in error) for error in serializer.errors["email"]
-                ):
-                    # we include conflict logic in the serializer, check to see if that was
-                    # our error and if so, return a 409 so the scim IDP knows how to handle
-                    raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
-                if "role" in serializer.errors:
-                    # TODO: Change this to an error pointing to a doc showing the workaround if they
-                    # tried to provision an org admin
-                    raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
-                raise SCIMApiError(detail=json.dumps(serializer.errors))
-
-            result = serializer.validated_data
-            with transaction.atomic(router.db_for_write(OrganizationMember)):
-                member_query = OrganizationMember.objects.filter(
-                    organization=organization, email=result["email"], role=result["role"]
-                )
-
-                if member_query.exists():
-                    member = member_query.first()
-                    if member.token_expired:
-                        member.regenerate_token()
-                        member.save()
-                else:
-                    member = OrganizationMember(
-                        organization=organization,
-                        email=result["email"],
-                        role=result["role"],
-                        inviter_id=request.user.id,
-                    )
-
-                    # TODO: are invite tokens needed for SAML orgs?
-                    member.flags["idp:provisioned"] = True
-                    member.flags["idp:role-restricted"] = idp_role_restricted
-                    if settings.SENTRY_ENABLE_INVITES:
-                        member.token = member.generate_token()
+            if member_query.exists():
+                member = member_query.first()
+                if member.token_expired:
+                    member.regenerate_token()
                     member.save()
-
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=member.id,
-                data=member.get_audit_log_data(),
-                event=(
-                    audit_log.get_event_id("MEMBER_INVITE")
-                    if settings.SENTRY_ENABLE_INVITES
-                    else audit_log.get_event_id("MEMBER_ADD")
-                ),
-            )
-
-            if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-                member.send_invite_email()
-                member_invited.send_robust(
-                    member=member,
-                    user=request.user,
-                    sender=self,
-                    referrer=request.data.get("referrer"),
+            else:
+                member = OrganizationMember(
+                    organization=organization,
+                    email=result["email"],
+                    role=result["role"],
+                    inviter_id=request.user.id,
                 )
 
-            metrics.incr(
-                "sentry.scim.member.provision",
-                tags={"organization": organization},
-            )
-            if update_role:
-                metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+                # TODO: are invite tokens needed for SAML orgs?
+                member.flags["idp:provisioned"] = True
+                member.flags["idp:role-restricted"] = idp_role_restricted
+                if settings.SENTRY_ENABLE_INVITES:
+                    member.token = member.generate_token()
+                member.save()
 
-            context = serialize(
-                member,
-                serializer=_scim_member_serializer_with_expansion(organization),
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=member.id,
+            data=member.get_audit_log_data(),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
+        )
+
+        if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
+            member.send_invite_email()
+            member_invited.send_robust(
+                member=member,
+                user=request.user,
+                sender=self,
+                referrer=request.data.get("referrer"),
             )
-            return Response(context, status=201)
+
+        metrics.incr(
+            "sentry.scim.member.provision",
+            tags={"organization": organization},
+        )
+        if update_role:
+            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
+        return Response(context, status=201)

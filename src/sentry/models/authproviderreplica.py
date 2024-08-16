@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -24,7 +26,7 @@ class AuthProviderReplica(Model):
     )
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, unique=True)
     provider = models.CharField(max_length=128)
-    config = JSONField()
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)

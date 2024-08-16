@@ -1,4 +1,4 @@
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
@@ -22,16 +22,13 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
     }
     default_metric_tags = {
         "project_id",
-        "transaction",
         "fingerprint",
-        "name",
+        "function",
         "package",
         "is_application",
         "platform",
         "environment",
         "release",
-        "os_name",
-        "os_version",
     }
 
     @property

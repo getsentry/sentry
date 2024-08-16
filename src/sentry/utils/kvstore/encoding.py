@@ -40,7 +40,7 @@ class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
     def delete_many(self, keys: Sequence[K]) -> None:
         return self.store.delete_many(keys)
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         return self.store.bootstrap()
 
     def destroy(self) -> None:

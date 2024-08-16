@@ -14,7 +14,7 @@ from sentry.plugins.base import plugins
 class ProjectPluginsEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:

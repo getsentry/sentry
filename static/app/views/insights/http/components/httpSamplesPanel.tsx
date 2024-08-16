@@ -2,7 +2,6 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,23 +14,24 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -79,6 +79,7 @@ export function HTTPSamplesPanel() {
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
       spanSearchQuery: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
@@ -136,20 +137,27 @@ export function HTTPSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
-  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
-  const ribbonFilters: SpanMetricsQueryFilters = {
-    ...BASE_FILTERS,
+  const ADDITONAL_FILTERS = {
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
+    ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+        }
+      : {}),
+  };
+
+  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
+  const ribbonFilters: SpanMetricsQueryFilters = {
+    ...BASE_FILTERS,
+    ...ADDITONAL_FILTERS,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
-    'span.domain':
-      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
-    transaction: query.transaction,
+    ...ADDITONAL_FILTERS,
   };
 
   const responseCodeInRange = query.responseCodeClass
@@ -207,29 +215,16 @@ export function HTTPSamplesPanel() {
     fields: ['span.status_code', 'count()'],
     yAxis: ['count()'],
     topEvents: 5,
+    sorts: [
+      {
+        kind: 'desc',
+        field: 'count()',
+      },
+    ],
     enabled: isPanelOpen && query.panel === 'status',
     referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
 
-  // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
-  const sampleSpansSearch = MutableSearch.fromQueryObject({
-    ...filters,
-    'span.domain': undefined,
-  });
-
-  // filter by key-value filters specified in the search bar query
-  sampleSpansSearch.addStringMultiFilter(query.spanSearchQuery);
-
-  if (query.domain === '') {
-    sampleSpansSearch.addOp('(');
-    sampleSpansSearch.addFilterValue('!has', 'span.domain');
-    sampleSpansSearch.addOp('OR');
-    // HACK: Use `addOp` to add the condition `'span.domain:[""]'` and avoid escaping the double quotes. Ideally there'd be a way to specify this explicitly, but this whole thing is a hack anyway. Once a plain `!has:span.domain` condition works, this is not necessary
-    sampleSpansSearch.addOp('span.domain:[""]');
-    sampleSpansSearch.addOp(')');
-  } else {
-    sampleSpansSearch.addFilterValue('span.domain', query.domain);
-  }
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
@@ -238,7 +233,7 @@ export function HTTPSamplesPanel() {
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search: sampleSpansSearch,
+    search,
     fields: [
       SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
@@ -258,7 +253,7 @@ export function HTTPSamplesPanel() {
     refetch: refetchResponseCodeSpanSamples,
   } = useSpansIndexed(
     {
-      search: sampleSpansSearch,
+      search,
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
@@ -285,7 +280,7 @@ export function HTTPSamplesPanel() {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
@@ -348,9 +343,8 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
+            <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('http')}
                 value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -358,7 +352,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.avg}
                 value={
                   domainTransactionMetrics?.[0]?.[
@@ -370,7 +363,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('3XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
                 unit="percentage"
@@ -378,7 +370,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('4XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
                 unit="percentage"
@@ -386,7 +377,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('5XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
                 unit="percentage"
@@ -394,7 +384,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
@@ -404,7 +393,7 @@ export function HTTPSamplesPanel() {
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
-            </MetricsRibbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
@@ -481,21 +470,18 @@ export function HTTPSamplesPanel() {
             </Fragment>
           )}
 
-          <Feature features="performance-sample-panel-search">
-            <ModuleLayout.Full>
-              <SearchBar
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
-                query={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                organization={organization}
-                metricAlert={false}
-                supportedTags={supportedTags}
-                dataset={DiscoverDatasets.SPANS_INDEXED}
-                projectIds={selection.projects}
-              />
-            </ModuleLayout.Full>
-          </Feature>
+          <ModuleLayout.Full>
+            <SearchBar
+              searchSource={`${ModuleName.HTTP}-sample-panel`}
+              query={query.spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              organization={organization}
+              supportedTags={supportedTags}
+              dataset={DiscoverDatasets.SPANS_INDEXED}
+              projectIds={selection.projects}
+            />
+          </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
             <Fragment>
@@ -626,12 +612,6 @@ const Title = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 const PanelControls = styled('div')`

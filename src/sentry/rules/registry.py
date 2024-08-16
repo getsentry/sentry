@@ -14,7 +14,7 @@ class RuleRegistry:
     def __contains__(self, rule_id: str) -> bool:
         return rule_id in self._map
 
-    def __iter__(self) -> Generator[tuple[str, type[RuleBase]], None, None]:
+    def __iter__(self) -> Generator[tuple[str, type[RuleBase]]]:
         for rule_type, rule_list in self._rules.items():
             for rule in rule_list:
                 yield rule_type, rule

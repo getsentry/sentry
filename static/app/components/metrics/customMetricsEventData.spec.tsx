@@ -77,6 +77,10 @@ describe('CustomMetricsEventData', () => {
   });
 
   it('renders (all information)', () => {
+    // This test fails without the mock below, because a nested component uses @container query
+    // that is not supported by the version of jsdom currently used by jest.
+    jest.spyOn(console, 'error').mockImplementation();
+
     const metricsSummary: MetricsSummary = {
       'd:custom/my.metric@second': [
         {
@@ -102,7 +106,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -136,7 +140,7 @@ describe('CustomMetricsEventData', () => {
       {organization}
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -170,7 +174,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -205,7 +209,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.metric')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Metric'})).toBeInTheDocument();
@@ -304,7 +308,7 @@ describe('CustomMetricsEventData', () => {
       }
     );
 
-    expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
 
     expect(screen.getByText('my.counter')).toBeInTheDocument();
     expect(screen.getAllByText('my.distribution')).toHaveLength(2);

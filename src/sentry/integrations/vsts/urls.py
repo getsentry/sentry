@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from sentry.web.frontend.vsts_extension_configuration import VstsExtensionConfigurationView
+from sentry.integrations.web.vsts_extension_configuration import VstsExtensionConfigurationView
 
 from .search import VstsSearchEndpoint
 from .webhooks import WorkItemWebhook

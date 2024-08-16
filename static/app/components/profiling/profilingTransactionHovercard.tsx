@@ -21,6 +21,7 @@ import {
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 import {Button} from '../button';
 import Link from '../links/link';
@@ -37,49 +38,72 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
   const {project, transaction, organization} = props;
   const {query} = useLocation();
 
-  const linkToSummary = generateProfileSummaryRouteWithQuery({
+  if (!organization.features.includes('continuous-profiling-compat')) {
+    const linkToSummary = generateProfileSummaryRouteWithQuery({
+      query,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      transaction,
+    });
+
+    const triggerLink = (
+      <Link
+        to={linkToSummary}
+        onClick={() =>
+          trackAnalytics('profiling_views.go_to_transaction', {
+            organization,
+            source: 'transaction_hovercard.trigger',
+          })
+        }
+      >
+        {transaction}
+      </Link>
+    );
+
+    return (
+      <StyledHovercard
+        delay={250}
+        header={
+          <Flex justify="space-between" align="center">
+            <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
+            <Button to={linkToSummary} size="xs">
+              {t('View Profiles')}
+            </Button>
+          </Flex>
+        }
+        body={
+          <ProfilingTransactionHovercardBody
+            transaction={transaction}
+            project={project}
+            organization={organization}
+          />
+        }
+        showUnderline
+      >
+        {triggerLink}
+      </StyledHovercard>
+    );
+  }
+
+  const linkToSummary = profilesRouteWithQuery({
     query,
     orgSlug: organization.slug,
-    projectSlug: project.slug,
+    projectID: project.id,
     transaction,
   });
 
-  const triggerLink = (
+  return (
     <Link
       to={linkToSummary}
       onClick={() =>
         trackAnalytics('profiling_views.go_to_transaction', {
           organization,
-          source: 'transaction_hovercard.trigger',
+          source: 'profiling.landing.transaction_table',
         })
       }
     >
       {transaction}
     </Link>
-  );
-
-  return (
-    <StyledHovercard
-      delay={250}
-      header={
-        <Flex justify="space-between" align="center">
-          <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
-          <Button to={linkToSummary} size="xs">
-            {t('View Profiles')}
-          </Button>
-        </Flex>
-      }
-      body={
-        <ProfilingTransactionHovercardBody
-          transaction={transaction}
-          project={project}
-          organization={organization}
-        />
-      }
-      showUnderline
-    >
-      {triggerLink}
-    </StyledHovercard>
   );
 }
 

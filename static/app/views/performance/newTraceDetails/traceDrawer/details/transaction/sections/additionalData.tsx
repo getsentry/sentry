@@ -5,7 +5,7 @@ import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
@@ -68,7 +68,6 @@ export function AdditionalData({event}: {event: EventTransaction}) {
             <StructuredData
               withAnnotatedText
               value={data.value}
-              depth={0}
               maxDefaultDepth={2}
               meta={event._meta?.context}
             />

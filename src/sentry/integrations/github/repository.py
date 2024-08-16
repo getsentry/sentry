@@ -8,8 +8,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
@@ -76,6 +76,9 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
         integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            raise NotImplementedError("GitHub apps requires a valid integration to fetch commits")
+
         installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
@@ -83,7 +86,6 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
             return eval_commits(client)
         except Exception as e:
             installation.raise_error(e)
-            return []
 
     def _format_commits(
         self,

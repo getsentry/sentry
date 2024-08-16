@@ -9,21 +9,22 @@ from rest_framework.request import Request
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.mediators.plugins.migrator import Migrator
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 class ExampleSetupView(PipelineView):
@@ -65,12 +66,19 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixin):
+class ExampleIntegration(RepositoryIntegration, IssueSyncMixin):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"
     outbound_assignee_key = "sync_assignee_outbound"
     inbound_assignee_key = "sync_assignee_inbound"
+
+    @property
+    def integration_name(self) -> str:
+        return "example"
+
+    def get_client(self):
+        pass
 
     def get_issue_url(self, key):
         return f"https://example/issues/{key}"
@@ -166,8 +174,20 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
     ) -> str | None:
         pass
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
+
+    def source_url_matches(self, url: str) -> bool:
+        return True
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        return False
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

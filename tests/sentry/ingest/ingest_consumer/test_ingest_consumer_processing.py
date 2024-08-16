@@ -6,7 +6,7 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import orjson
 import pytest
@@ -19,6 +19,7 @@ from django.conf import settings
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
+    collect_span_metrics,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -28,8 +29,9 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.options import set
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
@@ -324,80 +326,83 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
 
 @django_db_all
-def test_deobfuscate_view_hierarchy(default_project, task_runner):
-    payload = get_normalized_event(
-        {
-            "message": "hello world",
-            "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
-        },
-        default_project,
-    )
-    event_id = payload["event_id"]
-    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
-    project_id = default_project.id
-    start_time = time.time() - 3600
-
-    # Create the proguard file
-    with zipfile.ZipFile(BytesIO(), "w") as f:
-        f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
-        create_files_from_dif_zip(f, project=default_project)
-
-    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
-    obfuscated_view_hierarchy = {
-        "rendering_system": "Test System",
-        "windows": [
+@requires_symbolicator
+@pytest.mark.symbolicator
+def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_option, live_server):
+    with set_sentry_option("system.url-prefix", live_server.url):
+        payload = get_normalized_event(
             {
-                "identifier": "parent",
-                "type": "org.a.b.g$a",
-                "children": [
-                    {
-                        "identifier": "child",
-                        "type": "org.a.b.g$a",
-                    }
-                ],
-            }
-        ],
-    }
+                "message": "hello world",
+                "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
+            },
+            default_project,
+        )
+        event_id = payload["event_id"]
+        attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+        project_id = default_project.id
+        start_time = time.time() - 3600
 
-    process_attachment_chunk(
-        {
-            "payload": orjson.dumps(obfuscated_view_hierarchy),
-            "event_id": event_id,
-            "project_id": project_id,
-            "id": attachment_id,
-            "chunk_index": 0,
+        # Create the proguard file
+        with zipfile.ZipFile(BytesIO(), "w") as f:
+            f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+            create_files_from_dif_zip(f, project=default_project)
+
+        expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+        obfuscated_view_hierarchy = {
+            "rendering_system": "Test System",
+            "windows": [
+                {
+                    "identifier": "parent",
+                    "type": "org.a.b.g$a",
+                    "children": [
+                        {
+                            "identifier": "child",
+                            "type": "org.a.b.g$a",
+                        }
+                    ],
+                }
+            ],
         }
-    )
 
-    with task_runner():
-        process_event(
+        process_attachment_chunk(
             {
-                "payload": orjson.dumps(payload).decode(),
-                "start_time": start_time,
+                "payload": orjson.dumps(obfuscated_view_hierarchy),
                 "event_id": event_id,
                 "project_id": project_id,
-                "remote_addr": "127.0.0.1",
-                "attachments": [
-                    {
-                        "id": attachment_id,
-                        "name": "view_hierarchy.json",
-                        "content_type": "application/json",
-                        "attachment_type": "event.view_hierarchy",
-                        "chunks": 1,
-                    }
-                ],
-            },
-            project=default_project,
+                "id": attachment_id,
+                "chunk_index": 0,
+            }
         )
 
-    persisted_attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
-    )
-    (attachment,) = persisted_attachments
-    assert attachment.content_type == "application/json"
-    assert attachment.name == "view_hierarchy.json"
-    with attachment.getfile() as file:
-        assert file.read() == expected_response
+        with task_runner():
+            process_event(
+                {
+                    "payload": orjson.dumps(payload).decode(),
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                    "remote_addr": "127.0.0.1",
+                    "attachments": [
+                        {
+                            "id": attachment_id,
+                            "name": "view_hierarchy.json",
+                            "content_type": "application/json",
+                            "attachment_type": "event.view_hierarchy",
+                            "chunks": 1,
+                        }
+                    ],
+                },
+                project=default_project,
+            )
+
+        persisted_attachments = list(
+            EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+        )
+        (attachment,) = persisted_attachments
+        assert attachment.content_type == "application/json"
+        assert attachment.name == "view_hierarchy.json"
+        with attachment.getfile() as file:
+            assert file.read() == expected_response
 
 
 @django_db_all
@@ -558,6 +563,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     assert report.comments == "hello world"
 
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
+    assert event is not None
     evtuser = EventUser.from_event(event)
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
@@ -591,3 +597,19 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
     assert not attachments
+
+
+@django_db_all
+def test_collect_span_metrics(default_project):
+    with Feature({"organizations:dynamic-sampling": True, "organization:am3-tier": True}):
+        with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
+            assert mock_metrics.incr.call_count == 0
+            collect_span_metrics(default_project, {"spans": [1, 2, 3]})
+            assert mock_metrics.incr.call_count == 0
+
+    with Feature({"organizations:dynamic-sampling": False, "organization:am3-tier": False}):
+        with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
+
+            assert mock_metrics.incr.call_count == 0
+            collect_span_metrics(default_project, {"spans": [1, 2, 3]})
+            assert mock_metrics.incr.call_count == 1

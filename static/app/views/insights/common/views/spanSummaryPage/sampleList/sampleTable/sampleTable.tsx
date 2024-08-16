@@ -4,7 +4,6 @@ import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -16,14 +15,16 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
-import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {
+  ModuleName,
+  SpanMetricsQueryFilters,
+  SubregionCode,
+} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
-const SpanSamplesTableContainer = styled('div')`
-  padding-top: ${space(2)};
-`;
+const SpanSamplesTableContainer = styled('div')``;
 
 type Props = {
   groupId: string;
@@ -38,6 +39,7 @@ type Props = {
   referrer?: string;
   release?: string;
   spanSearch?: MutableSearch;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
@@ -54,6 +56,7 @@ function SampleTable({
   spanSearch,
   additionalFields,
   additionalFilters,
+  subregions,
   referrer,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
@@ -67,6 +70,10 @@ function SampleTable({
 
   if (release) {
     filters.release = release;
+  }
+
+  if (subregions) {
+    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
   const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
@@ -96,6 +103,7 @@ function SampleTable({
     groupId,
     transactionName,
     transactionMethod,
+    subregions,
     release,
     spanSearch,
     additionalFields,

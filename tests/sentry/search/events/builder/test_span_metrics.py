@@ -4,7 +4,7 @@ from datetime import timezone
 import pytest
 from snuba_sdk import And, Column, Condition, Op, Or
 
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
 )

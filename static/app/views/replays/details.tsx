@@ -20,6 +20,7 @@ import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataL
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,15 +42,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  useReplayPageview('replay.details-time-spent');
-  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
-  useRouteAnalyticsParams({
-    organization,
-    referrer: decodeScalar(location.query.referrer),
-    user_email: user.email,
-    tab: location.query.t_main,
-  });
-
   const {slug: orgSlug} = organization;
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
@@ -69,6 +61,17 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   });
 
   const replayErrors = errors.filter(e => e.title !== 'User Feedback');
+  const isVideoReplay = replay?.isVideoReplay();
+
+  useReplayPageview('replay.details-time-spent');
+  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    referrer: decodeScalar(location.query.referrer),
+    user_email: user.email,
+    tab: location.query.t_main,
+    mobile: isVideoReplay,
+  });
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
@@ -105,9 +108,9 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   // The replay data takes a while to load in, which causes `isVideoReplay`
   // to return an early `false`, which used to cause UI jumping.
   // One way to check whether it's finished loading is by checking the length
-  // of the rrweb frames, which should always be > 2 for any given replay.
-  // By default, the 2 frames are replay.start and replay.end
-  const isLoading = !rrwebFrames || (rrwebFrames && rrwebFrames.length <= 2);
+  // of the rrweb frames, which should always be > 1 for any given replay.
+  // By default, the 1 frame is replay.end
+  const isLoading = !rrwebFrames || (rrwebFrames && rrwebFrames.length <= 1);
 
   if (replayRecord?.is_archived) {
     return (
@@ -177,36 +180,32 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') &&
-      replay?.isVideoReplay()
-  );
-
   return (
-    <ReplayContextProvider
-      analyticsContext="replay_details"
-      initialTimeOffsetMs={initialTimeOffsetMs}
-      isFetching={fetching}
-      prefsStrategy={LocalStorageReplayPreferences}
-      replay={replay}
-    >
-      <ReplayTransactionContext replayRecord={replayRecord}>
-        <Page
-          isVideoReplay={isVideoReplay}
-          orgSlug={orgSlug}
-          replayRecord={replayRecord}
-          projectSlug={projectSlug}
-          replayErrors={replayErrors}
-          isLoading={isLoading}
-        >
-          <ReplaysLayout
+    <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
+      <ReplayContextProvider
+        analyticsContext="replay_details"
+        initialTimeOffsetMs={initialTimeOffsetMs}
+        isFetching={fetching}
+        replay={replay}
+      >
+        <ReplayTransactionContext replayRecord={replayRecord}>
+          <Page
             isVideoReplay={isVideoReplay}
+            orgSlug={orgSlug}
             replayRecord={replayRecord}
+            projectSlug={projectSlug}
+            replayErrors={replayErrors}
             isLoading={isLoading}
-          />
-        </Page>
-      </ReplayTransactionContext>
-    </ReplayContextProvider>
+          >
+            <ReplaysLayout
+              isVideoReplay={isVideoReplay}
+              replayRecord={replayRecord}
+              isLoading={isLoading}
+            />
+          </Page>
+        </ReplayTransactionContext>
+      </ReplayContextProvider>
+    </ReplayPreferencesContextProvider>
   );
 }
 

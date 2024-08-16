@@ -5,9 +5,10 @@ import orjson
 from sentry_relay.processing import validate_rule_condition
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
+from sentry.dynamic_sampling.rules.utils import PolymorphicRule
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.models.project import Project
+from sentry.relay.types import RuleCondition
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class CustomRuleBias(Bias):
                 continue
 
             try:
-                condition = cast(Condition, orjson.loads(rule.condition))
+                condition = cast(RuleCondition, orjson.loads(rule.condition))
                 ret_val.append(
                     {
                         "samplingValue": {"type": "reservoir", "limit": rule.num_samples},

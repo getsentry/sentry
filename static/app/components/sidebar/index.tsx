@@ -46,23 +46,17 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
-import {
-  MODULE_TITLES,
-  useModuleTitle,
-} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
-import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
+import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
-import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
+import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -125,12 +119,23 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
+  const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
+  const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const collapsed = !!preferences.collapsed;
+  const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  // Panel determines whether to highlight
+  const hasPanel = !!activePanel;
+  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
+  const sidebarItemProps = {
+    orientation,
+    collapsed,
+    hasPanel,
+    organization,
+    hasNewNav,
+  };
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -183,16 +188,18 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const hasPanel = !!activePanel;
-  const hasOrganization = !!organization;
-  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
+  // Add sidebar hasNewNav classname to body
+  useEffect(() => {
+    const bcl = document.body.classList;
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-  };
+    if (hasNewNav) {
+      bcl.add('hasNewNav');
+    } else {
+      bcl.remove('hasNewNav');
+    }
+
+    return () => bcl.remove('hasNewNav');
+  }, [hasNewNav]);
 
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
@@ -221,6 +228,7 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/issues/`}
       search="?referrer=sidebar"
       id="issues"
+      hasNewNav={hasNewNav}
     />
   );
 
@@ -260,7 +268,9 @@ function Sidebar() {
     <Feature key="http" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-http">{HTTP_MODULE_SIDEBAR_TITLE}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
         icon={<SubitemDot collapsed />}
@@ -278,7 +288,6 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
         id="performance-cache"
         icon={<SubitemDot collapsed />}
-        {...CacheModuleBadgeProps}
       />
     </Feature>
   );
@@ -304,7 +313,6 @@ function Sidebar() {
         label={
           <GuideAnchor target="performance-queues">{MODULE_TITLES.queue}</GuideAnchor>
         }
-        {...QueuesModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
         id="performance-queues"
         icon={<SubitemDot collapsed />}
@@ -312,7 +320,12 @@ function Sidebar() {
     </Feature>
   );
 
-  const screenLoads = hasOrganization && (
+  // the mobile screens module is meant to be as a replacement for screen load, app start, and mobile ui
+  // so if mobile screens is enabled, we should not show the other mobile modules
+  const hasMobileScreensModule =
+    hasOrganization && organization.features.includes('insights-mobile-screens-module');
+
+  const screenLoads = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="screen_load"
       features="insights-entry-points"
@@ -328,7 +341,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const appStarts = hasOrganization && (
+  const appStarts = hasOrganization && !hasMobileScreensModule && (
     <Feature key="app_start" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
@@ -340,7 +353,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const mobileUI = hasOrganization && (
+  const mobileUI = hasOrganization && !hasMobileScreensModule && (
     <Feature
       key="mobile-ui"
       features={['insights-entry-points', 'starfish-mobile-ui-module']}
@@ -357,11 +370,27 @@ function Sidebar() {
     </Feature>
   );
 
+  const mobileScreens = hasOrganization && hasMobileScreensModule && (
+    <Feature
+      key="mobile-screens"
+      features={['insights-entry-points']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-screens']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-screens')}/`}
+        id="performance-mobile-screens"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
   const resources = hasOrganization && (
     <Feature key="resource" features="insights-entry-points">
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
+        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
         icon={<SubitemDot collapsed />}
@@ -388,7 +417,6 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<SubitemDot collapsed />}
         label={MODULE_TITLES.ai}
-        {...LLMModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
         id="llm-monitoring"
       />
@@ -404,7 +432,11 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance">
+            {hasNewNav ? 'Perf.' : t('Performance')}
+          </GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
       />
@@ -508,7 +540,7 @@ function Sidebar() {
         {...sidebarItemProps}
         index
         icon={<IconDashboard />}
-        label={t('Dashboards')}
+        label={hasNewNav ? 'Dash.' : t('Dashboards')}
         to={`/organizations/${organization.slug}/dashboards/`}
         id="customizable-dashboards"
       />
@@ -561,7 +593,6 @@ function Sidebar() {
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
         initiallyExpanded={false}
-        isNew
         exact={!shouldAccordionFloat}
       >
         {requests}
@@ -573,11 +604,14 @@ function Sidebar() {
         {caches}
         {queues}
         {mobileUI}
+        {mobileScreens}
         {llmMonitoring}
       </SidebarAccordion>
     </Feature>
   );
 
+  // Sidebar accordion includes a secondary list of nav items
+  // TODO: replace with a secondary panel
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
@@ -595,13 +629,21 @@ function Sidebar() {
   );
 
   return (
-    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
+    <SidebarWrapper
+      aria-label={t('Primary Navigation')}
+      collapsed={collapsed}
+      hasNewNav={hasNewNav}
+    >
       <ExpandedContextProvider>
         <SidebarSectionGroupPrimary>
           <DropdownSidebarSection
             isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
+            hasNewNav={hasNewNav}
           >
-            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
+            <SidebarDropdown
+              orientation={orientation}
+              collapsed={hasNewNav || collapsed}
+            />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
               <Hook name="component:superuser-warning" organization={organization} />
@@ -611,19 +653,19 @@ function Sidebar() {
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
-                <SidebarSection>
+                <SidebarSection hasNewNav={hasNewNav}>
                   {issues}
                   {projects}
                 </SidebarSection>
 
                 {!isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {explore}
                       {insights}
                     </SidebarSection>
 
-                    <SidebarSection>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {performance}
                       {feedback}
                       {monitors}
@@ -636,7 +678,7 @@ function Sidebar() {
 
                 {isSelfHostedErrorsOnly && (
                   <Fragment>
-                    <SidebarSection>
+                    <SidebarSection hasNewNav={hasNewNav}>
                       {alerts}
                       {discover2}
                       {dashboards}
@@ -646,7 +688,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                <SidebarSection>
+                <SidebarSection hasNewNav={hasNewNav}>
                   {stats}
                   {settings}
                 </SidebarSection>
@@ -656,7 +698,8 @@ function Sidebar() {
         </SidebarSectionGroupPrimary>
 
         {hasOrganization && (
-          <SidebarSectionGroup>
+          <SidebarSectionGroup hasNewNav={hasNewNav}>
+            {/* What are the onboarding sidebars? */}
             <PerformanceOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
@@ -687,7 +730,7 @@ function Sidebar() {
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-            <SidebarSection noMargin noPadding>
+            <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
               <OnboardingStatus
                 org={organization}
                 currentPanel={activePanel}
@@ -697,7 +740,7 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            <SidebarSection>
+            <SidebarSection hasNewNav={hasNewNav}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
                   orientation,
@@ -728,8 +771,8 @@ function Sidebar() {
               />
             </SidebarSection>
 
-            {!horizontal && (
-              <SidebarSection>
+            {!horizontal && !hasNewNav && (
+              <SidebarSection hasNewNav={hasNewNav}>
                 <SidebarCollapseItem
                   id="collapse"
                   data-test-id="sidebar-collapse"
@@ -758,12 +801,19 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
+export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boolean}>`
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
-  width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
+  width: ${p =>
+    p.theme.sidebar[
+      p.hasNewNav
+        ? 'semiCollapsedWidth'
+        : p.collapsed
+          ? 'collapsedWidth'
+          : 'expandedWidth'
+    ]};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   left: 0;
@@ -787,10 +837,11 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   }
 `;
 
-const SidebarSectionGroup = styled('div')`
+const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
   ${responsiveFlex};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -807,7 +858,8 @@ const SidebarSectionGroupPrimary = styled('div')`
 `;
 
 const PrimaryItems = styled('div')`
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -819,7 +871,8 @@ const PrimaryItems = styled('div')`
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    overflow-y: visible;
+    overflow-y: hidden;
+    overflow-x: auto;
     flex-direction: row;
     height: 100%;
     align-items: center;
@@ -846,16 +899,25 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
 `;
 
 const SidebarSection = styled(SidebarSectionGroup)<{
+  hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
+  ${p => !p.noMargin && !p.hasNewNav && `margin: ${space(1)} 0`};
+  ${p => !p.noPadding && !p.hasNewNav && `padding: 0 ${space(2)}`};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
     padding: 0;
   }
+  ${p =>
+    p.hasNewNav &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        margin: 0;
+        padding: 0;
+      }
+    `}
 
   &:empty {
     display: none;
@@ -863,6 +925,7 @@ const SidebarSection = styled(SidebarSectionGroup)<{
 `;
 
 const DropdownSidebarSection = styled(SidebarSection)<{
+  hasNewNav?: boolean;
   isSuperuser?: boolean;
 }>`
   position: relative;
@@ -880,6 +943,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
         background: ${p.theme.superuserSidebar};
       }
     `}
+  ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`

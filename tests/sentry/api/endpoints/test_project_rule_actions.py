@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.integrations.jira.integration import JiraIntegration
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

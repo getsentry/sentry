@@ -64,12 +64,12 @@ func application(_ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
     SentrySDK.start { options in
-        options.dsn = "${params.dsn}"
+        options.dsn = "${params.dsn.public}"
         options.debug = true // Enabling debug when first installing is always helpful${
           params.isPerformanceSelected
             ? `
 
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
         // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0`
             : ''
@@ -94,12 +94,12 @@ import Sentry
 struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
-            options.dsn = "${params.dsn}"
+            options.dsn = "${params.dsn.public}"
             options.debug = true // Enabling debug when first installing is always helpful${
               params.isPerformanceSelected
                 ? `
 
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0`
                 : ''
@@ -159,7 +159,7 @@ const getConfigureMetricsSnippetSwift = (params: Params) => `
 import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "${params.dsn}"
+    options.dsn = "${params.dsn.public}"
 
     options.enableMetrics = true
 }`;
@@ -168,7 +168,7 @@ const getConfigureMetricsSnippetObjC = (params: Params) => `
 @import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions * options) {
-    options.Dsn = @"${params.dsn}";
+    options.Dsn = @"${params.dsn.public}";
 
     options.enableMetrics = YES;
 }];`;
@@ -425,13 +425,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/enriching-events/viewhierarchy/" />
                 ),
                 ttfd: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display" />
                 ),
                 metricKit: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/watchos/configuration/metric-kit/" />
                 ),
                 prewarmedAppStart: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/performance/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/tracing/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
                 ),
                 asyncStacktraces: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#stitch-together-swift-concurrency-stack-traces" />
@@ -502,7 +502,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       id: 'swiftui',
       name: t('SwiftUI'),
       description: t('Learn about our first class integration with SwiftUI.'),
-      link: 'https://docs.sentry.io/platforms/apple/performance/instrumentation/swiftui-instrumentation/',
+      link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
     {
       id: 'profiling',

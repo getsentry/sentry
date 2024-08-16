@@ -101,6 +101,9 @@ def _get_replay_id_mappings(
             snuba_params,
             projects=[group.project for group in groups],
         )
+        # Discover queries raise an error if projects is empty, so we skip Snuba in this case.
+        if not snuba_params.projects:
+            return {}
 
     results = search_query_func(
         params={},
@@ -178,7 +181,7 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     return condition.key.name, condition.value.raw_value
 
 
-def extract_columns_recursive(query: list[Any]) -> Generator[SearchFilter, None, None]:
+def extract_columns_recursive(query: list[Any]) -> Generator[SearchFilter]:
     for condition in query:
         if isinstance(condition, SearchFilter):
             if condition.key.name in ("issue.id", "transaction", "replay_id"):

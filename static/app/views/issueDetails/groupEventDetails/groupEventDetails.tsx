@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -13,20 +14,16 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupActivityReprocess,
-  GroupReprocessing,
-  Organization,
-  Project,
-} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePrevious from 'sentry/utils/usePrevious';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
@@ -37,6 +34,7 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
 } from '../utils';
 
 const EscalatingIssuesFeedback = HookOrDefault({
@@ -72,6 +70,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -157,6 +156,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
 
   return (
     <TransactionProfileIdProvider
@@ -169,7 +169,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
         isLoading={loadingEvent}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
+        <StyledLayoutBody
+          data-test-id="group-event-details"
+          hasStreamlinedUi={hasStreamlinedUI}
+        >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
               totalEvents={
@@ -182,10 +185,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             />
           ) : (
             <Fragment>
-              <StyledLayoutMain>
-                {renderGroupStatusBanner()}
+              <MainLayoutComponent>
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
-                {eventWithMeta && issueTypeConfig.stats.enabled && (
+                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
                   <GroupEventHeader
                     group={group}
                     event={eventWithMeta}
@@ -193,8 +196,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   />
                 )}
                 {renderContent()}
-              </StyledLayoutMain>
-              <StyledLayoutSide>
+              </MainLayoutComponent>
+              <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
                 <GroupSidebar
                   organization={organization}
                   project={project}
@@ -211,12 +214,20 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)`
+const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUi: boolean}>`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
+
+  ${p =>
+    p.hasStreamlinedUi &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        gap: ${space(2)};
+      }
+    `}
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
@@ -236,11 +247,29 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 `;
 
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+const GroupContent = styled(Layout.Main)`
+  background: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  padding: ${space(1.5)};
+`;
+
+const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
+  ${p =>
+    p.hasStreamlinedUi
+      ? css`
+          padding: ${space(1.5)} ${space(2)} ${space(3)};
+        `
+      : css`
+          padding: ${space(3)} ${space(2)} ${space(3)};
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            padding-right: ${space(4)};
+          }
+        `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-right: ${space(4)};
     padding-left: 0;
   }
 `;

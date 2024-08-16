@@ -34,7 +34,7 @@ def openai_mock(monkeypatch):
                     finish_reason="stop",
                 )
             ],
-            created=time.time(),
+            created=int(time.time()),
             model="gpt3.5-trubo",
             object="chat.completion",
         )

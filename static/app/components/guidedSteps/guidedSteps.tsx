@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
-  children: React.ReactElement<StepProps> | React.ReactElement<StepProps>[];
+  children: React.ReactNode;
   className?: string;
   onStepChange?: (step: number) => void;
 };

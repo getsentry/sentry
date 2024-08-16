@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
-import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import {
   type AutofixSetupRepoDefinition,
   type AutofixSetupResponse,
@@ -144,8 +142,14 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
 
 function AutofixGithubIntegrationStep({
   autofixSetup,
+  canStartAutofix,
+  closeModal,
+  isLastStep,
 }: {
   autofixSetup: AutofixSetupResponse;
+  canStartAutofix: boolean;
+  closeModal: () => void;
+  isLastStep?: boolean;
 }) {
   const sortedRepos = useMemo(
     () =>
@@ -176,7 +180,18 @@ function AutofixGithubIntegrationStep({
             <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
           ))}
         </RepoLinkUl>
-        <GuidedSteps.StepButtons />
+        <GuidedSteps.StepButtons>
+          {isLastStep && (
+            <Button
+              priority="primary"
+              size="sm"
+              disabled={!canStartAutofix}
+              onClick={closeModal}
+            >
+              {t("Let's Go!")}
+            </Button>
+          )}
+        </GuidedSteps.StepButtons>
       </Fragment>
     );
   }
@@ -206,7 +221,18 @@ function AutofixGithubIntegrationStep({
             'Without this, Autofix can still provide root analysis and suggested code changes.'
           )}
         </p>
-        <GuidedSteps.StepButtons />
+        <GuidedSteps.StepButtons>
+          {isLastStep && (
+            <Button
+              priority="primary"
+              size="sm"
+              disabled={!canStartAutofix}
+              onClick={closeModal}
+            >
+              {t('Skip & Enable Autofix')}
+            </Button>
+          )}
+        </GuidedSteps.StepButtons>
       </Fragment>
     );
   }
@@ -230,65 +256,29 @@ function AutofixGithubIntegrationStep({
           'Without this, Autofix can still provide root analysis and suggested code changes.'
         )}
       </p>
-      <GuidedSteps.StepButtons />
-    </Fragment>
-  );
-}
-
-function AutofixCodebaseIndexingStep({
-  autofixSetup,
-  projectId,
-  groupId,
-  closeModal,
-}: {
-  autofixSetup: AutofixSetupResponse;
-  closeModal: () => void;
-  groupId: string;
-  projectId: string;
-}) {
-  const {startIndexing, status, reason} = useAutofixCodebaseIndexing({
-    projectId,
-    groupId,
-  });
-
-  const canIndex = autofixSetup.genAIConsent.ok && autofixSetup.integration.ok;
-
-  return (
-    <Fragment>
-      <p>
-        {t(
-          'Sentry will index your repositories to enable Autofix. This process may take a few minutes.'
-        )}
-      </p>
-      {status === AutofixCodebaseIndexingStatus.ERRORED && reason ? (
-        <LoadingError message={t('Failed to index repositories: %s', reason)} />
-      ) : null}
       <GuidedSteps.StepButtons>
-        <Button
-          priority="primary"
-          size="sm"
-          disabled={!canIndex}
-          analyticsEventKey="autofix.index_repositories_clicked"
-          analyticsEventName="Autofix: Index Repositories Clicked"
-          onClick={() => {
-            startIndexing();
-            closeModal();
-          }}
-        >
-          {t('Index Repositories & Enable Autofix')}
-        </Button>
+        {isLastStep && (
+          <Button
+            priority="primary"
+            size="sm"
+            disabled={!canStartAutofix}
+            onClick={closeModal}
+          >
+            {t('Skip & Enable Autofix')}
+          </Button>
+        )}
       </GuidedSteps.StepButtons>
     </Fragment>
   );
 }
 
 function AutofixSetupSteps({
-  projectId,
-  groupId,
   autofixSetup,
   closeModal,
+  canStartAutofix,
 }: {
   autofixSetup: AutofixSetupResponse;
+  canStartAutofix: boolean;
   closeModal: () => void;
   groupId: string;
   projectId: string;
@@ -309,18 +299,11 @@ function AutofixSetupSteps({
         isCompleted={autofixSetup.githubWriteIntegration.ok}
         optional
       >
-        <AutofixGithubIntegrationStep autofixSetup={autofixSetup} />
-      </GuidedSteps.Step>
-      <GuidedSteps.Step
-        stepKey="codebaseIndexing"
-        title={t('Enable Autofix')}
-        isCompleted={autofixSetup.codebaseIndexing.ok}
-      >
-        <AutofixCodebaseIndexingStep
-          groupId={groupId}
-          projectId={projectId}
+        <AutofixGithubIntegrationStep
           autofixSetup={autofixSetup}
+          canStartAutofix={canStartAutofix}
           closeModal={closeModal}
+          isLastStep
         />
       </GuidedSteps.Step>
     </GuidedSteps>
@@ -352,7 +335,6 @@ function AutofixSetupContent({
       groupId,
       projectId,
       organization,
-      setup_codebase_index: data.codebaseIndexing.ok,
       setup_gen_ai_consent: data.genAIConsent.ok,
       setup_integration: data.integration.ok,
       setup_write_integration: data.githubWriteIntegration.ok,
@@ -367,23 +349,12 @@ function AutofixSetupContent({
     return <LoadingError message={t('Failed to fetch Autofix setup progress.')} />;
   }
 
-  if (canStartAutofix) {
-    return (
-      <AutofixSetupDone>
-        <DoneIcon color="success" size="xxl" isCircled />
-        <p>{t("You've successfully configured Autofix!")}</p>
-        <Button onClick={closeModal} priority="primary">
-          {t("Let's go")}
-        </Button>
-      </AutofixSetupDone>
-    );
-  }
-
   return (
     <AutofixSetupSteps
       groupId={groupId}
       projectId={projectId}
       autofixSetup={data}
+      canStartAutofix={canStartAutofix}
       closeModal={closeModal}
     />
   );
@@ -420,10 +391,6 @@ export const AutofixSetupDone = styled('div')`
   flex-direction: column;
   padding: 40px;
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const DoneIcon = styled(IconCheckmark)`
-  margin-bottom: ${space(4)};
 `;
 
 const RepoLinkUl = styled('ul')`

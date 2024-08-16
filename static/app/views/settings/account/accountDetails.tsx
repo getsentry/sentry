@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
+import {cloneDeep} from 'lodash';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import type {FieldObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -77,12 +79,27 @@ function AccountDetails() {
     onSubmitSuccess: handleSubmitSuccess,
   };
 
+  const formConfig = cloneDeep(accountDetailsFields);
+
+  const userIdField: FieldObject = {
+    name: 'userId',
+    type: 'string',
+    disabled: true,
+    label: t('User ID'),
+    setValue(_, _name) {
+      return user.id;
+    },
+    help: `The unique identifier for your account. It cannot be modified.`,
+  };
+
+  formConfig[0].fields = [...formConfig[0].fields, userIdField];
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Account Details')} />
       <SettingsPageHeader title={t('Account Details')} />
       <Form initialData={user} {...formCommonProps}>
-        <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
+        <JsonForm forms={formConfig} additionalFieldProps={{user}} />
       </Form>
       <Form initialData={user.options} {...formCommonProps}>
         <JsonForm

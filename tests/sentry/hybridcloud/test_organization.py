@@ -11,22 +11,22 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
     RpcTeam,
     RpcTeamMember,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.organizations.services.organization.serial import serialize_member, unescape_flag_name
+from sentry.projects.services.project import RpcProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.user import User
 
 
 def basic_filled_out_org() -> tuple[Organization, list[User]]:

@@ -55,6 +55,31 @@ class TestGetParentNotificationMessage(BaseIssueAlertNotificationMessageReposito
             self.parent_notification_message
         )
 
+    def test_returns_latest_parent_notification_message(self) -> None:
+        # this can happen if somebody toggles threads on for the first time
+        rule_fire_history = RuleFireHistory.objects.create(
+            project=self.project,
+            rule=self.rule,
+            group=self.group,
+            event_id=self.event_id,
+            notification_uuid=self.notification_uuid,
+        )
+
+        latest = NotificationMessage.objects.create(
+            rule_fire_history=rule_fire_history,
+            rule_action_uuid=self.action_uuid,
+            message_identifier="abc123",
+        )
+
+        instance = self.repository.get_parent_notification_message(
+            rule_id=self.rule.id,
+            group_id=self.group.id,
+            rule_action_uuid=self.action_uuid,
+        )
+
+        assert instance is not None
+        assert instance == IssueAlertNotificationMessage.from_model(latest)
+
     def test_returns_none_when_filter_does_not_exist(self) -> None:
         instance = self.repository.get_parent_notification_message(
             rule_id=9999,

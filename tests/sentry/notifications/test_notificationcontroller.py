@@ -1,5 +1,5 @@
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
@@ -446,7 +446,7 @@ class NotificationControllerTest(TestCase):
         enabled_settings = controller.get_combined_settings()
 
         # Settings for self.user
-        for (type, expected_setting) in [
+        for type, expected_setting in [
             (
                 NotificationSettingEnum.DEPLOY,
                 {
@@ -486,7 +486,7 @@ class NotificationControllerTest(TestCase):
             assert provider_settings == expected_setting
 
         # Settings for new_user
-        for (type, expected_setting) in [
+        for type, expected_setting in [
             (
                 NotificationSettingEnum.DEPLOY,
                 {

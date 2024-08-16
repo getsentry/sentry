@@ -6,6 +6,7 @@ from .commit import *  # noqa: F401,F403
 from .commitauthor import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
+from .grouphash import *  # noqa: F401,F403
 from .monitor import *  # noqa: F401,F403
 from .monitor_environment import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
@@ -14,6 +15,7 @@ from .organizationmember import *  # noqa: F401,F403
 from .platform_external_issue import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .pullrequest import *  # noqa: F401,F403
+from .querysubscription import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repositoryprojectpathconfig import *  # noqa: F401,F403

@@ -18,7 +18,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -34,10 +35,11 @@ import type {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
@@ -55,7 +57,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
@@ -257,7 +259,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.NO_ROOT:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
               {t(
                 'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
               )}
@@ -268,7 +270,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.BROKEN_SUBTRACES:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
               {t(
                 'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
               )}
@@ -279,7 +281,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.MULTIPLE_ROOTS:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
               {t('Multiple root transactions have been found with this trace ID.')}
             </ExternalLink>
           </Alert>
@@ -289,7 +291,7 @@ function NewTraceDetailsContent(props: Props) {
         warning = (
           <Alert type="info" showIcon>
             {tct(
-              "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
+              "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
               {
                 tracingLink: (
                   <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />

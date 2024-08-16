@@ -9,19 +9,35 @@ export type DDMEventParameters = {
   'ddm.open-onboarding': {
     source: 'onboarding_panel' | 'header' | 'banner';
   };
-  'ddm.opt_in_modal_closed': {
-    source: 'im_in' | 'learn_more' | 'close_button';
-  };
   'ddm.page-view': {};
   'ddm.remove-default-query': {};
   'ddm.sample-table-interaction': {
     target: 'event-id' | 'description' | 'trace-id' | 'profile';
   };
   'ddm.set-default-query': {};
+  'ddm.span-metric.create.cancel': {};
+  'ddm.span-metric.create.open': {
+    source: string;
+  };
+  'ddm.span-metric.create.success': {
+    hasFilters: boolean;
+  };
+  'ddm.span-metric.delete': {};
+  'ddm.span-metric.edit.cancel': {};
+  'ddm.span-metric.edit.open': {
+    hasFilters: boolean;
+    source: string;
+  };
+  'ddm.span-metric.edit.success': {
+    hasFilters: boolean;
+  };
+  'ddm.span-metric.form.add-filter': {};
+  'ddm.span-metric.form.remove-filter': {};
   'ddm.view_performance_metrics': {};
   'ddm.widget.add': {
     type: 'query' | 'equation';
   };
+  'ddm.widget.condition': {};
   'ddm.widget.duplicate': {};
   'ddm.widget.filter': {};
   'ddm.widget.group': {};
@@ -52,5 +68,14 @@ export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.widget.group': 'DDM: Change query grouping',
   'ddm.widget.metric': 'DDM: Change query metric',
   'ddm.widget.operation': 'DDM: Change query operation',
-  'ddm.opt_in_modal_closed': 'DDM: Opt In Modal Closed',
+  'ddm.widget.condition': 'DDM: Change query condition',
+  'ddm.span-metric.create.cancel': 'DDM: Cancel span metric create',
+  'ddm.span-metric.create.open': 'DDM: Open span metric create',
+  'ddm.span-metric.create.success': 'DDM: Created span metric',
+  'ddm.span-metric.delete': 'DDM: Delete span metric',
+  'ddm.span-metric.edit.cancel': 'DDM: Cancel span metric edit',
+  'ddm.span-metric.edit.open': 'DDM: Open span metric edit',
+  'ddm.span-metric.edit.success': 'DDM: Edited span metric',
+  'ddm.span-metric.form.add-filter': 'DDM: Add filter in span metric form',
+  'ddm.span-metric.form.remove-filter': 'DDM: Remove filter in span metric form',
 };

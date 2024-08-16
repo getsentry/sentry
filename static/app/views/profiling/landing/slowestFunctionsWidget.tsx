@@ -406,7 +406,7 @@ const TransactionsList = styled('div')`
   grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   grid-template-rows: 18px repeat(5, min-content);
   column-gap: ${space(1)};
-  padding: ${space(0)} ${space(2)};
+  padding: 0 ${space(2)};
 `;
 
 const TransactionsListHeader = styled('span')<{

@@ -20,7 +20,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
@@ -211,6 +211,7 @@ class SentryPermission(ScopedPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
+        # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
         if (
             request.user

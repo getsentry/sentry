@@ -61,7 +61,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         )
     ]
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "queue_url",

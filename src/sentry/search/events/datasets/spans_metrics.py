@@ -9,7 +9,8 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import spans_metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLStringArg, get_function_alias
@@ -26,9 +27,14 @@ class Args(TypedDict):
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
-    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
+    nullable_metrics = {
+        constants.SPAN_MESSAGING_LATENCY,
+        constants.SPAN_METRICS_MAP["cache.item_size"],
+        constants.SPAN_METRICS_MAP["ai.total_cost"],
+        constants.SPAN_METRICS_MAP["ai.total_tokens.used"],
+    }
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 
@@ -172,6 +178,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "division_if",
+                    required_args=[
+                        fields.MetricArg(
+                            # the dividend, needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            "column",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "divisorColumn",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_gauge=self._resolve_division_if,
+                    snql_distribution=self._resolve_division_if,
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -750,7 +780,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if self.total_span_duration is not None:
             return Function("toFloat64", [self.total_span_duration], alias)
 
-        total_query = builder.SpansMetricsQueryBuilder(
+        total_query = spans_metrics.SpansMetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1224,6 +1254,48 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_sum_if(
+        self,
+        metric_name: str,
+        if_col_name: str,
+        if_val: SelectType,
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric(metric_name),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(if_col_name), if_val],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_division_if(
+        self,
+        args: Mapping[str, str | Column | SelectType],
+        alias: str,
+    ) -> SelectType:
+        return function_aliases.resolve_division(
+            self._resolve_sum_if(args["column"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["divisorColumn"], args["if_col"], args["if_val"]),
+            alias,
+        )
+
     def _resolve_avg_compare(self, args, alias):
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
 
@@ -1291,7 +1363,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 class SpansMetricsLayerDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 

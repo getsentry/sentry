@@ -7,7 +7,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -40,24 +41,22 @@ function SpanNodeDetailHeader({
   project: Project | undefined;
 }) {
   const span = node.value;
-  const {event} = span;
 
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
-        <Tooltip title={event.projectSlug}>
+        <Tooltip title={span.event.projectSlug}>
           <ProjectBadge
-            project={project ? project : {slug: event.projectSlug || ''}}
+            project={project ? project : {slug: span.event.projectSlug || ''}}
             avatarSize={30}
             hideName
           />
         </Tooltip>
         <TraceDrawerComponents.TitleText>
           <div>{t('span')}</div>
-          <TraceDrawerComponents.TitleOp>
-            {' '}
-            {getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
-          </TraceDrawerComponents.TitleOp>
+          <TraceDrawerComponents.TitleOp
+            text={getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
+          />
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions
@@ -77,12 +76,12 @@ export function SpanNodeDetails({
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const location = useLocation();
   const {projects} = useProjects();
-  const {event} = node.value;
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
+
+  const project = projects.find(proj => proj.slug === node.value.event?.projectSlug);
+  const profileId = node.value.event?.contexts?.profile?.profile_id ?? null;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -92,10 +91,10 @@ export function SpanNodeDetails({
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {event.projectSlug ? (
+      {node.value.event.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
+          projectSlug={node.value.event.projectSlug}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
@@ -123,16 +122,16 @@ export function SpanNodeDetails({
                   />
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
-                  <SpanKeys node={node} />
+                  <SpanKeys projectId={project?.id} node={node} />
                   <CustomMetricsEventData
                     projectId={project?.id || ''}
                     metricsSummary={node.value._metrics_summary}
                     startTimestamp={node.value.start_timestamp}
                   />
                 </TraceDrawerComponents.SectionCardGroup>
-                <EventContexts event={event} />
+                <EventContexts event={node.value.event} />
                 {organization.features.includes('profiling') ? (
-                  <SpanProfileDetails span={node.value} event={event} />
+                  <SpanProfileDetails span={node.value} event={node.value.event} />
                 ) : null}
               </ProfileGroupProvider>
             )}

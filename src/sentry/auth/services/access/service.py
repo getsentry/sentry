@@ -11,7 +11,7 @@ from sentry.auth.services.auth import (
     RpcMemberSsoState,
 )
 from sentry.hybridcloud.rpc import silo_mode_delegation
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
+from sentry.organizations.services.organization import RpcOrganizationMemberSummary
 from sentry.silo.base import SiloMode
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)

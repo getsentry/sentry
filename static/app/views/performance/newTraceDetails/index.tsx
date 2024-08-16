@@ -41,6 +41,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -66,6 +67,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
@@ -88,6 +90,7 @@ import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
+import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -144,11 +147,12 @@ export function TraceView() {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
-    const timestamp = decodeScalar(normalizedParams.timestamp);
+    const timestamp: string | undefined = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+    const numberTimestamp = timestamp ? Number(timestamp) : undefined;
 
-    return {start, end, statsPeriod, timestamp, useSpans: 1};
+    return {start, end, statsPeriod, timestamp: numberTimestamp, useSpans: 1};
   }, []);
 
   const traceEventView = useMemo(() => {
@@ -159,15 +163,9 @@ export function TraceView() {
 
     // If timestamp exists in the query params, we want to use it to set the start and end time
     // with a buffer of 1.5 days, for retrieving events belonging to the trace.
-    if (timestamp) {
-      const parsedTimeStamp = Number(timestamp);
-
-      if (isNaN(parsedTimeStamp)) {
-        throw new Error('Invalid timestamp');
-      }
-
+    if (typeof timestamp === 'number') {
       const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
-      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+      const dateFromTimestamp = new Date(timestamp * 1000);
 
       startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
       endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
@@ -187,9 +185,7 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const trace = useTrace();
   const meta = useTraceMeta([traceSlug]);
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
 
   const preferences = useMemo(
     () =>
@@ -197,6 +193,9 @@ export function TraceView() {
       DEFAULT_TRACE_VIEW_PREFERENCES,
     []
   );
+
+  const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
 
   return (
     <SentryDocumentTitle
@@ -211,20 +210,18 @@ export function TraceView() {
           <TraceExternalLayout>
             <TraceMetadataHeader
               organization={organization}
-              projectID={rootEvent?.data?.projectID ?? ''}
-              title={rootEvent?.data?.title ?? ''}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                status={trace.status}
-                trace={trace.data ?? null}
                 traceSlug={traceSlug}
+                trace={trace.data ?? null}
+                status={trace.status}
                 organization={organization}
+                rootEvent={rootEvent}
                 traceEventView={traceEventView}
                 metaResults={meta}
-                rootEvent={rootEvent}
                 replayRecord={null}
                 source="performance"
               />
@@ -255,7 +252,8 @@ type TraceViewWaterfallProps = {
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
-  traceSlug: string;
+  traceSlug: string | undefined;
+  replayTraces?: ReplayTrace[];
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -264,10 +262,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
+  const filters = usePageFilters();
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const traceView = useMemo(() => new TraceViewModel(), []);
 
@@ -308,7 +306,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
-  const tree = useMemo(() => {
+  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+
+  useEffect(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
         {
@@ -317,14 +317,16 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         },
         loadingTraceRef.current
       );
-      return errorTree;
+      setTree(errorTree);
+      return;
     }
 
     if (
       props.trace?.transactions.length === 0 &&
       props.trace?.orphan_errors.length === 0
     ) {
-      return TraceTree.Empty();
+      setTree(TraceTree.Empty());
+      return;
     }
 
     if (props.status === 'loading') {
@@ -339,15 +341,54 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         );
 
       loadingTraceRef.current = loadingTrace;
-      return loadingTrace;
+      setTree(loadingTrace);
+      return;
     }
 
     if (props.trace) {
-      return TraceTree.FromTrace(props.trace, props.replayRecord);
+      const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
+
+      // Root frame + 2 nodes
+      const promises: Promise<void>[] = [];
+      if (trace.list.length < 4) {
+        for (const c of trace.list) {
+          if (c.canFetch) {
+            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
+          }
+        }
+      }
+
+      Promise.allSettled(promises).finally(() => {
+        setTree(trace);
+      });
+    }
+  }, [
+    props.traceSlug,
+    props.trace,
+    props.status,
+    props.replayRecord,
+    projects,
+    api,
+    organization,
+  ]);
+
+  useEffect(() => {
+    if (!props.replayTraces?.length || tree.type !== 'trace') {
+      return undefined;
     }
 
-    throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
+    const cleanup = tree.fetchAdditionalTraces({
+      api,
+      filters,
+      replayTraces: props.replayTraces,
+      organization: props.organization,
+      urlParams: qs.parse(location.search),
+      rerender: forceRerender,
+    });
+
+    return () => cleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree, props.replayTraces]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -750,7 +791,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         // At load time, we want to scroll the row into view, but we need to wait for the view
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
-        // to the row in the view.
+        // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
         traceScheduler.once('initialize virtualized list', () => {
           function onTargetRowMeasure() {
             if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
@@ -895,7 +936,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
-    if (!tree.root?.space || tree.type !== 'trace') {
+    if (tree.type !== 'trace') {
       return undefined;
     }
 
@@ -920,6 +961,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   return (
     <Fragment>
+      <TraceTypeWarnings
+        tree={tree}
+        traceSlug={props.traceSlug}
+        organization={organization}
+      />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton
@@ -959,7 +1005,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={props.trace}
+          traces={props.trace ?? null}
           manager={viewManager}
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
@@ -1018,16 +1064,6 @@ const TraceInnerLayout = styled('div')`
   padding: ${space(2)};
 
   background-color: ${p => p.theme.background};
-
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
 `;
 
 const TraceToolbar = styled('div')`

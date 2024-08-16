@@ -23,7 +23,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def do_request(self, data, url=None, features=None):
+    def _do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -47,7 +47,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
 
         for axis in ["epm()", "spm()"]:
-            response = self.do_request(
+            response = self._do_request(
                 data={
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=6)),
@@ -81,7 +81,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
 
         for axis in ["epm()", "spm()"]:
-            response = self.do_request(
+            response = self._do_request(
                 data={
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=24)),
@@ -113,7 +113,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
 
         for axis in ["epm()", "spm()"]:
-            response = self.do_request(
+            response = self._do_request(
                 data={
                     "start": iso_format(self.day_ago + timedelta(minutes=30)),
                     "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
@@ -147,7 +147,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 )
 
         for axis in ["eps()", "sps()"]:
-            response = self.do_request(
+            response = self._do_request(
                 data={
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(minutes=6)),
@@ -187,7 +187,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             ]
         )
 
-        response = self.do_request(
+        response = self._do_request(
             data={
                 "start": iso_format(self.day_ago),
                 "end": iso_format(self.day_ago + timedelta(minutes=6)),

@@ -19,7 +19,7 @@ New Deploy: {{activator}}
 {% endif %}
 Metric: {{ aggregate }}
 Environment: {{ environment }}
-Threshold: {{ threshold_direction_string }} {{ threshold }}
+Threshold: {{ threshold_prefix_string }} {{ threshold }}
 Time Interval: {{ time_window }}
 Query: {{ query }}
 

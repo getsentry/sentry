@@ -14,7 +14,9 @@ import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import StyledEmptyStateWarning from 'sentry/views/replays/detail/emptyState';
 
 import {TraceDrawerComponents} from '../../details/styles';
@@ -25,7 +27,11 @@ const getTagTarget = (
   eventView: EventView,
   organization: Organization
 ) => {
-  const url = eventView.getResultsViewUrlTarget(organization.slug, false);
+  const url = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
   url.query = generateQueryWithTag(url.query, {
     key: formatTagKey(tagKey),
     value: tagValue,

@@ -42,7 +42,7 @@ query-valid-python-version() {
 ${red}${bold}
 ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
 but it doesn't match the value of python's version: ${python_version}
-You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
+You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && devenv sync".
 ${reset}
 EOF
             return 1
@@ -78,52 +78,6 @@ sudo-askpass() {
     fi
 }
 
-pip-install() {
-    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
-}
-
-upgrade-pip() {
-    pip-install pip
-}
-
-install-py-dev() {
-    upgrade-pip
-    # It places us within top src dir to be at the same path as setup.py
-    # This helps when getsentry calls into this script
-    cd "${HERE}/.." || exit
-
-    echo "--> Installing Sentry (for development)"
-
-    # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy djangorestframework-stubs django-stubs
-
-    pip-install -r requirements-dev-frozen.txt
-
-    python3 -m tools.fast_editable --path .
-}
-
-setup-git-config() {
-    git config --local branch.autosetuprebase always
-    git config --local core.ignorecase false
-    git config --local blame.ignoreRevsFile .git-blame-ignore-revs
-}
-
-setup-git() {
-    setup-git-config
-
-    # if hooks are explicitly turned off do nothing
-    if [[ "$(git config core.hooksPath)" == '/dev/null' ]]; then
-        echo "--> core.hooksPath set to /dev/null. Skipping git hook setup"
-        echo ""
-        return
-    fi
-
-    echo "--> Installing git hooks"
-    mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-
-    .venv/bin/pre-commit install --install-hooks
-}
-
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
@@ -133,24 +87,6 @@ node-version-check() {
             echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
             exit 1
         )
-}
-
-install-js-dev() {
-    node-version-check
-    echo "--> Installing Yarn packages (for development)"
-    # Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-    NODE_ENV=development yarn install --frozen-lockfile
-    # A common problem is with node packages not existing in `node_modules` even though `yarn install`
-    # says everything is up to date. Even though `yarn install` is run already, it doesn't take into
-    # account the state of the current filesystem (it only checks .yarn-integrity).
-    # Add an additional check against `node_modules`
-    yarn check --verify-tree || yarn install --check-files
-}
-
-develop() {
-    install-js-dev
-    install-py-dev
-    setup-git
 }
 
 init-config() {
@@ -194,18 +130,6 @@ build-platform-assets() {
     test -f src/sentry/integration-docs/android.json
 }
 
-bootstrap() {
-    develop
-    init-config
-    run-dependent-services
-    apply-migrations
-    create-superuser
-    # Load mocks requires a superuser
-    bin/load-mocks
-    build-platform-assets
-    echo "--> Finished bootstrapping. Have a nice day."
-}
-
 clean() {
     echo "--> Cleaning static cache"
     rm -rf dist/* src/sentry/static/sentry/dist/*
@@ -233,16 +157,4 @@ reset-db() {
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
-}
-
-direnv-help() {
-    cat >&2 <<EOF
-If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-infra.
-If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/choose and mention @getsentry/owners-sentry-dev
-
-You can configure the behaviour of direnv by adding the following variables to a .env file:
-
-- SENTRY_DIRENV_DEBUG=1: This will allow printing debug messages
-- SENTRY_DEVENV_NO_REPORT=1: Do not report development environment errors to Sentry.io
-EOF
 }

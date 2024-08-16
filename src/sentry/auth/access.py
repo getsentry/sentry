@@ -35,12 +35,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
+from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrganizationContext
+from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.organization.serial import summarize_member
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 
@@ -926,7 +926,7 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
 
@@ -1030,7 +1030,7 @@ def from_request(
         )
         sso_state = auth_state.sso_state
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user)
+        superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
 

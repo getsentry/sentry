@@ -15,15 +15,19 @@ import {
   SORTABLE_INDEXED_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   transaction: string;
+  browserTypes?: BrowserType[];
   enabled?: boolean;
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
   sortName?: string;
+  subregions?: SubregionCode[];
   webVital?: WebVitals;
   withProfiles?: boolean;
 };
@@ -37,6 +41,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   withProfiles,
   sortName,
   webVital,
+  browserTypes,
+  subregions,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -56,6 +62,15 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   ]).addStringFilter(`transaction:"${transaction}"`);
   if (query) {
     mutableSearch.addStringMultiFilter(query);
+  }
+  if (browserTypes) {
+    mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    mutableSearch.addDisjunctionFilterValues(
+      SpanIndexedField.USER_GEO_SUBREGION,
+      subregions
+    );
   }
 
   const eventView = EventView.fromNewQueryWithPageFilters(

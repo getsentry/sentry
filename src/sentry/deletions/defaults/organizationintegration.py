@@ -1,6 +1,6 @@
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.types.region import RegionMappingNotFound
 
 from ..base import ModelDeletionTask, ModelRelation
@@ -11,7 +11,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
 
     def get_child_relations(self, instance):
-        from sentry.models.identity import Identity
+        from sentry.users.models.identity import Identity
 
         relations = []
 

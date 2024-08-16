@@ -17,6 +17,27 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+// Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
+// the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
+// field.
+type ReplayWebVitalFrameOps =
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint';
+type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
+/**
+ * These are deprecated SDK fields that the UI needs to be
+ * aware of to maintain backwards compatibility, i.e. for
+ * replay recordings for SDK version < 8.22.0
+ */
+type DeprecatedReplayWebVitalFrameData = {
+  nodeId?: number;
+};
+interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
+  data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
+}
+
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
 // Needed for tests
@@ -91,7 +112,9 @@ export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
-export type RawSpanFrame = TRawSpanFrame;
+export type RawSpanFrame =
+  | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
+  | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
 export function isRecordingFrame(
@@ -193,6 +216,14 @@ export function isHydrationErrorFrame(
   return frame.category === 'replay.hydrate-error';
 }
 
+export function isBackgroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.background';
+}
+
+export function isForegroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.foreground';
+}
+
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type HydratedTimestamp = {
@@ -285,10 +316,6 @@ export type HydrationErrorFrame = Overwrite<
   {
     data: {
       description: string;
-      mutations: {
-        next: RecordingFrame | null;
-        prev: RecordingFrame | null;
-      };
       url?: string;
     };
   }
@@ -349,7 +376,7 @@ export type ResourceFrame = HydratedSpan<
 >;
 
 // This list should match each of the operations used in `HydratedSpan` above
-// And any app-specific types that we hydrate (ie: replay.start & replay.end).
+// And any app-specific types that we hydrate (ie: replay.end).
 export const SpanOps = [
   'web-vital',
   'memory',
@@ -359,7 +386,6 @@ export const SpanOps = [
   'navigation.reload',
   'paint',
   'replay.end',
-  'replay.start',
   'resource.css',
   'resource.fetch',
   'resource.iframe',

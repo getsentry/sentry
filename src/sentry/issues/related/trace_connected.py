@@ -3,10 +3,10 @@
 # Refer to README in module for more details.
 from sentry import eventstore
 from sentry.api.utils import default_start_end_dates
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -27,7 +27,8 @@ def trace_connected_analysis(
         # If we are requesting an specific event, we want to be notified with an error
         assert event is not None
         # This ensures that the event is actually part of the group and we are notified
-        assert event.group_id == group.id
+        assert event.group is not None
+        assert event.group.id == group.id
     else:
         # If we drop trace connected issues from similar issues we can remove this
         event = group.get_recommended_event_for_environments()
@@ -40,7 +41,7 @@ def trace_connected_analysis(
     return issues, meta
 
 
-def trace_connected_issues(event: GroupEvent) -> tuple[list[int], dict[str, str]]:
+def trace_connected_issues(event: Event | GroupEvent) -> tuple[list[int], dict[str, str]]:
     meta = {"event_id": event.event_id}
     if event.trace_id:
         meta["trace_id"] = event.trace_id
@@ -48,12 +49,13 @@ def trace_connected_issues(event: GroupEvent) -> tuple[list[int], dict[str, str]
         meta["error"] = "No trace_id found in event."
         return [], meta
 
+    assert event.group is not None
     group = event.group
     org_id = group.project.organization_id
     # XXX: Test without a list and validate the data type
     project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
     start, end = default_start_end_dates()  # Today to 90 days back
-    query = QueryBuilder(
+    query = DiscoverQueryBuilder(
         Dataset.Events,
         {"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
         query=f"trace:{event.trace_id}",

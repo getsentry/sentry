@@ -160,6 +160,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
+        assert event is not None
+        assert event.group is not None
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
         assert event.group_id == event.group.id
@@ -171,6 +173,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         # Get transaction
         event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event_2.event_id)
 
+        assert event is not None
         assert event.event_id == "e" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
@@ -196,6 +199,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         # Make sure that the negative cache isn't causing the event to not show up
         event = self.eventstore.get_event_by_id(self.project2.id, "1" * 32)
+        assert event is not None
+        assert event.group is not None
         assert event.event_id == "1" * 32
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id

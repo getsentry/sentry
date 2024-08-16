@@ -15,14 +15,14 @@ import type {
   OnboardingSupplementComponentProps,
   OnboardingTask,
   OnboardingTaskDescriptor,
-  Organization,
-  Project,
-} from 'sentry/types';
+} from 'sentry/types/onboarding';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 

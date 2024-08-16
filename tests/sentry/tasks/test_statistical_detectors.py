@@ -23,7 +23,6 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
@@ -227,27 +226,36 @@ def test_detect_transaction_trends_options(
 
 
 @pytest.mark.parametrize(
-    ["enabled"],
+    ["task_enabled", "option_enabled"],
     [
-        pytest.param(False, id="disabled"),
-        pytest.param(True, id="enabled"),
+        pytest.param(True, True, id="both enabled"),
+        pytest.param(False, False, id="both disabled"),
+        pytest.param(True, False, id="option disabled"),
+        pytest.param(False, True, id="task disabled"),
     ],
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @django_db_all
 def test_detect_function_trends_options(
     query_functions,
-    enabled,
+    task_enabled,
+    option_enabled,
     timestamp,
     project,
 ):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: option_enabled},
+    )
+
     options = {
-        "statistical_detectors.enable": enabled,
+        "statistical_detectors.enable": task_enabled,
     }
 
     with override_options(options):
         detect_function_trends([project.id], timestamp)
-    assert query_functions.called == enabled
+    assert query_functions.called == (task_enabled and option_enabled)
 
 
 @mock.patch("sentry.snuba.functions.query")
@@ -261,9 +269,9 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
-    params = functions_query.mock_calls[0].kwargs["params"]
-    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
-    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
+    params = functions_query.mock_calls[0].kwargs["snuba_params"]
+    assert params.start == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
+    assert params.end == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
@@ -1401,22 +1409,18 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     1.0,
-                    UseCaseID.TRANSACTIONS,
                 )
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     9.5,
-                    UseCaseID.TRANSACTIONS,
                 )
 
                 # Store metrics for a frontend transaction, which should be
@@ -1424,22 +1428,18 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     1.0,
-                    UseCaseID.TRANSACTIONS,
                 )
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     9.5,
-                    UseCaseID.TRANSACTIONS,
                 )
 
     @property
@@ -1480,12 +1480,10 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.org.id,
                 project_id,
-                "distribution",
                 TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
 
         for project in self.projects:
@@ -1543,7 +1541,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                             start,
                             end,
                             3600,
-                            "time",
+                            ["time"],
                         ),
                         "project": self.projects[0].id,
                     },
@@ -1575,7 +1573,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                             start,
                             end,
                             3600,
-                            "time",
+                            ["time"],
                         ),
                         "project": self.projects[0].id,
                     },
@@ -1607,7 +1605,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                             start,
                             end,
                             3600,
-                            "time",
+                            ["time"],
                         ),
                         "project": self.projects[1].id,
                     },

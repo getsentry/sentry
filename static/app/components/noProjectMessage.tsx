@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -26,7 +26,7 @@ function NoProjectMessage({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -59,11 +59,11 @@ function NoProjectMessage({
   const createProjectAction = (
     <Button
       title={
-        canCreateProject
+        canUserCreateProject
           ? undefined
           : t('You do not have permission to create a project.')
       }
-      disabled={!canCreateProject}
+      disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
       to={`/organizations/${orgSlug}/projects/new/`}
     >

@@ -18,8 +18,9 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import type {Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -83,7 +84,6 @@ export default function ExternalIssueList({group, event, project}: Props) {
             {t('Track this issue in Jira, GitHub, etc.')}
           </AlertLink>
         )}
-        {}
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );

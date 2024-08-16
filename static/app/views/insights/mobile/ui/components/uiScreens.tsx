@@ -5,7 +5,7 @@ import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -66,10 +66,10 @@ export function UIScreens() {
     fields: [
       SpanMetricsField.PROJECT_ID,
       'transaction',
-      `avg_if(mobile.slow_frames,release,${primaryRelease})`,
-      `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
       `avg_if(mobile.frames_delay,release,${primaryRelease})`,
       `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,

@@ -6,8 +6,8 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+from requests.models import Response
 from rest_framework import status
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.client import ApiClient

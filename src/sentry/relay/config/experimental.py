@@ -1,7 +1,7 @@
 import logging
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol
+from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -44,7 +44,7 @@ class ExperimentalConfigBuilder(Protocol):
 
 
 #: Timeout for an experimental feature build.
-_FEATURE_BUILD_TIMEOUT = timedelta(seconds=15)
+_FEATURE_BUILD_TIMEOUT = timedelta(seconds=20)
 
 
 def add_experimental_config(
@@ -60,11 +60,30 @@ def add_experimental_config(
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
     """
+
+    if subconfig := build_safe_config(key, function, *args, **kwargs):
+        config[key] = subconfig
+
+
+R = TypeVar("R")
+P = ParamSpec("P")
+
+
+def build_safe_config(
+    key: str,
+    function: Callable[Concatenate[TimeChecker, P], R],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> R | None:
+    """
+    Runs a config builder function with a timeout.
+    If the function call raises an exception, we log it to sentry and return None
+    """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op=f"project_config.experimental_config.{key}"):
+    with sentry_sdk.start_span(op=f"project_config.build_safe_config.{key}"):
         try:
-            subconfig = function(timeout, *args, **kwargs)
+            return function(timeout, *args, **kwargs)
         except TimeoutException as e:
             logger.exception(
                 "Project config feature build timed out: %s",
@@ -73,6 +92,5 @@ def add_experimental_config(
             )
         except Exception:
             logger.exception("Exception while building Relay project config field")
-        else:
-            if subconfig is not None:
-                config[key] = subconfig
+
+    return None

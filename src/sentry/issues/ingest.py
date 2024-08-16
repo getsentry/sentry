@@ -39,6 +39,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
+@sentry_sdk.tracing.trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -90,6 +91,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
+@sentry_sdk.tracing.trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -125,6 +127,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
+@sentry_sdk.tracing.trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -158,6 +161,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -244,6 +248,8 @@ def save_issue_from_occurrence(
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
 
+    elif existing_grouphash.group is None:
+        return None
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:
@@ -265,6 +271,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

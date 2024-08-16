@@ -3,13 +3,15 @@ import uuid
 
 from django.utils.encoding import force_str
 
-INVALID_ID_DETAILS = "{} must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
+INVALID_ID_DETAILS = "`{}` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
 
 WILDCARD_NOT_ALLOWED = "Wildcard conditions are not permitted on `{}` field"
 
-INVALID_SPAN_ID = "{} must be a valid 16 character hex (containing only digits, or a-f characters)"
+INVALID_SPAN_ID = (
+    "`{}` must be a valid 16 character hex (containing only digits, or a-f characters)"
+)
 
-HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
+HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{1,16}$")
 
 
 def normalize_event_id(value):

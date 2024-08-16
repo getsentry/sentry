@@ -13,11 +13,11 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 # Abstract class for invite and join requests to inherit from
@@ -78,7 +78,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             MessageAction(
                 name="Reject",
                 style="danger",
-                action_id="approve_request",
+                action_id="reject_request",
                 value="reject_member",
                 label="Reject",
             ),

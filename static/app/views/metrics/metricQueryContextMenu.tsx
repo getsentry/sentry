@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -20,7 +20,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric, isVirtualMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -32,13 +32,15 @@ import {
   isMetricsQueryWidget,
   type MetricDisplayType,
   type MetricsQuery,
+  type MetricsQueryWidget,
 } from 'sentry/utils/metrics/types';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {CreateAlertModal} from 'sentry/views/metrics/createAlertModal';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {openCreateAlertModal} from 'sentry/views/metrics/createAlertModal';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
@@ -51,14 +53,13 @@ export function MetricQueryContextMenu({
   displayType,
   widgetIndex,
 }: ContextMenuProps) {
+  const {getExtractionRule} = useVirtualMetricsContext();
   const organization = useOrganization();
   const router = useRouter();
 
-  const {removeWidget, duplicateWidget, widgets} = useMetricsContext();
-  const createAlert = useMemo(
-    () => getCreateAlert(organization, metricsQuery),
-    [metricsQuery, organization]
-  );
+  const {removeWidget, duplicateWidget, widgets, updateWidget} = useMetricsContext();
+  const createAlert = getCreateAlert(organization, metricsQuery);
+
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
@@ -138,19 +139,42 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
-        label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
+        label: t('Configure Metric'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
-          navigateTo(
-            `/settings/projects/:projectId/metrics/${encodeURIComponent(
-              metricsQuery.mri
-            )}`,
-            router
-          );
+
+          if (!isVirtualMetric(metricsQuery)) {
+            navigateTo(
+              `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                metricsQuery.mri
+              )}`,
+              router
+            );
+          } else {
+            const extractionRule = getExtractionRule(
+              metricsQuery.mri,
+              metricsQuery.condition!
+            );
+            if (extractionRule) {
+              openExtractionRuleEditModal({
+                organization,
+                source: 'ddm.configure-metric',
+                metricExtractionRule: extractionRule,
+                onSubmitSuccess: data => {
+                  // Keep the unit of the MRI in sync with the unit of the extraction rule
+                  // TODO: Remove this once we have a better way to handle this
+                  const newMRI = metricsQuery.mri.replace(/@.*$/, `@${data.unit}`);
+                  updateWidget(widgetIndex, {
+                    mri: newMRI,
+                  } as Partial<MetricsQueryWidget>);
+                },
+              });
+            }
+          }
         },
       },
       {
@@ -167,13 +191,15 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       organization,
+      metricsQuery,
       createDashboardWidget,
       hasDashboardFeature,
-      metricsQuery.mri,
       canDelete,
       duplicateWidget,
       widgetIndex,
       router,
+      getExtractionRule,
+      updateWidget,
       removeWidget,
     ]
   );
@@ -196,30 +222,31 @@ export function MetricQueryContextMenu({
   );
 }
 
+function canCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  return (
+    organization.access.includes('alerts:write') &&
+    metricsQuery.mri &&
+    metricsQuery.aggregation &&
+    !isCustomMeasurement(metricsQuery)
+  );
+}
+
 export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
-  if (
-    !metricsQuery.mri ||
-    !metricsQuery.aggregation ||
-    isCustomMeasurement(metricsQuery) ||
-    !organization.access.includes('alerts:write')
-  ) {
+  if (!canCreateAlert(organization, metricsQuery)) {
     return undefined;
   }
   return function () {
-    return openModal(deps => (
-      <OrganizationContext.Provider value={organization}>
-        <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
-      </OrganizationContext.Provider>
-    ));
+    openCreateAlertModal({metricsQuery: metricsQuery, organization});
   };
 }
 
-export function useCreateDashboardWidget(
+function useCreateDashboardWidget(
   organization: Organization,
   metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
 ) {
   const router = useRouter();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
   const {selection} = usePageFilters();
 
   return useMemo(() => {
@@ -231,7 +258,18 @@ export function useCreateDashboardWidget(
       return undefined;
     }
 
-    const widgetQuery = getWidgetQuery(metricsQuery);
+    const queryCopy = {...metricsQuery};
+    if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
+      const {mri, aggregation} = resolveVirtualMRI(
+        metricsQuery.mri,
+        metricsQuery.condition,
+        metricsQuery.aggregation
+      );
+      queryCopy.mri = mri;
+      queryCopy.aggregation = aggregation;
+    }
+
+    const widgetQuery = getWidgetQuery(queryCopy);
     const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
     const widgetAsQueryParams = getWidgetAsQueryParams(
       selection,
@@ -243,12 +281,12 @@ export function useCreateDashboardWidget(
       openAddToDashboardModal({
         organization,
         selection,
-        widget: convertToDashboardWidget([metricsQuery], displayType),
+        widget: convertToDashboardWidget([queryCopy], displayType),
         router,
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
         allowCreateNewDashboard: false,
       });
-  }, [metricsQuery, selection, displayType, organization, router]);
+  }, [metricsQuery, selection, displayType, resolveVirtualMRI, organization, router]);
 }

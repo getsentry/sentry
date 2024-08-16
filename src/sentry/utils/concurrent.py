@@ -43,7 +43,7 @@ def execute(function: Callable[..., T], daemon=True):
 @functools.total_ordering
 class PriorityTask(NamedTuple, Generic[T]):
     priority: int
-    item: tuple[Callable[[], T], sentry_sdk.Scope, Future[T]]
+    item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
     def __eq__(self, b):
         return self.priority == b.priority
@@ -196,17 +196,19 @@ class ThreadedExecutor(Executor[T]):
     def __worker(self):
         queue = self.__queue
         while True:
-            priority, (function, isolation_scope, future) = queue.get(True)
-            with sentry_sdk.scope.use_isolation_scope(isolation_scope.fork()):
-                if not future.set_running_or_notify_cancel():
-                    continue
-                try:
-                    result = function()
-                except Exception as e:
-                    future.set_exception(e)
-                else:
-                    future.set_result(result)
-                queue.task_done()
+            priority, item = queue.get(True)
+            thread_isolation_scope, thread_current_scope, function, future = item
+            with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+                with sentry_sdk.scope.use_scope(thread_current_scope):
+                    if not future.set_running_or_notify_cancel():
+                        continue
+                    try:
+                        result = function()
+                    except Exception as e:
+                        future.set_exception(e)
+                    else:
+                        future.set_result(result)
+                    queue.task_done()
 
     def start(self):
         with self.__lock:
@@ -236,7 +238,15 @@ class ThreadedExecutor(Executor[T]):
             self.start()
 
         future: Future[T] = self.Future()
-        task = PriorityTask(priority, (callable, sentry_sdk.Scope.get_isolation_scope(), future))
+        task = PriorityTask(
+            priority,
+            (
+                sentry_sdk.Scope.get_isolation_scope().fork(),
+                sentry_sdk.Scope.get_current_scope().fork(),
+                callable,
+                future,
+            ),
+        )
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:

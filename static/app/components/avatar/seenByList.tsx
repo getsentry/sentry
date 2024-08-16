@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Tooltip} from 'sentry/components/tooltip';

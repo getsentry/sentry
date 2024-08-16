@@ -198,10 +198,10 @@ def test_project_update_option(
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
-    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+    redis_cache.set_many({default_projectkey.public_key: {"dummy": "dummy"}})
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=4):
+    with emulate_transactions(assert_num_callbacks=2):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -235,10 +235,10 @@ def test_project_delete_option(
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
-    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+    redis_cache.set_many({default_projectkey.public_key: {"dummy": "dummy"}})
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=3):
+    with emulate_transactions(assert_num_callbacks=1):
         default_project.delete_option("sentry:relay_pii_config")
 
     assert redis_cache.get(default_projectkey)["config"]["piiConfig"] == {}
@@ -280,7 +280,7 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=6):
+    with emulate_transactions(assert_num_callbacks=4):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
@@ -339,7 +339,7 @@ def test_db_transaction(
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
-    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+    redis_cache.set_many({default_projectkey.public_key: {"dummy": "dummy"}})
 
     with task_runner(), transaction.atomic(router.db_for_write(ProjectOption)):
         default_project.update_option(
@@ -348,7 +348,7 @@ def test_db_transaction(
 
         # Assert that cache entry hasn't been created yet, only after the
         # transaction has committed.
-        assert redis_cache.get(default_projectkey.public_key) == "dummy"
+        assert redis_cache.get(default_projectkey.public_key) == {"dummy": "dummy"}
 
     assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
         "applications": {"$string": ["@creditcard:mask"]}
@@ -519,7 +519,7 @@ def test_invalidate_hierarchy(
     django_cache,
 ):
     # Put something in the cache, otherwise the invalidation task won't compute anything.
-    redis_cache.set_many({default_projectkey.public_key: "dummy"})
+    redis_cache.set_many({default_projectkey.public_key: {"dummy": "dummy"}})
 
     orig_apply_async = invalidate_project_config.apply_async
     calls = []

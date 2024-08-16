@@ -17,11 +17,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,
@@ -68,11 +68,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       setFormState(curr => ({...curr, step: 'importing'}));
 
       const dashboardJson = JSON.parse(formState.dashboard);
-      const importResult = await parseDashboard(
-        dashboardJson,
-        metricsMeta,
-        organization.slug
-      );
+      const importResult = await parseDashboard(dashboardJson, metricsMeta, organization);
 
       setFormState(curr => ({
         ...curr,
@@ -80,7 +76,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
         step: 'add-widgets',
       }));
     }
-  }, [formState.isValid, formState.dashboard, metricsMeta, organization.slug]);
+  }, [formState.isValid, formState.dashboard, metricsMeta, organization]);
 
   const handleCreateDashboard = useCallback(async () => {
     const title = formState.importResult?.title ?? 'Metrics Dashboard';

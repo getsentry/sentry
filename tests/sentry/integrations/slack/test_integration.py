@@ -2,19 +2,21 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
+import pytest
 import responses
 from responses.matchers import query_string_matcher
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 
 
 @control_silo_test
@@ -134,7 +136,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow_slack_sdk(self, mock_api_call):
+    def test_bot_flow(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
 
@@ -429,7 +431,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
             teams=[self.team],
         )
 
-        with self.tasks():
+        with self.tasks(), pytest.raises(SlackApiError):
             SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user5_identity = Identity.objects.filter(user=user5).first()

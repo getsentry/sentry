@@ -38,7 +38,6 @@ describe('AutofixSetupModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -79,7 +78,6 @@ describe('AutofixSetupModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -130,7 +128,6 @@ describe('AutofixSetupModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -158,7 +155,7 @@ describe('AutofixSetupModal', function () {
         genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {
-          ok: true,
+          ok: false,
           repos: [
             {
               provider: 'integrations:github',
@@ -172,11 +169,10 @@ describe('AutofixSetupModal', function () {
               owner: 'getsentry',
               name: 'seer',
               external_id: '235',
-              ok: true,
+              ok: false,
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -193,166 +189,12 @@ describe('AutofixSetupModal', function () {
       );
     });
 
-    await screen.findByText('Install the GitHub Integration');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+    await screen.findByText('Allow Autofix to Make Pull Requests');
 
     expect(
-      await screen.findByText(/has been installed on all required repositories/)
+      await screen.findByText(/for the following repositories:/)
     ).toBeInTheDocument();
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
-  });
-
-  it('displays indexing option', async function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-              ok: true,
-            },
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'seer',
-              external_id: '235',
-              ok: true,
-            },
-          ],
-        },
-        codebaseIndexing: {ok: false},
-      },
-    });
-
-    const closeModal = jest.fn();
-
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
-
-    await screen.findByText('Enable Autofix');
-
-    expect(
-      await screen.findByText(/Sentry will index your repositories to enable Autofix./)
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', {name: 'Index Repositories & Enable Autofix'})
-    ).toBeInTheDocument();
-  });
-
-  it('displays indexing error when one exists', async function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-              ok: true,
-            },
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'seer',
-              external_id: '235',
-              ok: true,
-            },
-          ],
-        },
-        codebaseIndexing: {ok: false},
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/autofix/codebase-index/status/',
-      body: {
-        status: AutofixCodebaseIndexingStatus.ERRORED,
-        reason: 'Some error',
-      },
-    });
-
-    const closeModal = jest.fn();
-
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
-
-    await screen.findByText('Enable Autofix');
-
-    expect(
-      await screen.findByText(/Failed to index repositories: Some error/i)
-    ).toBeInTheDocument();
-  });
-
-  it('shows success text when steps are done', async function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              repo: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-            },
-          ],
-        },
-        codebaseIndexing: {ok: true},
-      },
-    });
-
-    const closeModal = jest.fn();
-
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
-
-    expect(
-      await screen.findByText("You've successfully configured Autofix!")
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: "Let's go"}));
-
-    expect(closeModal).toHaveBeenCalled();
   });
 });

@@ -155,7 +155,7 @@ class Interface:
     def iter_tags(self):
         return iter(())
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return ""
 
     def to_email_html(self, event, **kwargs):

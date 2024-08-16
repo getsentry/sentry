@@ -37,8 +37,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_all_browser_sdk_version_versions():
-    # todo: v8 add version
-    return ["latest", "7.x", "6.x", "5.x", "4.x"]
+    return ["latest", "8.x", "7.x", "6.x", "5.x", "4.x"]
 
 
 def get_all_browser_sdk_version_choices():
@@ -77,7 +76,7 @@ def match_selected_version_to_browser_sdk_version(selected_version):
     )
 
 
-def get_browser_sdk_version(project_key):
+def get_browser_sdk_version(project_key) -> Version:
     selected_version = get_selected_browser_sdk_version(project_key)
 
     try:

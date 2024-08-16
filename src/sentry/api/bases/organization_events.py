@@ -6,7 +6,6 @@ from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
-from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -22,16 +21,17 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DiscoverSavedQueryTypes
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
@@ -88,10 +88,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         sentry_sdk.set_tag("query.dataset", dataset_label)
         return result
 
-    def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
-        """This will eventually replace the get_snuba_params function"""
+    def get_snuba_params(
+        self,
+        request: Request,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
+    ) -> SnubaParams:
+        """Returns params to make snuba queries with"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
             if (
                 len(self.get_field_list(organization, request))
@@ -103,7 +107,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params: dict[str, Any] = self.get_filter_params(request, organization)
-            filter_params = self.quantize_date_params(request, filter_params)
+            if quantize_date_params:
+                filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
                 start=filter_params["start"],
                 end=filter_params["end"],
@@ -119,50 +124,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     "organizations:global-views", organization, actor=request.user
                 )
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-                if not any(
-                    [
-                        has_global_views,
-                        len(params.projects) <= 1,
-                        fetching_replay_data,
-                        # If a developer can view issues of a project they do not belong to
-                        # via open membership, we will also allow the endpoint to return events for it
-                        organization.flags.allow_joinleave,
-                    ]
-                ):
-                    raise ParseError(detail="You cannot view events from multiple projects.")
-
-            # Return both for now
-            return params, filter_params
-
-    def get_snuba_params(
-        self, request: HttpRequest, organization: Organization, check_global_views: bool = True
-    ) -> ParamsType:
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
-            if (
-                len(self.get_field_list(organization, request))
-                + len(self.get_equation_list(organization, request))
-                > MAX_FIELDS
-            ):
-                raise ParseError(
-                    detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-                )
-
-            params: ParamsType = self.get_filter_params(request, organization)
-            params = self.quantize_date_params(request, params)
-            params["user_id"] = request.user.id if request.user else None
-            params["team_id"] = self.get_team_ids(request, organization)
-
-            if check_global_views:
-                has_global_views = features.has(
-                    "organizations:global-views", organization, actor=request.user
-                )
-                fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-                if (
-                    not has_global_views
-                    and len(params.get("project_id", [])) > 1
-                    and not fetching_replay_data
-                ):
+                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             return params
@@ -234,48 +196,69 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return use_on_demand_metrics, on_demand_metric_type
 
-    def get_split_decision(self, has_errors, has_transactions_data):
+    def save_split_decision(self, widget, has_errors, has_transactions_data, organization, user):
         """This can be removed once the discover dataset has been fully split"""
+        source = DashboardDatasetSourcesTypes.INFERRED.value
         if has_errors and not has_transactions_data:
             decision = DashboardWidgetTypes.ERROR_EVENTS
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
-        elif has_errors and has_transactions_data:
-            decision = DashboardWidgetTypes.DISCOVER
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
-            # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
-            # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-            decision = None
-        sentry_sdk.set_tag("split_decision", decision)
-        return decision
+            if features.has(
+                "organizations:performance-discover-dataset-selector", organization, actor=user
+            ):
+                # In the case that neither side has data, or both sides have data, default to errors.
+                decision = DashboardWidgetTypes.ERROR_EVENTS
+                source = DashboardDatasetSourcesTypes.FORCED.value
+                sentry_sdk.set_tag("discover.split_reason", "default")
+            else:
+                # This branch can be deleted once the feature flag for the discover split is removed
+                if has_errors and has_transactions_data:
+                    decision = DashboardWidgetTypes.DISCOVER
+                else:
+                    # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
+                    # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
+                    decision = None
 
-    def save_split_decision(self, widget, has_errors, has_transactions_data):
-        """This can be removed once the discover dataset has been fully split"""
-        new_discover_widget_split = self.get_split_decision(has_errors, has_transactions_data)
-        if (
-            new_discover_widget_split is not None
-            and widget.discover_widget_split != new_discover_widget_split
-        ):
-            widget.discover_widget_split = new_discover_widget_split
+        sentry_sdk.set_tag("discover.split_decision", decision)
+        if decision is not None and widget.discover_widget_split != decision:
+            widget.discover_widget_split = decision
+            widget.dataset_source = source
             widget.save()
 
-        return new_discover_widget_split
+        return decision
 
-    def save_discover_saved_query_split_decision(self, query, has_errors, has_transactions_data):
-        """This can be removed once the discover dataset has been fully split"""
-        if has_errors and not has_transactions_data:
+    def save_discover_saved_query_split_decision(
+        self, query, dataset_inferred_from_query, has_errors, has_transactions_data
+    ):
+        """
+        This can be removed once the discover dataset has been fully split.
+        If dataset is ambiguous (i.e., could be either transactions or errors),
+        default to errors.
+        """
+        dataset_source = DatasetSourcesTypes.INFERRED.value
+        if dataset_inferred_from_query:
+            decision = dataset_inferred_from_query
+            sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
+        elif has_errors and not has_transactions_data:
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
             # In the case that neither or both datasets return data,
-            # we don't split this yet and can make multiple queries to check each time.
-            # This will help newly created widgets or infrequent count
-            # widgets that shouldn't be prematurely assigned a side.
-            decision = DiscoverSavedQueryTypes.DISCOVER
+            # default to Errors.
+            decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+            dataset_source = DatasetSourcesTypes.FORCED.value
+            sentry_sdk.set_tag("discover.split_reason", "default")
+
         sentry_sdk.set_tag("discover.split_decision", decision)
         if query.dataset != decision:
             query.dataset = decision
+            query.dataset_source = dataset_source
             query.save()
 
         return decision
@@ -407,11 +390,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [Sequence[str], str, dict[str, str], int, bool, timedelta | None], SnubaTSResult
+            [Sequence[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult
         ],
         top_events: int = 0,
         query_column: str = "count()",
-        params: ParamsType | None = None,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
@@ -432,10 +415,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if query is None:
                     query = request.GET.get("query")
-                if params is None:
+                if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
-                        params = self.get_snuba_params(
+                        snuba_params = self.get_snuba_params(
                             request, organization, check_global_views=False
                         )
                     except NoProjects:
@@ -444,7 +427,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 try:
                     rollup = get_rollup_from_request(
                         request,
-                        params,
+                        snuba_params.date_range,
                         default_interval=None,
                         error=InvalidSearchQuery(),
                         top_events=top_events,
@@ -452,13 +435,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # If the user sends an invalid interval, use the default instead
                 except InvalidSearchQuery:
                     sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-                    date_range = params["end"] - params["start"]
+                    date_range = snuba_params.date_range
                     stats_period = parse_stats_period(get_interval_from_range(date_range, False))
                     rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
 
                 if comparison_delta is not None:
                     retention = quotas.get_event_retention(organization=organization)
-                    comparison_start = params["start"] - comparison_delta
+                    comparison_start = snuba_params.start_date - comparison_delta
                     if retention and comparison_start < timezone.now() - timedelta(days=retention):
                         raise ValidationError("Comparison period is outside your retention window")
 
@@ -481,7 +464,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
                 result = get_event_stats(
-                    query_columns, query, params, rollup, zerofill_results, comparison_delta
+                    query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
@@ -500,7 +483,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             organization,
                             serializer,
                             event_result,
-                            params,
+                            snuba_params,
                             columns,
                             query_columns,
                             allow_partial_buckets,
@@ -521,7 +504,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         results[key]["meta"] = self.handle_results_with_meta(
                             request,
                             organization,
-                            params.get("project_id", []),
+                            snuba_params.project_ids,
                             event_result.data,
                             True,
                             dataset=dataset,
@@ -534,7 +517,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     organization,
                     serializer,
                     result,
-                    params,
+                    snuba_params,
                     columns,
                     query_columns,
                     allow_partial_buckets,
@@ -557,7 +540,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 serialized_result["meta"] = self.handle_results_with_meta(
                     request,
                     organization,
-                    params.get("project_id", []),
+                    snuba_params.project_ids,
                     result.data,
                     True,
                     dataset=dataset,
@@ -586,7 +569,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
-        params: dict[str, Any],
+        snuba_params: SnubaParams,
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
@@ -599,7 +582,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         meta = self.handle_results_with_meta(
             request,
             organization,
-            params.get("project_id", []),
+            snuba_params.project_ids,
             event_result.data,
             True,
             dataset=dataset,

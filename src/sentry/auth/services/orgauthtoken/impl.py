@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sentry.auth.services.orgauthtoken.service import OrgAuthTokenService
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -47,5 +48,5 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
                 "org_auth_token_id": org_auth_token_id,
                 "date_last_used": date_last_used,
                 "project_last_used_id": project_last_used_id,
-            },  # type: ignore[misc]
+            },
         ).save()

@@ -18,6 +18,7 @@ import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -30,8 +31,8 @@ interface Props {
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
   const url =
-    eventData?.contexts.feedback?.url ??
-    eventData?.tags.find(tag => tag.key === 'url')?.value;
+    eventData?.contexts?.feedback?.url ??
+    eventData?.tags?.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
   const theme = useTheme();
 
@@ -47,7 +48,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const URL_NOT_FOUND = t('URL not found');
   const displayUrl =
-    eventData?.contexts.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+    eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
 
   return (
@@ -76,7 +77,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         ) : null}
 
-        {crashReportId && (
+        {crashReportId && feedbackItem.project ? (
           <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
             <ErrorBoundary mini>
               <CrashReportSection
@@ -86,7 +87,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
               />
             </ErrorBoundary>
           </Section>
-        )}
+        ) : null}
 
         <FeedbackReplay
           eventData={eventData}
@@ -98,22 +99,24 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <TagsSection tags={tags} />
         </Section>
 
-        <Section
-          icon={<IconChat size="xs" />}
-          title={
-            <Fragment>
-              {t('Internal Activity')}
-              <QuestionTooltip
-                size="xs"
-                title={t(
-                  'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
-                )}
-              />
-            </Fragment>
-          }
-        >
-          <FeedbackActivitySection feedbackItem={feedbackItem} />
-        </Section>
+        {feedbackItem.project ? (
+          <Section
+            icon={<IconChat size="xs" />}
+            title={
+              <Fragment>
+                {t('Internal Activity')}
+                <QuestionTooltip
+                  size="xs"
+                  title={t(
+                    'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
+                  )}
+                />
+              </Fragment>
+            }
+          >
+            <FeedbackActivitySection feedbackItem={feedbackItem as unknown as Group} />
+          </Section>
+        ) : null}
       </OverflowPanelItem>
     </Fragment>
   );

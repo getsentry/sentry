@@ -17,7 +17,6 @@ import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FieldGroup from '../fieldGroup';
-import FieldControl from '../fieldGroup/fieldControl';
 import type {FieldGroupProps} from '../fieldGroup/types';
 import FormContext from '../formContext';
 import type FormModel from '../model';
@@ -176,6 +175,7 @@ type ResolvedProps = BaseProps & FieldGroupProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,
+  | 'children'
   | 'className'
   | 'name'
   | 'hideErrorMessage'
@@ -321,10 +321,10 @@ function FormField(props: FormFieldProps) {
         saveMessage,
         saveMessageAlertType,
         selectionInfoFunction,
-        hideControlState,
         // Don't pass `defaultValue` down to input fields, will be handled in
         // form model
         defaultValue: _defaultValue,
+        children: _children,
         ...otherProps
       } = props;
 
@@ -339,52 +339,42 @@ function FormField(props: FormFieldProps) {
             id={id}
             className={className}
             flexibleControlStateSize={flexibleControlStateSize}
+            controlState={
+              <FormFieldControlState
+                model={model}
+                name={name}
+                hideErrorMessage={hideErrorMessage}
+              />
+            }
             {...fieldProps}
           >
-            {({alignRight, disabled, inline}) => (
-              <FieldControl
-                inline={inline}
-                alignRight={alignRight}
-                flexibleControlStateSize={flexibleControlStateSize}
-                hideControlState={hideControlState}
-                controlState={
-                  <FormFieldControlState
-                    model={model}
-                    name={name}
-                    hideErrorMessage={hideErrorMessage}
-                  />
-                }
-              >
-                <Observer>
-                  {() => {
-                    const error = model.getError(name);
-                    const value = model.getValue(name);
+            <Observer>
+              {() => {
+                const error = model.getError(name);
+                const value = model.getValue(name);
 
-                    return (
-                      <Fragment>
-                        {props.children({
-                          ref: handleInputMount,
-                          ...fieldProps,
-                          model,
-                          name,
-                          id,
-                          onKeyDown: handleKeyDown,
-                          onChange: handleChange,
-                          onBlur: handleBlur,
-                          // Fixes react warnings about input switching from controlled to uncontrolled
-                          // So force to empty string for null values
-                          value: value === null ? '' : value,
-                          error,
-                          disabled,
-                          initialData: model.initialData,
-                          'aria-describedby': `${id}_help`,
-                        })}
-                      </Fragment>
-                    );
-                  }}
-                </Observer>
-              </FieldControl>
-            )}
+                return (
+                  <Fragment>
+                    {props.children({
+                      ref: handleInputMount,
+                      ...fieldProps,
+                      model,
+                      name,
+                      id,
+                      onKeyDown: handleKeyDown,
+                      onChange: handleChange,
+                      onBlur: handleBlur,
+                      // Fixes react warnings about input switching from controlled to uncontrolled
+                      // So force to empty string for null values
+                      value: value === null ? '' : value,
+                      error,
+                      initialData: model.initialData,
+                      'aria-describedby': `${id}_help`,
+                    })}
+                  </Fragment>
+                );
+              }}
+            </Observer>
           </FieldGroup>
           {selectionInfoFunction && (
             <Observer>

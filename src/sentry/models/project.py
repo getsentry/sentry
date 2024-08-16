@@ -16,7 +16,6 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry import projectoptions
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -32,15 +31,16 @@ from sentry.db.models import (
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
@@ -50,7 +50,8 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
-    from sentry.models.user import User
+    from sentry.models.options.project_template_option import ProjectTemplateOptionManager
+    from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
@@ -384,7 +385,6 @@ class Project(Model, PendingDeletionMixin):
             )
         else:
             super().save(*args, **kwargs)
-        self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
@@ -407,21 +407,26 @@ class Project(Model, PendingDeletionMixin):
 
         return ProjectOption.objects
 
+    @property
+    def template_manager(self) -> ProjectTemplateOptionManager:
+        from sentry.models.options.project_template_option import ProjectTemplateOption
+
+        return ProjectTemplateOption.objects
+
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
+        # if the option is not set, check the template
+        if not self.option_manager.isset(self, key) and self.template is not None:
+            return self.template_manager.get_value(self.template, key, default, validate)
+
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
-        projectoptions.update_rev_for_option(self)
         return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
-        projectoptions.update_rev_for_option(self)
         self.option_manager.unset_value(self, key)
-
-    def update_rev_for_option(self):
-        return projectoptions.update_rev_for_option(self)
 
     @property
     def color(self):
@@ -462,8 +467,8 @@ class Project(Model, PendingDeletionMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
-        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -540,29 +545,31 @@ class Project(Model, PendingDeletionMixin):
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(
             Q(user_id__isnull=False) | Q(team_id__isnull=False)
         )
-        for rule in alert_rules:
+        for alert_rule in alert_rules:
             is_member = False
-            if rule.user_id:
-                is_member = organization.member_set.filter(user_id=rule.user_id).exists()
-            if rule.team_id:
+            if alert_rule.user_id:
+                is_member = organization.member_set.filter(user_id=alert_rule.user_id).exists()
+            if alert_rule.team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.team_id
+                    organization_id=organization.id, id=alert_rule.team_id
                 ).exists()
             if not is_member:
-                rule.update(team_id=None, user_id=None)
-        rules = Rule.objects.filter(
+                alert_rule.update(team_id=None, user_id=None)
+        rule_models = Rule.objects.filter(
             Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
         )
-        for rule in rules:
+        for rule_model in rule_models:
             is_member = False
-            if rule.owner_user_id:
-                is_member = organization.member_set.filter(user_id=rule.owner_user_id).exists()
-            if rule.owner_team_id:
+            if rule_model.owner_user_id:
+                is_member = organization.member_set.filter(
+                    user_id=rule_model.owner_user_id
+                ).exists()
+            if rule_model.owner_team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.owner_team_id
+                    organization_id=organization.id, id=rule_model.owner_team_id
                 ).exists()
             if not is_member:
-                rule.update(owner_user_id=None, owner_team_id=None)
+                rule_model.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
@@ -708,13 +715,13 @@ class Project(Model, PendingDeletionMixin):
             object_identifier=project_identifier,
         )
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
-            return super().delete(**kwargs)
+            return super().delete(*args, **kwargs)
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
