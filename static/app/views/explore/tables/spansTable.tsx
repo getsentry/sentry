@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
@@ -14,6 +14,7 @@ interface SpansTableProps {}
 export function SpansTable({}: SpansTableProps) {
   const {selection} = usePageFilters();
 
+  const [dataset] = useDataset();
   const [fields] = useSampleFields();
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
@@ -26,11 +27,11 @@ export function SpansTable({}: SpansTableProps) {
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
       query,
       version: 2,
-      dataset: DiscoverDatasets.SPANS_INDEXED,
+      dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [fields, sorts, query, selection]);
+  }, [dataset, fields, sorts, query, selection]);
 
   const result = useSpansQuery({
     eventView,
