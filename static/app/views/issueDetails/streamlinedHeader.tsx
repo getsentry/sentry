@@ -125,7 +125,7 @@ export default function StreamlinedGroupHeader({
                 projectSlug={project.slug}
                 releaseVersion={firstRelease.version}
               >
-                <Version version={firstRelease.version} projectId={project.id} />
+                <Version version={firstRelease.version} projectId={project.id} truncate />
               </VersionHoverCard>
               {firstRelease.id === lastRelease.id ? null : (
                 <Fragment>
@@ -135,7 +135,11 @@ export default function StreamlinedGroupHeader({
                     projectSlug={project.slug}
                     releaseVersion={lastRelease.version}
                   >
-                    <Version version={lastRelease.version} projectId={project.id} />
+                    <Version
+                      version={lastRelease.version}
+                      projectId={project.id}
+                      truncate
+                    />
                   </VersionHoverCard>
                 </Fragment>
               )}
@@ -256,6 +260,7 @@ const Wrapper = styled('div')`
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
+  max-width: 40%;
   gap: ${space(0.25)};
   a {
     color: ${p => p.theme.gray300};

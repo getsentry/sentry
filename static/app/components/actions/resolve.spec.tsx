@@ -177,7 +177,8 @@ describe('ResolveActions', function () {
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current release')).toBeInTheDocument();
-    expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+    expect(screen.getByText('(semver)')).toBeInTheDocument();
   });
 
   it('displays prompt to setup releases when there are no releases', async function () {
