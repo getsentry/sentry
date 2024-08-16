@@ -103,7 +103,6 @@ from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -111,7 +110,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
@@ -146,6 +144,8 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -1387,6 +1387,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_issues(self, issues):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
+                data=json.dumps(issues),
+            ).status_code
+            == 200
+        )
+
     def store_metrics_summary(self, span):
         common_fields = {
             "duration_ms": span["duration_ms"],
@@ -2089,6 +2098,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "user": "metrics_sets",
         "function.duration": "metrics_distributions",
         "measurements.inp": "metrics_distributions",
+        "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,

@@ -9,11 +9,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 

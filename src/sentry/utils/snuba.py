@@ -4,7 +4,6 @@ import dataclasses
 import functools
 import logging
 import os
-import random
 import re
 import time
 from collections import namedtuple
@@ -23,7 +22,7 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import MetricsQuery, Request
+from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.environment import Environment
@@ -169,6 +168,8 @@ SPAN_COLUMN_MAP = {
     "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
+    "user.geo.subregion": "sentry_tags[user.geo.subregion]",
+    "user.geo.country_code": "sentry_tags[user.geo.country_code]",
 }
 
 SPAN_EAP_COLUMN_MAP = {
@@ -1075,6 +1076,15 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
+def _is_rejected_query(body: Any) -> bool:
+    return (
+        "quota_allowance" in body
+        and "summary" in body["quota_allowance"]
+        and "rejected_by" in body["quota_allowance"]["summary"]
+        and body["quota_allowance"]["summary"]["rejected_by"] is not None
+    )
+
+
 def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     snuba_requests_list = list(snuba_requests)
 
@@ -1131,7 +1141,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
-            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
+            if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 span.set_tag(
                     f"{allocation_policy_prefix}threads_used",
@@ -1149,19 +1159,6 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     k = allocation_policy_prefix + "rejecting_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
-
-                if (
-                    "throttled_by" in quota_allowance_summary
-                    and quota_allowance_summary["throttled_by"]
-                ):
-                    metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
-                    if random.random() < 0.01:
-                        logger.warning(
-                            "Warning: Query is throttled", extra={"response.data": response.data}
-                        )
-                        sentry_sdk.capture_message(
-                            f"Warning: Query from referrer {referrer} is throttled", level="warning"
-                        )
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)
@@ -1242,6 +1239,13 @@ def _snuba_query(
                         snuba_request.forward,
                         snuba_request.reverse,
                     )
+                elif isinstance(request.query, DeleteQuery):
+                    return (
+                        referrer,
+                        _raw_delete_query(request, headers),
+                        snuba_request.forward,
+                        snuba_request.reverse,
+                    )
 
                 return (
                     referrer,
@@ -1251,6 +1255,29 @@ def _snuba_query(
                 )
             except urllib3.exceptions.HTTPError as err:
                 raise SnubaError(err)
+
+
+def _raw_delete_query(
+    request: Request, headers: Mapping[str, str]
+) -> urllib3.response.HTTPResponse:
+    query = request.query
+    if not isinstance(query, DeleteQuery):
+        raise ValueError(
+            f"Expected request to contain a DeleteQuery but it was of type {type(request.query)}"
+        )
+
+    # Enter hub such that http spans are properly nested
+    with timer("delete_query"):
+        referrer = headers.get("referer", "unknown")
+        with sentry_sdk.start_span(op="snuba_delete.validation", description=referrer) as span:
+            span.set_tag("snuba.referrer", referrer)
+            body = request.serialize()
+
+        with sentry_sdk.start_span(op="snuba_delete.run", description=body) as span:
+            span.set_tag("snuba.referrer", referrer)
+            return _snuba_pool.urlopen(
+                "DELETE", f"/{query.storage_name}", body=body, headers=headers
+            )
 
 
 def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:

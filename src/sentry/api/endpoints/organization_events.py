@@ -126,6 +126,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -386,9 +387,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("forbidden_referrer", referrer)
+                sentry_sdk.capture_message(
+                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            query_source = self.get_request_source(request)
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
@@ -409,6 +416,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         @sentry_sdk.tracing.trace

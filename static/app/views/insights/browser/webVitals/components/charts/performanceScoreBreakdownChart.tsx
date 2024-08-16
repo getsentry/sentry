@@ -15,9 +15,11 @@ import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webV
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
+  subregions?: SubregionCode[];
   transaction?: string;
 };
 
@@ -43,14 +45,18 @@ export const formatTimeSeriesResultsToChartData = (
   });
 };
 
-export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Props) {
+export function PerformanceScoreBreakdownChart({
+  transaction,
+  browserTypes,
+  subregions,
+}: Props) {
   const theme = useTheme();
   const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
