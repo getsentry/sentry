@@ -36,16 +36,19 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DatasetSource,
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -74,6 +77,7 @@ import {addRoutePerformanceContext} from '../performance/utils';
 import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
 import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
+import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
 import {SampleDataAlert} from './sampleDataAlert';
 import Table from './table';
 import Tags from './tags';
@@ -677,6 +681,52 @@ export class Results extends Component<Props, State> {
     });
   };
 
+  renderSearchBar(customMeasurements: CustomMeasurementCollection | undefined) {
+    const {organization} = this.props;
+    const {eventView} = this.state;
+    const fields = eventView.hasAggregateField()
+      ? generateAggregateFields(organization, eventView.fields)
+      : eventView.fields;
+
+    if (organization.features.includes('search-query-builder-discover')) {
+      return (
+        <ResultsSearchQueryBuilder
+          projectIds={eventView.project}
+          query={eventView.query}
+          fields={fields}
+          onSearch={this.handleSearch}
+          customMeasurements={customMeasurements}
+          dataset={eventView.dataset}
+          includeTransactions
+        />
+      );
+    }
+
+    let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
+    if (hasDatasetSelector(organization)) {
+      savedSearchType =
+        eventView.dataset === DiscoverDatasets.TRANSACTIONS
+          ? SavedSearchType.TRANSACTION
+          : SavedSearchType.ERROR;
+    }
+
+    return (
+      <StyledSearchBar
+        searchSource="eventsv2"
+        organization={organization}
+        projectIds={eventView.project}
+        query={eventView.query}
+        fields={fields}
+        onSearch={this.handleSearch}
+        maxQueryLength={MAX_QUERY_LENGTH}
+        customMeasurements={customMeasurements}
+        dataset={eventView.dataset}
+        includeTransactions
+        savedSearchType={savedSearchType}
+      />
+    );
+  }
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -691,10 +741,6 @@ export class Results extends Component<Props, State> {
       splitDecision,
       savedQueryDataset,
     } = this.state;
-    const fields = eventView.hasAggregateField()
-      ? generateAggregateFields(organization, eventView.fields)
-      : eventView.fields;
-
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
 
     const query = eventView.query;
@@ -750,20 +796,9 @@ export class Results extends Component<Props, State> {
                   </PageFilterBar>
                 </Wrapper>
                 <CustomMeasurementsContext.Consumer>
-                  {contextValue => (
-                    <StyledSearchBar
-                      searchSource="eventsv2"
-                      organization={organization}
-                      projectIds={eventView.project}
-                      query={query}
-                      fields={fields}
-                      onSearch={this.handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
-                      customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      dataset={eventView.dataset}
-                      includeTransactions={hasDatasetSelectorFeature ? false : true}
-                    />
-                  )}
+                  {contextValue =>
+                    this.renderSearchBar(contextValue?.customMeasurements ?? undefined)
+                  }
                 </CustomMeasurementsContext.Consumer>
                 <MetricsCardinalityProvider
                   organization={organization}

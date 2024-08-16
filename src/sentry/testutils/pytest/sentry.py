@@ -365,7 +365,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
-    from sentry.models.options.user_option import UserOption
+    from sentry.users.models.user_option import UserOption
 
     OrganizationOption.objects.clear_local_cache()
     ProjectOption.objects.clear_local_cache()

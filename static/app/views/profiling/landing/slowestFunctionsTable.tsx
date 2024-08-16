@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {useProfilingFunctionMetrics} from 'sentry/utils/profiling/hooks/useProfilingFunctionMetrics';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -73,6 +74,9 @@ export function SlowestFunctionsTable() {
   }, [query.data?.metrics]);
 
   const pagination = useMemoryPagination(sortedMetrics, 5);
+  const [expandedFingerprint, setExpandedFingerprint] = useState<
+    Profiling.FunctionMetric['fingerprint'] | null
+  >(null);
 
   const projectsLookupTable = useMemo(() => {
     return projects.reduce(
@@ -92,7 +96,7 @@ export function SlowestFunctionsTable() {
         <ContentContainer>
           {query.isLoading && (
             <StatusContainer>
-              <LoadingIndicator />
+              <LoadingIndicator size={36} />
             </StatusContainer>
           )}
           {query.isError && (
@@ -118,6 +122,7 @@ export function SlowestFunctionsTable() {
                   <SlowestFunctionCell>{t('p99()')}</SlowestFunctionCell>
                   {/* @TODO remove sum before relasing */}
                   <SlowestFunctionCell>{t('Sum()')}</SlowestFunctionCell>
+                  <SlowestFunctionCell />
                 </SlowestFunctionHeader>
                 {sortedMetrics.slice(pagination.start, pagination.end).map((f, i) => {
                   return (
@@ -125,6 +130,8 @@ export function SlowestFunctionsTable() {
                       key={i}
                       function={f}
                       projectsLookupTable={projectsLookupTable}
+                      expanded={f.fingerprint === expandedFingerprint}
+                      onExpandClick={setExpandedFingerprint}
                     />
                   );
                 })}
@@ -154,7 +161,11 @@ export function SlowestFunctionsTable() {
 }
 
 interface SlowestFunctionProps {
+  expanded: boolean;
   function: NonNullable<Profiling.Schema['metrics']>[0];
+  onExpandClick: React.Dispatch<
+    React.SetStateAction<Profiling.FunctionMetric['fingerprint'] | null>
+  >;
   projectsLookupTable: Record<string, Project>;
 }
 
@@ -211,14 +222,24 @@ function SlowestFunction(props: SlowestFunctionProps) {
         {/* @TODO remove sum before relasing */}
         {getPerformanceDuration(props.function.sum / 1e6)}
       </SlowestFunctionCell>
+      <SlowestFunctionCell>
+        <Button
+          icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+          aria-label={t('View Function Metrics')}
+          onClick={() => props.onExpandClick(props.function.fingerprint)}
+          size="xs"
+        />
+      </SlowestFunctionCell>
+      {props.expanded ? <SlowestFunctionTimeSeries function={props.function} /> : null}
     </SlowestFunctionContainer>
   );
 }
 
 interface SlowestFunctionsProjectBadgeProps {
-  examples: NonNullable<Profiling.Schema['metrics']>[0]['examples'];
+  examples: Profiling.FunctionMetric['examples'];
   projectsLookupTable: Record<string, Project>;
 }
+
 function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) {
   const resolvedProjects = useMemo(() => {
     const projects: Project[] = [];
@@ -236,6 +257,34 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
   return resolvedProjects[0] ? (
     <ProjectBadge avatarSize={16} project={resolvedProjects[0]} />
   ) : null;
+}
+
+interface SlowestFunctionTimeSeriesProps {
+  function: Profiling.FunctionMetric;
+}
+
+function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
+  const projects = useMemo(() => {
+    const projectsMap = props.function.examples.reduce<Record<string, number>>(
+      (acc, f) => {
+        if (typeof f !== 'string' && 'project_id' in f) {
+          acc[f.project_id] = f.project_id;
+        }
+        return acc;
+      },
+      {}
+    );
+
+    return Object.values(projectsMap);
+  }, [props.function]);
+
+  useProfilingFunctionMetrics({
+    fingerprint: props.function.fingerprint,
+    projects,
+  });
+
+  // @TODO add chart
+  return null;
 }
 
 const SlowestFunctionsPaginationContainer = styled('div')`
@@ -270,7 +319,7 @@ const SlowestFunctionHeader = styled('div')`
 const SlowestFunctionsContainer = styled('div')`
   display: grid;
   grid-template-columns:
-    minmax(90px, auto) minmax(90px, auto) minmax(40px, 140px) min-content
+    minmax(90px, auto) minmax(90px, auto) minmax(40px, 140px) min-content min-content
     min-content min-content min-content min-content;
   border-collapse: collapse;
 `;

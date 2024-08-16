@@ -1,10 +1,10 @@
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
-import {fireEvent, render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSort} from 'sentry/views/explore/hooks/useSort';
+import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -33,7 +33,7 @@ describe('ExploreToolbar', function () {
     jest.spyOn(console, 'error').mockImplementation();
   });
 
-  it('allows changing results mode', function () {
+  it('allows changing results mode', async function () {
     let resultMode;
 
     function Component() {
@@ -51,12 +51,12 @@ describe('ExploreToolbar', function () {
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
 
-    fireEvent.click(aggregates);
+    await userEvent.click(aggregates);
     expect(samples).not.toBeChecked();
     expect(aggregates).toBeChecked();
     expect(resultMode).toEqual('aggregate');
 
-    fireEvent.click(samples);
+    await userEvent.click(samples);
     expect(samples).toBeChecked();
     expect(aggregates).not.toBeChecked();
     expect(resultMode).toEqual('samples');
@@ -65,11 +65,11 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing sort by', async function () {
-    let sort;
+    let sorts;
 
     function Component() {
       const [sampleFields] = useSampleFields();
-      [sort] = useSort({fields: sampleFields});
+      [sorts] = useSorts({fields: sampleFields});
       return <ExploreToolbar />;
     }
     renderWithRouter(Component);
@@ -79,7 +79,7 @@ describe('ExploreToolbar', function () {
     // this is the default
     expect(within(section).getByRole('button', {name: 'timestamp'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
-    expect(sort).toEqual({field: 'timestamp', direction: 'desc'});
+    expect(sorts).toEqual([{field: 'timestamp', kind: 'desc'}]);
 
     // check the default field options
     const fields = [
@@ -90,7 +90,7 @@ describe('ExploreToolbar', function () {
       'span.duration',
       'timestamp',
     ];
-    fireEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     const fieldOptions = await within(section).findAllByRole('option');
     expect(fieldOptions).toHaveLength(fields.length);
     fieldOptions.forEach((option, i) => {
@@ -98,22 +98,22 @@ describe('ExploreToolbar', function () {
     });
 
     // try changing the field
-    fireEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Descending'})).toBeInTheDocument();
-    expect(sort).toEqual({field: 'span.op', direction: 'desc'});
+    expect(sorts).toEqual([{field: 'span.op', kind: 'desc'}]);
 
-    // check the direction options
-    fireEvent.click(within(section).getByRole('button', {name: 'Descending'}));
-    const directionOptions = await within(section).findAllByRole('option');
-    expect(directionOptions).toHaveLength(2);
-    expect(directionOptions[0]).toHaveTextContent('Descending');
-    expect(directionOptions[1]).toHaveTextContent('Ascending');
+    // check the kind options
+    await userEvent.click(within(section).getByRole('button', {name: 'Descending'}));
+    const kindOptions = await within(section).findAllByRole('option');
+    expect(kindOptions).toHaveLength(2);
+    expect(kindOptions[0]).toHaveTextContent('Descending');
+    expect(kindOptions[1]).toHaveTextContent('Ascending');
 
-    // try changing the direction
-    fireEvent.click(within(section).getByRole('option', {name: 'Ascending'}));
+    // try changing the kind
+    await userEvent.click(within(section).getByRole('option', {name: 'Ascending'}));
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Ascending'})).toBeInTheDocument();
-    expect(sort).toEqual({field: 'span.op', direction: 'asc'});
+    expect(sorts).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 });
