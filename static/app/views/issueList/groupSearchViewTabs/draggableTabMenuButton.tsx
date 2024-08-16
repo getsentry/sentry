@@ -33,7 +33,6 @@ export function DraggableTabMenuButton({
         }}
         items={menuOptions}
         offset={[-10, 5]}
-        usePortal
       />
     </TriggerIconWrap>
   );

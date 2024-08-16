@@ -53,7 +53,7 @@ export interface BaseTabProps {
   tabProps: DOMAttributes<FocusableElement>;
   /**
    * This controls the border style of the tab. Only active when
-   * `variant='filled'` since other variants do not have a border
+   * `variant=filled` since other variants do not have a border
    */
   borderStyle?: 'solid' | 'dashed';
   to?: string;

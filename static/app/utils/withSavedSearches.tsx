@@ -24,13 +24,9 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
     props: Omit<P, keyof InjectedSavedSearchesProps> & Partial<InjectedSavedSearchesProps>
   ) {
     const organization = useOrganization();
-    const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg(
-      {
-        orgSlug: organization.slug,
-      },
-      {enabled: !organization.features.includes('issue-stream-custom-views')}
-    );
-
+    const {data: savedSearches, isLoading} = useFetchSavedSearchesForOrg({
+      orgSlug: organization.slug,
+    });
     const params = useParams();
     const selectedSavedSearch = useSelectedSavedSearch();
 
@@ -38,10 +34,7 @@ function withSavedSearches<P extends InjectedSavedSearchesProps>(
       <WrappedComponent
         {...(props as P)}
         savedSearches={props.savedSearches ?? savedSearches}
-        savedSearchLoading={
-          !organization.features.includes('issue-stream-custom-views') &&
-          (props.savedSearchLoading ?? isLoading)
-        }
+        savedSearchLoading={props.savedSearchLoading ?? isLoading}
         savedSearch={props.savedSearch ?? selectedSavedSearch}
         selectedSearchId={params.searchId ?? null}
       />
