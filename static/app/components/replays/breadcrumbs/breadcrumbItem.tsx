@@ -1,9 +1,10 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties} from 'react';
 import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,6 +14,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -21,18 +23,22 @@ import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
   FeedbackFrame,
   HydrationErrorFrame,
   ReplayFrame,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
+  isSpanFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,11 +53,7 @@ const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (
-    path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
-  ) => void;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -105,15 +107,31 @@ function BreadcrumbItem({
     ) : null;
   }, [frame, replay]);
 
-  const renderCodeSnippet = useCallback(() => {
-    return extraction?.html ? (
-      <CodeContainer>
-        <CodeSnippet language="html" hideCopyButton>
-          {beautify.html(extraction?.html, {indent_size: 2})}
-        </CodeSnippet>
-      </CodeContainer>
+  const renderWebVital = useCallback(() => {
+    return isSpanFrame(frame) && isWebVitalFrame(frame) ? (
+      <WebVitalData
+        replay={replay}
+        frame={frame}
+        expandPaths={expandPaths}
+        onInspectorExpanded={onInspectorExpanded}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      />
     ) : null;
-  }, [extraction?.html]);
+  }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
+
+  const renderCodeSnippet = useCallback(() => {
+    return (!isSpanFrame(frame) || (isSpanFrame(frame) && !isWebVitalFrame(frame))) &&
+      extraction?.html
+      ? extraction?.html.map(html => (
+          <CodeContainer key={html}>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ))
+      : null;
+  }, [extraction?.html, frame]);
 
   const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
@@ -150,6 +168,7 @@ function BreadcrumbItem({
         <ErrorBoundary mini>
           {renderDescription()}
           {renderComparisonButton()}
+          {renderWebVital()}
           {renderCodeSnippet()}
           {renderIssueLink()}
         </ErrorBoundary>
@@ -184,12 +203,68 @@ function BreadcrumbItem({
             {renderDescription()}
           </Flex>
           {renderComparisonButton()}
+          {renderWebVital()}
           {renderCodeSnippet()}
           {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
   );
+}
+
+function WebVitalData({
+  replay,
+  frame,
+  expandPaths,
+  onInspectorExpanded,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  expandPaths: string[] | undefined;
+  frame: WebVitalFrame;
+  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onMouseEnter: MouseCallback;
+  onMouseLeave: MouseCallback;
+  replay: ReplayReader | null;
+}) {
+  const {data: frameToExtraction} = useExtractDomNodes({replay});
+  const selectors = frameToExtraction?.get(frame)?.selector;
+  const webVitalData = selectors?.length
+    ? {
+        value: frame.data.value,
+        element: (
+          <span>
+            {selectors.map(selector => {
+              return (
+                <span
+                  key={selector}
+                  onMouseEnter={e => onMouseEnter(frame, e)}
+                  onMouseLeave={e => onMouseLeave(frame, e)}
+                >
+                  <ValueObjectKey>{'element'}</ValueObjectKey>
+                  <span>{': '}</span>
+                  <SelectorButton>{selector}</SelectorButton>
+                </span>
+              );
+            })}
+          </span>
+        ),
+      }
+    : null;
+
+  return webVitalData ? (
+    <StructuredEventData
+      initialExpandedPaths={expandPaths ?? []}
+      onToggleExpand={(expandedPaths, path) => {
+        onInspectorExpanded(
+          path,
+          Object.fromEntries(expandedPaths.map(item => [item, true]))
+        );
+      }}
+      data={webVitalData}
+      withAnnotatedText
+    />
+  ) : null;
 }
 
 function CrumbHydrationButton({
@@ -379,6 +454,23 @@ const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
   overflow: auto;
+  background: ${p => p.theme.red100};
+`;
+
+const ValueObjectKey = styled('span')`
+  color: var(--prism-keyword);
+`;
+
+const SelectorButton = styled(Button)`
+  background: none;
+  border: none;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  box-shadow: none;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin: 0 ${space(0.5)};
 `;
 
 export default memo(BreadcrumbItem);

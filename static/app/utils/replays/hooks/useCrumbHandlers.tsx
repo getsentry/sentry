@@ -36,7 +36,10 @@ function getNodeIdAndLabel(record: RecordType) {
     };
   }
   if ('nodeId' in data) {
-    return {nodeId: data.nodeId, annotation: record.data.label};
+    return {nodeIds: [data.nodeId], annotation: record.data.label};
+  }
+  if ('nodeIds' in data) {
+    return {nodeIds: data.nodeIds, annotation: record.data.label};
   }
   return undefined;
 }

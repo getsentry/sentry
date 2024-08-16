@@ -7,7 +7,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractHtml from 'sentry/utils/replays/extractHtml';
+import extractHtml, {extractSelectorFromNodeIds} from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -34,11 +34,12 @@ import type {
   SlowClickFrame,
   SpanFrame,
   VideoEvent,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
   EventType,
-  getNodeId,
+  getNodeIds,
   IncrementalSource,
   isDeadClick,
   isDeadRageClick,
@@ -144,16 +145,18 @@ function removeDuplicateNavCrumbs(
 
 const extractDomNodes = {
   shouldVisitFrame: frame => {
-    const nodeId = getNodeId(frame);
-    return nodeId !== undefined && nodeId !== -1;
+    const nodeIds = getNodeIds(frame);
+    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
   },
   onVisitFrame: (frame, collection, replayer) => {
     const mirror = replayer.getMirror();
-    const nodeId = getNodeId(frame);
-    const html = extractHtml(nodeId as number, mirror);
+    const nodeIds = getNodeIds(frame);
+    const html = extractHtml(nodeIds as number[], mirror);
+    const selector = extractSelectorFromNodeIds(nodeIds as number[], mirror);
     collection.set(frame as ReplayFrame, {
       frame,
       html,
+      selector,
       timestamp: frame.timestampMs,
     });
   },
@@ -576,7 +579,9 @@ export default class ReplayReader {
               )
           )
       ),
-      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+      ...this._sortedSpanFrames.filter(
+        frame => 'nodeId' in (frame.data ?? {}) || 'nodeIds' in (frame.data ?? {})
+      ),
     ].sort(sortFrames)
   );
 
@@ -628,7 +633,21 @@ export default class ReplayReader {
 
   getWebVitalFrames = memoize(() => {
     if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      return this._sortedSpanFrames.filter(isWebVitalFrame);
+      // sort by largest timestamp first to easily find the last CLS in a burst
+      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+      let lastTimestamp = 0;
+      const groupedCls: WebVitalFrame[] = [];
+
+      for (const cls of allWebVitals) {
+        if (cls.description === 'cumulative-layout-shift') {
+          if (lastTimestamp === cls.timestampMs) {
+            groupedCls.push(cls);
+          } else {
+            lastTimestamp = cls.timestampMs;
+          }
+        }
+      }
+      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
     }
     return [];
   });
