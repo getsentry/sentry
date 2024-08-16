@@ -31,10 +31,12 @@ from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
+from sentry.middleware import is_frontend_request
 from sentry.models.environment import Environment
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.snuba.query_sources import QuerySource
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -221,9 +223,11 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]] | Callable[
-        ..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-    ] = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: (
+        RateLimitConfig
+        | dict[str, dict[RateLimitCategory, RateLimit]]
+        | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
+    ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     snuba_methods: list[HTTP_METHOD_NAME] = []
 
@@ -581,6 +585,15 @@ class Endpoint(APIView):
         response = response_cls(results, **response_kwargs)
         self.add_cursor_headers(request, response, cursor_result)
         return response
+
+    def get_request_source(self, request: Request) -> QuerySource:
+        """
+        This is an estimate of query source. Treat it more like a good guess and
+        don't write logic that depends on it. Used for monitoring only atm.
+        """
+        if is_frontend_request(request):
+            return QuerySource.FRONTEND
+        return QuerySource.API
 
 
 class EnvironmentMixin:
