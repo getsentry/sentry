@@ -100,7 +100,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         {eventData ? (
           <TraceTimelineSection
             eventData={eventData}
-            hasLinkedError={!!crashReportId && !!feedbackItem.project}
+            crashReportId={crashReportId}
+            hasProject={!!feedbackItem.project}
           />
         ) : null}
 
@@ -133,25 +134,27 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
 function TraceTimelineSection({
   eventData,
-  hasLinkedError,
+  crashReportId,
+  hasProject,
 }: {
+  crashReportId: string | undefined;
   eventData: Event;
-  hasLinkedError: boolean;
+  hasProject: boolean;
 }) {
-  // If there's a linked error from a crash report and only one other issue, showing both would be redundant.
-  // We only want to show TraceTimelines (wrapped in TraceDataSection) for >1 issues.
+  // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
   // TODO: we could add a jest test .spec for this ^
+  // Note TraceDataSection only renders a TraceTimeline for >1 same-trace issues.
   const {oneOtherIssueEvent, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
-  const show: boolean =
-    !isLoading && !isError && (!oneOtherIssueEvent || !hasLinkedError);
+  const hide: boolean =
+    isLoading || isError || (hasProject && oneOtherIssueEvent?.id === crashReportId);
 
-  return show ? (
+  return hide ? null : (
     <Section icon={<IconIssues size="xs" />} title={t('Trace Timeline')}>
       <TraceDataSection event={eventData} />
     </Section>
-  ) : null;
+  );
 }
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.
