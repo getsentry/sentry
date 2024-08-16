@@ -61,7 +61,7 @@ def make_eap_request(
 
     aggregate_map = {
         "sum": AggregateBucketRequest.FUNCTION_SUM,
-        "avg": AggregateBucketRequest.FUNCTION_AVG,
+        "avg": AggregateBucketRequest.FUNCTION_AVERAGE,
         "p50": AggregateBucketRequest.FUNCTION_P50,
         "p95": AggregateBucketRequest.FUNCTION_P95,
         "P99": AggregateBucketRequest.FUNCTION_P99,
@@ -76,7 +76,7 @@ def make_eap_request(
     req = AggregateBucketRequest(
         meta=RequestMeta(
             organization_id=organization.id,
-            cogs_category="eap",
+            cogs_category="events_analytics_platform",
             referrer=referrer,
             project_ids=[project.id for project in projects],
         ),
@@ -84,6 +84,8 @@ def make_eap_request(
         end_timestamp=end_time_proto,
         aggregate=aggregate_map[ts.aggregate],
         filter=rpc_filters,
+        granularity_secs=interval,
+        metric_name=ts.metric.mri.split("/")[1].split("@")[0],
     )
     http_resp = requests.post(f"{settings.SENTRY_SNUBA}/timeseries", data=req.SerializeToString())
     http_resp.raise_for_status()
