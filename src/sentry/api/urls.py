@@ -263,9 +263,18 @@ from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEnd
 from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_avatar import UserAvatarEndpoint
 from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
 from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
 from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from sentry.users.api.endpoints.user_identity import UserIdentityEndpoint
+from sentry.users.api.endpoints.user_identity_config import (
+    UserIdentityConfigDetailsEndpoint,
+    UserIdentityConfigEndpoint,
+)
+from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
+from sentry.users.api.endpoints.user_index import UserIndexEndpoint
+from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -283,11 +292,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.avatar import (
-    OrganizationAvatarEndpoint,
-    SentryAppAvatarEndpoint,
-    UserAvatarEndpoint,
-)
+from .endpoints.avatar import OrganizationAvatarEndpoint, SentryAppAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -645,14 +650,6 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
-from .endpoints.user_identity import UserIdentityEndpoint
-from .endpoints.user_identity_config import (
-    UserIdentityConfigDetailsEndpoint,
-    UserIdentityConfigEndpoint,
-)
-from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
-from .endpoints.user_index import UserIndexEndpoint
-from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_email import UserNotificationEmailEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
