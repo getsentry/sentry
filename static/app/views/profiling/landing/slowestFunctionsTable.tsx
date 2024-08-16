@@ -2,10 +2,11 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {clamp} from 'lodash';
+import moment from 'moment';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {LineChart, type LineChartProps} from 'sentry/components/charts/lineChart';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -280,6 +281,21 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
   ) : null;
 }
 
+const METRICS_CHART_OPTIONS: Partial<LineChartProps> = {
+  tooltip: {
+    valueFormatter: (value: number) => {
+      return formatAbbreviatedNumber(value);
+    },
+    formatAxisLabel: (value: number) => {
+      return moment(value * 1e3).format('YYYY-MM-DDTHH:mm:ss.SSS');
+    },
+  },
+  xAxis: {
+    show: true,
+    type: 'time',
+  },
+};
+
 interface SlowestFunctionTimeSeriesProps {
   function: Profiling.FunctionMetric;
   projectsLookupTable: Record<string, Project>;
@@ -379,7 +395,9 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
             </EmptyStateWarning>
           </TableStatusContainer>
         )}
-        {metrics.isFetched && series.length > 0 ? <LineChart series={series} /> : null}
+        {metrics.isFetched && series.length > 0 ? (
+          <LineChart {...METRICS_CHART_OPTIONS} series={series} />
+        ) : null}
       </SlowestFunctionsChartContainer>
       <SlowestFunctionsRowSpacer>
         <SlowestFunctionsRowSpacerCell />
