@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 
@@ -281,9 +282,13 @@ describe('SuspectCommits', function () {
         {organization}
       );
       expect(
-        await screen.findByText('feat: Enhance suggested commits and add to alerts')
+        await screen.findByText(
+          textWithMarkupMatcher('feat: Enhance suggested commits and add to alerts')
+        )
       ).toBeInTheDocument();
-      expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
+      expect(
+        await screen.findByText(textWithMarkupMatcher('fix: Make things less broken'))
+      ).toBeInTheDocument();
       expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
     });
   });
