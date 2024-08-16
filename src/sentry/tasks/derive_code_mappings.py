@@ -66,7 +66,6 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     logger.error(
         "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
         extra=extra,
-        level="info",
     )
 
 
@@ -128,9 +127,7 @@ def derive_code_mappings(
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         return
     except Exception:
-        logger.exception(
-            "Unexpected error type while calling `get_trees_for_org()`.", extra=extra, level="info"
-        )
+        logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
         return
 
     if not trees:
@@ -158,7 +155,7 @@ def identify_stacktrace_paths(data: NodeData) -> list[str]:
             }
             stacktrace_paths.update(paths)
         except Exception:
-            logger.exception("Error getting filenames for project.", level="info")
+            logger.exception("Error getting filenames for project.")
     return list(stacktrace_paths)
 
 

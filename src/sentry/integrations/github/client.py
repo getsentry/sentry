@@ -427,9 +427,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.error(
-                "Continuing execution. Investigate: %s", error_message, extra=extra, level="info"
-            )
+            logger.error("Continuing execution. Investigate: %s", error_message, extra=extra)
 
         return should_count_error
 
@@ -450,9 +448,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         except ApiError:
             only_use_cache = True
             # Report so we can investigate
-            logger.exception(
-                "Loading trees from cache. Execution will continue. Check logs.", level="info"
-            )
+            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -480,9 +476,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
-                    "Failed to populate_tree. Investigate. Contining execution.",
-                    extra=extra,
-                    level="info",
+                    "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
 
             if connection_error_count >= MAX_CONNECTION_ERRORS:
