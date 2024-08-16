@@ -116,7 +116,6 @@ describe('UpdatedGroupHeader', () => {
 
       expect(screen.getByText('Participants')).toBeInTheDocument();
       expect(screen.getByText('Viewers')).toBeInTheDocument();
-      expect(screen.getByText('Viewers')).toBeInTheDocument();
 
       expect(
         screen.queryByRole('button', {name: 'Switch to the old issue experience'})
