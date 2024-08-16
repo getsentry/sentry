@@ -12,9 +12,9 @@ export default storyBook(AutoSizedText, story => {
       <Fragment>
         <p>
           <JSXNode name="AutoSizedText" /> is a helper component that automatically sizes
-          a piece of text against its parent. It iteratively measures the size of the
-          parent element, and chooses a font size for the child element to fit it
-          perfectly (within reason) inside the parent. For example:
+          a piece of text (single line only!) against its parent. It iteratively measures
+          the size of the parent element, and chooses a font size for the child element to
+          fit it perfectly (within reason) inside the parent. For example:
         </p>
 
         <SmallSizingWindow>
@@ -49,10 +49,10 @@ export default storyBook(AutoSizedText, story => {
               <strong>
                 <code>maximumDifference</code>
               </strong>
-              : An integer value for the maximum acceptable difference in dimensions of
-              the child and parent. Set this as tight as you need it, but the higher this
-              tolerance the more iteration loops the component runs, and the longer the
-              fit takes.
+              : An integer value for the maximum acceptable difference (in pixels) in
+              dimensions of the child and parent. Set this as tight as you need it, but
+              the tighter this tolerance the more iteration loops the component runs, and
+              the longer the fit takes.
             </li>
           </ul>
         </p>
