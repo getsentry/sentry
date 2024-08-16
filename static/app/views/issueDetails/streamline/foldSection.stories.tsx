@@ -13,7 +13,7 @@ export default storyBook('FoldSection', story => {
     <Fragment>
       <CodeSnippet language="jsx">
         {`import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/section';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 <FoldSection title="My Section" sectionKey={SectionKey.MY_SECTION}>
   <MySectionComponent />
