@@ -25,6 +25,14 @@ function defaultInvite(): InviteRow {
   };
 }
 
+function canInvite(organization: Organization) {
+  return (
+    organization.access?.includes('member:write') ||
+    (organization.features.includes('members-invite-teammates') &&
+      organization.allowMemberInvite)
+  );
+}
+
 function useLogInviteModalOpened({
   organization,
   sessionId,
@@ -38,10 +46,7 @@ function useLogInviteModalOpened({
     trackAnalytics('invite_modal.opened', {
       organization,
       modal_session: sessionId,
-      can_invite:
-        organization.access?.includes('member:write') ||
-        (organization.features.includes('members-invite-teammates') &&
-          organization.allowMemberInvite),
+      can_invite: canInvite(organization),
       source,
     });
   }, [organization, sessionId, source]);
@@ -49,10 +54,7 @@ function useLogInviteModalOpened({
 
 export default function useInviteModal({organization, initialData, source}: Props) {
   const api = useApi();
-  const willInvite =
-    organization.access?.includes('member:write') ||
-    (organization.features.includes('members-invite-teammates') &&
-      organization.allowMemberInvite);
+  const willInvite = canInvite(organization);
 
   /**
    * Used for analytics tracking of the modals usage.

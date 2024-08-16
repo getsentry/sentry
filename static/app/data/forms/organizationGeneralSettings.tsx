@@ -88,7 +88,7 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'openMembership',
         type: 'boolean',
-        label: t('Open Membership'),
+        label: t('Open Team Membership'),
         help: t('Allow organization members to freely join any team'),
       },
       {
