@@ -345,8 +345,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Integrations
-/src/sentry/api/endpoints/integrations/                              @getsentry/product-owners-settings-integrations
-/src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
@@ -362,14 +360,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
 
-/src/sentry/models/externalactor.py                                  @getsentry/ecosystem
-/src/sentry/models/externalissue.py                                  @getsentry/ecosystem
 /src/sentry/models/identity.py                                       @getsentry/enterprise
-/src/sentry/models/integrations/                                     @getsentry/product-owners-settings-integrations
 
 /src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
 /src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
-/src/sentry/tasks/integrations/                                      @getsentry/ecosystem
 /src/sentry/tasks/user_report.py                                     @getsentry/alerts-notifications
 /src/sentry/tasks/weekly_reports.py                                  @getsentry/alerts-notifications
 
