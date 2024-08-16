@@ -16,7 +16,6 @@ type Config = {
   isNumber?: (value: unknown) => boolean;
   isString?: (value: unknown) => boolean;
   renderBoolean?: (value: unknown) => React.ReactNode;
-  renderHighlight?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
   renderString?: (value: string) => string;
