@@ -68,14 +68,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-        # Assert project option is not set for non-EA organizations
-        assert (
-            ProjectOption.objects.get_value(
-                project=project, key="sentry:similarity_backfill_completed"
-            )
-            is None
-        )
-
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,

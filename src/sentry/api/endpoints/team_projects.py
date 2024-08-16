@@ -6,7 +6,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
@@ -218,14 +218,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 sender=self,
             )
 
-            # Create project option to turn on ML similarity feature for new EA projects
-            is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
-            if (
-                hasattr(project.organization, "flags")
-                and project.organization.flags.early_adopter
-                and is_seer_eligible_platform
-                and options.get("similarity.new_project_seer_grouping.enabled")
-            ):
+            # Create project option to turn on ML similarity feature for new projects
+            if project.platform in SEER_ELIGIBLE_PLATFORMS:
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return Response(serialize(project, request.user), status=201)
