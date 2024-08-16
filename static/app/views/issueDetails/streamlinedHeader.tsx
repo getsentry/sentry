@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
@@ -23,6 +22,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';

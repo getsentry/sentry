@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const DEFAULT_SIZE = '13px';
