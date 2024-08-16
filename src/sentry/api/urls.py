@@ -259,6 +259,13 @@ from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
+from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
+from sentry.users.api.endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
+from sentry.users.api.endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
+from sentry.users.api.endpoints.user_details import UserDetailsEndpoint
+from sentry.users.api.endpoints.user_emails import UserEmailsEndpoint
+from sentry.users.api.endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -276,7 +283,6 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
     OrganizationAvatarEndpoint,
     SentryAppAvatarEndpoint,
@@ -639,12 +645,6 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
-from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
-from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
-from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
-from .endpoints.user_details import UserDetailsEndpoint
-from .endpoints.user_emails import UserEmailsEndpoint
-from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
 from .endpoints.user_identity import UserIdentityEndpoint
 from .endpoints.user_identity_config import (
     UserIdentityConfigDetailsEndpoint,

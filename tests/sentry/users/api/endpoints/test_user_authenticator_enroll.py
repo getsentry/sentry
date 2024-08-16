@@ -20,7 +20,9 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.useremail import UserEmail
-from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
+from tests.sentry.users.api.endpoints.test_user_authenticator_details import (
+    assert_security_email_sent,
+)
 
 
 @control_silo_test
