@@ -357,7 +357,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         # Azure does not support updating comments.
         pass
 
-    def search_issues(self, query: str | None, **kwargs):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         client = self.get_client()
 
         integration = integration_service.get_integration(
@@ -366,4 +366,6 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         if not integration:
             raise IntegrationError("Azure DevOps integration not found")
 
-        return client.search_issues(query=query, account_name=integration.name)
+        resp = client.search_issues(query=query, account_name=integration.name)
+        assert isinstance(resp, dict)
+        return resp
