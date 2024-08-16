@@ -19,6 +19,7 @@ logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
 SLEEP_FOR = 5 * 60  # 5 minutes
+MAX_NOOP_ATTEMPTS = 10
 RATE_LIMIT_CACHE = LRUCache(maxsize=1000)
 
 
@@ -164,7 +165,7 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
         return
 
     consecutive_noop_attempts = 0
-    while True:
+    while consecutive_noop_attempts <= MAX_NOOP_ATTEMPTS:
         try:
             _split_discover_query_dataset(dry_run)
 
