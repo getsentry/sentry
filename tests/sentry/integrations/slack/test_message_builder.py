@@ -1169,14 +1169,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()
         title = f"Resolved: {alert_rule.name}"
-        link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
-                },
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
             )
+            + f"?detection_type={alert_rule.detection_type}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
             "color": LEVEL_TO_COLOR["_incident_resolved"],
@@ -1209,7 +1212,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}"
+            + f"?detection_type={alert_rule.detection_type}&alert={incident.identifier}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
             "color": LEVEL_TO_COLOR["_incident_resolved"],
@@ -1232,14 +1235,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
-                },
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
             )
+            + f"?detection_type={alert_rule.detection_type}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
             "color": LEVEL_TO_COLOR["fatal"],
@@ -1265,14 +1271,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
-                },
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
             )
+            + f"?detection_type={alert_rule.detection_type}&alert={incident.identifier}"
         )
         assert SlackMetricAlertMessageBuilder(
             alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
@@ -1281,7 +1290,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
+                        "text": f"<{link}|*{title}*>  \n"
                         f"{metric_value} events in the last 10 minutes",
                         "type": "mrkdwn",
                     },
@@ -1293,14 +1302,17 @@ class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_chart(self):
         alert_rule = self.create_alert_rule()
         title = f"Resolved: {alert_rule.name}"
-        link = absolute_uri(
-            reverse(
-                "sentry-metric-alert-details",
-                kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
-                },
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
             )
+            + f"?detection_type={alert_rule.detection_type}"
         )
         assert SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart_url").build() == {
             "color": LEVEL_TO_COLOR["_incident_resolved"],
@@ -1313,6 +1325,49 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     "type": "section",
                 },
                 {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
+            ],
+        }
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule, alert_threshold=0)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Critical: {alert_rule.name}"
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?detection_type={alert_rule.detection_type}"
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
+            "color": LEVEL_TO_COLOR["fatal"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n0 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
             ],
         }
 
