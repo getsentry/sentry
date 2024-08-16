@@ -20,17 +20,19 @@ function EditableTabTitle({
   const isEmpty = !inputValue.trim();
 
   const handleOnBlur = () => {
+    const trimmedInputValue = inputValue.trim();
     if (!isEditing) {
       return;
     }
     if (isEmpty) {
       setInputValue(label);
+      setIsEditing(false);
       return;
     }
-    if (inputValue !== label) {
-      onChange(inputValue);
+    if (trimmedInputValue !== label) {
+      onChange(trimmedInputValue);
+      setInputValue(trimmedInputValue);
     }
-
     setIsEditing(false);
   };
 
@@ -39,7 +41,7 @@ function EditableTabTitle({
       handleOnBlur();
     }
     if (e.key === 'Escape') {
-      setInputValue(label);
+      setInputValue(label.trim());
       setIsEditing(false);
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
@@ -48,9 +50,11 @@ function EditableTabTitle({
   };
 
   useEffect(() => {
-    setTimeout(() => {
-      inputRef?.current?.focus();
-    }, 0);
+    if (isEditing) {
+      setTimeout(() => {
+        inputRef?.current?.focus();
+      }, 0);
+    }
   }, [isEditing, inputRef]);
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +63,6 @@ function EditableTabTitle({
 
   return isEditing ? (
     <StyledGrowingInput
-      type="text"
       value={inputValue}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
@@ -67,7 +70,7 @@ function EditableTabTitle({
       ref={inputRef}
     />
   ) : (
-    <div style={{height: '20px'}}>{label}</div>
+    <div style={{height: '20px'}}> {label}</div>
   );
 }
 
@@ -79,6 +82,8 @@ const StyledGrowingInput = styled(GrowingInput)`
   background: transparent;
   min-height: 0px;
   height: 20px;
+  cursor: pointer;
+  border-radius: 0px;
 
   &,
   &:focus,
