@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import ParamsType
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
@@ -88,16 +88,17 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         project_id.append(project.id)
         project_objects.append(project)
 
-    params = SnubaParams(
-        start=rule.start_date,
-        end=rule.end_date,
-        projects=project_objects,
-        organization=rule.organization,
-    )
+    params: ParamsType = {
+        "start": rule.start_date,
+        "end": rule.end_date,
+        "project_id": project_id,
+        "project_objects": project_objects,
+        "organization_id": rule.organization.id,
+    }
 
     result = discover.query(
         selected_columns=["count()"],
-        snuba_params=params,
+        params=params,
         query=rule.query if rule.query is not None else "",
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )

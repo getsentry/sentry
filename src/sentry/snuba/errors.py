@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from datetime import timedelta
 from typing import cast
 
@@ -15,7 +16,7 @@ from sentry.search.events.builder.errors import (
     ErrorsTopEventsQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -33,7 +34,8 @@ logger = logging.getLogger(__name__)
 def query(
     selected_columns,
     query,
-    snuba_params,
+    params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -61,7 +63,7 @@ def query(
 
     builder = ErrorsQueryBuilder(
         Dataset.Events,
-        params={},
+        params,
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -92,8 +94,9 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -106,12 +109,15 @@ def timeseries_query(
     query_source: QuerySource | None = None,
 ):
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
-            params={},
-            interval=rollup,
+            params,
+            rollup,
             snuba_params=snuba_params,
             query=query,
             selected_columns=columns,
@@ -126,9 +132,9 @@ def timeseries_query(
         if comparison_delta:
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = snuba_params.copy()
-            comp_query_params.start -= comparison_delta
-            comp_query_params.end -= comparison_delta
+            comp_query_params = deepcopy(params)
+            comp_query_params["start"] -= comparison_delta
+            comp_query_params["end"] -= comparison_delta
             comparison_builder = ErrorsTimeseriesQueryBuilder(
                 Dataset.Events,
                 comp_query_params,
@@ -187,8 +193,8 @@ def timeseries_query(
                 }
             },
         },
-        snuba_params.start_date,
-        snuba_params.end_date,
+        params["start"],
+        params["end"],
         rollup,
     )
 
@@ -197,11 +203,12 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    snuba_params: SnubaParams,
+    params: ParamsType,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -236,11 +243,15 @@ def top_events_timeseries(
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
     """
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         with sentry_sdk.start_span(op="discover.errors", description="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
+                params=params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -255,9 +266,9 @@ def top_events_timeseries(
 
     top_events_builder = ErrorsTopEventsQueryBuilder(
         Dataset.Events,
-        params={},
-        interval=rollup,
-        top_events=top_events["data"],
+        params,
+        rollup,
+        top_events["data"],
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -272,9 +283,9 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = ErrorsTopEventsQueryBuilder(
             Dataset.Events,
-            params={},
-            interval=rollup,
-            top_events=top_events["data"],
+            params,
+            rollup,
+            top_events["data"],
             other=True,
             query=user_query,
             selected_columns=selected_columns,
@@ -298,13 +309,13 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    zerofill([], snuba_params.start_date, snuba_params.end_date, rollup, ["time"])
+                    zerofill([], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else []
                 ),
             },
-            snuba_params.start_date,
-            snuba_params.end_date,
+            params["start"],
+            params["end"],
             rollup,
         )
     with sentry_sdk.start_span(
@@ -317,7 +328,7 @@ def top_events_timeseries(
         if "issue" in selected_columns:
             issues = Group.objects.get_issues_mapping(
                 {cast(int, event["issue.id"]) for event in top_events["data"]},
-                snuba_params.project_ids,
+                params["project_id"],
                 organization,
             )
         translated_groupby = top_events_builder.translated_groupby
@@ -346,20 +357,14 @@ def top_events_timeseries(
             top_events_results[key] = SnubaTSResult(
                 {
                     "data": (
-                        zerofill(
-                            item["data"],
-                            snuba_params.start_date,
-                            snuba_params.end_date,
-                            rollup,
-                            ["time"],
-                        )
+                        zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
                         if zerofill_results
                         else item["data"]
                     ),
                     "order": item["order"],
                 },
-                snuba_params.start_date,
-                snuba_params.end_date,
+                params["start"],
+                params["end"],
                 rollup,
             )
 

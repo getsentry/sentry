@@ -199,6 +199,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
             transaction_count_query = metrics_query(
                 ["count()"],
                 f'event.type:transaction transaction:"{transaction_name}"',
+                params={},
                 referrer=BASE_REFERRER,
                 snuba_params=snuba_params,
             )

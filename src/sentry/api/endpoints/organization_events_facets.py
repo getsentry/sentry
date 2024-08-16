@@ -36,6 +36,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 with handle_query_errors():
                     facets = discover.get_facets(
                         query=request.GET.get("query"),
+                        params={},
                         snuba_params=snuba_params,
                         referrer="api.organization-events-facets.top-tags",
                         per_page=limit,

@@ -102,7 +102,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
                 discover_query=query_info,
-                organization=organization,
+                organization_id=organization.id,
             )
             try:
                 query_builder_cls = DiscoverQueryBuilder
@@ -111,8 +111,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
                 builder = query_builder_cls(
                     SUPPORTED_DATASETS[dataset],
-                    params={},
-                    snuba_params=processor.snuba_params,
+                    processor.params,
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
