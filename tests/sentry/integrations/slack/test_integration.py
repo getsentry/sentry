@@ -14,9 +14,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 
 
 @control_silo_test

@@ -8,8 +8,8 @@ from typing import Any
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.identity import Identity
 from sentry.models.repository import Repository
+from sentry.users.models.identity import Identity
 
 
 @dataclass

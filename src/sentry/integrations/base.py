@@ -20,7 +20,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -42,6 +41,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     UnsupportedResponseType,
 )
+from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.sdk import Scope
 

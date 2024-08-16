@@ -11,7 +11,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.DELETION_IN_PROGRESS, ObjectStatus.PENDING_DELETION}
 
     def get_child_relations(self, instance):
-        from sentry.models.identity import Identity
+        from sentry.users.models.identity import Identity
 
         relations = []
 
