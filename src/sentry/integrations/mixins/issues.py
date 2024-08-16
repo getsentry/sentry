@@ -84,12 +84,14 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return "\n\n".join(result)
 
     def get_feedback_issue_body(self, event: GroupEvent) -> str:
-        messages = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
-        ]
-        others = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
-        ]
+        messages = []
+        others = []
+        if event.occurrence:
+            for evidence in event.occurrence.evidence_display:
+                if evidence.name == "message":
+                    messages.append(evidence)
+                else:
+                    others.append(evidence)
 
         body = ""
         for message in messages:
