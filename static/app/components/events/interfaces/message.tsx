@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
@@ -58,7 +58,7 @@ export function Message({data, event}: Props) {
     : null;
 
   return (
-    <InterimSection title={t('Message')} type={FoldSectionKey.MESSAGE}>
+    <InterimSection title={t('Message')} type={SectionKey.MESSAGE}>
       <pre className="plain">
         {<AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />}
       </pre>

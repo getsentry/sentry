@@ -221,6 +221,7 @@ const TitleHeading = styled('div')`
 const StyledBreak = styled('hr')`
   margin-top: ${space(2)};
   margin-bottom: 0;
+  margin-right: 0;
   border-color: ${p => p.theme.border};
 `;
 
