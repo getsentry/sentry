@@ -1,4 +1,4 @@
-import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
+import {type CSSProperties, forwardRef, Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -48,10 +48,10 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     preventCollapse = false,
     ...props
   },
-  ref
+  forwardedRef
 ) {
   const organization = useOrganization();
-  const {sectionData, dispatch} = useEventDetails();
+  const {sectionData, navScrollMargin, dispatch} = useEventDetails();
   // Does not control open/close state. Controls what state is persisted to local storage
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
@@ -81,40 +81,58 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   );
 
   return (
-    <Section {...props} ref={ref} id={sectionKey}>
-      <SectionExpander
-        preventCollapse={preventCollapse}
-        onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
+    <Fragment>
+      <Section
+        {...props}
+        ref={forwardedRef}
+        id={sectionKey}
+        scrollMargin={navScrollMargin ?? 0}
       >
-        <InteractionStateLayer
-          hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
-        />
-        <TitleWithActions>
-          <TitleWrapper>{title}</TitleWrapper>
-          {!preventCollapse && !isCollapsed && (
-            <div
-              onClick={e => e.stopPropagation()}
-              onMouseEnter={() => setIsLayerEnabled(false)}
-              onMouseLeave={() => setIsLayerEnabled(true)}
-            >
-              {actions}
-            </div>
-          )}
-        </TitleWithActions>
-        <IconWrapper preventCollapse={preventCollapse}>
-          <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-        </IconWrapper>
-      </SectionExpander>
-      {isCollapsed ? null : (
-        <ErrorBoundary mini>
-          <Content>{children}</Content>
-        </ErrorBoundary>
-      )}
-    </Section>
+        <SectionExpander
+          preventCollapse={preventCollapse}
+          onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
+        >
+          <InteractionStateLayer
+            hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
+          />
+          <TitleWithActions>
+            <TitleWrapper>{title}</TitleWrapper>
+            {!preventCollapse && !isCollapsed && (
+              <div
+                onClick={e => e.stopPropagation()}
+                onMouseEnter={() => setIsLayerEnabled(false)}
+                onMouseLeave={() => setIsLayerEnabled(true)}
+              >
+                {actions}
+              </div>
+            )}
+          </TitleWithActions>
+          <IconWrapper preventCollapse={preventCollapse}>
+            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
+          </IconWrapper>
+        </SectionExpander>
+        {isCollapsed ? null : (
+          <ErrorBoundary mini>
+            <Content>{children}</Content>
+          </ErrorBoundary>
+        )}
+      </Section>
+      <SectionDivider />
+    </Fragment>
   );
 });
 
-export const Section = styled('section')``;
+export const SectionDivider = styled('hr')`
+  border-color: ${p => p.theme.translucentBorder};
+  margin: ${space(1)} 0;
+  &:last-child {
+    display: none;
+  }
+`;
+
+export const Section = styled('section')<{scrollMargin: number}>`
+  scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
+`;
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};

@@ -81,6 +81,7 @@ export interface EventDetailsState {
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
+  navScrollMargin?: number;
 }
 
 type UpdateSectionAction = {
@@ -89,7 +90,12 @@ type UpdateSectionAction = {
   config?: Partial<SectionConfig>;
 };
 
-export type EventDetailsActions = UpdateSectionAction;
+type UpdateDetailsAction = {
+  type: 'UPDATE_DETAILS';
+  state?: Omit<EventDetailsState, 'sectionData'>;
+};
+
+export type EventDetailsActions = UpdateSectionAction | UpdateDetailsAction;
 
 function updateSection(
   state: EventDetailsState,
@@ -121,6 +127,8 @@ export function useEventDetailsReducer() {
       switch (action.type) {
         case 'UPDATE_SECTION':
           return updateSection(state, action.key, action.config ?? {});
+        case 'UPDATE_DETAILS':
+          return {...state, ...action.state};
         default:
           return state;
       }

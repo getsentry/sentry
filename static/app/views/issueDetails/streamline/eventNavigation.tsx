@@ -332,10 +332,10 @@ function EventNavigationLink({
   return (
     <Button
       onClick={() => {
+        setIsCollapsed(false);
         document
           .getElementById(config.key)
           ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-        setIsCollapsed(false);
       }}
       borderless
       size="xs"
@@ -401,7 +401,6 @@ const JumpTo = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
   max-width: 100%;
-
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 50%;
   }
@@ -443,7 +442,7 @@ const EventTitle = styled('div')`
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.red300};
   font-weight: ${p => p.theme.fontWeightNormal};
-
+  font-size: ${p => p.theme.fontSizeSmall};
   :hover {
     color: ${p => p.theme.red300};
   }
