@@ -46,8 +46,8 @@ export interface User extends Omit<AvatarUser, 'options'> {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
-    issueDetailsNewExperienceQ42023: boolean;
     language: string;
+    prefersIssueDetailsStreamlinedUI: boolean;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
     timezone: string;

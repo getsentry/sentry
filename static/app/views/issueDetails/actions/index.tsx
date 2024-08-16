@@ -378,9 +378,7 @@ export function Actions(props: Props) {
               onClick={() =>
                 onUpdate({
                   status: GroupStatus.UNRESOLVED,
-
                   statusDetails: {},
-
                   substatus: GroupSubstatus.ONGOING,
                 })
               }
@@ -427,6 +425,7 @@ export function Actions(props: Props) {
             />
           </Fragment>
         ))}
+      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -508,9 +507,7 @@ export function Actions(props: Props) {
       />
       {!hasStreamlinedUI && (
         <Fragment>
-          {organization.features.includes('issue-details-new-experience-toggle') ? (
-            <NewIssueExperienceButton />
-          ) : null}
+          <NewIssueExperienceButton />
           <SubscribeAction
             className="hidden-xs"
             disabled={disabled}
