@@ -114,10 +114,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
         cache_key = "ai-group-summary:" + str(group.id)
-        if cache.has_key(cache_key):
-            return Response(
-                convert_dict_key_case(cache.get(cache_key), snake_to_camel_case), status=200
-            )
+
+        if cached_summary := cache.get(cache_key):
+            return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
 
         serialized_event = self._get_event(group, request.user)
 
