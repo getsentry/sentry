@@ -19,7 +19,7 @@ export default storyBook(AutoSizedText, story => {
 
         <SmallSizingWindow>
           <AutoSizedText minFontSize={10} maxFontSize={600}>
-            <span>NEWSFLASH, y'all!</span>
+            <OneLineSpan>NEWSFLASH, y'all!</OneLineSpan>
           </AutoSizedText>
         </SmallSizingWindow>
 
@@ -78,4 +78,8 @@ export default storyBook(AutoSizedText, story => {
 const SmallSizingWindow = styled(SizingWindow)`
   width: 300px;
   height: 200px;
+`;
+
+const OneLineSpan = styled('span')`
+  white-space: nowrap;
 `;

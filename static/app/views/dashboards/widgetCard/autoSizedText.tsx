@@ -20,17 +20,21 @@ export function AutoSizedText({
   const fontSizeLowerBound = useRef<number>(minFontSize);
   const fontSizeUpperBound = useRef<number>(maxFontSize);
 
+  console.log(fontSize.current);
+
   const calculationCount = useRef<number>(0);
 
   const fitChildIntoParent = (
-    parentDimensions: Dimensions,
-    childDimensions: Dimensions
+    childDimensions: Dimensions,
+    parentDimensions: Dimensions
   ) => {
     const childElement = childRef.current;
 
     if (!childElement) {
       return;
     }
+
+    console.log('fitChildIntoParent');
 
     // Calculate the width and height disparity between the child and parent. A disparity of 0 means they're the same size.
     const widthDisparity = calculateDimensionDisparity(
@@ -54,35 +58,41 @@ export function AutoSizedText({
       (widthDisparity <= MAXIMUM_DISPARITY || heightDisparity <= MAXIMUM_DISPARITY)
     ) {
       // The child fits completely into the parent _and_ at least one dimension is very similar to the parent size (i.e., it fits nicely in the parent). Abandon, we're done!
+      console.log('Fit successful');
+
       return;
     }
+
+    console.log(childDimensions, parentDimensions);
+    console.log({fontSize: fontSize.current});
+
+    let newFontSize;
 
     if (
       childDimensions.width > parentDimensions.width ||
       childDimensions.height > parentDimensions.height
     ) {
       // The element is bigger than the parent, scale down
-      const newFontSize = (fontSizeLowerBound.current + fontSize.current) / 2;
+      console.log('Too big');
+      newFontSize = (fontSizeLowerBound.current + fontSize.current) / 2;
 
       fontSizeUpperBound.current = fontSize.current;
       fontSize.current = newFontSize;
-      calculationCount.current += 1;
-
-      childElement.style.fontSize = `${newFontSize}px`;
     } else if (
       childDimensions.width < parentDimensions.width ||
       childDimensions.height < parentDimensions.height
     ) {
       // The element is too small, scale up
+      console.log('Too small');
 
-      const newFontSize = (fontSizeUpperBound.current + fontSize.current) / 2;
+      newFontSize = (fontSizeUpperBound.current + fontSize.current) / 2;
 
       fontSizeUpperBound.current = fontSize.current;
       fontSize.current = newFontSize;
-      calculationCount.current += 1;
-
-      childElement.style.fontSize = `${newFontSize}px`;
     }
+
+    childElement.style.fontSize = `${newFontSize}px`;
+    console.log('Changed font to', childElement.style.fontSize);
   };
 
   useLayoutEffect(() => {
@@ -105,14 +115,18 @@ export function AutoSizedText({
         return;
       }
 
-      const parentDimensions = entry.contentRect;
-      const childDimensions = getElementDimensions(childElement);
-
       calculationCount.current = 0;
       fontSizeLowerBound.current = minFontSize;
       fontSizeUpperBound.current = maxFontSize;
 
-      fitChildIntoParent(parentDimensions, childDimensions);
+      while (calculationCount.current <= calculationCountLimit) {
+        const childDimensions = getElementDimensions(childElement);
+        const parentDimensions = entry.contentRect;
+
+        calculationCount.current += 1;
+
+        fitChildIntoParent(childDimensions, parentDimensions);
+      }
     });
 
     observer.observe(parentElement);
@@ -120,45 +134,7 @@ export function AutoSizedText({
     return () => {
       observer.disconnect();
     };
-  });
-
-  useLayoutEffect(() => {
-    const childElement = childRef.current;
-
-    if (!childElement) {
-      return;
-    }
-
-    const observer = new ResizeObserver(entries => {
-      const entry = entries.find(e => e.target === childRef.current);
-
-      if (!entry) {
-        return;
-      }
-
-      const childElement = entry.target as HTMLDivElement;
-      const parentElement = childElement.parentElement;
-
-      if (!parentElement) {
-        return;
-      }
-
-      const childDimensions = entry.contentRect;
-      const parentDimensions = getElementDimensions(parentElement);
-
-      if (calculationCount.current >= calculationCountLimit) {
-        return;
-      }
-
-      fitChildIntoParent(parentDimensions, childDimensions);
-    });
-
-    observer.observe(childElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [calculationCountLimit]);
+  }, []);
 
   return <SizedChild ref={childRef}>{children}</SizedChild>;
 }
