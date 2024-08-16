@@ -399,7 +399,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 self._is_spans_metrics_query_cache = True
                 return True
             argument = match.group("columns") if match else None
-            if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+            if (
+                argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys()
+                or argument in constants.SPAN_METRICS_MAP.values()
+            ):
                 self._is_spans_metrics_query_cache = True
                 return True
         self._is_spans_metrics_query_cache = False

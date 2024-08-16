@@ -3594,6 +3594,64 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["avg(span.self_time)"] == 3.2
 
+    def test_avg_message_receive_latency(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+        self.store_span_metric(
+            {
+                "min": 15,
+                "max": 15,
+                "sum": 15,
+                "count": 1,
+                "last": 15,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(messaging.message.receive.latency)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(messaging.message.receive.latency)"] == 10.0
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(g:spans/messaging.message.receive.latency@millisecond)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(g:spans/messaging.message.receive.latency@millisecond)"] == 10.0
+
     def test_span_module_filter(self):
         self.store_span_metric(
             1,
@@ -4146,6 +4204,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_span_self_time(self):
         super().test_avg_span_self_time()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_message_receive_latency(self):
+        super().test_avg_message_receive_latency()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_span_module_filter(self):
