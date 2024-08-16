@@ -209,8 +209,12 @@ export function SearchQueryBuilderParametersCombobox({
   );
 
   const handleOptionSelected = useCallback(
-    (value: string) => {
-      const newValue = replaceCommaSeparatedValue(inputValue, selectionIndex, value);
+    (option: SelectOptionWithKey<string>) => {
+      const newValue = replaceCommaSeparatedValue(
+        inputValue,
+        selectionIndex,
+        option.value
+      );
 
       dispatch({
         type: 'UPDATE_AGGREGATE_ARGS',

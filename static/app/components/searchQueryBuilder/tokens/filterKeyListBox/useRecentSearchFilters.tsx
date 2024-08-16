@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
-import {useFetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
@@ -88,18 +88,8 @@ function getFiltersFromRecentSearches(
  * Orders by highest count of filter key occurrences.
  */
 export function useRecentSearchFilters() {
-  const {recentSearches, parsedQuery, filterKeys, getFieldDefinition} =
-    useSearchQueryBuilder();
-
-  const {data: recentSearchesData} = useFetchRecentSearches(
-    {
-      savedSearchType: recentSearches ?? null,
-      limit: 5,
-    },
-    {
-      staleTime: 30_000,
-    }
-  );
+  const {parsedQuery, filterKeys, getFieldDefinition} = useSearchQueryBuilder();
+  const {data: recentSearchesData} = useRecentSearches();
 
   const filters = useMemo(
     () =>

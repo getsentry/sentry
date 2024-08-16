@@ -574,7 +574,9 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const handleOptionSelected = useCallback(
-    (value: string) => {
+    (option: SelectOptionWithKey<string>) => {
+      const value = option.value;
+
       if (isDateToken(token)) {
         if (value === 'absolute_date') {
           setShowDatePicker(true);

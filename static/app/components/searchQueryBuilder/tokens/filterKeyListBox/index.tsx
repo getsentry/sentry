@@ -17,7 +17,11 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
-import {createRecentFilterOptionKey} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
+import {
+  createRecentFilterOptionKey,
+  RECENT_SEARCH_CATEGORY_VALUE,
+} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,9 +30,9 @@ import usePrevious from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: string[];
-  sections: Array<T>;
-  selectedSection: Key | null;
-  setSelectedSection: (section: Key | null) => void;
+  sections: Section[];
+  selectedSection: string;
+  setSelectedSection: (section: string) => void;
 }
 
 interface FilterKeyMenuContentProps<T>
@@ -41,6 +45,7 @@ interface FilterKeyMenuContentProps<T>
     | 'state'
     | 'selectedSection'
     | 'setSelectedSection'
+    | 'sections'
   > {
   fullWidth: boolean;
 }
@@ -136,12 +141,15 @@ function useHighlightFirstOptionOnSectionChange({
   hiddenOptions,
 }: {
   hiddenOptions: Set<SelectKey>;
-  sections: Array<SelectOptionOrSectionWithKey<string>>;
+  sections: Section[];
   selectedSection: Key | null;
   state: ComboBoxState<SelectOptionOrSectionWithKey<string>>;
 }) {
   const displayedListItems = useMemo(() => {
-    const options = state.collection.getChildren?.(selectedSection ?? sections[0].key);
+    if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
+      return [...state.collection].filter(item => !hiddenOptions.has(item.key));
+    }
+    const options = state.collection.getChildren?.(selectedSection ?? sections[0].value);
     return [...(options ?? [])].filter(option => !hiddenOptions.has(option.key));
   }, [state.collection, selectedSection, sections, hiddenOptions]);
 
@@ -167,12 +175,14 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   hiddenOptions,
   listBoxRef,
   fullWidth,
+  sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys, filterKeySections} = useSearchQueryBuilder();
+  const {filterKeys} = useSearchQueryBuilder();
   const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
+  const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
   return (
     <Fragment>
@@ -184,22 +194,12 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
         </RecentFiltersPane>
       ) : null}
       <SectionedListBoxTabPane>
-        <ListBoxSectionButton
-          selected={selectedSection === null}
-          onClick={() => {
-            setSelectedSection(null);
-            state.selectionManager.setFocusedKey(null);
-          }}
-        >
-          {t('All')}
-        </ListBoxSectionButton>
-        {filterKeySections.map(section => (
+        {sections.map(section => (
           <ListBoxSectionButton
             key={section.value}
             selected={selectedSection === section.value}
             onClick={() => {
               setSelectedSection(section.value);
-              state.selectionManager.setFocusedKey(null);
             }}
           >
             {section.label}
@@ -211,7 +211,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           {...listBoxProps}
           ref={listBoxRef}
           listState={state}
-          hasSearch={false}
+          hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen
@@ -220,7 +220,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           showDetails={!fullWidth}
         />
       </SectionedListBoxPane>
-      {fullWidth ? (
+      {showDetailsPane ? (
         <DetailsPane>
           {focusedKey ? <KeyDescription size="md" tag={focusedKey} /> : null}
         </DetailsPane>
@@ -262,6 +262,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   });
 
   const fullWidth = !query;
+  const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
   // Remove bottom border radius of top-level component while the full-width menu is open
   useEffect(() => {
@@ -289,7 +290,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth>
+        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -300,6 +301,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
               selectedSection={selectedSection}
               setSelectedSection={setSelectedSection}
               state={state}
+              sections={sections}
             />
           ) : null}
         </SectionedOverlay>
@@ -321,6 +323,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
             state={state}
+            sections={sections}
           />
         ) : null}
       </SectionedOverlay>
@@ -328,7 +331,13 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   );
 }
 
-const SectionedOverlay = styled(Overlay)<{fullWidth?: boolean; width?: number}>`
+const SectionedOverlay = styled(Overlay, {
+  shouldForwardProp: prop => !['fullWidth', 'showDetailsPane', 'width'].includes(prop),
+})<{
+  fullWidth?: boolean;
+  showDetailsPane?: boolean;
+  width?: number;
+}>`
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   grid-template-columns: ${p => (p.fullWidth ? '50% 50%' : '1fr')};
@@ -343,7 +352,7 @@ const SectionedOverlay = styled(Overlay)<{fullWidth?: boolean; width?: number}>`
       grid-template-areas:
         'recentFilters recentFilters'
         'tabs tabs'
-        'list details'
+        ${p.showDetailsPane ? "'list details'" : "'list list'"}
         'footer footer';
     `}
   overflow: hidden;
@@ -367,7 +376,7 @@ const RecentFiltersPane = styled('ul')`
   display: flex;
   flex-wrap: wrap;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)};
+  padding: ${space(1)} 10px;
   gap: ${space(0.25)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
