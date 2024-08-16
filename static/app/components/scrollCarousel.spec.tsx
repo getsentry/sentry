@@ -41,13 +41,14 @@ describe('ScrollCarousel', function () {
 
   it('shows right arrow when elements exist to the right', async function () {
     render(
-      <ScrollCarousel>
+      <ScrollCarousel data-test-id="scroll">
         <div data-test-id="child-1" />
         <div data-test-id="child-2" />
         <div data-test-id="child-3" />
       </ScrollCarousel>
     );
 
+    const scrollContainer = screen.getByTestId('scroll');
     const elements = [
       screen.getByTestId('child-1'),
       screen.getByTestId('child-2'),
@@ -66,21 +67,22 @@ describe('ScrollCarousel', function () {
     const rightButton = screen.getByRole('button', {name: 'Scroll right'});
     expect(screen.queryByRole('button', {name: 'Scroll left'})).not.toBeInTheDocument();
 
-    // Test scroll into view, the last element should have its 'scrollIntoView' called
-    elements.at(-1)!.scrollIntoView = jest.fn();
+    // Test scroll into view, the last element should have its 'scrollTo' called
+    scrollContainer.scrollTo = jest.fn();
     await userEvent.click(rightButton);
-    expect(elements.at(-1)!.scrollIntoView).toHaveBeenCalled();
+    expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });
 
   it('shows left arrow when elements exist to the left', async function () {
     render(
-      <ScrollCarousel>
+      <ScrollCarousel data-test-id="scroll">
         <div data-test-id="child-1" />
         <div data-test-id="child-2" />
         <div data-test-id="child-3" />
       </ScrollCarousel>
     );
 
+    const scrollContainer = screen.getByTestId('scroll');
     const elements = [
       screen.getByTestId('child-1'),
       screen.getByTestId('child-2'),
@@ -99,9 +101,9 @@ describe('ScrollCarousel', function () {
     const leftButton = await screen.findByRole('button', {name: 'Scroll left'});
     expect(screen.queryByRole('button', {name: 'Scroll right'})).not.toBeInTheDocument();
 
-    // Test scroll into view, the 1st element should have its 'scrollIntoView' called
-    elements[0].scrollIntoView = jest.fn();
+    // Test scroll into view, the 1st element should have its 'scrollTo' called
+    scrollContainer.scrollTo = jest.fn();
     await userEvent.click(leftButton);
-    expect(elements[0].scrollIntoView).toHaveBeenCalled();
+    expect(scrollContainer.scrollTo).toHaveBeenCalled();
   });
 });
