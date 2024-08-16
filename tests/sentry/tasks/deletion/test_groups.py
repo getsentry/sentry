@@ -5,6 +5,7 @@ from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.tasks.deletion.groups import delete_groups
@@ -47,7 +48,8 @@ class DeleteGroupTest(TestCase):
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
-        GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)
+        grouphash = GroupHash.objects.create(project=project, group=group, hash=uuid4().hex)
+        GroupHashMetadata.objects.create(grouphash=grouphash)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
@@ -59,6 +61,7 @@ class DeleteGroupTest(TestCase):
 
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        assert not GroupHashMetadata.objects.filter(grouphash_id=grouphash.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
         assert not nodestore.backend.get(node_id)
         assert not nodestore.backend.get(node_id_2)
