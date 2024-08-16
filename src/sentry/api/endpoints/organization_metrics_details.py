@@ -9,6 +9,7 @@ from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoin
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
 from sentry.sentry_metrics.use_case_utils import get_use_case_ids
+from sentry.snuba.metrics.utils import MetricMeta
 
 
 @region_silo_endpoint
@@ -28,25 +29,26 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
 
-        if all(
-            features.has("projects:use-eap-spans-for-metrics-explorer", project)
+        eap_spans_project_ids = [
+            project.id
             for project in projects
-        ):
-            return Response(
-                [
-                    {
-                        "type": "d",
-                        "name": "measurement",
-                        "unit": "none",
-                        "mri": "d:eap/measurement@none",
-                        "operations": ["sum", "avg", "p50", "p95", "p99", "count"],
-                        "projectIds": [project.id for project in projects],
-                        "blockingStatus": [],
-                    }
-                ]
+            if features.has("projects:use-eap-spans-for-metrics-explorer", project)
+        ]
+        metrics: list[MetricMeta] = []
+        if len(eap_spans_project_ids) > 0:
+            metrics.append(
+                MetricMeta(
+                    name="eap.measurement",
+                    type="distribution",
+                    unit=None,
+                    operations=["sum", "avg", "p50", "p95", "p99", "count"],
+                    projectIds=eap_spans_project_ids,
+                    mri="d:eap/eap.measurement@none",
+                    blockingStatus=[],
+                )
             )
 
-        metrics = get_metrics_meta(
+        metrics += get_metrics_meta(
             organization=organization, projects=projects, use_case_ids=get_use_case_ids(request)
         )
 
