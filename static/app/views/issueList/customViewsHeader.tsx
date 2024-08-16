@@ -32,6 +32,7 @@ type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   queryCounts: QueryCounts;
   router: InjectedRouter;
+  setHeaderBorderStyle: (style: 'dashed' | 'solid') => void;
   views: UpdateGroupSearchViewPayload[];
 };
 
@@ -48,12 +49,12 @@ function CustomViewsIssueListHeader({
     orgSlug: props.organization.slug,
   });
 
+  const [headerBorderStyle, setHeaderBorderStyle] = useState<'dashed' | 'solid'>('solid');
+
   return (
     <Layout.Header
       noActionWrap
-      borderStyle={
-        groupSearchViews && !props.router?.location.query.viewId ? 'dashed' : 'solid'
-      }
+      borderStyle={groupSearchViews ? headerBorderStyle : 'solid'}
     >
       <Layout.HeaderContent>
         <Layout.Title>
@@ -69,7 +70,11 @@ function CustomViewsIssueListHeader({
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
+        <CustomViewsIssueListHeaderTabsContent
+          {...props}
+          setHeaderBorderStyle={setHeaderBorderStyle}
+          views={groupSearchViews}
+        />
       ) : (
         <div style={{height: 33}} />
       )}
@@ -82,6 +87,7 @@ function CustomViewsIssueListHeaderTabsContent({
   queryCounts,
   router,
   views,
+  setHeaderBorderStyle,
 }: CustomViewsIssueListHeaderTabsContentProps) {
   // Remove cursor and page when switching tabs
   const navigate = useNavigate();
@@ -91,7 +97,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const viewsToTabs = views.map(
     ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
-      const tabId = id ?? `default${index}`;
+      const tabId = id ?? `default${index.toString()}`;
       return {
         id: tabId,
         key: tabId,
@@ -146,7 +152,7 @@ function CustomViewsIssueListHeaderTabsContent({
             orgSlug: organization.slug,
             groupSearchViews: newTabs.map(tab => ({
               // Do not send over an ID if it's a temporary id
-              ...(tab.id[0] !== '_' ? {id: tab.id} : {}),
+              ...(tab.id[0] !== '_' && !tab.id.startsWith('default') ? {id: tab.id} : {}),
               name: tab.label,
               query: tab.query,
               querySort: tab.querySort,
@@ -259,6 +265,7 @@ function CustomViewsIssueListHeaderTabsContent({
   }, [query, sort]);
 
   // Loads query counts when they are available
+  // TODO: fetch these dynamically instead of getting them from overview.tsx
   useEffect(() => {
     setDraggableTabs(
       draggableTabs?.map(tab => {
@@ -270,6 +277,14 @@ function CustomViewsIssueListHeaderTabsContent({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryCounts]);
+
+  useEffect(() => {
+    if (tempTab) {
+      setHeaderBorderStyle('dashed');
+    } else {
+      setHeaderBorderStyle('solid');
+    }
+  }, [tempTab, setHeaderBorderStyle]);
 
   return (
     <DraggableTabBar

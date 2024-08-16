@@ -120,7 +120,7 @@ function BaseDraggableTabList({
               </Reorder.Item>
               <TabDivider
                 layout
-                active={
+                isVisible={
                   state.selectedKey === 'temporary-tab' ||
                   (state.selectedKey !== item.key &&
                     state.collection.getKeyAfter(item.key) !== state.selectedKey)
@@ -206,9 +206,9 @@ export function DraggableTabList({items, onAddView, ...props}: DraggableTabListP
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled(motion.div)<{active: boolean}>`
+const TabDivider = styled(motion.div)<{isVisible: boolean}>`
   ${p =>
-    p.active &&
+    p.isVisible &&
     `
     background-color: ${p.theme.gray200};
     height: 50%;
