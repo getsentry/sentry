@@ -42,7 +42,7 @@ export default function useMutateProject({
       }),
     onSuccess: (updatedProject: Project) => {
       addSuccessMessage(
-        tct(`Successfully updated highlights for '[projectName]' project`, {
+        tct(`Successfully updated '[projectName]' project`, {
           projectName: project.name,
         })
       );
@@ -58,7 +58,7 @@ export default function useMutateProject({
     },
     onError: error => {
       addErrorMessage(
-        tct(`Failed to update highlights for '[projectName]' project`, {
+        tct(`Failed to update '[projectName]' project`, {
           projectName: project.name,
         })
       );
