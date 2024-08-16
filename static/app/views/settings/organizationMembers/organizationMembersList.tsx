@@ -1,41 +1,42 @@
 import {Fragment, useState} from 'react';
-import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import {set} from 'lodash';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SearchBar from 'sentry/components/searchBar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {ORG_ROLES} from 'sentry/constants';
+import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
-import type {
-  BaseRole,
-  Member,
-  MissingMember,
-  Organization,
-} from 'sentry/types/organization';
+import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import theme from 'sentry/utils/theme';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
 import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import MembersFilter from './components/membersFilter';
@@ -47,16 +48,39 @@ const MemberListHeader = HookOrDefault({
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
+const InviteMembersButtonHook = HookOrDefault({
+  hookName: 'member-invite-button:customization',
+  defaultComponent: ({children, organization, onTriggerModal}) => {
+    const isSsoRequired = organization.requiresSso;
+    const disabled = isSsoRequired || !organization.features.includes('invite-members');
+    return children({disabled, isSsoRequired, onTriggerModal});
+  },
+});
+
+const getMembersQueryKey = ({
+  orgSlug,
+  query,
+}: {
+  orgSlug: string;
+  query: string;
+}): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query: {query}}];
+
+const getInviteRequestsQueryKey = ({organization}): ApiQueryKey => [
+  `/organizations/${organization.slug}/invite-requests/`,
+];
+
 /**
  * Rewriting the class OrganizationMembersList to a function component
  */
 function OrganizationMembersList() {
+  const queryClient = useQueryClient();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
   const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
     Member[]
-  >([`/organizations/${organization.slug}/invite-requests/`], {staleTime: 0});
+  >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
   const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
     [`/organizations/${organization.slug}/auth-provider/`],
     {staleTime: 0}
@@ -71,27 +95,15 @@ function OrganizationMembersList() {
     refetch: refetchMembers,
     getResponseHeader,
   } = useApiQuery<Member[]>(
-    [`/organizations/${organization.slug}/members/`, {query: location.query}],
+    getMembersQueryKey({
+      orgSlug: organization.slug,
+      query: location.query.query as string,
+    }),
     {staleTime: 0}
   );
-  const [invited, setInvited] = useState<{[key: string]: 'loading' | 'success' | null}>(
-    {}
-  );
-
-  const fetchMembersList = async () => {
-    try {
-      const data = await api.requestPromise(
-        `/organizations/${organization.slug}/members/`,
-        {
-          method: 'GET',
-          data: {paginate: true},
-        }
-      );
-      // this.setState({members: data});
-    } catch {
-      addErrorMessage(t('Error fetching members'));
-    }
-  };
+  const [invited, setInvited] = useState<{
+    [memberId: string]: 'loading' | 'success' | null;
+  }>({});
 
   const removeMember = async (id: string) => {
     await api.requestPromise(`/organizations/${organization.slug}/members/${id}/`, {
@@ -99,9 +111,14 @@ function OrganizationMembersList() {
       data: {},
     });
 
-    // this.setState(state => ({
-    //   members: state.members.filter(({id: existingId}) => existingId !== id),
-    // }));
+    setApiQueryData<Member[]>(
+      queryClient,
+      getMembersQueryKey({
+        orgSlug: organization.slug,
+        query: location.query.query as string,
+      }),
+      currentMembers => currentMembers?.filter(member => member.id !== id)
+    );
   };
 
   const handleRemove = async ({id, name}: Member) => {
@@ -118,23 +135,23 @@ function OrganizationMembersList() {
   };
 
   const handleLeave = async ({id}: Member) => {
-    const {slug: orgName} = organization;
-
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error leaving [orgName]', {orgName}));
+      addErrorMessage(tct('Error leaving [orgName]', {orgName: organization.slug}));
       return;
     }
 
-    redirectToRemainingOrganization({orgId: orgName, removeOrg: true});
-    addSuccessMessage(tct('You left [orgName]', {orgName}));
+    redirectToRemainingOrganization({
+      orgSlug: organization.slug,
+      removeOrg: true,
+      navigate,
+    });
+    addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
   const handleSendInvite = async ({id, expired}) => {
-    // this.setState(state => ({
-    //   invited: {...state.invited, [id]: 'loading'},
-    // }));
+    setInvited(state => ({...state, [id]: 'loading'}));
 
     try {
       await resendMemberInvite(api, {
@@ -143,27 +160,37 @@ function OrganizationMembersList() {
         regenerate: expired,
       });
     } catch {
-      // this.setState(state => ({invited: {...state.invited, [id]: null}}));
+      setInvited(state => ({...state, [id]: null}));
       addErrorMessage(t('Error sending invite'));
       return;
     }
 
-    // this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
+    setInvited(state => ({...state, [id]: 'success'}));
   };
 
   const updateInviteRequest = (id: string, data: Partial<Member>) => {
-    // this.setState(state => {
-    //   const inviteRequests = [...state.inviteRequests];
-    //   const inviteIndex = inviteRequests.findIndex(request => request.id === id);
-    //   inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
-    //   return {inviteRequests};
-    // });
+    setApiQueryData<Member[]>(
+      queryClient,
+      getInviteRequestsQueryKey({organization}),
+      curentInviteRequests => {
+        const newInviteRequests = curentInviteRequests.map(request => {
+          if (request.id === id) {
+            return {...request, ...data};
+          }
+
+          return request;
+        });
+        return newInviteRequests;
+      }
+    );
   };
 
   const removeInviteRequest = (id: string) => {
-    // this.setState(state => ({
-    //   inviteRequests: state.inviteRequests.filter(request => request.id !== id),
-    // }));
+    setApiQueryData<Member[]>(
+      queryClient,
+      getInviteRequestsQueryKey({organization}),
+      curentInviteRequests => curentInviteRequests?.filter(request => request.id !== id)
+    );
   };
 
   const handleInviteRequestAction = async ({
@@ -174,10 +201,6 @@ function OrganizationMembersList() {
     errorMessage,
     eventKey,
   }) => {
-    // this.setState(state => ({
-    //   inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: true},
-    // }));
-
     try {
       await api.requestPromise(
         `/organizations/${organization.slug}/invite-requests/${inviteRequest.id}/`,
@@ -197,10 +220,6 @@ function OrganizationMembersList() {
     } catch {
       addErrorMessage(errorMessage);
     }
-
-    // this.setState(state => ({
-    //   inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: false},
-    // }));
   };
 
   const handleInviteRequestApprove = (inviteRequest: Member) => {
@@ -234,18 +253,14 @@ function OrganizationMembersList() {
   };
 
   const handleQueryChange = (query: string) => {
-    browserHistory.replace({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, query},
     });
   };
 
-  const title = routeTitleGen(t('Members'), organization.slug, false);
-
-  const {access} = organization;
-
-  const canAddMembers = access.includes('member:write');
-  const canRemove = access.includes('member:admin');
+  const canAddMembers = organization.access.includes('member:write');
+  const canRemove = organization.access.includes('member:admin');
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
@@ -261,10 +276,30 @@ function OrganizationMembersList() {
 
   const membersPageLinks = getResponseHeader?.('Link');
 
+  const action = (
+    <InviteMembersButtonHook
+      organization={organization}
+      onTriggerModal={() => {
+        openInviteMembersModal({
+          onClose: () => {
+            refetchInviteRequests();
+            refetchMembers();
+          },
+          source: 'members_settings',
+        });
+      }}
+    >
+      {renderInviteMembersButton}
+    </InviteMembersButtonHook>
+  );
+
   return (
     <Fragment>
+      <SettingsPageHeader title="Members" action={action} />
       <InviteBanner
-        onSendInvite={fetchMembersList}
+        onSendInvite={() => {
+          refetchMembers();
+        }}
         onModalClose={() => {
           refetchInviteRequests();
           refetchMembers();
@@ -303,7 +338,7 @@ function OrganizationMembersList() {
           onChange={handleQueryChange}
         />
         <SearchBar
-          placeholder={t('Search members')}
+          placeholder={t('Search Members')}
           query={searchQuery}
           onSearch={handleQueryChange}
         />
@@ -365,3 +400,55 @@ const StyledPanelItem = styled('div')`
 `;
 
 export default OrganizationMembersList;
+
+// TODO: This function is actually a component
+// Difficult to refactor because of getsentry hooks
+function renderInviteMembersButton({
+  disabled,
+  isSsoRequired,
+  onTriggerModal,
+}: {
+  onTriggerModal: () => void;
+  disabled?: boolean;
+  isSsoRequired?: boolean;
+}) {
+  const action = (
+    <Button
+      priority="primary"
+      size="sm"
+      onClick={onTriggerModal}
+      data-test-id="email-invite"
+      icon={<IconMail />}
+      disabled={disabled}
+    >
+      {t('Invite Members')}
+    </Button>
+  );
+
+  return disabled ? (
+    isSsoRequired ? (
+      <Tooltip
+        skipWrapper
+        title={t(
+          `Your organization must use its single sign-on provider to register new members.`
+        )}
+      >
+        {action}
+      </Tooltip>
+    ) : (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            featureName={t('Invite Members')}
+            features="organizations:invite-members"
+            hideHelpToggle
+          />
+        }
+      >
+        {action}
+      </Hovercard>
+    )
+  ) : (
+    action
+  );
+}

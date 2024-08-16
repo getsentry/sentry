@@ -10,15 +10,16 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {useNavigate} from 'sentry/utils/useNavigate';
 
 type RedirectRemainingOrganizationParams = {
+  navigate: ReturnType<typeof useNavigate>;
+
   /**
    * The organization slug
    */
-  orgId: string;
-
+  orgSlug: string;
   /**
    * Should remove org?
    */
@@ -32,15 +33,16 @@ type RedirectRemainingOrganizationParams = {
  * Can optionally remove organization from organizations store.
  */
 export function redirectToRemainingOrganization({
-  orgId,
+  orgSlug,
   removeOrg,
+  navigate,
 }: RedirectRemainingOrganizationParams) {
   // Remove queued, should redirect
   const allOrgs = OrganizationsStore.getAll().filter(
-    org => org.status.id === 'active' && org.slug !== orgId
+    org => org.status.id === 'active' && org.slug !== orgSlug
   );
   if (!allOrgs.length) {
-    browserHistory.push('/organizations/new/');
+    navigate('/organizations/new/');
     return;
   }
 
@@ -54,11 +56,11 @@ export function redirectToRemainingOrganization({
     return;
   }
 
-  browserHistory.push(route);
+  navigate(route);
 
   // Remove org from SidebarDropdown
   if (removeOrg) {
-    OrganizationsStore.remove(orgId);
+    OrganizationsStore.remove(orgSlug);
   }
 }
 
