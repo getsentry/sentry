@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -8,6 +9,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -147,6 +149,9 @@ export default function StreamlinedGroupHeader({
           </Fragment>
         )}
       </MessageWrapper>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummaryHeader groupId={group.id} />
+      </Feature>
       <StyledBreak />
       <InfoWrapper
         isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
