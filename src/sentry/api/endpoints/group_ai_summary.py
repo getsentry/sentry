@@ -115,7 +115,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         cache_key = "ai-group-summary:" + str(group.id)
         if cache.has_key(cache_key):
-            return Response(cache.get(cache_key), status=200)
+            return Response(
+                convert_dict_key_case(cache.get(cache_key), snake_to_camel_case), status=200
+            )
 
         serialized_event = self._get_event(group, request.user)
 
