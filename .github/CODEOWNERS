@@ -355,7 +355,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
-/src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
+/src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
 /src/sentry/pipeline/                                                @getsentry/ecosystem
@@ -587,3 +587,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/ecosystem
 ## End of Ecosystem
+
+## Core Product Foundations
+/src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
+/tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
+## End of Core Product Foundations

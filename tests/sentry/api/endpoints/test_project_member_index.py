@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import APITestCase
 
 
@@ -30,3 +31,28 @@ class ProjectMemberIndexTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["email"] == user_2.email
         assert response.data[1]["email"] == user_3.email
+
+    def test_email_id_comparison(self):
+        # OrganizationMember email indicates the status of an invite, and is
+        # cleared when the user is set
+        invited_user = self.create_user()
+        self.create_member(
+            email=invited_user.email,
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-member-index",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == invited_user.email

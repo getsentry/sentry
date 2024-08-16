@@ -337,9 +337,9 @@ class User(Model, AbstractBaseUser):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authidentity import AuthIdentity
-        from sentry.models.identity import Identity
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.users.models.authenticator import Authenticator
+        from sentry.users.models.identity import Identity
         from sentry.users.models.user_avatar import UserAvatar
         from sentry.users.models.user_option import UserOption
         from sentry.users.models.useremail import UserEmail
