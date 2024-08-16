@@ -113,3 +113,50 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             mock_response.json.return_value,
             timeout=60 * 60 * 24 * 7,  # 7 days
         )
+
+    def test_ai_summary_with_real_cache(self):
+        group = self.create_group()
+        self.login_as(user=self.user)
+
+        # First request to populate the cache
+        with (
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event"
+            ) as mock_get_event,
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._call_seer"
+            ) as mock_call_seer,
+        ):
+
+            mock_event = {"id": "test_event_id", "data": "test_event_data"}
+            mock_get_event.return_value = mock_event
+
+            mock_summary = SummarizeIssueResponse(
+                group_id=str(group.id),
+                summary="Test summary",
+                impact="Test impact",
+                headline="Test headline",
+            )
+            mock_call_seer.return_value = mock_summary
+
+            response = self.client.post(self._get_url(group.id), format="json")
+            assert response.status_code == 200
+            assert response.data == convert_dict_key_case(mock_summary.dict(), snake_to_camel_case)
+
+        # Second request should use cached data
+        with (
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_event"
+            ) as mock_get_event,
+            patch(
+                "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._call_seer"
+            ) as mock_call_seer,
+        ):
+
+            response = self.client.post(self._get_url(group.id), format="json")
+            assert response.status_code == 200
+            assert response.data == convert_dict_key_case(mock_summary.dict(), snake_to_camel_case)
+
+            # Verify that _get_event and _call_seer were not called for the second request
+            mock_get_event.assert_not_called()
+            mock_call_seer.assert_not_called()
