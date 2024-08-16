@@ -8,7 +8,6 @@ from sentry.snuba.query_sources import QuerySource
 def query(
     selected_columns,
     query,
-    params,
     snuba_params=None,
     equations=None,
     orderby=None,
@@ -35,7 +34,6 @@ def query(
 ):
     builder = MetricsSummariesQueryBuilder(
         Dataset.MetricsSummaries,
-        params,
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,

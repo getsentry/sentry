@@ -14,6 +14,7 @@ from sentry.search.events.builder.profiles import (
 )
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -33,15 +34,14 @@ def params():
     user = Factories.create_user()
     Factories.create_team_membership(team=team, user=user)
 
-    return {
-        "start": now - timedelta(days=7),
-        "end": now - timedelta(seconds=1),
-        "project_id": [project1.id, project2.id],
-        "project_objects": [project1, project2],
-        "organization_id": organization.id,
-        "user_id": user.id,
-        "team_id": [team.id],
-    }
+    return SnubaParams(
+        start=now - timedelta(days=7),
+        end=now - timedelta(seconds=1),
+        projects=[project1, project2],
+        organization=organization,
+        user=user,
+        teams=[team],
+    )
 
 
 def query_builder_fns(arg_name="query_builder_fn"):
@@ -66,7 +66,7 @@ def query_builder_fns(arg_name="query_builder_fn"):
 def test_field_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=[field],
     )
     if field == resolved:
@@ -170,7 +170,7 @@ def test_field_resolution(query_builder_fn, params, field, resolved):
 def test_aggregate_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=[field],
     )
     assert builder.columns == [resolved]
@@ -236,7 +236,7 @@ def test_invalid_field_resolution(query_builder_fn, params, field, message):
     with pytest.raises(InvalidSearchQuery, match=message):
         query_builder_fn(
             dataset=Dataset.Profiles,
-            params=params,
+            snuba_params=params,
             selected_columns=[field],
         )
 
@@ -499,7 +499,7 @@ def is_null(column: str) -> Function:
 def test_where_resolution(params, query, conditions):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=["count()"],
         query=query,
     )
@@ -511,11 +511,11 @@ def test_where_resolution(params, query, conditions):
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
 @django_db_all
 def test_where_resolution_project_slug(params, field):
-    project = params["project_objects"][0]
+    project = params.projects[0]
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=["count()"],
         query=f"{field}:{project.slug}",
     )
@@ -523,7 +523,7 @@ def test_where_resolution_project_slug(params, field):
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=["count()"],
         query=f"!{field}:{project.slug}",
     )
@@ -536,7 +536,7 @@ def test_where_resolution_project_slug(params, field):
 def test_order_by_resolution_project_slug(params, field, direction):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=[field, "count()"],
         orderby=f"{direction}{field}",
     )
@@ -547,8 +547,8 @@ def test_order_by_resolution_project_slug(params, field, direction):
                 "transform",
                 [
                     Column("project_id"),
-                    [project.id for project in params["project_objects"]],
-                    [project.slug for project in params["project_objects"]],
+                    [project.id for project in params.projects],
+                    [project.slug for project in params.projects],
                     "",
                 ],
             ),
@@ -574,7 +574,7 @@ def test_order_by_resolution_project_slug(params, field, direction):
 def test_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=["count()"],
         query=f"has:{field}",
     )
@@ -600,7 +600,7 @@ def test_has_resolution(params, field, column):
 def test_not_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        snuba_params=params,
         selected_columns=["count()"],
         query=f"!has:{field}",
     )

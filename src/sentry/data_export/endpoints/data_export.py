@@ -111,7 +111,6 @@ class DataExportQuerySerializer(serializers.Serializer):
 
                 builder = query_builder_cls(
                     SUPPORTED_DATASETS[dataset],
-                    params={},
                     snuba_params=processor.snuba_params,
                     query=query_info["query"],
                     selected_columns=fields.copy(),

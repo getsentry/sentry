@@ -36,7 +36,6 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
         def data_fn(offset: int, limit: int) -> Any:
             builder = DiscoverQueryBuilder(
                 dataset=Dataset.Discover,
-                params={},
                 snuba_params=snuba_params,
                 selected_columns=["spans_op", "count()"],
                 array_join="spans_op",

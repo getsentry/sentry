@@ -123,7 +123,6 @@ class AbstractSamplesListExecutor(ABC):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=self.snuba_params,
             selected_columns=fields,
             limit=len(span_keys),
@@ -213,7 +212,6 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.Transactions,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["trace", "timestamp"],
@@ -246,7 +244,6 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.Transactions,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["timestamp", "span_id"],
@@ -342,7 +339,6 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = DiscoverQueryBuilder(
             Dataset.Transactions,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=fields,
@@ -418,7 +414,6 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = DiscoverQueryBuilder(
             Dataset.Transactions,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=[
@@ -564,7 +559,6 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["trace", "timestamp"],
@@ -597,7 +591,6 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["span.group", "timestamp", "id"],
@@ -654,7 +647,6 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
-            params={},
             snuba_params=self.snuba_params,
             selected_columns=fields,
             orderby=f"{direction}{sort_column}",
@@ -711,7 +703,6 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         for dataset_segmentation_condition_fn in self.dataset_segmentation_conditions():
             builder = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params={},
                 snuba_params=self.snuba_params,
                 query=self.query,
                 selected_columns=[
@@ -913,7 +904,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["trace", "timestamp"],
@@ -943,7 +933,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     ) -> list[SpanKey]:
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=["span.group", "timestamp", "id"],
@@ -1027,7 +1016,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=fields,
@@ -1086,7 +1074,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     ) -> tuple[list[SpanKey], dict[str, Summary]]:
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
-            params={},
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=[

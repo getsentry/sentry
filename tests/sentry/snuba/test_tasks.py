@@ -15,6 +15,7 @@ from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Qu
 from sentry.incidents.logic import query_datasets_to_type
 from sentry.models.group import GroupStatus
 from sentry.search.events.constants import METRICS_MAP
+from sentry.search.events.types import SnubaParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -600,12 +601,12 @@ class BuildSnqlQueryTest(TestCase):
         )
         query_builder = entity_subscription.build_query_builder(
             query=query,
-            project_ids=[self.project.id],
+            projects=[self.project],
             environment=environment,
-            params={
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-            },
+            params=SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+            ),
         )
         snql_query = query_builder.get_snql_query()
         select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)

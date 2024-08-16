@@ -214,7 +214,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         snuba_query = subscription.snuba_query
         entity_subscription = get_entity_subscription_from_snuba_query(
             snuba_query,
-            subscription.project.organization_id,
+            subscription.project.organization,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
         snql_query = entity_subscription.build_query_builder(
