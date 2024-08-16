@@ -155,8 +155,10 @@ function EditTagHighlightSection({
   ...props
 }: EditTagHighlightSectionProps) {
   const [tagFilter, setTagFilter] = useState('');
+  // filter out replayId because we don't want to expose
+  // this on issue details anymore
   const tagData = event.tags
-    .filter(tag => tag.key?.includes(tagFilter))
+    .filter(tag => tag.key?.includes(tagFilter) && tag.key !== 'replayId')
     .map(tag => tag.key);
   const tagColumnSize = Math.ceil(tagData.length / columnCount);
   const tagColumns: React.ReactNode[] = [];
@@ -249,12 +251,17 @@ function EditContextHighlightSection({
   const ctxItems = Object.entries(ctxData);
   const filteredCtxItems = ctxItems
     .map<[string, string[]]>(([contextType, contextKeys]) => {
+      // filter out replayId because we don't want to expose
+      // this on issue details anymore
       const filteredContextKeys = contextKeys.filter(
-        contextKey => contextKey.includes(ctxFilter) || contextType.includes(ctxFilter)
+        contextKey =>
+          (contextKey.includes(ctxFilter) || contextType.includes(ctxFilter)) &&
+          contextKey !== 'replay_id'
       );
       return [contextType, filteredContextKeys];
     })
     .filter(([_contextType, contextKeys]) => contextKeys.length !== 0);
+
   const ctxColumnSize = Math.ceil(filteredCtxItems.length / columnCount);
   const contextColumns: React.ReactNode[] = [];
   for (let i = 0; i < filteredCtxItems.length; i += ctxColumnSize) {
