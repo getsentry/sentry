@@ -37,11 +37,9 @@ export function IssueSearchWithSavedSearches({
 
   return (
     <SearchBarWithButtonContainer>
-      {!organization.features.includes('issue-stream-custom-views') && (
-        <StyledButton onClick={onSavedSearchesToggleClicked}>
-          {selectedSavedSearch?.name ?? t('Custom Search')}
-        </StyledButton>
-      )}
+      <StyledButton onClick={onSavedSearchesToggleClicked}>
+        {selectedSavedSearch?.name ?? t('Custom Search')}
+      </StyledButton>
       <StyledIssueListSearchBarWithButton
         searchSource="main_search"
         organization={organization}
@@ -49,7 +47,6 @@ export function IssueSearchWithSavedSearches({
         onSearch={onSearch}
         excludedTags={['environment']}
         placeholder={t('Search for events, users, tags, and more')}
-        roundCorners={organization.features.includes('issue-stream-custom-views')}
       />
     </SearchBarWithButtonContainer>
   );
@@ -88,18 +85,12 @@ const StyledButton = styled(Button)`
   }
 `;
 
-const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
-  roundCorners: boolean;
-}>`
+const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)`
   flex: 1;
   min-width: 0;
 
-  ${p =>
-    !p.roundCorners &&
-    `
-    @media (min-width: ${p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
-    `}
 `;
