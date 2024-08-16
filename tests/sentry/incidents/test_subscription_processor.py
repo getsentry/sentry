@@ -625,12 +625,23 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         label = self.trigger.label
 
         processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1, label)
-        assert processor.has_anomaly(anomaly1, warning_label)
-        assert not processor.has_anomaly(anomaly2, label)
-        assert processor.has_anomaly(anomaly2, warning_label)
-        assert not processor.has_anomaly(not_anomaly, label)
-        assert not processor.has_anomaly(not_anomaly, warning_label)
+        assert processor.has_anomaly(anomaly1, label, False)
+        assert processor.has_anomaly(anomaly1, warning_label, False)
+        assert not processor.has_anomaly(anomaly2, label, False)
+        assert processor.has_anomaly(anomaly2, warning_label, False)
+        assert not processor.has_anomaly(not_anomaly, label, False)
+        assert not processor.has_anomaly(not_anomaly, warning_label, False)
+
+    def test_fake_anomaly(self):
+        anomaly = {
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
+            "timestamp": 1,
+            "value": 10,
+        }
+        label = self.trigger.label
+        processor = SubscriptionProcessor(self.sub)
+
+        assert processor.has_anomaly(anomaly, label, True)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
@@ -762,6 +773,44 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [self.action],
             [(10, IncidentStatus.CRITICAL, mock.ANY)],
+        )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:fake-anomaly-detection")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_fire_dynamic_alert_rule_fake_anomaly(self, mock_seer_request):
+        """
+        Test that we can fire a dynamic alert with a 'fake' anomaly for testing
+        """
+        rule = self.dynamic_rule
+        value = 10
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.0,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": value,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, value)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [(value, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
