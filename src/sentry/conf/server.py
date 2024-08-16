@@ -1978,7 +1978,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             create new teams and projects, as well as remove teams and projects
             on which they already hold membership (or all teams, if open
             membership is enabled). Additionally, they can manage memberships of
-            teams that they are members of. By default, they can invite members to the organization unless the organization has disabled this feature.
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
             """
         ),
         "scopes": {
