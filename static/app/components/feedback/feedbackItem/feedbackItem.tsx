@@ -140,10 +140,12 @@ function TraceTimelineSection({
 }) {
   // If there's a linked error from a crash report and only one other issue, showing both would be redundant.
   // We only want to show TraceTimelines (wrapped in TraceDataSection) for >1 issues.
-  const {oneOtherIssueEvent: onlyOneOtherIssueInTrace} = useTraceTimelineEvents({
+  // TODO: we could add a jest test .spec for this ^
+  const {oneOtherIssueEvent, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
-  const show: boolean = !onlyOneOtherIssueInTrace || !hasLinkedError;
+  const show: boolean =
+    !isLoading && !isError && (!oneOtherIssueEvent || !hasLinkedError);
 
   return show ? (
     <Section icon={<IconIssues size="xs" />} title={t('Trace Timeline')}>
