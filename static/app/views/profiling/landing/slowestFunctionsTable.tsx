@@ -37,9 +37,6 @@ function makeProfileLinkFromExample(
   example: Profiling.FunctionMetric['examples'][0],
   projectsLookupTable: Record<string, Project>
 ) {
-  if (typeof example === 'string') {
-    return example;
-  }
   if ('project_id' in example) {
     return generateProfileRouteFromProfileReference({
       frameName: f.name,
@@ -267,7 +264,7 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
     const projects: Project[] = [];
 
     for (const example of props.examples) {
-      if (typeof example !== 'string' && 'project_id' in example) {
+      if ('project_id' in example) {
         const project = props.projectsLookupTable[example.project_id];
         if (project) projects.push(project);
       }
@@ -356,9 +353,7 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
           return (
             <SlowestFunctionsExamplesContainerRow key={i}>
               <SlowestFunctionsExamplesContainerRowInner>
-                {typeof example === 'string' ? (
-                  example
-                ) : 'project_id' in example ? (
+                {'project_id' in example ? (
                   <SlowestFunctionsProjectBadge
                     examples={[example]}
                     projectsLookupTable={props.projectsLookupTable}
