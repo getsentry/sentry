@@ -572,7 +572,7 @@ export class TraceTree {
       if (isTransactionNode(node)) {
         const spanChildrenCount =
           metaResults?.data?.transactiontoSpanChildrenCount[node.value.event_id];
-        node.canFetch = spanChildrenCount ? spanChildrenCount >= 2 : false;
+        node.canFetch = spanChildrenCount !== undefined ? spanChildrenCount >= 2 : true;
       }
 
       tree.eventsCount += 1;

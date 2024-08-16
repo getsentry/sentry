@@ -795,7 +795,7 @@ function RenderRow(props: {
                       props.node.fetchStatus === 'idle' ? (
                         '+'
                       ) : props.node.zoomedIn ? (
-                        <TraceIcons.Chevron direction="down" />
+                        <TraceIcons.Chevron direction="up" />
                       ) : (
                         '+'
                       )
