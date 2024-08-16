@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {EventTags} from '../eventTags';
@@ -74,7 +74,7 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
         actions={actions}
         data-test-id="event-tags"
         guideTarget="tags"
-        type={FoldSectionKey.TAGS}
+        type={SectionKey.TAGS}
         ref={ref}
       >
         <EventTags

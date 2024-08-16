@@ -1,15 +1,11 @@
-import {forwardRef, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {forwardRef} from 'react';
 
 import {
   EventDataSection,
   type EventDataSectionProps,
 } from 'sentry/components/events/eventDataSection';
-import {space} from 'sentry/styles/space';
-import {
-  FoldSection,
-  type FoldSectionKey,
-} from 'sentry/views/issueDetails/streamline/foldSection';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 /**
@@ -25,17 +21,14 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
     const hasStreamlinedUI = useHasStreamlinedUI();
 
     return hasStreamlinedUI ? (
-      <Fragment>
-        <FoldSection
-          sectionKey={type as FoldSectionKey}
-          title={title}
-          actions={actions}
-          ref={ref}
-        >
-          {children}
-        </FoldSection>
-        <SectionDivider />
-      </Fragment>
+      <FoldSection
+        sectionKey={type as SectionKey}
+        title={title}
+        actions={actions}
+        ref={ref}
+      >
+        {children}
+      </FoldSection>
     ) : (
       <EventDataSection title={title} actions={actions} type={type} {...props}>
         {children}
@@ -43,11 +36,3 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
     );
   }
 );
-
-export const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(1)} 0;
-  &:last-child {
-    display: none;
-  }
-`;

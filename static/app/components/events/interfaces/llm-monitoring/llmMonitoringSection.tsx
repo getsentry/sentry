@@ -14,7 +14,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
@@ -48,7 +48,7 @@ export default function LLMMonitoringSection({event}: Props) {
   return (
     <InterimSection
       title={t('LLM monitoring')}
-      type={FoldSectionKey.LLM_MONITORING}
+      type={SectionKey.LLM_MONITORING}
       help={t('Charts showing how many tokens are being used')}
       actions={actions}
     >

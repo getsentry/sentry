@@ -23,7 +23,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -388,7 +388,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   return (
     <InterimSection
-      type={FoldSectionKey.DEBUGMETA}
+      type={SectionKey.DEBUGMETA}
       guideTarget="images-loaded"
       title={t('Images Loaded')}
       help={t(
