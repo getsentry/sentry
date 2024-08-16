@@ -12,6 +12,7 @@ from sentry.db.models import (
     Model,
     region_silo_model,
 )
+from sentry.db.models.base import sane_repr
 
 if TYPE_CHECKING:
     from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -49,3 +50,5 @@ class GroupHash(Model):
             return self._metadata
         except AttributeError:
             return None
+
+    __repr__ = sane_repr("group_id", "hash")
