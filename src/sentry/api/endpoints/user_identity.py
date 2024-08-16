@@ -6,7 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models.identity import Identity
+from sentry.users.models.identity import Identity
 
 
 @control_silo_endpoint

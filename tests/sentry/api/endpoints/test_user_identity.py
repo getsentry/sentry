@@ -1,6 +1,6 @@
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @control_silo_test

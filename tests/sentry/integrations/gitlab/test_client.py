@@ -23,10 +23,10 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {

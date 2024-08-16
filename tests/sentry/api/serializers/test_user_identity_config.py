@@ -5,9 +5,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import Status, UserIdentityConfig
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.identity import Identity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from social_auth.models import UserSocialAuth
 
 

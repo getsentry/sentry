@@ -5,9 +5,9 @@ import orjson
 import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @control_silo_test

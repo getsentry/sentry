@@ -8,9 +8,9 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts.tasks.kickoff_subscription_check import (
     kickoff_vsts_subscription_check,
 )
-from sentry.models.identity import Identity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 
 PROVIDER = "vsts"
 

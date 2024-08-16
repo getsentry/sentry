@@ -2,12 +2,12 @@ from time import time
 
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity, IdentityProvider
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
 WEBHOOK_SECRET = "secret-token-value"

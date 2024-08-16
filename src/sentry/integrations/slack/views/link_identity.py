@@ -18,9 +18,9 @@ from sentry.integrations.slack.views import render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models.identity import Identity
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
+from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
