@@ -338,9 +338,14 @@ export default function EditHighlightsModal({
   project,
   closeModal,
 }: EditHighlightsModalProps) {
-  const [highlightContext, setHighlightContext] =
-    useState<HighlightContext>(prevHighlightContext);
-  const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
+  const {replay, ...rest} = prevHighlightContext;
+  const [highlightContext, setHighlightContext] = useState<HighlightContext>({
+    replay: replay?.filter(k => k !== 'replay_id'),
+    ...rest,
+  });
+  const [highlightTags, setHighlightTags] = useState<HighlightTags>(
+    prevHighlightTags.filter(p => p !== 'replayId')
+  );
 
   const organization = useOrganization();
 

@@ -165,7 +165,11 @@ function HighlightsData({
     []
   );
 
-  const highlightTagItems = getHighlightTagData({event, highlightTags});
+  const highlightTagItems = getHighlightTagData({
+    event,
+    highlightTags,
+  });
+
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
       key={`highlight-tag-${i}`}
