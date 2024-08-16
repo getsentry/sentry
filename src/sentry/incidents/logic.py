@@ -56,7 +56,6 @@ from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.search.events import fields
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
@@ -1747,7 +1746,7 @@ def get_column_from_aggregate(aggregate, allow_mri):
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
-    match = fields.is_function(aggregate)
+    match = is_function(aggregate)
     if match and (
         match.group("function") in SPANS_METRICS_FUNCTIONS
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
