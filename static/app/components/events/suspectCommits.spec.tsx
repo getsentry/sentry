@@ -280,7 +280,10 @@ describe('SuspectCommits', function () {
         />,
         {organization}
       );
-
+      expect(
+        await screen.findByText('feat: Enhance suggested commits and add to alerts')
+      ).toBeInTheDocument();
+      expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
       expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
     });
   });
