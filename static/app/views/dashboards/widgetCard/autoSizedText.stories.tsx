@@ -39,26 +39,6 @@ export default storyBook(AutoSizedText, story => {
       </Fragment>
     );
   });
-
-  story('Props', () => {
-    return (
-      <Fragment>
-        <p>
-          <ul>
-            <li>
-              <strong>
-                <code>maximumDifference</code>
-              </strong>
-              : An integer value for the maximum acceptable difference (in pixels) in
-              dimensions of the child and parent. Set this as tight as you need it, but
-              the tighter this tolerance the more iteration loops the component runs, and
-              the longer the fit takes.
-            </li>
-          </ul>
-        </p>
-      </Fragment>
-    );
-  });
 });
 
 const SmallSizingWindow = styled(SizingWindow)`

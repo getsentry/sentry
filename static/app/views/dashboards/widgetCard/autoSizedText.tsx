@@ -4,13 +4,9 @@ import * as Sentry from '@sentry/react';
 
 interface Props {
   children: React.ReactNode;
-  maximumDifference?: number;
 }
 
-export function AutoSizedText({
-  children,
-  maximumDifference = DEFAULT_MAXIMUM_DIFFERENCE,
-}: Props) {
+export function AutoSizedText({children}: Props) {
   const childRef = useRef<HTMLDivElement>(null);
 
   const fontSize = useRef<number>(0);
@@ -60,9 +56,9 @@ export function AutoSizedText({
 
         const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
         const childIsWithinWidthTolerance =
-          Math.abs(widthDifference) <= maximumDifference;
+          Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
         const childIsWithinHeightTolerance =
-          Math.abs(heightDifference) <= maximumDifference;
+          Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
 
         if (
           childFitsIntoParent &&
@@ -88,7 +84,7 @@ export function AutoSizedText({
     return () => {
       observer.disconnect();
     };
-  }, [maximumDifference]);
+  }, []);
 
   const adjustFontSize = (childDimensions: Dimensions, parentDimensions: Dimensions) => {
     const childElement = childRef.current;
@@ -128,7 +124,14 @@ const SizedChild = styled('div')`
 `;
 
 const ITERATION_LIMIT = 50;
-const DEFAULT_MAXIMUM_DIFFERENCE = 5; // px
+
+// The maximum difference strongly affects the number of iterations required.
+// A value of 10 means that matches are often found in fewer than 5 iterations.
+// A value of 5 raises it to 6-7. A value of 1 brings it closer to 10. A value of
+// 0 never converges.
+// Note that on modern computers, even with 6x CPU throttling the iterations usually
+// finish in under 5ms.
+const MAXIMUM_DIFFERENCE = 1; // px
 
 type Dimensions = {
   height: number;
