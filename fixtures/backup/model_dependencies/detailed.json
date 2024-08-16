@@ -2310,7 +2310,7 @@
     "dangling": false,
     "foreign_keys": {
       "grouphash": {
-        "kind": "FlexibleForeignKey",
+        "kind": "DefaultOneToOneField",
         "model": "sentry.grouphash",
         "nullable": false
       }
