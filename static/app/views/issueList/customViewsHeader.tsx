@@ -90,8 +90,8 @@ function CustomViewsIssueListHeaderTabsContent({
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
 
   const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}): Tab => {
-      const tabId = id ?? `default`;
+    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+      const tabId = id ?? `default${index}`;
       return {
         id: tabId,
         key: tabId,
