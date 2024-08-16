@@ -210,7 +210,7 @@ def get_processor(data_export, environment_id):
         elif data_export.query_type == ExportQueryType.DISCOVER:
             return DiscoverProcessor(
                 discover_query=data_export.query_info,
-                organization_id=data_export.organization_id,
+                organization=data_export.organization,
             )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")

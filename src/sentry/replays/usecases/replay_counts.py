@@ -106,7 +106,6 @@ def _get_replay_id_mappings(
             return {}
 
     results = search_query_func(
-        params={},
         snuba_params=snuba_params,
         selected_columns=["group_uniq_array(100,replay.id)", select_column],
         query=query,
