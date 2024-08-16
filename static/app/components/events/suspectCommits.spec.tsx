@@ -1,11 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 
@@ -182,6 +182,7 @@ describe('SuspectCommits', function () {
     const project = ProjectFixture();
     const event = EventFixture();
     const group = GroupFixture({firstRelease: {}} as any);
+    const location = LocationFixture({query: {streamline: '1'}});
 
     const committers = [
       {
@@ -241,7 +242,7 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
 
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
@@ -257,7 +258,7 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
 
       expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
@@ -279,16 +280,12 @@ describe('SuspectCommits', function () {
           eventId={event.id}
           group={group}
         />,
-        {organization}
+        {router: {location}}
       );
       expect(
-        await screen.findByText(
-          textWithMarkupMatcher('feat: Enhance suggested commits and add to alerts')
-        )
+        await screen.findByText('feat: Enhance suggested commits and add to alerts')
       ).toBeInTheDocument();
-      expect(
-        await screen.findByText(textWithMarkupMatcher('fix: Make things less broken'))
-      ).toBeInTheDocument();
+      expect(await screen.findByText('fix: Make things less broken')).toBeInTheDocument();
       expect(await screen.findAllByTestId('commit-row')).toHaveLength(2);
     });
   });
