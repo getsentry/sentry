@@ -15,6 +15,7 @@ from sentry.search.events.fields import (
     parse_function,
     resolve_datetime64,
 )
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 
 
@@ -111,7 +112,7 @@ from sentry.snuba.dataset import Dataset
     ],
 )
 def test_get_json_meta_type(field_alias, snuba_type, function, expected):
-    qb = UnresolvedQuery(dataset=Dataset.Discover, params={})
+    qb = UnresolvedQuery(dataset=Dataset.Discover, snuba_params=SnubaParams())
     qb.function_alias_map[field_alias] = function
     assert get_json_meta_type(field_alias, snuba_type, qb) == expected, field_alias
 
@@ -212,7 +213,7 @@ def test_parse_combinator(function, expected):
 
 
 def resolve_snql_fieldlist(fields):
-    return UnresolvedQuery(Dataset.Discover, {}).resolve_select(fields, [])
+    return UnresolvedQuery(Dataset.Discover, snuba_params=SnubaParams()).resolve_select(fields, [])
 
 
 @pytest.mark.parametrize(
@@ -283,7 +284,7 @@ def test_range_funtions(field, expected):
 
 @pytest.mark.parametrize("combinator", COMBINATORS)
 def test_combinator_names_are_reserved(combinator):
-    fields = UnresolvedQuery(dataset=Dataset.Discover, params={})
+    fields = UnresolvedQuery(dataset=Dataset.Discover, snuba_params=SnubaParams())
     for function in fields.function_converter:
         assert not function.endswith(
             combinator.kind

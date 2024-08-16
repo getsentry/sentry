@@ -50,7 +50,6 @@ def query(
 
     builder = ProfileFunctionsQueryBuilder(
         dataset=Dataset.Functions,
-        params={},
         query=query,
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -94,7 +93,6 @@ def timeseries_query(
 
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
-        params={},
         snuba_params=snuba_params,
         query=query,
         interval=rollup,
@@ -172,7 +170,6 @@ def top_events_timeseries(
 
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
-        params={},
         snuba_params=snuba_params,
         interval=rollup,
         top_events=top_events["data"],
