@@ -36,6 +36,7 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -47,6 +48,7 @@ import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DatasetSource,
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -700,6 +702,14 @@ export class Results extends Component<Props, State> {
       );
     }
 
+    let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
+    if (hasDatasetSelector(organization)) {
+      savedSearchType =
+        eventView.dataset === DiscoverDatasets.TRANSACTIONS
+          ? SavedSearchType.TRANSACTION
+          : SavedSearchType.ERROR;
+    }
+
     return (
       <StyledSearchBar
         searchSource="eventsv2"
@@ -712,6 +722,7 @@ export class Results extends Component<Props, State> {
         customMeasurements={customMeasurements}
         dataset={eventView.dataset}
         includeTransactions
+        savedSearchType={savedSearchType}
       />
     );
   }
