@@ -186,7 +186,7 @@ function calculateDimensionDisparity(
   b: Dimensions,
   dimension: 'height' | 'width'
 ): number {
-  return 1 - Math.abs(a[dimension] / b[dimension]);
+  return Math.abs(1 - Math.abs(a[dimension] / b[dimension]));
 }
 
 function getElementDimensions(element: HTMLElement): Dimensions {
