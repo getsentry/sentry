@@ -39,7 +39,7 @@ const DEFAULT_PER_PAGE = 50;
 export default function Wrapper(props) {
   const organization = useOrganization();
 
-  if (false && organization.features.includes('visibility-explore-view')) {
+  if (organization.features.includes('visibility-explore-view')) {
     return <ExploreContent {...props} />;
   }
 
