@@ -508,25 +508,25 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
         self.login_as(user=owner_user)
 
-        data = {"email": "eric1@localhost", "role": "owner"}
+        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "eric2@localhost", "role": "manager"}
+        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "eric3@localhost", "role": "member"}
+        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
 
-        data = {"email": "mia1@localhost", "role": "owner"}
+        data = {"email": "mia1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "mia2@localhost", "role": "manager"}
+        data = {"email": "mia2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "mia3@localhost", "role": "member"}
+        data = {"email": "mia3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
     def test_manager_invites(self):
@@ -539,25 +539,25 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
         self.login_as(user=manager_user)
 
-        data = {"email": "eric1@localhost", "role": "owner"}
+        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        data = {"email": "eric2@localhost", "role": "manager"}
+        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "eric3@localhost", "role": "member"}
+        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
 
-        data = {"email": "mia1@localhost", "role": "owner"}
+        data = {"email": "mia1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        data = {"email": "mia2@localhost", "role": "manager"}
+        data = {"email": "mia2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "mia3@localhost", "role": "member"}
+        data = {"email": "mia3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_success_response(self.organization.slug, **data, status_code=201)
 
     def test_admin_invites(self):
