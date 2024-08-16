@@ -11,7 +11,6 @@ from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 
 class TeamProjectsListTest(APITestCase):
@@ -232,10 +231,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
 
-    @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_valid(self):
         """
-        Test that project option for similarity grouping is created for EA organizations
+        Test that project option for similarity grouping is created for projects
         where the project platform is Seer-eligible.
         """
         self.organization.flags.early_adopter = True
@@ -262,7 +260,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     def test_similarity_project_option_invalid(self):
         """
-        Test that project option for similarity grouping is not created for EA organizations
+        Test that project option for similarity grouping is not created for projects
         where the project platform is not seer eligible.
         """
 
