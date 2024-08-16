@@ -105,8 +105,6 @@ def get_allowed_org_roles(
 
     if is_active_superuser(request):
         return roles.get_all()
-    if not request.access.has_scope("member:admin"):
-        return ()
 
     if member is None:
         try:

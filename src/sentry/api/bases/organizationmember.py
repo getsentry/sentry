@@ -10,6 +10,10 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 from .organization import OrganizationEndpoint, OrganizationPermission
 
@@ -17,10 +21,26 @@ from .organization import OrganizationEndpoint, OrganizationPermission
 class MemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
+        "POST": ["member:write", "member:admin", "member:invite"],
         "PUT": ["member:write", "member:admin"],
         "DELETE": ["member:admin"],
     }
+
+    def has_object_permission(
+        self,
+        request: Request,
+        view: object,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        if not super().has_object_permission(request, view, organization):
+            return False
+
+        if request.method != "POST":
+            return True
+
+        scopes = request.access.scopes
+        is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+        return is_role_above_member or not organization.flags.disable_member_invite
 
 
 class MemberAndStaffPermission(StaffPermissionMixin, MemberPermission):
