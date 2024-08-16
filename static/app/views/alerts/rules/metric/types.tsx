@@ -12,6 +12,7 @@ import type {Incident} from '../../types';
 export enum AlertRuleThresholdType {
   ABOVE = 0,
   BELOW = 1,
+  ABOVE_AND_BELOW = 2,
 }
 
 export enum AlertRuleTriggerType {
@@ -56,6 +57,16 @@ export enum Datasource {
   TRANSACTION = 'transaction',
 }
 
+export enum AlertRuleSensitivity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+export enum AlertRuleSeasonality {
+  AUTO = 'auto',
+}
+
 /**
  * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
  * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
@@ -95,6 +106,7 @@ export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
+  detectionType: string;
   environment: string | null;
   projects: string[];
   query: string;
@@ -110,6 +122,8 @@ export type UnsavedMetricRule = {
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
+  seasonality?: AlertRuleSeasonality | null;
+  sensitivity?: AlertRuleSensitivity | null;
 };
 
 // Form values for updating a metric alert rule

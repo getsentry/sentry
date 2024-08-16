@@ -24,11 +24,12 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import type {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  Trigger,
+import {
+  type Action,
+  type ActionType,
+  AlertRuleComparisonType,
+  type MetricActionTemplate,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   ActionLabel,
@@ -39,6 +40,7 @@ import {
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
+  comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
   error: boolean;
@@ -311,6 +313,7 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
+      comparisonType,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -326,6 +329,10 @@ class ActionsPanel extends PureComponent<Props> {
       {value: 0, label: 'Critical Status'},
       {value: 1, label: 'Warning Status'},
     ];
+
+    // NOTE: we don't support warning triggers for anomaly detection alerts yet
+    // once we do, this can be deleted
+    const anomalyDetectionLevels = [{value: 0, label: 'Critical Status'}];
 
     // Create single array of unsaved and saved trigger actions
     // Sorted by date created ascending
@@ -371,7 +378,11 @@ class ActionsPanel extends PureComponent<Props> {
                         actionIdx
                       )}
                       value={triggerIndex}
-                      options={levels}
+                      options={
+                        comparisonType === AlertRuleComparisonType.DYNAMIC
+                          ? anomalyDetectionLevels
+                          : levels
+                      }
                     />
                     <SelectControl
                       name="select-action"
