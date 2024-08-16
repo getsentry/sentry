@@ -5,7 +5,7 @@ import sentry_sdk
 from cachetools import LRUCache
 from celery.exceptions import SoftTimeLimitExceeded
 
-from sentry import features, options
+from sentry import options
 from sentry.discover.dataset_split import (
     get_and_save_split_decision_for_query,
     save_split_decision_for_query,
@@ -18,8 +18,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
 
-SLEEP_FOR = 1 * 60
-MAX_NOOP_ATTEMPTS = 10
+SLEEP_FOR = 5 * 60  # 5 minutes
 
 
 class InterruptedException(Exception):
@@ -52,33 +51,30 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
     inferred_with_query = 0
 
     consecutive_noop_attempts = 0
-    while consecutive_noop_attempts < MAX_NOOP_ATTEMPTS:
-        queryset = DiscoverSavedQuery.objects.filter(
-            organization_id__in=organization_allowlist,
-            dataset=DiscoverSavedQueryTypes.DISCOVER,
-            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
-        ).select_related("organization")
-        if not queryset:
-            logger.info(
-                "sentry.tasks.split_discover_query_dataset - exit",
-                extra={
-                    "transaction_dataset_count": transaction_dataset_count,
-                    "error_dataset_count": error_dataset_count,
-                    "errored_query_count": errored_query_count,
-                    "inferred_with_query": inferred_with_query,
-                    "inferred_without_query": inferred_without_query,
-                },
-            )
-            break
-
+    while True:
         try:
+            # Tracks if any queries were processed this loop
             did_process = False
-            for saved_query in RangeQuerySetWrapper(queryset):
-                if not features.has(
-                    "organizations:performance-discover-dataset-selector", saved_query.organization
-                ):
-                    continue
 
+            queryset = DiscoverSavedQuery.objects.filter(
+                organization_id__in=organization_allowlist,
+                dataset=DiscoverSavedQueryTypes.DISCOVER,
+                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+            ).select_related("organization")
+            if not queryset:
+                logger.info(
+                    "sentry.tasks.split_discover_query_dataset - no more queries to process",
+                    extra={
+                        "transaction_dataset_count": transaction_dataset_count,
+                        "error_dataset_count": error_dataset_count,
+                        "errored_query_count": errored_query_count,
+                        "inferred_with_query": inferred_with_query,
+                        "inferred_without_query": inferred_without_query,
+                    },
+                )
+                break
+
+            for saved_query in RangeQuerySetWrapper(queryset):
                 last_accessed = rate_limit_cache.get(saved_query.organization_id, None)
                 # Don't try to split if we've run hit snuba for this org in the last 10 seconds
                 if last_accessed is not None and int(time()) - last_accessed < 10:
@@ -172,15 +168,3 @@ def split_discover_query_dataset(dry_run: bool, **kwargs):
         except InterruptedException:
             consecutive_noop_attempts += 1
             sleep(SLEEP_FOR)
-
-    if consecutive_noop_attempts >= MAX_NOOP_ATTEMPTS:
-        logger.warning(
-            "sentry.tasks.split_discover_query_dataset - idle task, forced exit",
-            extra={
-                "transaction_dataset_count": transaction_dataset_count,
-                "error_dataset_count": error_dataset_count,
-                "errored_query_count": errored_query_count,
-                "inferred_with_query": inferred_with_query,
-                "inferred_without_query": inferred_without_query,
-            },
-        )
