@@ -1,9 +1,10 @@
+import logging
 from collections.abc import Mapping, Sequence
 
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 UNKNOWN_COMMAND_MESSAGE = "Unknown command: `{command}`"
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
@@ -61,7 +62,7 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
     def get_header_blocks(self) -> Sequence[SlackBlock]:
         blocks = []
         if self.command and self.command != "help":
-            logger.info("slack.event.unknown-command", extra={"command": self.command})
+            _logger.info("slack.event.unknown-command", extra={"command": self.command})
             blocks.append(
                 self.get_markdown_block(UNKNOWN_COMMAND_MESSAGE.format(command=self.command))
             )

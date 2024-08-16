@@ -170,6 +170,8 @@ const Timestamp = styled('div')`
   margin-right: ${space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  min-width: 50px;
+  text-align: right;
   span {
     text-decoration: underline dashed ${p => p.theme.translucentBorder};
   }

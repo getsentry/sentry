@@ -4,13 +4,18 @@ import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {
+  type CustomComboboxMenu,
+  SearchQueryBuilderCombobox,
+} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
+  getFilterValueType,
   replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -83,14 +88,11 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(
-  fieldDefinition: FieldDefinition | null,
-  inputValue: string
-) {
+function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(fieldDefinition?.valueType, v.trim()))
+      .map(v => cleanFilterValue(valueType, v.trim()))
       .filter(v => v && v.length > 0)
   );
 
@@ -148,12 +150,13 @@ function getPredefinedValues({
   }
 
   const definedValues = key.values ?? fieldDefinition?.values;
+  const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
     return getValueSuggestions({
       filterValue,
       token,
-      valueType: fieldDefinition?.valueType,
+      valueType,
     });
   }
 
@@ -203,9 +206,8 @@ function tokenSupportsMultipleValues(
         return true;
       }
 
-      return (
-        !fieldDefinition?.valueType || fieldDefinition.valueType === FieldValueType.STRING
-      );
+      const valueType = getFilterValueType(token, fieldDefinition);
+      return valueType === FieldValueType.STRING;
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -496,22 +498,18 @@ export function SearchQueryBuilderValueCombobox({
       search_source: searchSource,
       filter_key: keyName,
       filter_operator: token.operator,
-      filter_value_type: fieldDefinition?.valueType ?? FieldValueType.STRING,
+      filter_value_type: getFilterValueType(token, fieldDefinition),
       new_experience: true,
     }),
-    [
-      fieldDefinition?.valueType,
-      organization,
-      recentSearches,
-      searchSource,
-      keyName,
-      token.operator,
-    ]
+    [organization, recentSearches, searchSource, keyName, token, fieldDefinition]
   );
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(fieldDefinition?.valueType, value);
+      const cleanedValue = cleanFilterValue(
+        getFilterValueType(token, fieldDefinition),
+        value
+      );
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -526,7 +524,7 @@ export function SearchQueryBuilderValueCombobox({
       if (canSelectMultipleValues) {
         if (selectedValues.includes(value)) {
           const newValue = prepareInputValueForSaving(
-            fieldDefinition,
+            getFilterValueType(token, fieldDefinition),
             selectedValues.filter(v => v !== value).join(',')
           );
           dispatch({
@@ -546,7 +544,7 @@ export function SearchQueryBuilderValueCombobox({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
           value: prepareInputValueForSaving(
-            fieldDefinition,
+            getFilterValueType(token, fieldDefinition),
             replaceCommaSeparatedValue(inputValue, selectionIndex, value)
           ),
         });
@@ -626,7 +624,10 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
-          value: prepareInputValueForSaving(fieldDefinition, value),
+          value: prepareInputValueForSaving(
+            getFilterValueType(token, fieldDefinition),
+            value
+          ),
         });
         onCommit();
         if (!isUnchanged) {
@@ -685,41 +686,41 @@ export function SearchQueryBuilderValueCombobox({
     [wrapperRef]
   );
 
-  const customMenu = useMemo(() => {
-    if (!showDatePicker) return undefined;
+  const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
+    useMemo(() => {
+      if (!showDatePicker) return undefined;
 
-    return function ({popoverRef, isOpen}) {
-      return (
-        <SpecificDatePicker
-          popoverRef={popoverRef}
-          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
-          handleSelectDateTime={newDateTimeValue => {
-            setInputValue(newDateTimeValue);
-            inputRef.current?.focus();
-            trackAnalytics('search.value_autocompleted', {
-              ...analyticsData,
-              filter_value: newDateTimeValue,
-              filter_value_type: 'absolute_date',
-            });
-          }}
-          handleBack={() => {
-            setShowDatePicker(false);
-            setInputValue('');
-            inputRef.current?.focus();
-          }}
-          handleSave={newDateTimeValue => {
-            dispatch({
-              type: 'UPDATE_TOKEN_VALUE',
-              token: token,
-              value: newDateTimeValue,
-            });
-            onCommit();
-          }}
-          isOpen={isOpen}
-        />
-      );
-    };
-  }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
+      return function (props) {
+        return (
+          <SpecificDatePicker
+            {...props}
+            dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+            handleSelectDateTime={newDateTimeValue => {
+              setInputValue(newDateTimeValue);
+              inputRef.current?.focus();
+              trackAnalytics('search.value_autocompleted', {
+                ...analyticsData,
+                filter_value: newDateTimeValue,
+                filter_value_type: 'absolute_date',
+              });
+            }}
+            handleBack={() => {
+              setShowDatePicker(false);
+              setInputValue('');
+              inputRef.current?.focus();
+            }}
+            handleSave={newDateTimeValue => {
+              dispatch({
+                type: 'UPDATE_TOKEN_VALUE',
+                token: token,
+                value: newDateTimeValue,
+              });
+              onCommit();
+            }}
+          />
+        );
+      };
+    }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

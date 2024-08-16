@@ -55,9 +55,6 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             referrer="metric_alert_slack",
         )
         incident_text = f"{data['text']}\n{get_started_at(data['ts'])}"
-        if features.has("organizations:anomaly-detection-alerts", self.incident.organization):
-            incident_text += f"\nThreshold: {alert_rule.detection_type.title()}"
-
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]

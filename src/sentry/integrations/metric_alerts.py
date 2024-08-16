@@ -5,6 +5,7 @@ from django.db.models import Max
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
@@ -114,6 +115,9 @@ def incident_attachment_info(
         metric_value = get_metric_count_from_incident(incident)
 
     text = get_incident_status_text(alert_rule, metric_value)
+    if features.has("organizations:anomaly-detection-alerts", incident.organization):
+        text += f"\nThreshold: {alert_rule.detection_type.title()}"
+
     title = f"{status}: {alert_rule.name}"
 
     title_link_params = {

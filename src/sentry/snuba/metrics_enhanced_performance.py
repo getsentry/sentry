@@ -47,6 +47,7 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
+    query_source: QuerySource | None = None,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -73,6 +74,7 @@ def query(
                 use_metrics_layer,
                 on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -110,6 +112,7 @@ def query(
             functions_acl=functions_acl,
             transform_alias_to_input_format=transform_alias_to_input_format,
             has_metrics=has_metrics,
+            query_source=query_source,
         )
         results["meta"]["isMetricsData"] = False
         results["meta"]["isMetricsExtractedData"] = False
@@ -310,6 +313,7 @@ def histogram_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -336,6 +340,7 @@ def histogram_query(
                 extra_conditions,
                 normalize_results,
                 use_metrics_layer,
+                query_source=query_source,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -364,5 +369,6 @@ def histogram_query(
             histogram_rows,
             extra_conditions,
             normalize_results,
+            query_source=query_source,
         )
     return {}
