@@ -12,7 +12,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  Dataset,
+} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -346,6 +351,52 @@ describe('Incident Rules Form', () => {
             eventTypes: ['transaction'],
             dataset: 'generic_metrics',
             thresholdPeriod: 1,
+          }),
+        })
+      );
+    });
+
+    it('creates an anomaly detection rule', async () => {
+      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      const rule = MetricRuleFixture({
+        detectionType: AlertRuleComparisonType.PERCENT,
+        sensitivity: AlertRuleSensitivity.MEDIUM,
+        seasonality: AlertRuleSeasonality.AUTO,
+      });
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['error'],
+          dataset: 'events',
+        },
+      });
+      await userEvent.click(
+        screen.getByText('Anomaly: when evaluated values are outside of expected bounds')
+      );
+
+      expect(
+        await screen.findByLabelText(
+          'Anomaly: when evaluated values are outside of expected bounds'
+        )
+      ).toBeChecked();
+      expect(
+        await screen.findByRole('textbox', {name: 'Sensitivity'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count()',
+            dataset: 'events',
+            environment: null,
+            eventTypes: ['error'],
+            detectionType: AlertRuleComparisonType.DYNAMIC,
+            sensitivity: AlertRuleSensitivity.MEDIUM,
+            seasonality: AlertRuleSeasonality.AUTO,
           }),
         })
       );

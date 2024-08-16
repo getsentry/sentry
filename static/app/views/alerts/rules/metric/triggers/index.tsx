@@ -7,11 +7,13 @@ import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
+import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
   type Action,
   AlertRuleComparisonType,
+  type AlertRuleSensitivity,
   type AlertRuleThresholdType,
   type MetricActionTemplate,
   type Trigger,
@@ -33,14 +35,16 @@ type Props = {
   onResolveThresholdChange: (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
   projects: Project[];
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
 
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
+  sensitivity: UnsavedMetricRule['sensitivity'];
 
+  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
   isMigration?: boolean;
@@ -107,9 +111,11 @@ class Triggers extends Component<Props> {
       comparisonType,
       resolveThreshold,
       isMigration,
+      onSensitivityChange,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
+      sensitivity,
     } = this.props;
 
     // Note we only support 2 triggers max
@@ -118,7 +124,13 @@ class Triggers extends Component<Props> {
         <Panel>
           <PanelBody>
             {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
-              <div>{'This is where the anomaly detection alert field choices go'}</div>
+              <AnomalyDetectionFormField
+                disabled={disabled}
+                sensitivity={sensitivity}
+                onSensitivityChange={onSensitivityChange}
+                thresholdType={thresholdType}
+                onThresholdTypeChange={onThresholdTypeChange}
+              />
             ) : (
               <TriggerForm
                 disabled={disabled}
@@ -152,6 +164,7 @@ class Triggers extends Component<Props> {
             triggers={triggers}
             onChange={this.handleChangeActions}
             onAdd={this.handleAddAction}
+            comparisonType={comparisonType}
           />
         )}
       </Fragment>
