@@ -2098,6 +2098,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "user": "metrics_sets",
         "function.duration": "metrics_distributions",
         "measurements.inp": "metrics_distributions",
+        "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
