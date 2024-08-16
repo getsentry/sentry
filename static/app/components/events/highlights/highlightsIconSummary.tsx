@@ -18,6 +18,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   const items = getOrderedContextItems(event)
     .map(({alias, type, value}) => ({
       ...getContextSummary({type, value}),
+      alias,
       icon: getContextIcon({
         alias,
         type,
@@ -28,6 +29,13 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
       }),
     }))
     .filter(item => item.icon !== null);
+
+  const deviceIndex = items.findIndex(item => item.alias === 'device');
+  const clientOsIndex = items.findIndex(item => item.alias === 'client_os');
+  // Remove device if client_os is also present
+  if (deviceIndex !== -1 && clientOsIndex !== -1) {
+    items.splice(deviceIndex, 1);
+  }
 
   return items.length ? (
     <Fragment>

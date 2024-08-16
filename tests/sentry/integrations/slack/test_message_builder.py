@@ -1156,7 +1156,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"0 events in the last 30 minutes\n{timestamp}\nThreshold: {detection_type.title()}",
+                        "text": f"0 events in the last 30 minutes\nThreshold: {detection_type.title()}\n{timestamp}",
                     },
                 },
             ],

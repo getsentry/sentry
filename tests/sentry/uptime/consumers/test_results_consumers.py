@@ -73,7 +73,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         )
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
+            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+            new=2,
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -231,7 +234,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
     def test_resolve(self):
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
+            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+            new=2,
+        ):
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,

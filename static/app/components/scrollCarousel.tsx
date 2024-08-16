@@ -12,6 +12,7 @@ import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 interface ScrollCarouselProps {
   children: React.ReactNode;
   className?: string;
+  'data-test-id'?: string;
   gap?: ValidSize;
   transparentMask?: boolean;
 }
@@ -33,11 +34,30 @@ const DEFAULT_VISIBLE_RATIO = 0.85;
  */
 const DEFAULT_JUMP_ITEM_COUNT = 2;
 
+/**
+ * Calculates the offset rectangle of an element relative to another element.
+ */
+const getOffsetRect = (el: HTMLElement, relativeTo: HTMLElement) => {
+  const rect = el.getBoundingClientRect();
+  if (!relativeTo) {
+    return rect;
+  }
+  const relativeRect = relativeTo.getBoundingClientRect();
+  return {
+    left: rect.left - relativeRect.left,
+    top: rect.top - relativeRect.top,
+    right: rect.right - relativeRect.left,
+    bottom: rect.bottom - relativeRect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+};
+
 export function ScrollCarousel({
   children,
-  className,
   gap = 1,
   transparentMask = false,
+  ...props
 }: ScrollCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
@@ -53,10 +73,11 @@ export function ScrollCarousel({
     const scrollIndex = visibility.findIndex(Boolean);
     // Clamp the scroll index to the first visible item
     const clampedIndex = Math.max(scrollIndex - DEFAULT_JUMP_ITEM_COUNT, 0);
-    childrenEls[clampedIndex]?.scrollIntoView({
+    // scrollIntoView scrolls the entire page on some browsers
+    scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
+      // We don't need to do any fancy math for the left edge
+      left: getOffsetRect(childrenEls[clampedIndex], childrenEls[0]).left,
     });
   }, [visibility, childrenEls]);
 
@@ -67,20 +88,20 @@ export function ScrollCarousel({
       scrollIndex + DEFAULT_JUMP_ITEM_COUNT,
       visibility.length - 1
     );
-    childrenEls[clampedIndex]?.scrollIntoView({
+
+    const targetElement = childrenEls[clampedIndex];
+    const targetElementRight = getOffsetRect(targetElement, childrenEls[0]).right;
+    const containerRight = scrollContainerRef.current?.clientWidth ?? 0;
+    // scrollIntoView scrolls the entire page on some browsers
+    scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
-      block: 'nearest',
-      inline: 'end',
+      left: Math.max(targetElementRight - containerRight, 0),
     });
   }, [visibility, childrenEls]);
 
   return (
     <ScrollCarouselWrapper>
-      <ScrollContainer
-        ref={scrollContainerRef}
-        className={className}
-        style={{gap: space(gap)}}
-      >
+      <ScrollContainer ref={scrollContainerRef} style={{gap: space(gap)}} {...props}>
         {children}
       </ScrollContainer>
       {!isAtStart && <LeftMask transparentMask={transparentMask} />}
