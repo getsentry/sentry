@@ -37,7 +37,7 @@ export function StreamlinedExternalIssueList({
   if (isLoading) {
     return (
       <SidebarSection.Wrap data-test-id="linked-issues">
-        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+        <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
         <SidebarSection.Content>
           <Placeholder height="25px" />
         </SidebarSection.Content>
@@ -47,7 +47,7 @@ export function StreamlinedExternalIssueList({
 
   return (
     <SidebarSection.Wrap data-test-id="linked-issues">
-      <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+      <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
           <IssueActionWrapper>
@@ -138,6 +138,10 @@ const IssueActionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
+`;
+
+const StyledSectionTitle = styled(SidebarSection.Title)`
+  margin-top: ${space(0.25)};
 `;
 
 const LinkedIssue = styled(LinkButton)`

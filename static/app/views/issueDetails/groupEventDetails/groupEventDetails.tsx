@@ -259,7 +259,7 @@ const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
   ${p =>
     p.hasStreamlinedUi
       ? css`
-          padding: ${space(1)} ${space(2)} ${space(3)};
+          padding: ${space(1.5)} ${space(2)} ${space(3)};
         `
       : css`
           padding: ${space(3)} ${space(2)} ${space(3)};
