@@ -482,7 +482,6 @@ class CheckAM2Compatibility:
             results = discover_query(
                 selected_columns=selected_columns,
                 query="event.type:transaction",
-                params={},
                 snuba_params=params,
                 referrer="api.organization-events",
             )
