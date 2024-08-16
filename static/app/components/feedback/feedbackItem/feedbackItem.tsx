@@ -14,14 +14,14 @@ import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChat, IconFire, IconIssues, IconLink, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {TraceDataSection as IssueDetailsTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 interface Props {
@@ -61,6 +61,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
         </Section>
 
+        {eventData ? (
+          <TraceDataSection
+            eventData={eventData}
+            crashReportId={crashReportId}
+            hasProject={!!feedbackItem.project}
+          />
+        ) : null}
+
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
             <TextCopyInput
@@ -97,14 +105,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           organization={organization}
         />
 
-        {eventData ? (
-          <TraceTimelineSection
-            eventData={eventData}
-            crashReportId={crashReportId}
-            hasProject={!!feedbackItem.project}
-          />
-        ) : null}
-
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />
         </Section>
@@ -132,7 +132,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   );
 }
 
-function TraceTimelineSection({
+function TraceDataSection({
   eventData,
   crashReportId,
   hasProject,
@@ -143,16 +143,16 @@ function TraceTimelineSection({
 }) {
   // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
   // TODO: we could add a jest test .spec for this ^
-  // Note TraceDataSection only renders a TraceTimeline for >1 same-trace issues.
   const {oneOtherIssueEvent, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
   const hide: boolean =
     isLoading || isError || (hasProject && oneOtherIssueEvent?.id === crashReportId);
 
+  // Note a timeline will only be shown for >1 same-trace issues.
   return hide ? null : (
-    <Section icon={<IconIssues size="xs" />} title={t('Trace Timeline')}>
-      <TraceDataSection event={eventData} />
+    <Section>
+      <IssueDetailsTraceDataSection event={eventData} />
     </Section>
   );
 }
