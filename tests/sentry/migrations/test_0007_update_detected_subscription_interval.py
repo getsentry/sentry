@@ -1,4 +1,5 @@
-from sentry.testutils import pytest
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeSubscription
 
