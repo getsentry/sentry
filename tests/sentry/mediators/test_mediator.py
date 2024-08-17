@@ -7,9 +7,9 @@ from django.db import router
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
 class Double:

@@ -14,7 +14,7 @@ describe('getting started with react-native', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Performance'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Debug Symbols'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Source Context'})).toBeInTheDocument();
   });

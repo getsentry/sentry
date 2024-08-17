@@ -198,19 +198,7 @@ function SummaryContent({
         {
           key: 'alert',
           makeAction: () => ({
-            Button: () => (
-              <Tooltip
-                title={t(
-                  'Based on your search criteria and sample rate, the events available may be limited.'
-                )}
-              >
-                <StyledIconWarning
-                  data-test-id="search-metrics-fallback-warning"
-                  size="sm"
-                  color="warningText"
-                />
-              </Tooltip>
-            ),
+            Button: () => <MetricsWarningIcon />,
             menuItem: {
               key: 'alert',
             },
@@ -221,6 +209,14 @@ function SummaryContent({
 
     return items;
   }
+
+  const trailingItems = useMemo(() => {
+    if (!canUseTransactionMetricsData(organization, mepDataContext)) {
+      return <MetricsWarningIcon />;
+    }
+
+    return null;
+  }, [organization, mepDataContext]);
 
   const hasPerformanceChartInterpolation = organization.features.includes(
     'performance-chart-interpolation'
@@ -362,6 +358,8 @@ function SummaryContent({
           onSearch={handleSearch}
           searchSource="transaction_summary"
           disableLoadingTags // already loaded by the parent component
+          filterKeyMenuWidth={420}
+          trailingItems={trailingItems}
         />
       );
     }
@@ -586,6 +584,22 @@ function getTransactionsListSort(
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selected: selectedSort, options: sortOptions};
+}
+
+function MetricsWarningIcon() {
+  return (
+    <Tooltip
+      title={t(
+        'Based on your search criteria and sample rate, the events available may be limited.'
+      )}
+    >
+      <StyledIconWarning
+        data-test-id="search-metrics-fallback-warning"
+        size="sm"
+        color="warningText"
+      />
+    </Tooltip>
+  );
 }
 
 const FilterActions = styled('div')`

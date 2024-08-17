@@ -6,7 +6,7 @@ from typing import Any
 from sentry.api.serializers.base import Serializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.service import integration_service
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 # Serializer for External Issues Model

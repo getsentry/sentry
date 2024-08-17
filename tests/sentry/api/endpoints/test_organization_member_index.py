@@ -7,10 +7,8 @@ from sentry import roles
 from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models.authenticator import Authenticator
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.useremail import UserEmail
 from sentry.roles import organization_roles
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -18,6 +16,8 @@ from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.useremail import UserEmail
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):

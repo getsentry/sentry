@@ -148,7 +148,7 @@ const onboarding: OnboardingConfig = {
                 })
               }
             >
-              {params.dsn}
+              {params.dsn.public}
             </TextCopyInput>
           )}
         </Fragment>
@@ -176,7 +176,7 @@ const replayOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -233,7 +233,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },

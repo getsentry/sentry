@@ -14,6 +14,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
+import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
   CodeOwner,
@@ -27,8 +28,7 @@ import type {
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
-import type {Hooks} from 'sentry/types/hooks';
+} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 

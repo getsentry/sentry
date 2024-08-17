@@ -22,7 +22,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
-from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team
@@ -34,6 +33,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
 
@@ -337,7 +337,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
-        assert self.group.substatus == GroupSubStatus.ONGOING
+        assert self.group.substatus == GroupSubStatus.NEW
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_forever_through_unfurl(self, mock_tags):
@@ -498,7 +498,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    @patch("sentry.integrations.slack.webhooks.action.logger")
+    @patch("sentry.integrations.slack.webhooks.action._logger")
     def test_assign_issue_error(self, mock_logger):
         mock_slack_response = SlackResponse(
             client=None,
@@ -533,9 +533,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-        mock_logger.error.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "slack.webhook.update_status.response-error",
-            extra={"error": "error\nThe server responded with: {'ok': False}"},
         )
 
     def test_assign_issue_through_unfurl(self):

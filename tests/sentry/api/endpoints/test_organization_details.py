@@ -23,7 +23,6 @@ from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
@@ -33,7 +32,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -41,6 +39,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
@@ -429,6 +429,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "allowSuperuserAccess": False,
+            "allowMemberInvite": False,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
@@ -472,6 +473,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert org.flags.early_adopter
         assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
+        assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -506,6 +508,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
+        assert "to {}".format(not data["allowMemberInvite"]) in log.data["disable_member_invite"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]

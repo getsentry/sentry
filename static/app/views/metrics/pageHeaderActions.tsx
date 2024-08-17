@@ -147,7 +147,12 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => openExtractionRuleCreateModal({})}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                organization,
+                source: 'ddm.header.create-metric',
+              })
+            }
             size="sm"
           >
             {t('Create Metric')}

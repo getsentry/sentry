@@ -59,7 +59,7 @@ plugins {
 const getConfigurationSnippet = (params: Params) => `
 <application>
   <!-- Required: set your sentry.io project identifier (DSN) -->
-  <meta-data android:name="io.sentry.dsn" android:value="${params.dsn}" />
+  <meta-data android:name="io.sentry.dsn" android:value="${params.dsn.public}" />
 
   <!-- enable automatic breadcrumbs for user interactions (clicks, swipes, scrolls) -->
   <meta-data android:name="io.sentry.traces.user-interaction.enable" android:value="true" />

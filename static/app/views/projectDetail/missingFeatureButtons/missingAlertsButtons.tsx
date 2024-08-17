@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
@@ -25,9 +25,9 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
       >
         {t('Create Alert')}
       </CreateAlertButton>
-      <Button size="sm" external href={DOCS_URL}>
+      <LinkButton size="sm" external href={DOCS_URL}>
         {t('Learn More')}
-      </Button>
+      </LinkButton>
     </ButtonBar>
   );
 }

@@ -11,12 +11,10 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ActionButton from 'sentry/components/actions/button';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
   IconCheckmark,
@@ -48,6 +46,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import ShareIssueModal from './shareModal';
@@ -373,21 +372,19 @@ export function Actions(props: Props) {
               {isResolved ? t('Resolved') : t('Archived')}
             </ResolvedWrapper>
             <Divider />
-            <ActionButton
+            <Button
               size="sm"
               disabled={disabled || isAutoResolved}
               onClick={() =>
                 onUpdate({
                   status: GroupStatus.UNRESOLVED,
-
                   statusDetails: {},
-
                   substatus: GroupSubstatus.ONGOING,
                 })
               }
             >
               {isResolved ? t('Unresolve') : t('Unarchive')}
-            </ActionButton>
+            </Button>
           </ResolvedActionWapper>
         ) : (
           <Fragment>
@@ -428,6 +425,7 @@ export function Actions(props: Props) {
             />
           </Fragment>
         ))}
+      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -509,9 +507,7 @@ export function Actions(props: Props) {
       />
       {!hasStreamlinedUI && (
         <Fragment>
-          {organization.features.includes('issue-details-new-experience-toggle') ? (
-            <NewIssueExperienceButton />
-          ) : null}
+          <NewIssueExperienceButton />
           <SubscribeAction
             className="hidden-xs"
             disabled={disabled}
@@ -530,7 +526,7 @@ export function Actions(props: Props) {
               features="discover-basic"
               organization={organization}
             >
-              <ActionButton
+              <Button
                 className="hidden-xs"
                 disabled={disabled}
                 to={disabled ? '' : getDiscoverUrl()}
@@ -540,11 +536,11 @@ export function Actions(props: Props) {
                 <GuideAnchor target="open_in_discover">
                   {t('Open in Discover')}
                 </GuideAnchor>
-              </ActionButton>
+              </Button>
             </Feature>
           )}
           {isResolved || isIgnored ? (
-            <ActionButton
+            <Button
               priority="primary"
               title={
                 isAutoResolved
@@ -564,7 +560,7 @@ export function Actions(props: Props) {
               }
             >
               {isIgnored ? t('Archived') : t('Resolved')}
-            </ActionButton>
+            </Button>
           ) : (
             <Fragment>
               <ArchiveActions

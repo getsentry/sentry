@@ -20,7 +20,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -42,6 +41,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     UnsupportedResponseType,
 )
+from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.sdk import Scope
 
@@ -294,7 +294,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return feature in self.features
 
 
-class IntegrationInstallation:
+class IntegrationInstallation(abc.ABC):
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
@@ -363,6 +363,7 @@ class IntegrationInstallation:
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    @abc.abstractmethod
     def get_client(self) -> Any:
         """
         Return an API client for the integration provider

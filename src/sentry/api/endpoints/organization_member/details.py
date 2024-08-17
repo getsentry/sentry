@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -181,7 +182,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update a member's organization and team-level roles.
+        Update a member's [organization-level](https://docs.sentry.io/organization/membership/#organization-level-roles) and [team-level](https://docs.sentry.io/organization/membership/#team-level-roles) roles.
+
+        Note that for changing organization-roles, this endpoint is restricted to
+        [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
+        Additionally, both the original and desired organization role must have
+        the same or lower permissions than the role of the organization user making the request
+
+        For example, an organization Manager may change someone's role from
+        Member to Manager, but not to Owner.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
@@ -439,6 +448,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
                 using=router.db_for_write(Project),
             )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            # Delete any invite requests and pending invites by the deleted member
+            existing_invites = OrganizationMember.objects.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(token__isnull=False),
+                inviter_id=member.user_id,
+                organization=organization,
+            )
+            for om in existing_invites:
+                om.delete()
 
         self.create_audit_entry(
             request=request,

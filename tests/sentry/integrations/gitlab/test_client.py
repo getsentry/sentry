@@ -16,13 +16,17 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.identity import Identity
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {

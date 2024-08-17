@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -61,6 +62,13 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
     pageFilters.selection.projects.length > 1 ||
     pageFilters.selection.projects[0] === -1 ||
     pageFilters.selection.projects.length === 0;
+
+  // If the selected condition cannot be found, select the first condition
+  useEffect(() => {
+    if (!selectedCondition && spanConditions.length > 0) {
+      onChange(spanConditions[0].id);
+    }
+  }, [onChange, selectedCondition, spanConditions]);
 
   const options: SelectOptionOrSection<number>[] = useMemo(() => {
     let builtInOption: SelectOption<number> | null = null;
@@ -175,6 +183,15 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
         menuFooter={({closeOverlay}) => (
           <QueryFooter mri={mri} closeOverlay={closeOverlay} />
         )}
+        css={css`
+          && {
+            width: auto;
+            min-width: auto;
+            & > button {
+              min-height: 100%;
+            }
+          }
+        `}
       />
     );
   }
@@ -218,6 +235,7 @@ export function CardinalityWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) {
+  const organization = useOrganization();
   const {getExtractionRules} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
   const extractionRules = getExtractionRules(mri);
@@ -225,9 +243,13 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
   const handleEdit = useCallback(
     (rule: MetricsExtractionRule) => {
       closeOverlay();
-      openExtractionRuleEditModal({metricExtractionRule: rule});
+      openExtractionRuleEditModal({
+        organization,
+        source: 'ddm.condition-select.add-filter',
+        metricExtractionRule: rule,
+      });
     },
-    [closeOverlay]
+    [closeOverlay, organization]
   );
 
   const options = useMemo(

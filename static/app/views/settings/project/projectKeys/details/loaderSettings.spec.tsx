@@ -5,7 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import selectEvent from 'sentry-test/selectEvent';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 
 import {KeySettings} from './keySettings';
 import {LoaderSettings} from './loaderSettings';

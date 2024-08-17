@@ -15,7 +15,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -24,7 +24,7 @@ function renderFrameworkModalMockRequests({
   organization,
   teamSlug,
 }: {
-  organization: TOrganization;
+  organization: Organization;
   teamSlug: string;
 }) {
   MockApiClient.addMockResponse({

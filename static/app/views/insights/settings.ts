@@ -48,7 +48,13 @@ import {
   MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
 import {
-  MODULE_DOC_LINK as MODULE_MODULE_DOC_LINK,
+  DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
+  DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
+  MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
+} from 'sentry/views/insights/mobile/screens/settings';
+import {
+  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {
@@ -75,8 +81,8 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
+  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
@@ -90,8 +96,8 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
+  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
@@ -105,8 +111,8 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
+  [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };
 
 export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
@@ -119,7 +125,7 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.VITAL]: VITALS_MODULE_DOC_LINK,
   [ModuleName.RESOURCE]: RESOURCES_MODULE_DOC_LINK,
   [ModuleName.AI]: AI_MODULE_DOC_LINK,
-  [ModuleName.MOBILE_UI]: MODULE_MODULE_DOC_LINK,
+  [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
+  [ModuleName.MOBILE_SCREENS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.OTHER]: '',
-  [ModuleName.ALL]: '',
 };

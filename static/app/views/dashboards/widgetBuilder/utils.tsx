@@ -2,15 +2,20 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
+import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
+  AGGREGATIONS,
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
+  type QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -19,7 +24,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {
+  appendFieldIfUnknown,
+  type FieldValueOption,
+} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -416,4 +424,98 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 
 export function getIsTimeseriesChart(displayType: DisplayType) {
   return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
+}
+
+// Handle adding functions to the field options
+// Field and equations are already compatible
+export function getFieldOptionFormat(
+  field: QueryFieldValue
+): [string, FieldValueOption] | null {
+  if (field.kind === 'function') {
+    // Show the ellipsis if there are parameters that actually have values
+    const ellipsis =
+      field.function.slice(1).map(Boolean).filter(Boolean).length > 0 ? '\u2026' : '';
+
+    const functionName = field.alias || field.function[0];
+    return [
+      `function:${functionName}`,
+      {
+        label: `${functionName}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: functionName,
+            parameters: AGGREGATIONS[field.function[0]].parameters.map(param => ({
+              ...param,
+              columnTypes: props => {
+                // HACK: Forcibly allow the parameter if it's already set, this allows
+                // us to render the option even if it's not compatible with the dataset.
+                if (props.name === field.function[1]) {
+                  return true;
+                }
+
+                // default behavior
+                if (typeof param.columnTypes === 'function') {
+                  return param.columnTypes(props);
+                }
+                return param.columnTypes;
+              },
+            })),
+          },
+        },
+      },
+    ];
+  }
+  return null;
+}
+
+/**
+ * Adds the incompatible functions (i.e. functions that aren't already
+ * in the field options) to the field options. This updates fieldOptions
+ * in place and returns the keys that were added for extra validation/filtering
+ *
+ * The function depends on the consistent structure of field definition for
+ * functions where the first element is the function name and the second
+ * element is the first argument to the function, which is a field/tag.
+ */
+export function addIncompatibleFunctions(
+  fields: QueryFieldValue[],
+  fieldOptions: Record<string, SelectValue<FieldValue>>
+): Set<string> {
+  const injectedFieldKeys: Set<string> = new Set();
+
+  fields.forEach(field => {
+    // Inject functions that aren't compatible with the current dataset
+    if (field.kind === 'function') {
+      const functionName = field.alias || field.function[0];
+      if (!(`function:${functionName}` in fieldOptions)) {
+        const formattedField = getFieldOptionFormat(field);
+        if (formattedField) {
+          const [key, value] = formattedField;
+          fieldOptions[key] = value;
+
+          injectedFieldKeys.add(key);
+
+          // If the function needs to be injected, inject the parameter as a tag
+          // as well if it isn't already an option
+          if (
+            field.function[1] &&
+            !fieldOptions[`field:${field.function[1]}`] &&
+            !fieldOptions[`tag:${field.function[1]}`]
+          ) {
+            fieldOptions = appendFieldIfUnknown(fieldOptions, {
+              kind: FieldValueKind.TAG,
+              meta: {
+                dataType: 'string',
+                name: field.function[1],
+                unknown: true,
+              },
+            });
+          }
+        }
+      }
+    }
+  });
+
+  return injectedFieldKeys;
 }

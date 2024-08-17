@@ -39,12 +39,12 @@ sealed partial class App : Application
         SentrySdk.Init(o =>
         {
             // Tells which project in Sentry to send events to:
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -153,7 +153,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),

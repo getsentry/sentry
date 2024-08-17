@@ -59,7 +59,7 @@ public class Function : IHttpFunction
 const getConfigureJsonSnippet = (params: Params) => `
 {
   "Sentry": {
-    "Dsn": "${params.dsn}",
+    "Dsn": "${params.dsn.public}",
     // Sends Cookies, User Id when one is logged on and user IP address to sentry. It's turned off by default.
     "SendDefaultPii": true,
     // When configuring for the first time, to see what the SDK is doing:
@@ -68,7 +68,7 @@ const getConfigureJsonSnippet = (params: Params) => `
     "MaxRequestBodySize": "Always"${
       params.isPerformanceSelected
         ? `,
-    // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+    // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
     // We recommend adjusting this value in production.
     "TracesSampleRate": 1`
         : ''

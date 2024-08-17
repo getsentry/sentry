@@ -11,7 +11,6 @@ import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfig
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -30,7 +29,6 @@ export function ReplayOnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
       dsn,
       organization,
       platformKey,
@@ -62,7 +60,6 @@ export function ReplayOnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
-    cdn,
     docsConfig,
     dsn,
     isLoadingRegistry,

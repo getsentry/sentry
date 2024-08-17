@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
-  'dsn' => '${params.dsn}',${
+  'dsn' => '${params.dsn.public}',${
     params.isPerformanceSelected
       ? `
   // Specify a fixed sample rate

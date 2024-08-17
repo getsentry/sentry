@@ -3,7 +3,7 @@ import type {
   MarkReviewed,
   PriorityLevel,
   TagValue,
-} from 'sentry/types';
+} from 'sentry/types/group';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
@@ -16,8 +16,12 @@ export type IssueUpdateData =
   | GroupStatusResolution;
 
 export type GroupSearchView = {
+  id: string;
   name: string;
   query: string;
   querySort: IssueSortOptions;
-  id?: string;
 };
+
+export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
+  id?: string;
+}

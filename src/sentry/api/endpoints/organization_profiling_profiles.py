@@ -68,7 +68,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has(
             "organizations:continuous-profiling-compat", organization, actor=request.user
         ):
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
 
             project_ids = snuba_params.project_ids
             if len(project_ids) > 1:
@@ -96,7 +96,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             )
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -133,9 +133,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             return Response(status=404)
 
         # We disable the date quantizing here because we need the timestamps to be precise.
-        snuba_params, _ = self.get_snuba_dataclass(
-            request, organization, quantize_date_params=False
-        )
+        snuba_params = self.get_snuba_params(request, organization, quantize_date_params=False)
 
         project_ids = snuba_params.project_ids
         if project_ids is None or len(project_ids) != 1:
@@ -165,7 +163,7 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        snuba_params, _ = self.get_snuba_dataclass(request, organization)
+        snuba_params = self.get_snuba_params(request, organization)
 
         project_ids = snuba_params.project_ids
         if len(project_ids) != 1:

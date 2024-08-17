@@ -12,10 +12,10 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
-  Organization,
   OrganizationIntegration,
   ServerlessFunction,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 

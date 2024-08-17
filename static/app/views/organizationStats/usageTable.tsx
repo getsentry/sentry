@@ -14,7 +14,8 @@ import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategoryInfo, Project} from 'sentry/types';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
