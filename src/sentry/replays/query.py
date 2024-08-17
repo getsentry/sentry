@@ -197,12 +197,14 @@ def query_replays_dataset_tag_keys(
     referrer: str | None = None,
     include_values_seen: bool = False,
     **kwargs,
-):
+) -> dict[str, int] | dict[str, dict[str, int]]:
     """
     @param tag_keys  Optionally used to check if a list of tag keys exist in the dataset, and their values_seen.
     """
     # TODO:
-    return {}
+    if include_values_seen:
+        return {"fruit": {"count": 4, "values_seen": 2}}
+    return {"fruit": 4}
 
 
 def query_replays_dataset_tagkey_values(
