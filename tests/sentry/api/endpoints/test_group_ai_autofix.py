@@ -13,7 +13,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("projects:ai-autofix")
+@apply_feature_flag_on_cls("organizations:autofix")
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"

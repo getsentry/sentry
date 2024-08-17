@@ -158,7 +158,10 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
         created_at = datetime.now().isoformat()
 
-        if not features.has("projects:ai-autofix", group.project):
+        if not (
+            features.has("projects:ai-autofix", group.project)
+            or features.has("organizations:autofix", group.organization)
+        ):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
         # For now we only send the event that the user is looking at, in the near future we want to send multiple events.

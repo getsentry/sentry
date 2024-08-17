@@ -106,7 +106,10 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
-        if not features.has("projects:ai-autofix", group.project):
+        if not (
+            features.has("projects:ai-autofix", group.project)
+            or features.has("organizations:autofix", group.organization)
+        ):
             return Response({"detail": "Feature not enabled for project"}, status=403)
 
         org: Organization = request.organization
