@@ -20,7 +20,7 @@ from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.replays.query import query_replays_dataset_tag_keys, query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_ALIAS,
@@ -267,10 +267,6 @@ class SnubaTagStorage(TagStorage):
         further explanation of how that is done.
         """
         if dataset == Dataset.Replays:
-            if include_values_seen:
-                raise ValueError(
-                    "Unsupported parameter for get_tag_keys on replays dataset: include_values_seen"
-                )
             if group:
                 raise ValueError("Unsupported parameter for get_tag_keys on replays dataset: group")
 
@@ -323,23 +319,33 @@ class SnubaTagStorage(TagStorage):
                 metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
-            if dataset == Dataset.Replays:
-                aggregations = [["count()", "", "count"]]
-                conditions = [["timestamp", Op.GTE.value, start], ["timestamp", Op.LT.value, end]]
-
-            result = snuba.query(
-                dataset=dataset,
-                start=start,
-                end=end,
-                groupby=["tags_key"] if dataset != Dataset.Replays else ["tags.key"],
-                conditions=conditions,
-                filter_keys=filters,
-                aggregations=aggregations,
-                limit=limit,
-                orderby="-count",
-                referrer="tagstore.__get_tag_keys",
-                **kwargs,
-            )
+            if dataset != Dataset.Replays:
+                result = snuba.query(
+                    dataset=dataset,
+                    start=start,
+                    end=end,
+                    groupby=["tags_key"] if dataset != Dataset.Replays else ["tags.key"],
+                    conditions=conditions,
+                    filter_keys=filters,
+                    aggregations=aggregations,
+                    limit=limit,
+                    orderby="-count",
+                    referrer="tagstore.__get_tag_keys",
+                    **kwargs,
+                )
+            else:
+                result = query_replays_dataset_tag_keys(
+                    start=start,
+                    end=end,
+                    project_ids=filters["project_id"],
+                    environments=filters.get("environment"),
+                    query_keys=filters.get("tags_key"),
+                    limit=limit,
+                    orderby="-count",
+                    referrer="tagstore.__get_tag_keys",
+                    include_values_seen=include_values_seen,
+                    **kwargs,
+                )
             if should_cache:
                 cache.set(cache_key, result, 300)
                 metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))

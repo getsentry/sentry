@@ -186,6 +186,25 @@ def query_replays_count(
     )
 
 
+def query_replays_dataset_tag_keys(
+    start: datetime,
+    end: datetime,
+    project_ids: list[int],
+    environments: list[str] | None = None,
+    query_keys: Sequence[str] = None,
+    limit: int = 1000,
+    orderby: str = "-count",
+    referrer: str | None = None,
+    include_values_seen: bool = False,
+    **kwargs,
+):
+    """
+    @param tag_keys  Optionally used to check if a list of tag keys exist in the dataset, and their values_seen.
+    """
+    # TODO:
+    return {}
+
+
 def query_replays_dataset_tagkey_values(
     project_ids: list[int],
     start: datetime,
