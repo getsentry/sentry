@@ -319,10 +319,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         # Check service hooks for each organization
         with assume_test_silo_mode(SiloMode.REGION):
             service_hooks_org1 = ServiceHook.objects.filter(
-                organization_id=org1.id, application_id=self.published_app.id
+                organization_id=org1.id, application_id=self.published_app.application_id
             )
             service_hooks_org2 = ServiceHook.objects.filter(
-                organization_id=org2.id, application_id=self.published_app.id
+                organization_id=org2.id, application_id=self.published_app.application_id
             )
 
         assert (
