@@ -54,12 +54,6 @@ class DatabaseBackedHookService(HookService):
                 installation_id=installation_id,
                 url=url,
             )
-            print(
-                "Service hook rpc: added hook for organization",
-                organization_id,
-                "and application",
-                application_id,
-            )
             if project_ids:
                 for project_id in project_ids:
                     hook.add_project(project_id)
