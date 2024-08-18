@@ -11,13 +11,14 @@ import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization} from 'sentry/types';
-import {StackView} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 enum AnrRootCauseAllowlist {
@@ -116,7 +117,7 @@ export function AnrRootCause({event, organization}: Props) {
   return (
     <InterimSection
       title={t('Suspect Root Cause')}
-      type={FoldSectionKey.SUSPECT_ROOT_CAUSE}
+      type={SectionKey.SUSPECT_ROOT_CAUSE}
       help={helpText}
     >
       {potentialAnrRootCause?.map(issue => {

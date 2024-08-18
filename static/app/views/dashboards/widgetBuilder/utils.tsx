@@ -4,7 +4,9 @@ import trimStart from 'lodash/trimStart';
 
 import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,

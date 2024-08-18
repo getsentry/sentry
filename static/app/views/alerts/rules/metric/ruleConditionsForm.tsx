@@ -36,9 +36,11 @@ import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
@@ -67,8 +69,7 @@ import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import type {AlertRuleComparisonType} from './types';
-import {Dataset, Datasource, TimeWindow} from './types';
+import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -262,6 +263,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         TimeWindow.TWO_HOURS,
         TimeWindow.FOUR_HOURS,
         TimeWindow.ONE_DAY,
+      ]);
+    }
+
+    if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIFTEEN_MINUTES,
+        TimeWindow.THIRTY_MINUTES,
+        TimeWindow.ONE_HOUR,
       ]);
     }
 

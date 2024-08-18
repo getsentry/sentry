@@ -30,16 +30,16 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   BaseGroup,
   Group,
-  Organization,
-  PageFilters,
   PriorityLevel,
   SavedSearch,
   TagCollection,
-} from 'sentry/types';
-import {GroupStatus, IssueCategory} from 'sentry/types';
+} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -61,6 +61,7 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
@@ -321,7 +322,10 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch,
     location,
   }: Pick<Props, 'savedSearch' | 'location'>): string {
-    if (savedSearch) {
+    if (
+      !this.props.organization.features.includes('issue-stream-custom-views') &&
+      savedSearch
+    ) {
       return savedSearch.query;
     }
 
@@ -1221,18 +1225,28 @@ class IssueListOverview extends Component<Props, State> {
 
     return (
       <Layout.Page>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-        />
+        {organization.features.includes('issue-stream-custom-views') ? (
+          <CustomViewsIssueListHeader
+            organization={organization}
+            queryCounts={queryCounts}
+            router={router}
+            selectedProjectIds={selection.projects}
+          />
+        ) : (
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+        )}
+
         <StyledBody>
           <StyledMain>
             <DataConsentBanner source="issues" />

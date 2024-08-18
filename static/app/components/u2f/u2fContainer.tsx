@@ -1,4 +1,4 @@
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 
 import U2fSign from './u2fsign';
 

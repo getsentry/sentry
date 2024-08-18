@@ -10,9 +10,10 @@ import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
   filterSessionsInTimeWindow,

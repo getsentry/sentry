@@ -427,7 +427,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -444,7 +444,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     )
             else:
                 middle = snuba_params.start_date + timedelta(
-                    seconds=(snuba_params.end_date - snuba_params.start_date).total_seconds() * 0.5
+                    seconds=(snuba_params.date_range).total_seconds() * 0.5
                 )
             middle = datetime.strftime(middle, DateArg.date_format)
 
@@ -537,16 +537,19 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         query,
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
+            def get_event_stats(
+                query_columns, query, snuba_params, rollup, zerofill_results, _=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
                     query,
-                    params,
+                    {},
                     orderby,
                     rollup,
                     min(5, len(events_results["data"])),
                     organization,
+                    snuba_params=snuba_params,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
                     zerofill_results=zerofill_results,
@@ -559,7 +562,6 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     get_event_stats,
                     top_events=True,
                     query_column=trend_function,
-                    params={},
                     snuba_params=snuba_params,
                     query=query,
                 )

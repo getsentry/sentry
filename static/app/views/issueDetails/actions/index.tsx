@@ -15,7 +15,6 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
   IconCheckmark,
@@ -47,6 +46,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import ShareIssueModal from './shareModal';
@@ -378,9 +378,7 @@ export function Actions(props: Props) {
               onClick={() =>
                 onUpdate({
                   status: GroupStatus.UNRESOLVED,
-
                   statusDetails: {},
-
                   substatus: GroupSubstatus.ONGOING,
                 })
               }
@@ -427,6 +425,7 @@ export function Actions(props: Props) {
             />
           </Fragment>
         ))}
+      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -508,9 +507,7 @@ export function Actions(props: Props) {
       />
       {!hasStreamlinedUI && (
         <Fragment>
-          {organization.features.includes('issue-details-new-experience-toggle') ? (
-            <NewIssueExperienceButton />
-          ) : null}
+          <NewIssueExperienceButton />
           <SubscribeAction
             className="hidden-xs"
             disabled={disabled}

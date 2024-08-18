@@ -4,7 +4,8 @@ import type {
   HighlightTags,
 } from 'sentry/components/events/highlights/util';
 import {tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -41,7 +42,7 @@ export default function useMutateProject({
       }),
     onSuccess: (updatedProject: Project) => {
       addSuccessMessage(
-        tct(`Successfully updated highlights for '[projectName]' project`, {
+        tct(`Successfully updated '[projectName]' project`, {
           projectName: project.name,
         })
       );
@@ -57,7 +58,7 @@ export default function useMutateProject({
     },
     onError: error => {
       addErrorMessage(
-        tct(`Failed to update highlights for '[projectName]' project`, {
+        tct(`Failed to update '[projectName]' project`, {
           projectName: project.name,
         })
       );
