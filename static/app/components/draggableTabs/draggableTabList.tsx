@@ -71,7 +71,7 @@ function BaseDraggableTabList({
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.selectedItem, state.selectedKey, props.children]);
+  }, [state.selectedKey]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
