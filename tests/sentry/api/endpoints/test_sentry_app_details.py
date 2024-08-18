@@ -293,13 +293,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         self.published_app.save()
 
         # for published integrations, it runs in a task
-        print(
-            "start test with organization ids: ",
-            org1.id,
-            org2.id,
-            "and application id: ",
-            self.published_app.application_id,
-        )
         with self.tasks(), outbox_runner():
             self.get_success_response(
                 self.published_app.slug,
@@ -308,9 +301,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 events=("issue",),
                 status_code=200,
             )
-        print(
-            f"task and outbox runner should be done by now with organization ids: {org1.id}, {org2.id}, application id: {self.published_app.application_id}"
-        )
         self.published_app.refresh_from_db()
         assert set(self.published_app.scope_list) == {"event:write", "event:read"}
         assert (
@@ -325,15 +315,11 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 organization_id=org2.id, application_id=self.published_app.application_id
             )
 
-        assert (
-            len(service_hooks_org1) > 0
-        ), f"No service hooks found for Org1 (ID: {org1.id}), App ID: {self.published_app.application_id}"
-        assert (
-            len(service_hooks_org2) > 0
-        ), f"No service hooks found for Org2 (ID: {org2.id}), App ID: {self.published_app.application_id}"
+        assert len(service_hooks_org1) > 0, f"No service hooks found for Org1 (ID: {org1.id})"
+        assert len(service_hooks_org2) > 0, f"No service hooks found for Org2 (ID: {org2.id})"
 
         for hook in service_hooks_org1:
-            assert hook.application_id == self.published_app.id
+            assert hook.application_id == self.published_app.application_id
             assert hook.organization_id == org1.id
             assert hook.actor_id == installation1.id
             assert hook.url == "https://newurl.com"
@@ -347,7 +333,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert hook.project_id is None
 
         for hook in service_hooks_org2:
-            assert hook.application_id == self.published_app.id
+            assert hook.application_id == self.published_app.application_id
             assert hook.organization_id == org2.id
             assert hook.actor_id == installation2.id
             assert hook.url == "https://newurl.com"
