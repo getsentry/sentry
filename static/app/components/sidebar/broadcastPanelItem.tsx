@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge/badge';
@@ -10,6 +11,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
+  /**
+   * Category of the broadcast
+   */
+  category?: string;
   /**
    * Content rendered instead the panel item
    */
@@ -44,6 +49,37 @@ type Props = {
   titleAction?: React.ReactNode;
 };
 
+// Function chooses what color we want the tag to be when it has been viewed , can choose what colors we want to show for each category (i think this is good to differentiate between different types of broadcasts)
+function getCategoryBadge(category?: string) {
+  if (!category) {
+    return null;
+  }
+
+  let badgeType: keyof Theme['badge'];
+
+  switch (category) {
+    case 'feature':
+      badgeType = 'experimental';
+      break;
+    case 'blog':
+      badgeType = 'experimental';
+      break;
+    case 'announcement':
+      badgeType = 'experimental';
+      break;
+    case 'event':
+      badgeType = 'experimental';
+      break;
+    case 'video':
+      badgeType = 'experimental';
+      break;
+    default:
+      badgeType = 'experimental';
+  }
+
+  return <Badge type={badgeType}>{category}</Badge>;
+}
+
 function BroadcastPanelItem({
   hasSeen,
   title,
@@ -53,6 +89,7 @@ function BroadcastPanelItem({
   titleAction,
   imageUrl,
   children,
+  category,
 }: Props) {
   const organization = useOrganization();
 
@@ -64,7 +101,11 @@ function BroadcastPanelItem({
         <TitleWrapper>
           <Title hasSeen={hasSeen}>{title}</Title>
           {titleAction}
-          {true /* !hasSeen */ ? <Badge type={'new'}>new</Badge> : null}
+          {true /* !hasSeen */ ? (
+            <Badge type={'new'}>{category}</Badge>
+          ) : (
+            getCategoryBadge(category)
+          )}
         </TitleWrapper>
       )}
       {children}

@@ -24,6 +24,7 @@ class Broadcast(Model):
     date_added = models.DateTimeField(default=timezone.now)
     cta = models.CharField(max_length=256, null=True, blank=True)
     media_url = models.URLField(null=True, blank=True)
+    category = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
