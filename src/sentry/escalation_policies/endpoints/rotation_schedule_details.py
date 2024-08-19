@@ -47,7 +47,12 @@ class OrganizationRotationScheduleDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Get an Rotation Schedule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, RotationScheduleParams.ROTATION_SCHEDULE_ID],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            RotationScheduleParams.ROTATION_SCHEDULE_ID,
+            GlobalParams.START,
+            GlobalParams.END,
+        ],
         request=None,
         responses={
             200: RotationScheduleSerializerResponse,

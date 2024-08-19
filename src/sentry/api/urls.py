@@ -83,6 +83,12 @@ from sentry.escalation_policies.endpoints.escalation_policy_details import (
 from sentry.escalation_policies.endpoints.escalation_policy_index import (
     OrganizationEscalationPolicyIndexEndpoint,
 )
+from sentry.escalation_policies.endpoints.escalation_policy_state_details import (
+    OrganizationEscalationPolicyStateDetailsEndpoint,
+)
+from sentry.escalation_policies.endpoints.escalation_policy_state_index import (
+    OrganizationEscalationPolicyStateIndexEndpoint,
+)
 from sentry.escalation_policies.endpoints.rotation_schedule_details import (
     OrganizationRotationScheduleDetailsEndpoint,
 )
@@ -1197,6 +1203,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/escalation-policies/(?P<escalation_policy_id>[^\/]+)/$",
         OrganizationEscalationPolicyDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-escalation-policy-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/escalation-policy-states/$",
+        OrganizationEscalationPolicyStateIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-escalation-policy-states",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/escalation-policy-states/(?P<escalation_policy_state_id>[^\/]+)/$",
+        OrganizationEscalationPolicyStateDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-escalation-policy-state-details",
     ),
     # Rotation Schedules
     re_path(
