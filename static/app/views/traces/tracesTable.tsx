@@ -7,6 +7,7 @@ import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStat
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
@@ -40,9 +41,6 @@ import {
   WrappingText,
 } from './styles';
 import {areQueriesEmpty} from './utils';
-
-const SPAN_PROPS_DOCS_URL =
-  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 interface TracesTableProps {
   isEmpty: boolean;
