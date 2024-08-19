@@ -33,14 +33,11 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {
-  AvatarProject,
-  Organization,
-  PageFilters,
-  Project,
-  Release,
-  Tag,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
@@ -53,7 +50,6 @@ import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
-import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -555,10 +551,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           <Header />
           <Layout.Body>
             <Layout.Main fullWidth>
-              {organization.features.includes('releases-v2-banner') && (
-                <ReleaseFeedbackBanner />
-              )}
-
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>

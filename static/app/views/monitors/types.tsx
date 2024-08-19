@@ -1,4 +1,5 @@
-import type {Actor, ObjectStatus, Project} from 'sentry/types';
+import type {Actor, ObjectStatus} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export enum MonitorType {

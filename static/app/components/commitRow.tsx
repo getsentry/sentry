@@ -6,7 +6,6 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
-import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -19,10 +18,11 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types';
 import type {Commit} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function formatCommitMessage(message: string | null) {

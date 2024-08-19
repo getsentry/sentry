@@ -27,6 +27,8 @@ import {
   WebVital,
 } from '../fields';
 
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
+
 export type Sort = {
   field: string;
   kind: 'asc' | 'desc';
@@ -187,52 +189,6 @@ export const RATE_UNIT_TITLE = {
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
-
-const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
-  {
-    label: 'is equal to',
-    value: 'equals',
-  },
-  {
-    label: 'is not equal to',
-    value: 'notEquals',
-  },
-  {
-    label: 'is less than',
-    value: 'less',
-  },
-  {
-    label: 'is greater than',
-    value: 'greater',
-  },
-  {
-    label: 'is less than or equal to',
-    value: 'lessOrEquals',
-  },
-  {
-    label: 'is greater than or equal to',
-    value: 'greaterOrEquals',
-  },
-];
-
-const WEB_VITALS_QUALITY: SelectValue<string>[] = [
-  {
-    label: 'good',
-    value: 'good',
-  },
-  {
-    label: 'meh',
-    value: 'meh',
-  },
-  {
-    label: 'poor',
-    value: 'poor',
-  },
-  {
-    label: 'any',
-    value: 'any',
-  },
-];
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -1509,6 +1465,38 @@ export const RELEASE_FIELDS: FilterKeySection = {
   ],
 };
 
+export const STACKTRACE_FILTER_FIELDS: FilterKeySection = {
+  value: 'stacktrace_fields',
+  label: 'Stacktrace',
+  children: [
+    FieldKey.STACK_ABS_PATH,
+    FieldKey.STACK_COLNO,
+    FieldKey.STACK_FILENAME,
+    FieldKey.STACK_FUNCTION,
+    FieldKey.STACK_IN_APP,
+    FieldKey.STACK_LINENO,
+    FieldKey.STACK_MODULE,
+    FieldKey.STACK_PACKAGE,
+    FieldKey.STACK_STACK_LEVEL,
+  ],
+};
+
+export const ERROR_FILTER_FIELDS: FilterKeySection = {
+  value: 'error_fields',
+  label: 'Error',
+  children: [
+    FieldKey.LEVEL,
+    FieldKey.MESSAGE,
+    FieldKey.ERROR_TYPE,
+    FieldKey.ERROR_VALUE,
+    FieldKey.ERROR_MECHANISM,
+    FieldKey.ERROR_HANDLED,
+    FieldKey.ERROR_UNHANDLED,
+    FieldKey.ERROR_RECEIVED,
+    FieldKey.ERROR_MAIN_THREAD,
+  ],
+};
+
 export const MISC_FIELDS: FilterKeySection = {
   value: 'misc_fields',
   label: 'Misc',
@@ -1527,6 +1515,18 @@ export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   MOBILE_VITAL_FIELDS,
   DEVICE_FIELDS,
   MISC_FIELDS,
+];
+
+export const ERRORS_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  ERROR_FILTER_FIELDS,
+  STACKTRACE_FILTER_FIELDS,
+  HTTP_FILTER_FIELDS,
+];
+
+export const COMMON_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  ERROR_FILTER_FIELDS,
+  TRANSACTION_FILTER_FIELDS,
+  HTTP_FILTER_FIELDS,
 ];
 
 // TODO: In followup PR, add this

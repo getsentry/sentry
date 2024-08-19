@@ -10,7 +10,6 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
-import ExternalLink from './links/externalLink';
 import Link from './links/link';
 import InteractionStateLayer from './interactionStateLayer';
 import {Tooltip, type TooltipProps} from './tooltip';
@@ -498,7 +497,16 @@ const StyledButton = styled(
       }
 
       if (href && external) {
-        return <ExternalLink {...props} ref={ref} href={href} disabled={disabled} />;
+        return (
+          <a
+            {...props}
+            ref={ref}
+            href={href}
+            aria-disabled={disabled}
+            target="_blank"
+            rel="noreferrer noopener"
+          />
+        );
       }
 
       if (href) {

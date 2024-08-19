@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CursorHandler} from 'sentry/components/pagination';
-import type {AuditLog} from 'sentry/types';
+import type {AuditLog} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';

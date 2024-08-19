@@ -13,7 +13,9 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
@@ -22,11 +24,12 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import type {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  Trigger,
+import {
+  type Action,
+  type ActionType,
+  AlertRuleComparisonType,
+  type MetricActionTemplate,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   ActionLabel,
@@ -37,6 +40,7 @@ import {
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
+  comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
   error: boolean;
@@ -309,6 +313,7 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
+      comparisonType,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -324,6 +329,10 @@ class ActionsPanel extends PureComponent<Props> {
       {value: 0, label: 'Critical Status'},
       {value: 1, label: 'Warning Status'},
     ];
+
+    // NOTE: we don't support warning triggers for anomaly detection alerts yet
+    // once we do, this can be deleted
+    const anomalyDetectionLevels = [{value: 0, label: 'Critical Status'}];
 
     // Create single array of unsaved and saved trigger actions
     // Sorted by date created ascending
@@ -369,7 +378,11 @@ class ActionsPanel extends PureComponent<Props> {
                         actionIdx
                       )}
                       value={triggerIndex}
-                      options={levels}
+                      options={
+                        comparisonType === AlertRuleComparisonType.DYNAMIC
+                          ? anomalyDetectionLevels
+                          : levels
+                      }
                     />
                     <SelectControl
                       name="select-action"

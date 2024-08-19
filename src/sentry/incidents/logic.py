@@ -629,7 +629,7 @@ def create_alert_rule(
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except (ValidationError):
+            except ValidationError:
                 alert_rule.delete()
                 raise
             else:
@@ -1521,7 +1521,7 @@ def _get_alert_rule_trigger_action_slack_channel_id(
     use_async_lookup: bool = True,
     integrations: Collection[Integration] | None = None,
 ) -> str:
-    from sentry.integrations.slack.utils import get_channel_id
+    from sentry.integrations.slack.utils.channel import get_channel_id
 
     if integrations is not None:
         try:

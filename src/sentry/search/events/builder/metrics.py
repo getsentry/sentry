@@ -139,15 +139,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             **kwargs,
         )
 
-        org_id = self.filter_params.get("organization_id")
-        if org_id is None and self.params.organization is not None:
-            org_id = self.params.organization.id
-        if org_id is None or not isinstance(org_id, int):
+        if self.organization_id is None:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
-        self.organization_id: int = org_id
 
     def load_config(self) -> DatasetConfig:
         if hasattr(self, "config_class") and self.config_class is not None:
@@ -163,6 +159,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     @property
     def use_default_tags(self) -> bool:
+        if self.is_spans_metrics_query:
+            return False
         if self._use_default_tags is None:
             if self.params.organization is not None:
                 self._use_default_tags = features.has(
@@ -401,7 +399,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 self._is_spans_metrics_query_cache = True
                 return True
             argument = match.group("columns") if match else None
-            if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+            if (
+                argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys()
+                or argument in constants.SPAN_METRICS_MAP.values()
+            ):
                 self._is_spans_metrics_query_cache = True
                 return True
         self._is_spans_metrics_query_cache = False
@@ -1591,8 +1592,10 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
         kwargs["config"] = config
         super().__init__(*args, **kwargs)
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        result = super().run_query(referrer, use_cache)
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
+        result = super().run_query(referrer, use_cache, query_source=query_source)
         for row in result["data"]:
             for key, value in row.items():
                 if key in self.histogram_aliases:

@@ -11,7 +11,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
@@ -19,7 +19,7 @@ import TransactionThresholdModal, {
 
 function mountModal(
   eventView: EventView,
-  organization: TOrganization,
+  organization: Organization,
   onApply: React.ComponentProps<typeof TransactionThresholdModal>['onApply']
 ) {
   render(

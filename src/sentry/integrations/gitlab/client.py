@@ -16,7 +16,9 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode, control_silo_function
@@ -65,9 +67,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabApiClient(IntegrationProxyClient, CommitContextClient):
-    integration_name = "gitlab"
-
+class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
     def __init__(self, installation: GitlabIntegration):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
@@ -75,6 +75,8 @@ class GitLabApiClient(IntegrationProxyClient, CommitContextClient):
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
+        self.integration_name = "gitlab"
+
         super().__init__(
             integration_id=installation.model.id,
             org_integration_id=org_integration_id,
@@ -311,26 +313,24 @@ class GitLabApiClient(IntegrationProxyClient, CommitContextClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        try:
-            project_id = repo.config["project_id"]
-            encoded_path = quote(path, safe="")
+        project_id = repo.config["project_id"]
+        encoded_path = quote(path, safe="")
 
-            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-            return self.head_cached(request_path, params={"ref": ref})
-        except ApiError as e:
-            # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code != 400:
-                raise
-            return None
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+        # Gitlab can return 404 or 400 if the file doesn't exist
+        return self.head_cached(request_path, params={"ref": version})
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
