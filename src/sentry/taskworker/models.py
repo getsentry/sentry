@@ -29,8 +29,8 @@ class PendingTasks(Model):
     topic: str = models.CharField(blank=True, null=True)
     task_name: str = models.CharField(max_length=255, null=True)
     parameters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-
     # Could be omitted if pending tasks are stored in redis, or kafka.
+    task_namespace: str = models.CharField(max_length=255, null=True)
     partition: int = models.IntegerField(default=2, blank=True, null=True)
     offset: int = models.IntegerField(blank=True, null=True)
     state: States = models.CharField(choices=States.choices)
