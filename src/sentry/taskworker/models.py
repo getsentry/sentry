@@ -1,17 +1,9 @@
-import inspect
+from datetime import datetime
 
 from django.db import models
-from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-
-
-class State:
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETE = "complete"
-    FAILURE = "failure"
-    RETRY = "retry"
 
 
 class PendingTasks(Model):
@@ -21,15 +13,23 @@ class PendingTasks(Model):
     and unprocessable messages
     """
 
+    class States(models.TextChoices):
+        PENDING = "pending"
+        COMPLETE = "complete"
+        FAILURE = "failure"
+        RETRY = "retry"
+
+    __relocation_scope__ = RelocationScope.Excluded
+
     id = (models.UUIDField(),)
     # Could be omitted if pending tasks are stored in redis, or kafka.
     topic = (models.CharField(blank=True, null=True),)
     # Could be omitted if pending tasks are stored in redis, or kafka.
     partition = models.IntegerField(default=2, blank=True, null=True)
     offset = models.IntegerField(blank=True, null=True)
-    state = models.CharField(choices=[(y, x) for x, y in inspect.getmembers(State)])
+    state = models.CharField(choices=States.choices)
     received_at = models.DateTimeField()
-    added_at = models.DateTimeField(default=timezone.now, blank=True)
-    retry_state = models.CharField(choices=[(y, x) for x, y in inspect.getmembers(State)])
+    added_at = models.DateTimeField(default=datetime.now, blank=True)
+    retry_state = models.CharField(choices=States.choices)
     deadletter_at = models.DateTimeField()
     processing_deadline = models.DateTimeField()
