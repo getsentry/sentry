@@ -16,7 +16,7 @@ class Broadcast(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     upstream_id = models.CharField(max_length=32, null=True, blank=True)
-    title = models.CharField(max_length=32)
+    title = models.CharField(max_length=64)
     message = models.CharField(max_length=256)
     link = models.URLField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)

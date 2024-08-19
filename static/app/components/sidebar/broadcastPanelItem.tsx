@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import Badge from 'sentry/components/badge/badge';
+import {LinkButton} from 'sentry/components/button';
+// import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -58,6 +60,7 @@ function BroadcastPanelItem({
         <TitleWrapper>
           <Title hasSeen={hasSeen}>{title}</Title>
           {titleAction}
+          {true /* !hasSeen */ ? <Badge type={'new'}>new</Badge> : null}
         </TitleWrapper>
       )}
       {children}
@@ -74,14 +77,16 @@ function BroadcastPanelItem({
 
       {link && (
         <Text>
-          <ExternalLink
+          <LinkButton
+            external
             href={link}
             onClick={() =>
               trackAnalytics('whats_new.link_clicked', {organization, title})
             }
+            style={{marginTop: space(1)}}
           >
             {cta || t('Read More')}
-          </ExternalLink>
+          </LinkButton>
         </Text>
       )}
     </SidebarPanelItemRoot>
@@ -111,7 +116,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && 'font-weight: ${p => p.theme.fontWeightBold};'};
+  font-weight: ${p => p.theme.fontWeightBold};
 
   .culprit {
     font-weight: ${p => p.theme.fontWeightNormal};
