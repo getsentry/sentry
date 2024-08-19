@@ -5,14 +5,15 @@
 # Translators:
 # Csaba Tóth <i3rendszerhaz@gmail.com>, 2016,2019,2021
 # Mihály Szilágyi, 2019
+# Zsófia Dalnoki-Papp, 2024
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:43+0000\n"
-"Last-Translator: Csaba Tóth <i3rendszerhaz@gmail.com>\n"
-"Language-Team: Hungarian (http://www.transifex.com/getsentry/sentry/language/hu/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Zsófia Dalnoki-Papp, 2024\n"
+"Language-Team: Hungarian (http://app.transifex.com/getsentry/sentry/language/hu/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -25,7 +26,7 @@ msgstr ""
 #: static/app/views/admin/adminMail.tsx:71
 #: static/app/views/admin/adminUserEdit.tsx:31
 msgid "Username"
-msgstr "Felhasználói név"
+msgstr "Felhasználónév"
 
 #: admin.py:167 admin.py:181
 msgid "Required. 128 characters or fewer. Letters, digits and @/./+/-/_ only."

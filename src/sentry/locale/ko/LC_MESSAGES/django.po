@@ -4,15 +4,18 @@
 # 
 # Translators:
 # Baw Appie <pp121324@gmail.com>, 2019
+# GilYoung Song, 2022
 # GYOUNGTAE KIM <epictrance@gmail.com>, 2013
 # a096468385c9bbed7123733878023ccc_05d6837, 2013
+# Hyunwoo Park, 2023
+# jaemin1508, 2024
 # JaeYong Lee <crizin@gmail.com>, 2015
 # Lee Ho Sung <lee.ho.sung@gmail.com>, 2014
 # amond <amond@amond.net>, 2016
 # realbeast <moleskine7@gmail.com>, 2013
-# 기찬 <nkgcp05@gmail.com>, 2021
+# b3f1f8219ea1ee397e05c6ccbb722812_c3ec352, 2021
 # sl kim <vizuan@gmail.com>, 2015
-# Taegyu Yoo <taegyu@gmail.com>, 2019
+# Taegyu Yoo <taegyu@gmail.com>, 2019,2023
 # wanseok <v1sws8704@zuminternet.com>, 2015
 # Yonghwi Jin <jinmoteam@gmail.com>, 2019
 msgid ""
@@ -20,9 +23,9 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: 기찬 <nkgcp05@gmail.com>\n"
-"Language-Team: Korean (http://www.transifex.com/getsentry/sentry/language/ko/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: jaemin1508, 2024\n"
+"Language-Team: Korean (http://app.transifex.com/getsentry/sentry/language/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -125,7 +128,7 @@ msgstr "시스템과 동일"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
-msgstr ""
+msgstr "값은 유효한 JSON이어야 합니다."
 
 #: api/validators/email.py:12 web/forms/fields.py:75
 msgid "Enter a valid email address."
@@ -133,13 +136,13 @@ msgstr "올바른 이메일 주소를 입력해주세요."
 
 #: auth/authenticators/base.py:49 static/app/routes.tsx:303
 msgid "Enroll"
-msgstr ""
+msgstr "참가하다"
 
 #: auth/authenticators/base.py:50
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/level.tsx:31
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:89
 msgid "Info"
-msgstr ""
+msgstr "정보"
 
 #: auth/authenticators/base.py:51
 #: static/app/components/activity/note/header.tsx:40
@@ -154,7 +157,7 @@ msgstr ""
 #: static/app/views/settings/organizationTeams/teamMembers.tsx:278
 #: static/app/views/settings/organizationTeams/teamProjects.tsx:169
 msgid "Remove"
-msgstr ""
+msgstr "삭제"
 
 #: auth/authenticators/recovery_code.py:18
 msgid "Recovery Codes"
@@ -164,7 +167,7 @@ msgstr "복구 코드"
 msgid ""
 "Recovery codes are the only way to access your account if you lose your "
 "device and cannot receive two factor authentication codes."
-msgstr ""
+msgstr "복구 코드는 2차 인증 코드를 받을 수 없고 당신의 기기에 접근할 수 없는 경우 계정을 복구할 수 있는 유일한 방법입니다."
 
 #: auth/authenticators/recovery_code.py:24
 msgid "Activate"
@@ -183,41 +186,41 @@ msgid ""
 "This authenticator sends you text messages for verification.  It's useful as"
 " a backup method or when you do not have a phone that supports an "
 "authenticator application."
-msgstr ""
+msgstr "이 Authenticator 에서 확인을 위해 문자 메시지를 보냅니다. 백업 방법으로 사용하거나 인증 프로그램을 지원하는 폰이 없을 때 유용합니다."
 
 #: auth/authenticators/sms.py:59
 #, python-format
 msgid ""
 "A confirmation code was sent to %(phone_mask)s. It is valid for %(ttl)d "
 "seconds."
-msgstr ""
+msgstr "인증코드가 %(phone_mask)s으로 전송되었습니다.  전송된 코드는 %(ttl)d초 동안 유효합니다."
 
 #: auth/authenticators/sms.py:66
 msgid ""
 "Error: we failed to send a text message to you. You can try again later or "
 "sign in with a different method."
-msgstr ""
+msgstr "오류: 문자 메시지를 보내지 못했습니다. 나중에 다시 시도하거나 다른 방법으로 로그인할 수 있습니다."
 
 #: auth/authenticators/sms.py:77
 #, python-format
 msgid ""
 "%(code)s is your Sentry two-factor enrollment code. You are about to set up "
 "text message based two-factor authentication."
-msgstr ""
+msgstr "%(code)s은 당신의 Sentry 2차 인증 코드입니다. SMS 인증을 설정 중 입니다."
 
 #: auth/authenticators/sms.py:82
 #, python-format
 msgid "%(code)s is your Sentry authentication code."
-msgstr ""
+msgstr "%(code)s은 Sentry 인증 코드입니다."
 
 #: auth/authenticators/sms.py:85
 #, python-format
 msgid "Requested from %(ip)s"
-msgstr ""
+msgstr "%(ip)s에서 요청됨"
 
 #: auth/authenticators/totp.py:11
 msgid "Authenticator App"
-msgstr ""
+msgstr "인증 어플리케이션"
 
 #: auth/authenticators/totp.py:14
 msgid ""
@@ -367,19 +370,19 @@ msgstr ""
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/map-attributes.html:33
 msgid "Save Attributes"
-msgstr ""
+msgstr "속성 저장"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:47
 msgid "Get metadata"
-msgstr ""
+msgstr "메타데이터 가져오기"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:72
 msgid "Parse Metadata"
-msgstr ""
+msgstr "메타데이터 파싱하기"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:99
 msgid "Save Metadata"
-msgstr ""
+msgstr "메타데이터 저장"
 
 #: auth/providers/saml2/okta/templates/sentry_auth_okta/select-idp.html:8
 #: auth/providers/saml2/okta/templates/sentry_auth_okta/select-idp.html:11
@@ -415,7 +418,7 @@ msgstr ""
 
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/wait-for-completion.html:22
 msgid "Complete Setup"
-msgstr ""
+msgstr "설정 완료"
 
 #: conf/server.py:181
 msgid "Afrikaans"
@@ -767,7 +770,7 @@ msgstr "Big Integer"
 #: db/models/fields/jsonfield.py:45
 #, python-format
 msgid "'%s' is not a valid JSON string."
-msgstr ""
+msgstr "'%s'은 유효한 JSON 문자열이 아닙니다."
 
 #: identity/pipeline.py:13
 #, python-brace-format
@@ -788,7 +791,7 @@ msgstr ""
 #: integrations/pagerduty/integration.py:53
 #: integrations/vercel/integration.py:74 integrations/vsts/integration.py:101
 msgid "Installation"
-msgstr ""
+msgstr "설치"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
@@ -885,11 +888,11 @@ msgstr ""
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
-msgstr ""
+msgstr "GitHub 설치 삭제 대기 중"
 
 #: integrations/github/integration.py:309
 msgid "Github installed on another Sentry organization."
-msgstr ""
+msgstr "GitHub이 다른 Sentry 조직에 설치되었습니다."
 
 #: integrations/github_enterprise/integration.py:156
 msgid ""
@@ -945,7 +948,7 @@ msgid ""
 "This can be found in the URL of your group's GitLab page. <br>For example, "
 "if your group can be found at https://gitlab.com/my-group/my-subgroup, enter"
 " `my-group/my-subgroup`."
-msgstr "GitLab 그룹 페이지의 URL에서 찾을 수 있습니다. <br>예를 들자면, 그룹을 https://gitlab.com/my-group/my-subgroup에서 찾을 수 있다면, `my-group/my-subgroup`을 입력하면 됩니다."
+msgstr "GitLab 그룹 페이지의 URL에서 찾을 수 있습니다. <br>예를 들어, 그룹의 주소가 https://gitlab.com/my-group/my-subgroup 이라면, `my-group/my-subgroup`을 입력하세요."
 
 #: integrations/gitlab/integration.py:168
 msgid "my-group/my-subgroup"
@@ -953,7 +956,7 @@ msgstr "나의-그룹/나의-서브그룹"
 
 #: integrations/gitlab/integration.py:171
 msgid "Include Subgroups"
-msgstr ""
+msgstr "서브그룹 포함"
 
 #: integrations/gitlab/integration.py:172
 msgid "Include projects in subgroups of the GitLab group."
@@ -972,7 +975,7 @@ msgstr "GitLab 애플리케이션 ID"
 
 #: integrations/gitlab/integration.py:193
 msgid "5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737"
-msgstr ""
+msgstr "5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737"
 
 #: integrations/gitlab/integration.py:198
 msgid "GitLab Application Secret"
@@ -1006,7 +1009,7 @@ msgstr ""
 
 #: integrations/jira/integration.py:137 integrations/vsts/integration.py:209
 msgid "All projects configured"
-msgstr ""
+msgstr "모든 프로젝트 설정됨"
 
 #: integrations/jira/integration.py:138
 msgid "Could not find Jira project"
@@ -1015,15 +1018,15 @@ msgstr ""
 #: integrations/jira/integration.py:142 integrations/jira/integration.py:143
 #: integrations/vsts/integration.py:214 integrations/vsts/integration.py:215
 msgid "Select a status"
-msgstr ""
+msgstr "상태 선택"
 
 #: integrations/jira/integration.py:146 integrations/vsts/integration.py:218
 msgid "When resolved"
-msgstr ""
+msgstr "해결된 경우"
 
 #: integrations/jira/integration.py:147 integrations/vsts/integration.py:219
 msgid "When unresolved"
-msgstr ""
+msgstr "해결되지 않은 경우"
 
 #: integrations/jira/integration.py:149
 msgid "Jira Project"
@@ -1116,7 +1119,7 @@ msgstr ""
 
 #: integrations/msteams/integration.py:50
 msgid "Teams Marketplace"
-msgstr ""
+msgstr "팀 마켓플레이스"
 
 #: integrations/msteams/notify_action.py:44
 #, python-format
@@ -1168,7 +1171,7 @@ msgstr ""
 msgid ""
 "Multiple users were found with display name \"%(channel)s\". Please use your"
 " username, found at %(domain)s/account/settings#username."
-msgstr ""
+msgstr "%(channel)s을 이미 사용중인 사람이 있습니다. %(domain)s/account/settings#username 의 사용자 이름을 사용해주세요."
 
 #: integrations/slack/notify_action.py:150
 #, python-format
@@ -1192,15 +1195,15 @@ msgstr ""
 
 #: integrations/vercel/integration.py:59
 msgid "Vercel Marketplace"
-msgstr ""
+msgstr "Vercel 마켓플레이스"
 
 #: integrations/vercel/integration.py:64
 msgid "Connect Your Projects"
-msgstr ""
+msgstr "프로젝트 연결하기"
 
 #: integrations/vercel/integration.py:65
 msgid "Don't have a project yet? Click [here]({}) to create one."
-msgstr ""
+msgstr "프로젝트가 없나요? [여기]({})를 눌러서 만드세요."
 
 #: integrations/vercel/integration.py:67
 msgid ""
@@ -1209,7 +1212,7 @@ msgstr ""
 
 #: integrations/vercel/integration.py:172
 msgid "Vercel project..."
-msgstr ""
+msgstr "Vercel 프로젝트..."
 
 #: integrations/vercel/integration.py:178
 msgid "Link your Sentry projects to complete your installation on Vercel"
@@ -1217,11 +1220,11 @@ msgstr ""
 
 #: integrations/vercel/integration.py:180
 msgid "Complete on Vercel"
-msgstr ""
+msgstr "Vercel에서 완료하기"
 
 #: integrations/vsts/integration.py:203
 msgid "Sync Sentry Status to Azure DevOps"
-msgstr ""
+msgstr "Sentry 상태를 Azure DevOps와 연동하기"
 
 #: integrations/vsts/integration.py:205
 msgid ""
@@ -1315,11 +1318,11 @@ msgstr "Request"
 
 #: interfaces/stacktrace.py:527
 msgid "Stacktrace (most recent call first):"
-msgstr ""
+msgstr "스택트레이스 (최근 호출 순):"
 
 #: interfaces/stacktrace.py:529
 msgid "Stacktrace (most recent call last):"
-msgstr ""
+msgstr "스택트레이스 (마지막 호출 순):"
 
 #: models/apiapplication.py:44 models/apikey.py:54 models/project.py:118
 #: models/projectkey.py:65 models/team.py:138
@@ -1329,19 +1332,19 @@ msgstr ""
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:232
 #: static/app/views/settings/project/serviceHookSettingsForm.tsx:50
 msgid "Active"
-msgstr ""
+msgstr "활성"
 
 #: models/apiapplication.py:45 models/apikey.py:54 models/projectkey.py:66
 msgid "Inactive"
-msgstr ""
+msgstr "비활성"
 
 #: models/authenticator.py:119
 msgid "created at"
-msgstr ""
+msgstr "생성 시각"
 
 #: models/authenticator.py:120
 msgid "last used at"
-msgstr ""
+msgstr "마지막 사용 시각"
 
 #: models/authenticator.py:132
 msgid "authenticator"
@@ -1377,15 +1380,15 @@ msgstr "해결"
 #: models/group.py:373 models/grouphistory.py:137
 #: static/app/views/issueList/utils.tsx:59
 msgid "Ignored"
-msgstr ""
+msgstr "무시됨"
 
 #: models/group.py:397
 msgid "grouped messages"
-msgstr ""
+msgstr "그룹 메시지들"
 
 #: models/group.py:398
 msgid "grouped message"
-msgstr ""
+msgstr "그룹 메시지"
 
 #: models/group.py:592
 #: static/app/views/settings/project/filtersAndSampling/rulesPanel.tsx:27
@@ -1394,11 +1397,11 @@ msgstr "에러"
 
 #: models/grouphash.py:24
 msgid "Locked (Migration in Progress)"
-msgstr ""
+msgstr "잠김 (이전 중)"
 
 #: models/grouphistory.py:136
 msgid "Automatically Resolved"
-msgstr ""
+msgstr "자동적으로 해결됨"
 
 #: models/grouphistory.py:138
 #: static/app/components/group/inboxBadges/inboxReason.tsx:102
@@ -1408,7 +1411,7 @@ msgstr ""
 #: models/grouphistory.py:139
 #: static/app/views/releases/detail/overview/releaseIssues.tsx:373
 msgid "Regressed"
-msgstr ""
+msgstr "감소됨"
 
 #: models/grouphistory.py:140 static/app/views/issueList/searchBar.tsx:39
 msgid "Assigned"
@@ -1419,44 +1422,44 @@ msgstr "할당됨"
 #: static/app/utils/discover/fieldRenderers.tsx:457
 #: static/app/views/alerts/rules/teamFilter.tsx:72
 msgid "Unassigned"
-msgstr ""
+msgstr "비할당됨"
 
 #: models/grouphistory.py:142
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/status/index.tsx:27
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "삭제됨"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
-msgstr ""
+msgstr "삭제 및 폐기됨"
 
 #: models/grouphistory.py:144
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:140
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:159
 msgid "Reviewed"
-msgstr ""
+msgstr "검토됨"
 
 #: models/grouphistory.py:145
 msgid "Resolved in Release"
-msgstr ""
+msgstr "배포 중 해결됨"
 
 #: models/grouphistory.py:146
 msgid "Resolved in Commit"
-msgstr ""
+msgstr "커밋으로 해결됨"
 
 #: models/grouphistory.py:147
 msgid "Resolved in Pull Request"
-msgstr ""
+msgstr "Pull Request로 해결됨"
 
 #: models/grouplink.py:61
 msgid "Commit"
-msgstr ""
+msgstr "커밋"
 
 #: models/grouplink.py:62
 msgid "Pull Request"
-msgstr ""
+msgstr "풀 리퀘스트"
 
 #: models/grouplink.py:63
 msgid "Tracker Issue"
@@ -1468,7 +1471,7 @@ msgstr ""
 
 #: models/grouplink.py:69
 msgid "Linked"
-msgstr ""
+msgstr "연결됨"
 
 #: models/groupresolution.py:42
 msgid "Pending"
@@ -1476,7 +1479,7 @@ msgstr "미결"
 
 #: models/organizationmember.py:128
 msgid "Approved"
-msgstr ""
+msgstr "승인됨"
 
 #: models/organizationmember.py:131
 msgid "Organization member requested to invite user"
@@ -1484,24 +1487,24 @@ msgstr ""
 
 #: models/organizationmember.py:133
 msgid "User requested to join organization"
-msgstr ""
+msgstr "사용자가 조직에 가입하기를 요청했습니다."
 
 #: models/project.py:119 models/team.py:139
 msgid "Pending Deletion"
-msgstr ""
+msgstr "삭제 대기중"
 
 #: models/project.py:120 models/team.py:140
 msgid "Deletion in Progress"
-msgstr ""
+msgstr "삭제 진행중"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "열림"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
 msgid "Archived"
-msgstr ""
+msgstr "보관됨"
 
 #: models/savedsearch.py:25 static/app/components/group/releaseChart.tsx:53
 #: static/app/components/stream/groupChart.tsx:54
@@ -1602,7 +1605,7 @@ msgstr ""
 
 #: models/user.py:159
 msgid "password expired"
-msgstr ""
+msgstr "비밀번호 만기됨"
 
 #: models/user.py:162
 msgid ""
@@ -1611,7 +1614,7 @@ msgstr ""
 
 #: models/user.py:166
 msgid "date of last password change"
-msgstr ""
+msgstr "마지막 비밀번호 변경 시각"
 
 #: models/user.py:168
 msgid "The date the password was changed last."
@@ -1623,7 +1626,7 @@ msgstr "가입 날짜"
 
 #: models/user.py:184
 msgid "last active"
-msgstr ""
+msgstr "마지막 활성"
 
 #: models/user.py:194
 #: static/app/views/performance/transactionSummary/transactionEvents/content.tsx:54
@@ -1639,7 +1642,7 @@ msgstr "사용자들"
 
 #: models/useremail.py:44
 msgid "verified"
-msgstr ""
+msgstr "인증됨"
 
 #: models/useremail.py:46
 msgid "Designates whether this user has confirmed their email."
@@ -1689,11 +1692,11 @@ msgstr "페이지를 찾을 수 없음"
 
 #: static/app/components/errors/notFound.tsx:13 templates/sentry/404.html:14
 msgid "The page you are looking for was not found."
-msgstr ""
+msgstr "찾고 계시는 페이지가 존재하지 않습니다."
 
 #: static/app/components/errors/notFound.tsx:14 templates/sentry/404.html:15
 msgid "You may wish to try the following:"
-msgstr ""
+msgstr "다음을 시도해보실 수 있습니다:"
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
@@ -1714,11 +1717,11 @@ msgstr "구독 해제"
 msgid ""
 "You are about to unsubscribe from project notifications for the following "
 "project:"
-msgstr ""
+msgstr "다음 프로젝트에서 알림의 구독을 해제하려 합니다:"
 
 #: templates/sentry/account/email_unsubscribe_project.html:18
 msgid "You can subscribe to it again by going to your account settings."
-msgstr ""
+msgstr "계정 설정에서 다시 구독을 활성화 하실 수 있습니다."
 
 #: static/app/components/activity/note/input.tsx:240
 #: static/app/components/confirm.tsx:136
@@ -1757,7 +1760,7 @@ msgstr "비밀번호 복구"
 
 #: templates/sentry/account/recover/confirm.html:11
 msgid "You have confirmed your email, and may now update your password below."
-msgstr ""
+msgstr "메일을 확인했으며, 아래에서 비밀번호를 변경하실 수 있습니다."
 
 #: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
@@ -1770,14 +1773,14 @@ msgstr "비밀번호 만료됨"
 
 #: templates/sentry/account/recover/expired.html:11
 msgid "The password on your account expired."
-msgstr ""
+msgstr "비밀번호가 만료되었습니다."
 
 #: templates/sentry/account/recover/expired.html:13
 #: templates/sentry/account/recover/sent.html:11
 msgid ""
 "We have sent an email to the address registered with this account containing"
 " further instructions to reset your password."
-msgstr ""
+msgstr "계정과 연결된 이메일로 비밀번호를 재설정하기 위한 방법을 전송해드렸습니다."
 
 #: templates/sentry/account/recover/failure.html:11
 #, python-format
@@ -1785,7 +1788,7 @@ msgid ""
 "We were unable to confirm your identity. Either the link you followed is "
 "invalid, or it has expired. You can always <a href=\"%(link)s\">try "
 "again</a>."
-msgstr ""
+msgstr "주소가 잘못되었거나 만료되었습니다. 언제든지 <a href=\"%(link)s\">다시 시도</a>하실 수 있습니다."
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
@@ -1805,13 +1808,13 @@ msgstr "비밀번호 설정"
 
 #: templates/sentry/account/set_password/confirm.html:11
 msgid "Set your account password below."
-msgstr ""
+msgstr "비밀번호를 설정하세요."
 
 #: templates/sentry/account/set_password/failure.html:10
 msgid ""
 "This password link has expired. Request a new password recovery code to set\n"
 "\tyour account password"
-msgstr ""
+msgstr "비밀번호 재설정 링크가 만료되었습니다. 비밀번호를 재설정 하기 위해선 다시 재설정을 요청해주세요."
 
 #: static/app/components/modals/sudoModal.tsx:122
 #: templates/sentry/account/sudo.html:8
@@ -1820,7 +1823,7 @@ msgstr "비밀번호 확인"
 
 #: templates/sentry/account/sudo.html:29
 msgid "Confirm your Identity"
-msgstr ""
+msgstr "신원 확인"
 
 #: static/app/components/modals/sudoModal.tsx:110
 #: templates/sentry/account/sudo.html:32
@@ -1837,11 +1840,11 @@ msgstr "비밀번호가 올바르지 않습니다."
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:46
 #: templates/sentry/organization-login.html:89
 msgid "Lost your password?"
-msgstr ""
+msgstr "비밀번호를 잊으셨나요?"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "계정 확인"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1856,7 +1859,7 @@ msgstr ""
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "로그인"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1881,7 +1884,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:11
 #, python-format
 msgid "Hey %(recipient_name)s,"
-msgstr ""
+msgstr "%(recipient_name)s님,"
 
 #: templates/sentry/emails/requests/codeowners.html:14
 #, python-format
@@ -1902,7 +1905,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "Sentry 팀 드림"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
@@ -2078,7 +2081,7 @@ msgstr ""
 
 #: templates/sentry/integrations/gitlab-config.html:50
 msgid "Step 1: Create a Sentry App in GitLab"
-msgstr ""
+msgstr "1단계: GitLab에서 Sentry 앱 만들기"
 
 #: templates/sentry/integrations/gitlab-config.html:51
 msgid ""
@@ -2090,7 +2093,7 @@ msgstr ""
 msgid ""
 "You'll also need to be a maintainer or owner in GitLab. Projects owned by "
 "users are not supported."
-msgstr ""
+msgstr "또한 GitLab에서 메인테이너 혹은 소유자여야 합니다. 사용자들이 소유한 프로젝트는 지원되지 않습니다."
 
 #: templates/sentry/integrations/gitlab-config.html:54
 msgid "Navigate to the User Settings section of your GitLab instance."

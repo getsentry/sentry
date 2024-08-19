@@ -28,9 +28,10 @@
 # mattrobenolt <m@robenolt.com>, 2014
 # Nikita Sobolev <mail@sobolevn.me>, 2015
 # RadarWeb <radar@radarweb.ru>, 2020
-# Serge Rodionov <buzzzzer@gmail.com>, 2021
+# Serge Rodionov <buzzzzer@gmail.com>, 2021,2023
 # Sergey Berebko (serbernar) <serbernar1@gmail.com>, 2018
 # Sergey Leschina <mail@putnik.tech>, 2018
+# ShlemenKirill, 2022
 # Stas Zhukovskiy <stzhuk@gmail.com>, 2015
 # tush_it <tushkanrecords@gmail.com>, 2014
 # Viacheslav Butorov <butorovv@gmail.com>, 2017
@@ -48,9 +49,9 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: lilo.panic\n"
-"Language-Team: Russian (http://www.transifex.com/getsentry/sentry/language/ru/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Serge Rodionov <buzzzzer@gmail.com>, 2021,2023\n"
+"Language-Team: Russian (http://app.transifex.com/getsentry/sentry/language/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -103,12 +104,12 @@ msgstr "Функция SSO не включена для этой организ�
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "Путь не может содержать пробелы или кавычки"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
 msgid "%s thinks Sentry can help monitor your mobile app"
-msgstr ""
+msgstr "%sдумают что Sentry может помочь с мониторингом Вашего мобильного приложения"
 
 #: api/endpoints/organization_teams.py:45
 #: api/endpoints/sentry_app_installations.py:20
@@ -119,7 +120,7 @@ msgstr "Введите корректный slug, состоящий из стр
 
 #: api/endpoints/project_codeowners_request.py:18
 msgid "A team member is asking to set up Sentry's Code Owners"
-msgstr ""
+msgstr "Член команды просит настроить Sentry Code Owners"
 
 #: api/endpoints/user_details.py:48
 #: static/app/data/forms/accountPreferences.tsx:57
@@ -139,12 +140,12 @@ msgstr "Самый последний вызов первым"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Светлый"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Темный"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
@@ -836,7 +837,7 @@ msgstr ""
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Неизвестная ошибка"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
@@ -1347,7 +1348,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "Баг"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1881,7 +1882,7 @@ msgstr "Забыли пароль?"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "Подтвердить аккаунт"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1896,7 +1897,7 @@ msgstr "Подтвердите учетную запись"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "Войти"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1942,7 +1943,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "Команда Sentry"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
@@ -2201,7 +2202,7 @@ msgstr "Дата:"
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
 msgid "Release:"
-msgstr ""
+msgstr "Релиз:"
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
@@ -3779,7 +3780,7 @@ msgstr "Разберись с этим позже или никогда"
 #: static/app/components/assistant/getGuidesContent.tsx:368
 #: static/app/components/assistant/getGuidesContent.tsx:417
 msgid "Got it"
-msgstr ""
+msgstr "Понятно"
 
 #: static/app/components/assistant/getGuidesContent.tsx:336
 msgid "Filter by Semver"
@@ -4071,7 +4072,7 @@ msgstr "От перегрузки уведомлениями может появ
 #: static/app/components/createAlertButton.tsx:386
 #: static/app/views/projectDetail/missingFeatureButtons/missingAlertsButtons.tsx:28
 msgid "Create Alert"
-msgstr ""
+msgstr "Создать оповещение"
 
 #: static/app/components/assistant/getGuidesContent.tsx:529
 msgid ""
@@ -4318,7 +4319,7 @@ msgstr ""
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "Скопировано в буфер обмена"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
@@ -4420,7 +4421,7 @@ msgstr "здесь"
 
 #: static/app/components/contextPickerModal.tsx:327
 msgid "Select a Project to continue"
-msgstr ""
+msgstr "Выберите проект чтобы продолжить"
 
 #: static/app/components/contextPickerModal.tsx:347
 msgid "[providerName] Configurations"
@@ -4476,7 +4477,7 @@ msgstr ""
 
 #: static/app/components/createAlertButton.tsx:359
 msgid "Successfully updated organization settings"
-msgstr ""
+msgstr "Настройки организации успешно обновлены"
 
 #: static/app/components/createAlertButton.tsx:361
 msgid "Unable to update organization settings"
@@ -4565,12 +4566,12 @@ msgstr ""
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:110
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:111
 msgid "Remove query"
-msgstr ""
+msgstr "Удалить запрос"
 
 #: static/app/components/dashboards/widgetQueriesForm.tsx:171
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:127
 msgid "Add Query"
-msgstr ""
+msgstr "Добавить запрос"
 
 #: static/app/components/dashboards/widgetQueriesForm.tsx:29
 #, python-format
@@ -4670,7 +4671,7 @@ msgstr ""
 
 #: static/app/components/demo/demoHeader.tsx:74
 msgid "Sign Up"
-msgstr ""
+msgstr "Зарегистрироваться"
 
 #: static/app/components/deployBadge.tsx:25
 msgid "Open In Issues"
@@ -4787,7 +4788,7 @@ msgstr "Описание"
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseSessionsChart.tsx:460
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseSessionsChart.tsx:533
 msgid "All Releases"
-msgstr ""
+msgstr "Все релизы"
 
 #: static/app/components/discover/performanceCardTable.tsx:665
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:846
@@ -4830,7 +4831,7 @@ msgstr "Фильтр"
 #: static/app/components/discover/transactionsList.tsx:220
 #: static/app/views/performance/transactionSummary/transactionVitals/vitalCard.tsx:241
 msgid "View All Events"
-msgstr ""
+msgstr "Посмотреть все события"
 
 #: static/app/components/discover/transactionsList.tsx:233
 #: static/app/views/alerts/incidentRules/incidentRulePresets.tsx:47
@@ -5514,7 +5515,7 @@ msgstr "Вложения (%s)"
 
 #: static/app/components/events/eventAttachments.tsx:127
 msgid "File Name"
-msgstr ""
+msgstr "Имя файла"
 
 #: static/app/components/events/eventAttachments.tsx:128
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:71
@@ -5902,7 +5903,7 @@ msgstr "Время"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:119
 msgid "Types"
-msgstr ""
+msgstr "Типы"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:123
 msgid "Levels"
@@ -12786,7 +12787,7 @@ msgstr "Ниже"
 
 #: static/app/views/alerts/incidentRules/triggers/thresholdControl.tsx:118
 msgid "Lower than"
-msgstr ""
+msgstr "Меньше чем"
 
 #: static/app/views/alerts/incidentRules/triggers/thresholdControl.tsx:124
 #: static/app/views/alerts/rules/row.tsx:106
@@ -12796,7 +12797,7 @@ msgstr "Выше"
 
 #: static/app/views/alerts/incidentRules/triggers/thresholdControl.tsx:125
 msgid "Higher than"
-msgstr ""
+msgstr "Больше чем"
 
 #: static/app/views/alerts/incidentRules/triggers/thresholdControl.tsx:158
 msgid "Drag to adjust threshold[break]You can hold shift to fine tune"
@@ -12957,7 +12958,7 @@ msgstr ""
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:853
 msgid "Add action..."
-msgstr ""
+msgstr "Добавить действие..."
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:874
 msgid "Set action interval"
@@ -13342,7 +13343,7 @@ msgstr ""
 
 #: static/app/views/alerts/rules/teamFilter.tsx:66
 msgid "My Teams"
-msgstr ""
+msgstr "Мои команды"
 
 #: static/app/views/alerts/rules/teamFilter.tsx:93
 msgid "Filter by team slug"
@@ -13351,7 +13352,7 @@ msgstr ""
 #: static/app/views/alerts/wizard/index.tsx:219
 #: static/app/views/settings/project/projectOwnership/editRulesModal.tsx:28
 msgid "Examples"
-msgstr ""
+msgstr "Примеры"
 
 #: static/app/views/alerts/wizard/index.tsx:95
 msgid "Requires incidents feature."
@@ -13712,27 +13713,27 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/data.tsx:24
 msgid "1 Minute"
-msgstr ""
+msgstr "1 минута"
 
 #: static/app/views/dashboardsV2/data.tsx:25
 msgid "5 Minutes"
-msgstr ""
+msgstr "5 минут"
 
 #: static/app/views/dashboardsV2/data.tsx:26
 msgid "15 Minutes"
-msgstr ""
+msgstr "15 минут"
 
 #: static/app/views/dashboardsV2/data.tsx:27
 msgid "30 Minutes"
-msgstr ""
+msgstr "30 минут"
 
 #: static/app/views/dashboardsV2/data.tsx:28
 msgid "1 Hour"
-msgstr ""
+msgstr "1 час"
 
 #: static/app/views/dashboardsV2/data.tsx:29
 msgid "1 Day"
-msgstr ""
+msgstr "1 день"
 
 #: static/app/views/dashboardsV2/data.tsx:9
 msgid "Untitled dashboard"
@@ -13871,7 +13872,7 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/widget/eventWidget/index.tsx:197
 msgid "Added widget"
-msgstr ""
+msgstr "Добавить виджет"
 
 #: static/app/views/dashboardsV2/widget/eventWidget/index.tsx:250
 #: static/app/views/dashboardsV2/widget/metricWidget/index.tsx:256
@@ -13991,7 +13992,7 @@ msgstr "Удалить запрос"
 
 #: static/app/views/dashboardsV2/widget/metricWidget/queries.tsx:83
 msgid "Add query"
-msgstr ""
+msgstr "Добавить запрос"
 
 #: static/app/views/dashboardsV2/widget/metricWidget/searchQueryField.tsx:59
 msgid "Search for tag"

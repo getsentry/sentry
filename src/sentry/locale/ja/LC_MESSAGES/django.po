@@ -14,15 +14,17 @@
 # Masahiko Asai, 2019
 # Sakito Matsuyama <ponto.matsuyama@gmail.com>, 2015
 # shirou - しろう <shirou.faw@gmail.com>, 2012-2013,2016-2017
+# TAKAHASHI Shuuji <shuuji3@gmail.com>, 2024
+# はらたく, 2022
 # shirou - しろう <shirou.faw@gmail.com>, 2013-2016
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: shirou - しろう <shirou.faw@gmail.com>\n"
-"Language-Team: Japanese (http://www.transifex.com/getsentry/sentry/language/ja/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: TAKAHASHI Shuuji <shuuji3@gmail.com>, 2024\n"
+"Language-Team: Japanese (http://app.transifex.com/getsentry/sentry/language/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -75,7 +77,7 @@ msgstr "あなたの組織ではSSOが有効になっていません。"
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "パスにはスペースや引用符を含めないでください"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
@@ -111,17 +113,17 @@ msgstr "最後の呼び出しを最初に表示"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "ライト"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "ダーク"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "システムデフォルト"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
@@ -792,17 +794,17 @@ msgstr "インストール"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
-msgstr ""
+msgstr "Cloudformation stackが正しく作成されたことを検証してください"
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "不明なエラー"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
 #: static/app/views/settings/project/projectProcessingIssues.tsx:268
 msgid "Unknown Error"
-msgstr ""
+msgstr "不明なエラー"
 
 #: integrations/bitbucket_server/integration.py:76
 msgid "Bitbucket URL"
@@ -866,7 +868,7 @@ msgstr "名前"
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "インテグレーションの名前。<br>GitHubを使用している場合、organization 名を使用してください。"
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -881,7 +883,7 @@ msgstr "URL"
 msgid ""
 "The base URL for your instance, including the host and protocol. <br>If "
 "using github.com, enter https://github.com/"
-msgstr ""
+msgstr "ホスト名とプロトコルを含むベースURL。<br>github.comを使用している場合、https://github.com/ と入力してください。"
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
@@ -1089,7 +1091,7 @@ msgstr "あなたの組織はこの機能にアクセスできません"
 
 #: integrations/jira/notify_action.py:30
 msgid "Jira integration is a required field."
-msgstr ""
+msgstr "Jiraインテグレーションは必須のフィールドです。"
 
 #: integrations/jira_server/integration.py:85
 msgid "Jira URL"
@@ -1157,18 +1159,18 @@ msgstr "ワークスペース"
 
 #: integrations/slack/notify_action.py:73
 msgid "Slack channel name is a required field."
-msgstr ""
+msgstr "Slackチャンネル名は必須のフィールドです。"
 
 #: integrations/slack/notify_action.py:105
 msgid "Slack workspace is a required field."
-msgstr ""
+msgstr "Slackワークスペースは必須のフィールド。"
 
 #: integrations/slack/notify_action.py:129
 #, python-format
 msgid ""
 "Multiple users were found with display name \"%(channel)s\". Please use your"
 " username, found at %(domain)s/account/settings#username."
-msgstr ""
+msgstr "表示名「%(channel)s」で複数のユーザーが見つかりました。%(domain)s/account/settings#username にある自分のユーザー名を使用してください。"
 
 #: integrations/slack/notify_action.py:150
 #, python-format
@@ -1307,7 +1309,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "バグ"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1419,14 +1421,14 @@ msgstr "割り当て済み"
 #: static/app/utils/discover/fieldRenderers.tsx:457
 #: static/app/views/alerts/rules/teamFilter.tsx:72
 msgid "Unassigned"
-msgstr ""
+msgstr "未割り当て"
 
 #: models/grouphistory.py:142
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/status/index.tsx:27
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "削除済み"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
@@ -1436,7 +1438,7 @@ msgstr ""
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:140
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:159
 msgid "Reviewed"
-msgstr ""
+msgstr "レビュー済み"
 
 #: models/grouphistory.py:145
 msgid "Resolved in Release"
@@ -1496,12 +1498,12 @@ msgstr "削除は進行中です"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "開く"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
 msgid "Archived"
-msgstr ""
+msgstr "アーカイブ済み"
 
 #: models/savedsearch.py:25 static/app/components/group/releaseChart.tsx:53
 #: static/app/components/stream/groupChart.tsx:54
@@ -1841,7 +1843,7 @@ msgstr "パスワードを忘れましたか？"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "アカウントの確認"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1856,7 +1858,7 @@ msgstr "Identityの確認"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "ログイン"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1865,7 +1867,7 @@ msgstr "Identityのリンク"
 #: templates/sentry/auth-unlink-identity.html:7
 #: templates/sentry/integrations/msteams/unlink-identity.html:7
 msgid "Unlink Identity"
-msgstr ""
+msgstr "Identityのリンク解除"
 
 #: static/app/components/narrowLayout.tsx:42
 #: static/app/components/sidebar/sidebarDropdown/index.tsx:174
@@ -1902,7 +1904,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "Sentryチーム"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
@@ -1971,7 +1973,7 @@ msgstr ""
 #: static/app/views/performance/transactionDetails/finishSetupAlert.tsx:39
 #: templates/sentry/emails/requests/organization-project.html:46
 msgid "Get Started"
-msgstr ""
+msgstr "はじめる"
 
 #: templates/sentry/emails/requests/organization-project.html:49
 msgid "Mobile up,"
@@ -2023,7 +2025,7 @@ msgstr "登録"
 
 #: templates/sentry/integrations/custom-scm-config.html:26
 msgid "Custom SCM Setup"
-msgstr ""
+msgstr "カスタムSCMのセットアップ"
 
 #: templates/sentry/integrations/custom-scm-config.html:29
 msgid "Custom Source Control Management Setup"
@@ -2052,13 +2054,13 @@ msgstr "GitHub Enterprise セットアップ"
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:6
 #: templates/sentry/integrations/integration-pending-deletion.html:6
 msgid "GitHub Integration Setup Failed"
-msgstr ""
+msgstr "GitHubインテグレーションのセットアップが失敗しました"
 
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:20
 msgid ""
 "It seems that your GitHub account has been installed on another Sentry "
 "organization. Please uninstall and try again."
-msgstr ""
+msgstr "GitHubアカウントが他のSentry organizationにインストールされているようです。アンインストールしてもう一度試してください。"
 
 #: templates/sentry/integrations/gitlab-config.html:26
 msgid "GitLab Setup"
@@ -2147,11 +2149,11 @@ msgstr ""
 
 #: templates/sentry/integrations/jira-issue.html:54
 msgid "Events last 24 hours:"
-msgstr ""
+msgstr "過去24時間のイベント:"
 
 #: templates/sentry/integrations/jira-issue.html:60
 msgid "Events last 14 days:"
-msgstr ""
+msgstr "過去14日間のイベント:"
 
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
@@ -2161,7 +2163,7 @@ msgstr "日付:"
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
 msgid "Release:"
-msgstr ""
+msgstr "リリース:"
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
@@ -2389,7 +2391,7 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/unlinked.html:11
 msgid "Your Slack identity has been unassociated with your Sentry account."
-msgstr ""
+msgstr "Slack IDとSentryアカウントの関連が解除されました。"
 
 #: templates/sentry/integrations/vsts-config.html:9
 msgid "Azure DevOps Setup"
@@ -2895,11 +2897,11 @@ msgstr "この組織にアクセスするためには有効なSSOアカウント
 
 #: web/frontend/organization_auth_settings.py:40
 msgid "Enable SCIM"
-msgstr ""
+msgstr "SCIMを有効化"
 
 #: web/frontend/organization_auth_settings.py:41
 msgid "Enable SCIM to manage Memberships and Teams via your Provider"
-msgstr ""
+msgstr "SCIMを有効化して、プロバイダー経由でメンバーとチームを管理する"
 
 #: static/app/data/forms/organizationGeneralSettings.tsx:50
 #: web/frontend/organization_auth_settings.py:49
@@ -2934,23 +2936,23 @@ msgstr "確認用コードが不正です。もう一度試して下さい。"
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:111
 msgid "300"
-msgstr ""
+msgstr "300"
 
 #: static/app/actionCreators/dashboards.tsx:100
 msgid "Unable to update dashboard"
-msgstr ""
+msgstr "ダッシュボードを更新できません"
 
 #: static/app/actionCreators/dashboards.tsx:125
 msgid "Unable to delete dashboard"
-msgstr ""
+msgstr "ダッシュボードを削除できません"
 
 #: static/app/actionCreators/dashboards.tsx:30
 msgid "Unable to create dashboard"
-msgstr ""
+msgstr "ダッシュボードを作成できません"
 
 #: static/app/actionCreators/dashboards.tsx:70
 msgid "Unable to load dashboard"
-msgstr ""
+msgstr "ダッシュボードを読み込めません"
 
 #: static/app/actionCreators/deployPreview.tsx:16
 #, python-format
@@ -2966,7 +2968,7 @@ msgstr "[commitLink] ([branchLink]) のフロントエンド展開プレビュ�
 msgid ""
 "You are developing against production Sentry API, please BE CAREFUL, as your"
 " changes will affect production data."
-msgstr ""
+msgstr "本番環境のSentry APIに対して開発しようとしています。「十分に注意」してください。変更は本番データに影響を与えます。"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:108
 msgid "Unable to delete the saved query"
@@ -3035,7 +3037,7 @@ msgstr "キートランザクションを更新できません"
 #: static/app/actionCreators/performance.tsx:63
 #: static/app/components/performance/teamKeyTransactionsManager.tsx:101
 msgid "Error fetching team key transactions"
-msgstr ""
+msgstr "チームキートランザクションの取得中にエラーが発生しました"
 
 #: static/app/actionCreators/performance.tsx:80
 #: static/app/components/bases/pluginComponentBase.tsx:101
@@ -3049,7 +3051,7 @@ msgstr ""
 #: static/app/views/settings/project/projectServiceHooks.tsx:77
 #: static/app/views/settings/projectPlugins/details.tsx:84
 msgid "Saving changes…"
-msgstr ""
+msgstr "変更の保存中…"
 
 #: static/app/actionCreators/plugins.tsx:112
 #: static/app/views/organizationIntegrations/installedPlugin.tsx:93
@@ -3094,7 +3096,7 @@ msgstr "[project] を別の組織に移動するリクエストが送信され�
 
 #: static/app/actionCreators/projects.tsx:191
 msgid "Error transferring [project]. [message]"
-msgstr ""
+msgstr "[project] の転送中にエラーが発生しました。[message]"
 
 #: static/app/actionCreators/projects.tsx:198
 msgid "Error transferring [project]"
@@ -3208,7 +3210,7 @@ msgstr "次の設定を [configFile:sentry.conf.py] に追加して、\n        
 
 #: static/app/components/acl/featureDisabled.tsx:128
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "クリップボードにコピー"
 
 #: static/app/components/acl/featureDisabled.tsx:15
 #, python-format
@@ -3238,7 +3240,7 @@ msgstr "ユーザー数"
 msgid ""
 "Silences alerts for this issue and removes it from the issue stream by "
 "default."
-msgstr ""
+msgstr "この課題のアラートを停止して、デフォルトで課題のストリームから削除します。"
 
 #: static/app/components/actions/ignore.tsx:48
 #: static/app/components/actions/ignore.tsx:64
@@ -3268,7 +3270,7 @@ msgstr "さらに一定の回数まで無視"
 
 #: static/app/components/actions/ignore.tsx:202
 msgid "one time…"
-msgstr ""
+msgstr "1 回"
 
 #: static/app/components/actions/ignore.tsx:203
 #, python-format
@@ -3825,7 +3827,7 @@ msgstr ""
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:41
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:142
 msgid "Performance"
-msgstr ""
+msgstr "パフォーマンス"
 
 #: static/app/components/assistant/getGuidesContent.tsx:400
 msgid ""
@@ -3988,7 +3990,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:491
 msgid "Chart"
-msgstr ""
+msgstr "グラフ"
 
 #: static/app/components/assistant/getGuidesContent.tsx:493
 msgid "Click and drag to zoom in on a specific section of the chart."
@@ -4022,7 +4024,7 @@ msgstr "あまりに通知が多すぎると、携帯電話を投げ捨てたく
 #: static/app/components/createAlertButton.tsx:386
 #: static/app/views/projectDetail/missingFeatureButtons/missingAlertsButtons.tsx:28
 msgid "Create Alert"
-msgstr ""
+msgstr "アラートを作成"
 
 #: static/app/components/assistant/getGuidesContent.tsx:529
 msgid ""
@@ -4035,7 +4037,7 @@ msgstr ""
 #: static/app/components/dashboards/widgetQueryFields.tsx:193
 #: static/app/views/eventsV2/table/tableActions.tsx:99
 msgid "Columns"
-msgstr ""
+msgstr "カラム"
 
 #: static/app/components/assistant/getGuidesContent.tsx:536
 msgid ""
@@ -4266,7 +4268,7 @@ msgstr ""
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "クリップボードにコピーしました"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
@@ -4615,7 +4617,7 @@ msgstr ""
 
 #: static/app/components/demo/demoHeader.tsx:74
 msgid "Sign Up"
-msgstr ""
+msgstr "サインアップ"
 
 #: static/app/components/deployBadge.tsx:25
 msgid "Open In Issues"
@@ -5602,7 +5604,7 @@ msgstr ""
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:44
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:69
 msgid "Screenshot"
-msgstr ""
+msgstr "スクリーンショット"
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/index.tsx:125
 msgid "Screenshot help identify what the user saw when the event happened"

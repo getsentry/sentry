@@ -10,6 +10,7 @@
 # ES C1 <e2f4vdsdf45s@outlook.com>, 2016
 # 5d67ccf4d7dc4a0bbcdcf3ce25ee710c, 2015
 # Ignacio Baca Moreno-Torres <ignacio.bacamt@gmail.com>, 2018
+# ilai, 2023-2024
 # Javier Provecho Fernandez <javiertitan@gmail.com>, 2016
 # jgsogo <jgsogo@gmail.com>, 2015
 # jgsogo <jgsogo@gmail.com>, 2015
@@ -21,15 +22,15 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: Manuel Vázquez Acosta <mva.led@gmail.com>\n"
-"Language-Team: Spanish (http://www.transifex.com/getsentry/sentry/language/es/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: ilai, 2023-2024\n"
+"Language-Team: Spanish (http://app.transifex.com/getsentry/sentry/language/es/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.1\n"
 "Language: es\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: admin.py:164 admin.py:178
 #: static/app/components/events/contexts/user/getUserKnownDataDetails.tsx:30
@@ -112,21 +113,21 @@ msgstr "La llamada más reciente primero"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Claro"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Oscuro"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "Predeterminado del sistema"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
-msgstr ""
+msgstr "El valor debe ser JSON válido."
 
 #: api/validators/email.py:12 web/forms/fields.py:75
 msgid "Enter a valid email address."
@@ -165,7 +166,7 @@ msgstr "Códigos de recuperación"
 msgid ""
 "Recovery codes are the only way to access your account if you lose your "
 "device and cannot receive two factor authentication codes."
-msgstr ""
+msgstr "Los códigos de recuperación son la única manera para acceder a tu cuenta en el caso de que no tengas acceso a tu dispositivo y no puedas recibir códigos de autenticación en dos pasos."
 
 #: auth/authenticators/recovery_code.py:24
 msgid "Activate"
@@ -191,7 +192,7 @@ msgstr "Este autenticador te envía mensajes de texto para verificar. Es útil c
 msgid ""
 "A confirmation code was sent to %(phone_mask)s. It is valid for %(ttl)d "
 "seconds."
-msgstr ""
+msgstr "Un código de confirmación se ha enviado a %(phone_mask)s. Es válido por %(ttl)d segundos."
 
 #: auth/authenticators/sms.py:66
 msgid ""
@@ -290,6 +291,7 @@ msgid_plural ""
 "characters."
 msgstr[0] "La contraseña es demasiado corta. Debe contener al menos %(min_length)d carácter."
 msgstr[1] "La contraseña es demasiado corta. Debe contener al menos %(min_length)d caracteres."
+msgstr[2] "La contraseña es demasiado corta. Debe contener al menos %(min_length)d caracteres."
 
 #: auth/password_validation.py:100
 #, python-format
@@ -297,6 +299,7 @@ msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
 msgstr[0] "Su contraseña debe contener al menos %(min_length)d carácter."
 msgstr[1] "Su contraseña debe contener al menos %(min_length)d caracteres."
+msgstr[2] "Su contraseña debe contener al menos %(min_length)d caracteres."
 
 #: auth/password_validation.py:120
 #, python-format
@@ -308,6 +311,7 @@ msgid_plural ""
 "characters."
 msgstr[0] "La contraseña es demasiado larga. No debe contener más de %(max_length)d carácter."
 msgstr[1] "La contraseña es demasiado larga. No debe contener más de %(max_length)d caracteres."
+msgstr[2] "La contraseña es demasiado larga. No debe contener más de %(max_length)d caracteres."
 
 #: auth/password_validation.py:131
 #, python-format
@@ -316,6 +320,7 @@ msgid_plural ""
 "Your password must contain no more than %(max_length)d characters."
 msgstr[0] "Su contraseña no debe contener más de %(max_length)d carácter."
 msgstr[1] "Su contraseña no debe contener más de %(max_length)d caracteres."
+msgstr[2] "Su contraseña no debe contener más de %(max_length)d caracteres."
 
 #: auth/password_validation.py:147
 msgid "This password is entirely numeric."
@@ -801,13 +806,13 @@ msgstr ""
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Error desconocido"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
 #: static/app/views/settings/project/projectProcessingIssues.tsx:268
 msgid "Unknown Error"
-msgstr ""
+msgstr "Error desconocido"
 
 #: integrations/bitbucket_server/integration.py:76
 msgid "Bitbucket URL"
@@ -1127,7 +1132,7 @@ msgstr ""
 #, python-format
 msgid ""
 "The channel or user \"%(channel)s\" could not be found in the %(team)s Team."
-msgstr ""
+msgstr "El canal o usuario \"%(channel)s\" no se pudo encontrar en el equipo %(team)s."
 
 #: integrations/pagerduty/notify_action.py:27
 #, python-brace-format
@@ -1907,7 +1912,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "El equipo de Sentry"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
@@ -3281,6 +3286,7 @@ msgid "%s time…"
 msgid_plural "%s times…"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/actions/ignore.tsx:218
 #: static/app/components/actions/ignore.tsx:282
@@ -3301,6 +3307,7 @@ msgid "%s user…"
 msgid_plural "%s users…"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/actions/ignore.tsx:29
 msgid "per hour"
@@ -3520,6 +3527,7 @@ msgid " + %s other"
 msgid_plural " + %s others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/assigneeSelector.tsx:508
 msgid "You can auto-assign issues by adding [issueOwners:Issue Owner rules]."
@@ -3759,7 +3767,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:347
 msgid "Leave me alone"
-msgstr ""
+msgstr "Dejame en paz"
 
 #: static/app/components/assistant/getGuidesContent.tsx:357
 msgid "Adoption Filter"
@@ -3833,7 +3841,7 @@ msgstr ""
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:41
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:142
 msgid "Performance"
-msgstr ""
+msgstr "Rendimiento"
 
 #: static/app/components/assistant/getGuidesContent.tsx:400
 msgid ""
@@ -3996,7 +4004,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:491
 msgid "Chart"
-msgstr ""
+msgstr "Grafico"
 
 #: static/app/components/assistant/getGuidesContent.tsx:493
 msgid "Click and drag to zoom in on a specific section of the chart."
@@ -4030,7 +4038,7 @@ msgstr ""
 #: static/app/components/createAlertButton.tsx:386
 #: static/app/views/projectDetail/missingFeatureButtons/missingAlertsButtons.tsx:28
 msgid "Create Alert"
-msgstr ""
+msgstr "Crear alerta"
 
 #: static/app/components/assistant/getGuidesContent.tsx:529
 msgid ""
@@ -4043,7 +4051,7 @@ msgstr ""
 #: static/app/components/dashboards/widgetQueryFields.tsx:193
 #: static/app/views/eventsV2/table/tableActions.tsx:99
 msgid "Columns"
-msgstr ""
+msgstr "Columnas"
 
 #: static/app/components/assistant/getGuidesContent.tsx:536
 msgid ""
@@ -4137,7 +4145,7 @@ msgstr "Las preferencias de avatar se han guardado correctamente"
 
 #: static/app/components/avatarChooser.tsx:148
 msgid "There was an error saving your preferences."
-msgstr ""
+msgstr "Hubo un error guardando tus preferencias."
 
 #: static/app/components/avatarChooser.tsx:193
 msgid "Use default avatar"
@@ -4209,6 +4217,7 @@ msgid "%s item on this page selected."
 msgid_plural "%s items on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/bulkController/bulkNotice.tsx:13
 msgid "Selected all items across all pages."
@@ -4275,11 +4284,11 @@ msgstr ""
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "Copiado al portapapeles"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
-msgstr ""
+msgstr "Error copiando al portapapeles"
 
 #: static/app/components/clippedBox.tsx:34
 msgid "Show More"
@@ -4291,6 +4300,7 @@ msgid "Show %s hidden item"
 msgid_plural "Show %s hidden items"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/collapsible.tsx:55
 #: static/app/components/events/errorItem.tsx:152
@@ -4356,7 +4366,7 @@ msgstr ""
 #: static/app/components/contextPickerModal.tsx:292
 #: static/app/components/organizations/multipleProjectSelector.tsx:293
 msgid "My Projects"
-msgstr ""
+msgstr "Mis proyectos"
 
 #: static/app/components/contextPickerModal.tsx:300
 #: static/app/components/organizations/multipleProjectSelector.tsx:292
@@ -5382,6 +5392,7 @@ msgid "There was %s problem processing this event"
 msgid_plural "There were %s problems processing this event"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/errors.tsx:155
 #: static/app/views/settings/project/projectEnvironments.tsx:148
@@ -6591,6 +6602,7 @@ msgid "Frame repeated %s time"
 msgid_plural "Frame repeated %s times"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/frame/openInContextLine.tsx:31
 #: static/app/components/events/interfaces/frame/stacktraceLink.tsx:329
@@ -6767,6 +6779,7 @@ msgid "%s Active Filter"
 msgid_plural "%s Active Filters"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/searchBarAction/dropDownButton.tsx:36
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:74
@@ -6789,6 +6802,7 @@ msgid "%s error in "
 msgid_plural "%s errors in "
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/index.tsx:184
 msgid "Search for spans"
@@ -6805,6 +6819,7 @@ msgid_plural ""
 "There are %s error events associated with this transaction event."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/inlineDocs.tsx:101
 msgid ""
@@ -6886,6 +6901,7 @@ msgid "An error event occurred in this transaction."
 msgid_plural "%s error events occurred in this transaction."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:94
 msgid "No Children"
@@ -7446,6 +7462,7 @@ msgid "%s Participant"
 msgid_plural "%s Participants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/group/pluginActions.tsx:157
 #: static/app/components/group/sentryAppExternalIssueModal.tsx:56
@@ -7632,6 +7649,7 @@ msgid "%s result"
 msgid_plural "%s results"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/helpSearch.tsx:36
 #, python-format
@@ -8211,6 +8229,7 @@ msgid "%s invite"
 msgid_plural "%s invites"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:258
 msgid "Sent [invites], [failed] failed to send."
@@ -8226,6 +8245,7 @@ msgid "%s invite request"
 msgid_plural "%s invite requests"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:274
 msgid "[inviteRequests] pending approval, [failed] failed to send."
@@ -8952,6 +8972,7 @@ msgid "%s other platform"
 msgid_plural "%s other platforms"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/platformPicker.tsx:125
 msgid "Filter Platforms"
@@ -9077,6 +9098,7 @@ msgid "%s Ancestor"
 msgid_plural "%s Ancestors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:135
 msgid "Parent"
@@ -9092,6 +9114,7 @@ msgid "%s Child"
 msgid_plural "%s Children"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:232
 #, python-format
@@ -9099,6 +9122,7 @@ msgid "%s Descendant"
 msgid_plural "%s Descendants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:320
 msgid "View the error for this Transaction"
@@ -9113,6 +9137,7 @@ msgid "Related Error"
 msgid_plural "Related Errors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:429
 #: static/app/views/performance/transactionSummary/transactionTags/tagsHeatMap.tsx:409
@@ -9240,6 +9265,7 @@ msgid "See %s new event"
 msgid_plural "See %s new events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/reprocessedBox.tsx:58
 msgid "Events in this issue were successfully reprocessed. [link]"
@@ -9251,6 +9277,7 @@ msgid "See %s reprocessed event"
 msgid_plural "See %s reprocessed events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/resolutionBox.tsx:111
 msgid "This issue has been marked as resolved."
@@ -9409,6 +9436,7 @@ msgid_plural ""
 "You have %s projects using a deprecated version of the Sentry client"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/broadcastSdkUpdates.tsx:80
 msgid "Deprecated"
@@ -9551,6 +9579,7 @@ msgid "%s project"
 msgid_plural "%s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/sidebarPanelItem.tsx:41
 msgid "Read More"
@@ -9728,6 +9757,7 @@ msgid "There is %s issue blocking event processing"
 msgid_plural "There are %s issues blocking event processing"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:46
 msgid "last event from [ago]"
@@ -9740,6 +9770,7 @@ msgid "Reprocessing %s event …"
 msgid_plural "Reprocessing %s events …"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:65
 #, python-format
@@ -9747,6 +9778,7 @@ msgid "There is %s event pending reprocessing."
 msgid_plural "There are %s events pending reprocessing."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:85
 msgid "Show details"
@@ -10497,6 +10529,7 @@ msgid "%s minute"
 msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectGeneralSettings.tsx:102
 msgid ""
@@ -10610,6 +10643,7 @@ msgid "%s day"
 msgid_plural "%s days"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectGeneralSettings.tsx:99
 #: static/app/views/issueList/testSessionPercent.tsx:171
@@ -10618,6 +10652,7 @@ msgid "%s hour"
 msgid_plural "%s hours"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectIssueGrouping.tsx:109
 msgid ""
@@ -11405,6 +11440,7 @@ msgid "hour"
 msgid_plural "hours"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:109 static/app/utils/formatters.tsx:165
 msgid "min"
@@ -11415,6 +11451,7 @@ msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:117 static/app/utils/formatters.tsx:172
 msgid "s"
@@ -11425,6 +11462,7 @@ msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:124 static/app/utils/formatters.tsx:180
 #: static/app/utils/formatters.tsx:189
@@ -11440,6 +11478,7 @@ msgid "week"
 msgid_plural "weeks"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:88 static/app/utils/formatters.tsx:151
 msgid "d"
@@ -11450,6 +11489,7 @@ msgid "day"
 msgid_plural "days"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:98 static/app/utils/formatters.tsx:158
 msgid "hr"
@@ -11460,6 +11500,7 @@ msgid "millisecond"
 msgid_plural "milliseconds"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:189
 msgid "milliseconds"
@@ -11470,12 +11511,14 @@ msgid "mo"
 msgid_plural "mos"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:70
 msgid "month"
 msgid_plural "months"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:77
 msgid "w"
@@ -13664,6 +13707,7 @@ msgid "%s widget"
 msgid_plural "%s widgets"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:164
 msgid "Duplicate"
@@ -14557,6 +14601,7 @@ msgid "successfully updated %s function"
 msgid_plural "successfully updated %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:42
 #, python-format
@@ -14564,6 +14609,7 @@ msgid "Failed to update %s function"
 msgid_plural "Failed to update %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:49
 msgid "See [link:Troubleshooting Docs]"
@@ -14604,6 +14650,7 @@ msgid "We found %s function with a Node or Python runtime"
 msgid_plural "We found %s functions with Node or Python runtimes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:49
 msgid "Select a project for your AWS Lambdas"
@@ -14718,6 +14765,7 @@ msgid "%s issue on this page selected."
 msgid_plural "%s issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/issueList/actions/index.tsx:314
 msgid "Select the first [count] issues that match this search query."
@@ -15396,6 +15444,7 @@ msgid "%2$s migrated %1$s fingerprint from %3$s to %4$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s to %4$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationActivity/activityFeedItem.tsx:250
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:210
@@ -15690,12 +15739,14 @@ msgid "%2$s migrated %1$s fingerprint to %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints to %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:217
 msgid "%2$s migrated %1$s fingerprint from %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:230
 msgid "[author] first saw this issue"
@@ -15710,6 +15761,7 @@ msgid "%2$s merged %1$s issue into this issue"
 msgid_plural "%2$s merged %1$s issues into this issue"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:248
 msgid "[author] reprocessed the events in this issue. [new-events]"
@@ -15908,6 +15960,7 @@ msgid "result"
 msgid_plural "results"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupMerged/index.tsx:103
 msgid "Unmerging events…"
@@ -16148,6 +16201,7 @@ msgid "event"
 msgid_plural "events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/sampleEventAlert.tsx:37
 msgid ""
@@ -17472,6 +17526,7 @@ msgid "%s Transaction"
 msgid_plural "%s Transactions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:222
 #, python-format
@@ -17479,6 +17534,7 @@ msgid "%s Error"
 msgid_plural "%s Errors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:224
 #, python-format
@@ -17486,6 +17542,7 @@ msgid "Across %s project"
 msgid_plural "Across %s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:232
 msgid "Total Duration"
@@ -17580,6 +17637,7 @@ msgid " (%s event)"
 msgid_plural " (%s events)"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionDetails/quickTraceMeta.tsx:152
 msgid "Trace Navigator"
@@ -17609,6 +17667,7 @@ msgid "Starred for Team"
 msgid_plural "Starred for Teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/teamKeyTransactionButton.tsx:32
 msgid "Star for Team"
@@ -17922,6 +17981,7 @@ msgid "%s event"
 msgid_plural "%s events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/transactionSpans/spanTable.tsx:168
 msgid "Timestamp"
@@ -18268,6 +18328,7 @@ msgid "Show %s collapsed team"
 msgid_plural "Show %s collapsed teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/projectDetail/projectTeamAccess.tsx:71
 msgid "Team Access"
@@ -18497,6 +18558,7 @@ msgid "%s file changed"
 msgid_plural "%s files changed"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/commitsAndFiles/filesChanged.tsx:42
 #, python-format
@@ -18543,6 +18605,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:180
 #: static/app/views/releases/detail/header/releaseActions.tsx:182
@@ -18560,6 +18623,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:88
 #, python-format
@@ -18567,6 +18631,7 @@ msgid "%s other project"
 msgid_plural "%s other projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseHeader.tsx:62
 msgid "Files Changed"
@@ -18679,6 +18744,7 @@ msgid "Hide %s Other"
 msgid_plural "Hide %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:997
 #, python-format
@@ -18686,6 +18752,7 @@ msgid "Show %s Other"
 msgid_plural "Show %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseComparisonChartRow.tsx:98
 msgid "Toggle chart group"
@@ -18743,6 +18810,7 @@ msgid "%s commit"
 msgid_plural "%s commits"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/commitAuthorBreakdown.tsx:86
 msgid "Commit Author Breakdown"
@@ -18754,12 +18822,14 @@ msgid "Show %s collapsed author"
 msgid_plural "Show %s collapsed authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:23
 msgid "Other Project for This Release"
 msgid_plural "Other Projects for This Release"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:32
 #, python-format
@@ -18767,6 +18837,7 @@ msgid "Show %s collapsed project"
 msgid_plural "Show %s collapsed projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/projectReleaseDetails.tsx:25
 msgid "Project Release Details"
@@ -18789,6 +18860,7 @@ msgid "artifact"
 msgid_plural "artifacts"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/releaseAdoption.tsx:235
 #: static/app/views/releases/list/releaseCard/index.tsx:142
@@ -19000,6 +19072,7 @@ msgid "and %s more"
 msgid_plural "and %s more"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/index.tsx:140
 msgid "Project Name"
@@ -19041,12 +19114,14 @@ msgid "%s author"
 msgid_plural "%s authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardProjectRow.tsx:141
 msgid "session"
 msgid_plural "sessions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardStatsPeriod.tsx:44
 msgid "14d"
@@ -19062,6 +19137,7 @@ msgid "%s Other"
 msgid_plural "%s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releasesAdoptionChart.tsx:280
 msgid "Total [display]"
@@ -21495,6 +21571,7 @@ msgid "%s Member"
 msgid_plural "%s Members"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/organizationTeams/allTeamsRow.tsx:185
 msgid "Leave Team"
@@ -22215,6 +22292,7 @@ msgid "%s error "
 msgid_plural "%s errors "
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/project/projectKeys/details/keyRateLimitsForm.tsx:159
 msgid "no time window"
@@ -22560,6 +22638,7 @@ msgid "Click here to trigger processing for %s pending event"
 msgid_plural "Click here to trigger processing for %s pending events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/project/projectProcessingIssues.tsx:336
 msgid "Pro Tip"
@@ -23093,6 +23172,7 @@ msgid "%s build pending"
 msgid_plural "%s builds pending"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/utils.tsx:18
 msgid "aws amazon s3 bucket"

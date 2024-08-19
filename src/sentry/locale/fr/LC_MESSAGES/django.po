@@ -4,13 +4,18 @@
 # 
 # Translators:
 # Antoine Lubineau <antoine@lubignon.info>, 2014-2016
+# Arnaud Lier <zeprofdecoding@gmail.com>, 2023
 # Benjamin Oertel <ben@punchtab.com>, 2012
 # Benjamin Oertel <ben@punchtab.com>, 2012
 # Charlie Etienne <charlie.etienne@hotmail.fr>, 2018
 # Cheikh Sidya CAMARA <scicasoft@gmail.com>, 2015
+# Choco Sky, 2023
 # Christophe CHAUVET <christophe.chauvet@gmail.com>, 2015
 # Christophe Sicard <sicard.christophe@gmail.com>, 2014
 # jmsche <contact@jmsche.fr>, 2013
+# David Chiron, 2022
+# Erij Maherzia BEN BRAHIM, 2024
+# Florent Berthelot, 2022
 # Florent Viel <luxifer666@gmail.com>, 2015
 # bb76cd9ac0cb7e20167a14728edb858b, 2016,2018
 # 6534c450c77b2549e41c52e2051f5839, 2016
@@ -49,15 +54,15 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: Christophe Sicard <sicard.christophe@gmail.com>\n"
-"Language-Team: French (http://www.transifex.com/getsentry/sentry/language/fr/)\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Erij Maherzia BEN BRAHIM, 2024\n"
+"Language-Team: French (http://app.transifex.com/getsentry/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.1\n"
 "Language: fr\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: admin.py:164 admin.py:178
 #: static/app/components/events/contexts/user/getUserKnownDataDetails.tsx:30
@@ -104,12 +109,12 @@ msgstr "La connexion via un fournisseur d'identité n'est pas activée pour cett
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "Le chemin ne doit pas contenir d'espaces ni de guillemets"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
 msgid "%s thinks Sentry can help monitor your mobile app"
-msgstr ""
+msgstr "%s pense que Sentry peut vous aider à surveiller votre application mobile"
 
 #: api/endpoints/organization_teams.py:45
 #: api/endpoints/sentry_app_installations.py:20
@@ -120,7 +125,7 @@ msgstr "Entrez un slug composé de lettres minuscules, de chiffres, de traits d'
 
 #: api/endpoints/project_codeowners_request.py:18
 msgid "A team member is asking to set up Sentry's Code Owners"
-msgstr ""
+msgstr "Un membre de l'équipe demande à configurer les propriétaires de code de Sentry."
 
 #: api/endpoints/user_details.py:48
 #: static/app/data/forms/accountPreferences.tsx:57
@@ -140,17 +145,17 @@ msgstr "Appel le plus récent en premier"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Lumineux"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Sombre"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "Valeur par défaut du système"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
@@ -193,7 +198,7 @@ msgstr "Codes de récupération"
 msgid ""
 "Recovery codes are the only way to access your account if you lose your "
 "device and cannot receive two factor authentication codes."
-msgstr ""
+msgstr "Les codes de récupération sont le seul moyen d'accéder à votre compte si vous perdez votre appareil et ne pouvez pas recevoir de codes d'authentification à deux facteurs."
 
 #: auth/authenticators/recovery_code.py:24
 msgid "Activate"
@@ -253,7 +258,7 @@ msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to access your account securely using a token and "
 "secret key. A new token is generated every 30 seconds."
-msgstr ""
+msgstr "Une application d'authentification prenant en charge les mots de passe temporels à usage unique (comme Google Authenticator ou 1Password) peut être utilisée pour accéder à votre compte de manière sécurisée à l'aide d'un jeton et d'une clé secrète. Un nouveau jeton est généré toutes les 30 secondes."
 
 #: auth/authenticators/totp.py:20
 msgid ""
@@ -261,7 +266,7 @@ msgid ""
 " a new device or application, or to update your secret key, click "
 "\"Confirm\" below. By clicking \"Confirm\", your existing secret key will be"
 " replaced and will no longer work to access your account."
-msgstr ""
+msgstr "Votre compte est actuellement lié à une application d'authentification. Pour établir un lien avec un nouveau appareil ou une nouvelle application, ou pour mettre à jour votre clé secrète, cliquez sur \"Confirmer\" ci-dessous. En cliquant sur \"Confirmer\", votre clé secrète existante sera remplacée et ne permettra plus d'accéder à votre compte."
 
 #: auth/authenticators/u2f.py:42
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:152
@@ -318,6 +323,7 @@ msgid_plural ""
 "characters."
 msgstr[0] "Ce mot de passe est trop court. Il doit contenir au minimum %(min_length)d caractère."
 msgstr[1] "Ce mot de passe est trop court. Il doit contenir au minimum %(min_length)d caractères."
+msgstr[2] "Ce mot de passe est trop court. Il doit contenir au minimum %(min_length)d caractères."
 
 #: auth/password_validation.py:100
 #, python-format
@@ -325,6 +331,7 @@ msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
 msgstr[0] "Votre mot de passe doit contenir au moins %(min_length)d caractère."
 msgstr[1] "Votre mot de passe doit contenir au moins %(min_length)d caractères."
+msgstr[2] "Votre mot de passe doit contenir au moins %(min_length)d caractères."
 
 #: auth/password_validation.py:120
 #, python-format
@@ -336,6 +343,7 @@ msgid_plural ""
 "characters."
 msgstr[0] "Ce mot de passe est trop long. Il ne doit pas contenir plus de %(max_length)d caractères."
 msgstr[1] "Ce mot de passe est trop long. Il ne doit pas contenir plus de %(max_length)d caractères."
+msgstr[2] "Ce mot de passe est trop long. Il ne doit pas contenir plus de %(max_length)d caractères."
 
 #: auth/password_validation.py:131
 #, python-format
@@ -344,6 +352,7 @@ msgid_plural ""
 "Your password must contain no more than %(max_length)d characters."
 msgstr[0] "Votre mot de passe ne doit pas contenir plus de %(max_length)d caractères."
 msgstr[1] "Votre mot de passe ne doit pas contenir plus de %(max_length)d caractères."
+msgstr[2] "Votre mot de passe ne doit pas contenir plus de %(max_length)d caractères."
 
 #: auth/password_validation.py:147
 msgid "This password is entirely numeric."
@@ -438,7 +447,7 @@ msgstr "Échec de l'authentification unique SAML : {reason}"
 msgid ""
 "Failed to map SAML attributes. Assertion returned the following attribute "
 "keys: {error_msg_keys}"
-msgstr ""
+msgstr "Erreur de mappage des attributs SAML. L'assertion retourne les clés suivante: {error_msg_keys}"
 
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:8
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:11
@@ -825,11 +834,11 @@ msgstr "Installation"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
-msgstr ""
+msgstr "Veuillez valider que la Cloudformation a été créée avec succès"
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Erreur inconnue"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
@@ -862,11 +871,11 @@ msgstr "Par défaut, nous vérifions le certificat SSL lors des requêtes adress
 
 #: integrations/bitbucket_server/integration.py:94
 msgid "Bitbucket Consumer Key"
-msgstr ""
+msgstr "Clé client Bitbucket"
 
 #: integrations/bitbucket_server/integration.py:98
 msgid "Bitbucket Consumer Private Key"
-msgstr ""
+msgstr "Clé privée client Bitbucket"
 
 #: integrations/custom_scm/integration.py:90
 #: static/app/components/events/contexts/browser/getBrowserKnownDataDetails.tsx:17
@@ -899,7 +908,7 @@ msgstr "Nom"
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "Le nom pour votre intégration. <br>Si vous utilisez GitHub, utiliser le nom de l'organisation."
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -914,15 +923,15 @@ msgstr "URL"
 msgid ""
 "The base URL for your instance, including the host and protocol. <br>If "
 "using github.com, enter https://github.com/"
-msgstr ""
+msgstr "La base URL pour votre instance, doit inclure l'hôte et le prorocole.<br> Si vous utilisez github.com, entrez https://github.com/"
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
-msgstr ""
+msgstr "L'installation GitHub est en cours de suppression."
 
 #: integrations/github/integration.py:309
 msgid "Github installed on another Sentry organization."
-msgstr ""
+msgstr "Github installé sur une autre organisation Sentry."
 
 #: integrations/github_enterprise/integration.py:156
 msgid ""
@@ -1102,13 +1111,13 @@ msgstr "Quand un ticket est assigné dans Jira, assigner son problème Sentry li
 
 #: integrations/jira/integration.py:187
 msgid "e.g. \"components, security, customfield_10006\""
-msgstr ""
+msgstr "ex : \"components, security, customfield_10006\""
 
 #: integrations/jira/integration.py:189
 msgid ""
 "Comma-separated list of Jira fields that you don't want to show in issue "
 "creation form"
-msgstr ""
+msgstr "Une liste de champs Jira que vous ne voulez pas afficher dans le formulaire de création d'issue, séparés par des virgules."
 
 #: integrations/jira/integration.py:206
 msgid ""
@@ -1122,7 +1131,7 @@ msgstr "Votre organisation n'a pas accès à cette fonctionnalité"
 
 #: integrations/jira/notify_action.py:30
 msgid "Jira integration is a required field."
-msgstr ""
+msgstr "L'intégration de Jira nécessite un champ."
 
 #: integrations/jira_server/integration.py:85
 msgid "Jira URL"
@@ -1149,32 +1158,32 @@ msgstr "Clé privée consommateur Jira"
 
 #: integrations/msteams/integration.py:50
 msgid "Teams Marketplace"
-msgstr ""
+msgstr "Place de vente de l'équipe"
 
 #: integrations/msteams/notify_action.py:44
 #, python-format
 msgid ""
 "The channel or user \"%(channel)s\" could not be found in the %(team)s Team."
-msgstr ""
+msgstr "La chaîne ou l'utilisateur \"%(channel)s\" ne peut être trouver dans l'équipe %(team)s."
 
 #: integrations/pagerduty/notify_action.py:27
 #, python-brace-format
 msgid "Invalid {field}"
-msgstr ""
+msgstr "{field} invalide"
 
 #: integrations/pagerduty/notify_action.py:61
 #, python-format
 msgid ""
 "The service \"%(service)s\" does not exist in the %(account)s Pagerduty "
 "account."
-msgstr ""
+msgstr "Le service \"%(service)s\" n'existe pas dans le %(account)s compte Pagerduty."
 
 #: integrations/pagerduty/notify_action.py:71
 #, python-format
 msgid ""
 "The service \"%(service)s\" has not been granted access in the %(account)s "
 "Pagerduty account."
-msgstr ""
+msgstr "Le service \"%(service)s\" n'a pas donner l'accès au %(account)s compte Pagerduty."
 
 #: integrations/pipeline.py:156
 #, python-format
@@ -1182,7 +1191,7 @@ msgid ""
 "The provided %(proper_name)s account is linked to a different Sentry user. "
 "To continue linking the current Sentry user, please use a different "
 "%(proper_name)s account."
-msgstr ""
+msgstr "Le compte fourni %(proper_name)s est raccordé à un différent compte Sentry. Pour continuer à raccorder l'actuel utilisateur Sentry, veuillez utiliser un different %(proper_name)s compte."
 
 #: integrations/slack/integration.py:62
 msgid "Workspace"
@@ -1190,18 +1199,18 @@ msgstr "Espace de travail"
 
 #: integrations/slack/notify_action.py:73
 msgid "Slack channel name is a required field."
-msgstr ""
+msgstr "Le nom du canal Slack est un champ obligatoire."
 
 #: integrations/slack/notify_action.py:105
 msgid "Slack workspace is a required field."
-msgstr ""
+msgstr "L'espace de travail Slack requiert un champ."
 
 #: integrations/slack/notify_action.py:129
 #, python-format
 msgid ""
 "Multiple users were found with display name \"%(channel)s\". Please use your"
 " username, found at %(domain)s/account/settings#username."
-msgstr ""
+msgstr "Plusieurs utilisateurs ont été trouvé avec le nom d'affichage \"%(channel)s\". Veuillez utiliser votre nom d'utilisateur, que vous pouvez trouver à %(domain)s/account/settings#username."
 
 #: integrations/slack/notify_action.py:150
 #, python-format
@@ -1214,7 +1223,7 @@ msgstr "La ressource slack \"%(channel)s\" n'existe pas ou n'a pas accès au wor
 msgid ""
 "\n"
 "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.\n"
-msgstr ""
+msgstr "\nVercel est une plateforme tout-en-un avec un CDN Global supportant les déploiements statiques ainsi que JAMstack et les fonctions Serverless.\n"
 
 #: integrations/vercel/integration.py:52
 msgid ""
@@ -1225,15 +1234,15 @@ msgstr ""
 
 #: integrations/vercel/integration.py:59
 msgid "Vercel Marketplace"
-msgstr ""
+msgstr "Marketplace Vercel"
 
 #: integrations/vercel/integration.py:64
 msgid "Connect Your Projects"
-msgstr ""
+msgstr "Connecter Vos Projets"
 
 #: integrations/vercel/integration.py:65
 msgid "Don't have a project yet? Click [here]({}) to create one."
-msgstr ""
+msgstr "Vous n'avez pas encore de projet ? Cliquez [ici]({}) pour en créer un."
 
 #: integrations/vercel/integration.py:67
 msgid ""
@@ -1242,7 +1251,7 @@ msgstr ""
 
 #: integrations/vercel/integration.py:172
 msgid "Vercel project..."
-msgstr ""
+msgstr "Projet Vercel..."
 
 #: integrations/vercel/integration.py:178
 msgid "Link your Sentry projects to complete your installation on Vercel"
@@ -1340,7 +1349,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "Bogue"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1436,12 +1445,12 @@ msgstr ""
 #: models/grouphistory.py:138
 #: static/app/components/group/inboxBadges/inboxReason.tsx:102
 msgid "Unignored"
-msgstr ""
+msgstr "Non-ignoré"
 
 #: models/grouphistory.py:139
 #: static/app/views/releases/detail/overview/releaseIssues.tsx:373
 msgid "Regressed"
-msgstr ""
+msgstr "Régressé"
 
 #: models/grouphistory.py:140 static/app/views/issueList/searchBar.tsx:39
 msgid "Assigned"
@@ -1459,7 +1468,7 @@ msgstr ""
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "Supprimé"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
@@ -1469,19 +1478,19 @@ msgstr ""
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:140
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:159
 msgid "Reviewed"
-msgstr ""
+msgstr "Révisé"
 
 #: models/grouphistory.py:145
 msgid "Resolved in Release"
-msgstr ""
+msgstr "Résolu dans la version"
 
 #: models/grouphistory.py:146
 msgid "Resolved in Commit"
-msgstr ""
+msgstr "Résolu dans le Commit"
 
 #: models/grouphistory.py:147
 msgid "Resolved in Pull Request"
-msgstr ""
+msgstr "Résolu dans la pull request"
 
 #: models/grouplink.py:61
 msgid "Commit"
@@ -1529,12 +1538,12 @@ msgstr "Suppression en cours"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "Ouvrir"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
 msgid "Archived"
-msgstr ""
+msgstr "Archivé"
 
 #: models/savedsearch.py:25 static/app/components/group/releaseChart.tsx:53
 #: static/app/components/stream/groupChart.tsx:54
@@ -1569,7 +1578,7 @@ msgstr "Utilisateurs"
 
 #: models/savedsearch.py:27 static/app/views/issueList/utils.tsx:134
 msgid "Relative Change"
-msgstr ""
+msgstr "Changement relatif"
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
@@ -1874,7 +1883,7 @@ msgstr "Mot de passe perdu ?"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "Confirmer le compte"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1889,7 +1898,7 @@ msgstr "Confirmer votre identité"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "Se connecter"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1914,7 +1923,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:11
 #, python-format
 msgid "Hey %(recipient_name)s,"
-msgstr ""
+msgstr "Bonjour %(recipient_name)s,"
 
 #: templates/sentry/emails/requests/codeowners.html:14
 #, python-format
@@ -1935,7 +1944,7 @@ msgstr ""
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "L'équipe de Sentry"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
@@ -2004,7 +2013,7 @@ msgstr ""
 #: static/app/views/performance/transactionDetails/finishSetupAlert.tsx:39
 #: templates/sentry/emails/requests/organization-project.html:46
 msgid "Get Started"
-msgstr ""
+msgstr "Commencer"
 
 #: templates/sentry/emails/requests/organization-project.html:49
 msgid "Mobile up,"
@@ -2091,7 +2100,7 @@ msgstr ""
 msgid ""
 "It seems that your GitHub account has been installed on another Sentry "
 "organization. Please uninstall and try again."
-msgstr ""
+msgstr "Il semble que votre compte GitHub ait été configuré sur une autre organisation Sentry. Veuillez le désinstaller et réessayer."
 
 #: templates/sentry/integrations/gitlab-config.html:26
 msgid "GitLab Setup"
@@ -2180,11 +2189,11 @@ msgstr ""
 
 #: templates/sentry/integrations/jira-issue.html:54
 msgid "Events last 24 hours:"
-msgstr ""
+msgstr "Événements des dernières 24 heures :"
 
 #: templates/sentry/integrations/jira-issue.html:60
 msgid "Events last 14 days:"
-msgstr ""
+msgstr "Événements des 14 derniers jours :"
 
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
@@ -2194,7 +2203,7 @@ msgstr "Date :"
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
 msgid "Release:"
-msgstr ""
+msgstr "Version :"
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
@@ -2265,11 +2274,11 @@ msgstr ""
 #: static/app/components/events/interfaces/debugMeta-v2/debugImage/status.tsx:18
 #: templates/sentry/integrations/slack/link-team-error.html:5
 msgid "Error"
-msgstr ""
+msgstr "Erreur"
 
 #: templates/sentry/integrations/slack/link-team.html:7
 msgid "Link Team"
-msgstr ""
+msgstr "Lier l'équipe"
 
 #: templates/sentry/integrations/slack/linked.html:5
 msgid "Slack Linked"
@@ -2342,7 +2351,7 @@ msgstr ""
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:97
 #: templates/sentry/integrations/slack/reauth-details.html:94
 msgid "Upgrade"
-msgstr ""
+msgstr "Mettre à jour"
 
 #: templates/sentry/integrations/slack/reauth-introduction.html:97
 msgid "Farewell to Slack's legacy workspace apps."
@@ -2486,7 +2495,7 @@ msgstr ""
 
 #: templates/sentry/no-organization-access.html:19
 msgid "this guide"
-msgstr ""
+msgstr "ce guide"
 
 #: templates/sentry/no-organization-access.html:21
 msgid "If you need to make changes to your user account, "
@@ -2494,7 +2503,7 @@ msgstr ""
 
 #: templates/sentry/no-organization-access.html:21
 msgid "please click here."
-msgstr ""
+msgstr "veuillez cliquer ici."
 
 #: templates/sentry/oauth-authorize.html:7
 msgid "Authorize Application"
@@ -2967,28 +2976,28 @@ msgstr "Code de confirmation non valide. Veuillez réessayer."
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:111
 msgid "300"
-msgstr ""
+msgstr "300"
 
 #: static/app/actionCreators/dashboards.tsx:100
 msgid "Unable to update dashboard"
-msgstr ""
+msgstr "Impossible de mettre à jour le tableau de bord"
 
 #: static/app/actionCreators/dashboards.tsx:125
 msgid "Unable to delete dashboard"
-msgstr ""
+msgstr "Impossible de supprimer le tableau de bord"
 
 #: static/app/actionCreators/dashboards.tsx:30
 msgid "Unable to create dashboard"
-msgstr ""
+msgstr "Impossible de créer le tableau de bord"
 
 #: static/app/actionCreators/dashboards.tsx:70
 msgid "Unable to load dashboard"
-msgstr ""
+msgstr "Impossible de charger le tableau de bord"
 
 #: static/app/actionCreators/deployPreview.tsx:16
 #, python-format
 msgid "%s@%s"
-msgstr ""
+msgstr "%s@%s"
 
 #: static/app/actionCreators/deployPreview.tsx:26
 msgid ""
@@ -3003,23 +3012,23 @@ msgstr ""
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:108
 msgid "Unable to delete the saved query"
-msgstr ""
+msgstr "Impossible de supprimer la requête enregistrée"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:20
 msgid "Unable to load saved queries"
-msgstr ""
+msgstr "Impossible de charger les requêtes enregistrées"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:38
 msgid "Unable to load saved query"
-msgstr ""
+msgstr "Impossible de charger une requête enregistrée"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:57
 msgid "Unable to create your saved query"
-msgstr ""
+msgstr "Impossible de créer votre requête enregistrée"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:76
 msgid "Unable to update your saved query"
-msgstr ""
+msgstr "Impossible de mettre à jour votre requête enregistrée"
 
 #: static/app/actionCreators/indicator.tsx:79
 msgid "Saving changes..."
@@ -3082,7 +3091,7 @@ msgstr ""
 #: static/app/views/settings/project/projectServiceHooks.tsx:77
 #: static/app/views/settings/projectPlugins/details.tsx:84
 msgid "Saving changes…"
-msgstr ""
+msgstr "Sauvegarde des changements..."
 
 #: static/app/actionCreators/plugins.tsx:112
 #: static/app/views/organizationIntegrations/installedPlugin.tsx:93
@@ -3159,7 +3168,7 @@ msgstr ""
 
 #: static/app/actionCreators/release.tsx:122
 msgid "Restoring Release…"
-msgstr ""
+msgstr "Restauration de la version..."
 
 #: static/app/actionCreators/release.tsx:135
 msgid "Release was successfully restored."
@@ -3171,7 +3180,7 @@ msgstr ""
 
 #: static/app/actionCreators/release.tsx:94
 msgid "Archiving Release…"
-msgstr ""
+msgstr "Archivage de la version..."
 
 #: static/app/actionCreators/savedSearches.tsx:27
 msgid "Unable to load saved searches"
@@ -3241,7 +3250,7 @@ msgstr ""
 
 #: static/app/components/acl/featureDisabled.tsx:128
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "Copier dans le presse-papier"
 
 #: static/app/components/acl/featureDisabled.tsx:15
 #, python-format
@@ -3301,7 +3310,7 @@ msgstr ""
 
 #: static/app/components/actions/ignore.tsx:202
 msgid "one time…"
-msgstr ""
+msgstr "une fois..."
 
 #: static/app/components/actions/ignore.tsx:203
 #, python-format
@@ -3309,6 +3318,7 @@ msgid "%s time…"
 msgid_plural "%s times…"
 msgstr[0] ""
 msgstr[1] "%s fois…"
+msgstr[2] "%s fois…"
 
 #: static/app/components/actions/ignore.tsx:218
 #: static/app/components/actions/ignore.tsx:282
@@ -3321,7 +3331,7 @@ msgstr ""
 
 #: static/app/components/actions/ignore.tsx:266
 msgid "one user…"
-msgstr ""
+msgstr "un utilisateur..."
 
 #: static/app/components/actions/ignore.tsx:267
 #, python-format
@@ -3329,6 +3339,7 @@ msgid "%s user…"
 msgid_plural "%s users…"
 msgstr[0] ""
 msgstr[1] "%s utilisateurs..."
+msgstr[2] "%s utilisateurs..."
 
 #: static/app/components/actions/ignore.tsx:29
 msgid "per hour"
@@ -3478,7 +3489,7 @@ msgstr "Annuler"
 
 #: static/app/components/arithmeticInput/parser.tsx:72
 msgid "Division by 0 is not allowed"
-msgstr ""
+msgstr "La division par 0 n'est pas autorisée"
 
 #: static/app/components/arithmeticInput/parser.tsx:9
 msgid "Maximum operators exceeded"
@@ -3548,6 +3559,7 @@ msgid " + %s other"
 msgid_plural " + %s others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/assigneeSelector.tsx:508
 msgid "You can auto-assign issues by adding [issueOwners:Issue Owner rules]."
@@ -3559,11 +3571,11 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:116
 msgid "Later"
-msgstr ""
+msgstr "Plus tard"
 
 #: static/app/components/assistant/getGuidesContent.tsx:117
 msgid "Take a Look"
-msgstr ""
+msgstr "Jeter un coup d'œil"
 
 #: static/app/components/assistant/getGuidesContent.tsx:128
 msgid ""
@@ -3583,7 +3595,7 @@ msgstr ""
 msgid ""
 "Marking an issue reviewed, resolving it, or ignoring it removes it from this"
 " list and removes the label."
-msgstr ""
+msgstr "Le fait de marquer un problème comme étant examiné, résolu ou ignoré le retire de cette liste et supprime l'étiquette."
 
 #: static/app/components/assistant/getGuidesContent.tsx:144
 msgid "Make It Stop Already"
@@ -3617,7 +3629,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:193
 msgid "Stack Trace Preview"
-msgstr ""
+msgstr "Aperçu de la trace d'appels"
 
 #: static/app/components/assistant/getGuidesContent.tsx:195
 msgid "Hover over the issue title to see the stack trace of the latest event."
@@ -3638,7 +3650,7 @@ msgstr ""
 #: static/app/views/alerts/utils/index.tsx:115
 #: static/app/views/projectsDashboard/chart.tsx:33
 msgid "Transactions"
-msgstr ""
+msgstr "Transactions"
 
 #: static/app/components/assistant/getGuidesContent.tsx:215
 msgid ""
@@ -3649,11 +3661,11 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:220
 msgid "Transactions Details"
-msgstr ""
+msgstr "Détails des transactions"
 
 #: static/app/components/assistant/getGuidesContent.tsx:222
 msgid "Click on any transaction to see more details."
-msgstr ""
+msgstr "Cliquez sur une transaction pour voir plus de détails."
 
 #: static/app/components/assistant/getGuidesContent.tsx:231
 msgid "Filter by Span Operation"
@@ -3770,7 +3782,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:336
 msgid "Filter by Semver"
-msgstr ""
+msgstr "Filtrer par Semver"
 
 #: static/app/components/assistant/getGuidesContent.tsx:338
 msgid ""
@@ -3861,7 +3873,7 @@ msgstr ""
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:41
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:142
 msgid "Performance"
-msgstr ""
+msgstr "Performance"
 
 #: static/app/components/assistant/getGuidesContent.tsx:400
 msgid ""
@@ -4024,7 +4036,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:491
 msgid "Chart"
-msgstr ""
+msgstr "Graphique"
 
 #: static/app/components/assistant/getGuidesContent.tsx:493
 msgid "Click and drag to zoom in on a specific section of the chart."
@@ -4058,7 +4070,7 @@ msgstr ""
 #: static/app/components/createAlertButton.tsx:386
 #: static/app/views/projectDetail/missingFeatureButtons/missingAlertsButtons.tsx:28
 msgid "Create Alert"
-msgstr ""
+msgstr "Créer une alerte"
 
 #: static/app/components/assistant/getGuidesContent.tsx:529
 msgid ""
@@ -4071,7 +4083,7 @@ msgstr ""
 #: static/app/components/dashboards/widgetQueryFields.tsx:193
 #: static/app/views/eventsV2/table/tableActions.tsx:99
 msgid "Columns"
-msgstr ""
+msgstr "Colonnes"
 
 #: static/app/components/assistant/getGuidesContent.tsx:536
 msgid ""
@@ -4165,11 +4177,11 @@ msgstr "Préférences d’avatar enregistrées"
 
 #: static/app/components/avatarChooser.tsx:148
 msgid "There was an error saving your preferences."
-msgstr ""
+msgstr "Une erreur s'est produite lors de l'enregistrement de vos préférences."
 
 #: static/app/components/avatarChooser.tsx:193
 msgid "Use default avatar"
-msgstr ""
+msgstr "Utiliser l'avatar par défaut"
 
 #: static/app/components/avatarChooser.tsx:196
 msgid "Use initials"
@@ -4217,7 +4229,7 @@ msgstr "Changer de photo"
 
 #: static/app/components/avatarCropper.tsx:75
 msgid "That is not a supported file type."
-msgstr ""
+msgstr "Ce n'est pas un type de fichier supporté."
 
 #: static/app/components/bases/pluginComponentBase.tsx:116
 msgid "Success!"
@@ -4237,6 +4249,7 @@ msgid "%s item on this page selected."
 msgid_plural "%s items on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/bulkController/bulkNotice.tsx:13
 msgid "Selected all items across all pages."
@@ -4264,7 +4277,7 @@ msgstr ""
 
 #: static/app/components/bulkController/bulkNotice.tsx:98
 msgid "Cancel selection."
-msgstr ""
+msgstr "Annuler la sélection."
 
 #: static/app/components/charts/eventsChart.tsx:218
 msgid "Current"
@@ -4279,7 +4292,7 @@ msgstr "Précédent"
 #: static/app/components/charts/eventsChart.tsx:521
 #, python-format
 msgid "previous %s"
-msgstr ""
+msgstr "%s précédent"
 
 #: static/app/components/charts/eventsRequest.tsx:260
 #, python-format
@@ -4294,16 +4307,16 @@ msgstr ""
 
 #: static/app/components/charts/releaseSeries.tsx:182
 msgid "Error fetching releases"
-msgstr ""
+msgstr "Erreur lors de la récupération des versions"
 
 #: static/app/components/charts/sessionsRequest.tsx:130
 #: static/app/views/releases/list/releasesRequest.tsx:216
 msgid "Error loading health data"
-msgstr ""
+msgstr "Erreur au chargement des données de santé"
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "Copié dans le presse-papier"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
@@ -4319,6 +4332,7 @@ msgid "Show %s hidden item"
 msgid_plural "Show %s hidden items"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/collapsible.tsx:55
 #: static/app/components/events/errorItem.tsx:152
@@ -4370,11 +4384,11 @@ msgstr ""
 
 #: static/app/components/contextPickerModal.tsx:273
 msgid "Select an organization to continue"
-msgstr ""
+msgstr "Sélectionnez une organisation pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:276
 msgid "Select a project to continue"
-msgstr ""
+msgstr "Sélectionnez un projet pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:279
 #: static/app/components/contextPickerModal.tsx:368
@@ -4384,7 +4398,7 @@ msgstr ""
 #: static/app/components/contextPickerModal.tsx:292
 #: static/app/components/organizations/multipleProjectSelector.tsx:293
 msgid "My Projects"
-msgstr ""
+msgstr "Mes projets"
 
 #: static/app/components/contextPickerModal.tsx:300
 #: static/app/components/organizations/multipleProjectSelector.tsx:292
@@ -4403,7 +4417,7 @@ msgstr "ici"
 
 #: static/app/components/contextPickerModal.tsx:327
 msgid "Select a Project to continue"
-msgstr ""
+msgstr "Sélectionnez un projet pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:347
 msgid "[providerName] Configurations"
@@ -4444,7 +4458,7 @@ msgstr ""
 
 #: static/app/components/createAlertButton.tsx:149
 msgid "Select one Project."
-msgstr ""
+msgstr "Sélectionnez un projet."
 
 #: static/app/components/createAlertButton.tsx:151
 msgid "Select a single Environment or All Environments."
@@ -4548,12 +4562,12 @@ msgstr ""
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:110
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:111
 msgid "Remove query"
-msgstr ""
+msgstr "Supprimer une requête"
 
 #: static/app/components/dashboards/widgetQueriesForm.tsx:171
 #: static/app/views/dashboardsV2/widget/eventWidget/queries.tsx:127
 msgid "Add Query"
-msgstr ""
+msgstr "Ajouter une requête"
 
 #: static/app/components/dashboards/widgetQueriesForm.tsx:29
 #, python-format
@@ -4570,12 +4584,12 @@ msgstr ""
 #: static/app/views/eventsV2/chartFooter.tsx:86
 #: static/app/views/eventsV2/chartFooter.tsx:95
 msgid "Y-Axis"
-msgstr ""
+msgstr "Axe Y"
 
 #: static/app/components/dashboards/widgetQueryFields.tsx:260
 #: static/app/components/dashboards/widgetQueryFields.tsx:261
 msgid "Remove this Y-Axis"
-msgstr ""
+msgstr "Supprimer cet axe Y"
 
 #: static/app/components/dashboards/widgetQueryFields.tsx:270
 msgid "Add Overlay"
@@ -4645,7 +4659,7 @@ msgstr "Documentation"
 
 #: static/app/components/demo/demoHeader.tsx:47
 msgid "Request a Demo"
-msgstr ""
+msgstr "Demander une démo"
 
 #: static/app/components/demo/demoHeader.tsx:71
 msgid "Sign Up for Free"
@@ -4770,7 +4784,7 @@ msgstr "Description"
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseSessionsChart.tsx:460
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseSessionsChart.tsx:533
 msgid "All Releases"
-msgstr ""
+msgstr "Toutes les versions"
 
 #: static/app/components/discover/performanceCardTable.tsx:665
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:846
@@ -4790,7 +4804,7 @@ msgstr ""
 #: static/app/views/releases/list/releasesRequest.tsx:447
 #: static/app/views/releases/list/releasesRequest.tsx:484
 msgid "This Release"
-msgstr ""
+msgstr "Cette version"
 
 #: static/app/components/discover/performanceCardTable.tsx:668
 #: static/app/views/organizationStats/teamInsights/teamMisery.tsx:107
@@ -4813,7 +4827,7 @@ msgstr "Filtrer"
 #: static/app/components/discover/transactionsList.tsx:220
 #: static/app/views/performance/transactionSummary/transactionVitals/vitalCard.tsx:241
 msgid "View All Events"
-msgstr ""
+msgstr "Afficher tous les événements"
 
 #: static/app/components/discover/transactionsList.tsx:233
 #: static/app/views/alerts/incidentRules/incidentRulePresets.tsx:47
@@ -4831,7 +4845,7 @@ msgstr ""
 #: static/app/views/performance/transactionSummary/transactionVitals/vitalCard.tsx:249
 #: static/app/views/projectDetail/projectIssues.tsx:132
 msgid "Open in Discover"
-msgstr ""
+msgstr "Ouvrir dans Découvrir"
 
 #: static/app/components/discover/transactionsTable.tsx:206
 msgid "No transactions found"
@@ -4865,7 +4879,7 @@ msgstr "trouvé"
 
 #: static/app/components/dropdownAutoComplete/menu.tsx:329
 msgid "Searching…"
-msgstr ""
+msgstr "Recherche…"
 
 #: static/app/components/errorBoundary.tsx:110
 msgid ""
@@ -4987,7 +5001,7 @@ msgstr ""
 
 #: static/app/components/eventOrGroupHeader.tsx:65
 msgid "Error level: [level]"
-msgstr ""
+msgstr "Niveau d'erreur : [level]"
 
 #: static/app/components/events/attachmentViewers/rrwebJsonViewer.tsx:24
 msgid ""
@@ -5069,15 +5083,15 @@ msgstr "Taille du stockage"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:118
 msgid "External Storage Size"
-msgstr ""
+msgstr "Taille du stockage externe"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:126
 msgid "External Free Storage"
-msgstr ""
+msgstr "Stockage externe libre"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:134
 msgid "Simulator"
-msgstr ""
+msgstr "Simulateur"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:139
 msgid "Boot Time"
@@ -5086,7 +5100,7 @@ msgstr ""
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:147
 #: static/app/data/forms/accountPreferences.tsx:42
 msgid "Timezone"
-msgstr ""
+msgstr "Fuseau horaire"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:152
 msgid "Device Type"
@@ -5094,11 +5108,11 @@ msgstr ""
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:157
 msgid "Architectures"
-msgstr ""
+msgstr "Architectures"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:162
 msgid "Brand"
-msgstr ""
+msgstr "Marque"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:167
 msgid "Charging"
@@ -5128,7 +5142,7 @@ msgstr "Mémoire libre"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:197
 msgid "Memory Size"
-msgstr ""
+msgstr "Taille de la mémoire"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:202
 msgid "Usable Memory"
@@ -5136,11 +5150,11 @@ msgstr ""
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:207
 msgid "Manufacturer"
-msgstr ""
+msgstr "Constructeur"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:212
 msgid "Online"
-msgstr ""
+msgstr "En ligne"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:217
 msgid "Screen Density"
@@ -5164,15 +5178,15 @@ msgstr ""
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:32
 msgid "Family"
-msgstr ""
+msgstr "Famille"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:37
 msgid "Model Id"
-msgstr ""
+msgstr "Id. du modèle"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:42
 msgid "Model"
-msgstr ""
+msgstr "Modèle"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:52
 msgid "Rendered Model"
@@ -5180,21 +5194,21 @@ msgstr ""
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:57
 msgid "CPU Description"
-msgstr ""
+msgstr "Description du processeur"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:62
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/generalInfo.tsx:38
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:231
 msgid "Architecture"
-msgstr ""
+msgstr "Architecture"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:67
 msgid "Battery Level"
-msgstr ""
+msgstr "Niveau de la batterie"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:72
 msgid "Battery Status"
-msgstr ""
+msgstr "État de la batterie"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:77
 msgid "Orientation"
@@ -5203,11 +5217,11 @@ msgstr ""
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:83
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:25
 msgid "Memory"
-msgstr ""
+msgstr "Mémoire"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:93
 msgid "Capacity"
-msgstr ""
+msgstr "Capacité"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:30
 msgid "NPOT Support"
@@ -5215,7 +5229,7 @@ msgstr ""
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:35
 msgid "Multi-Thread rendering"
-msgstr ""
+msgstr "Rendu multithread"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:40
 msgid "API Type"
@@ -5241,13 +5255,13 @@ msgstr ""
 #: static/app/components/events/interfaces/threads/content.tsx:47
 #: static/app/components/events/interfaces/threadsV2.tsx:119
 msgid "yes"
-msgstr ""
+msgstr "oui"
 
 #: static/app/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails.tsx:34
 #: static/app/components/events/interfaces/threads/content.tsx:47
 #: static/app/components/events/interfaces/threadsV2.tsx:119
 msgid "no"
-msgstr ""
+msgstr "non"
 
 #: static/app/components/events/contexts/redux.tsx:20
 msgid "Latest State"
@@ -5255,7 +5269,7 @@ msgstr ""
 
 #: static/app/components/events/contexts/state.tsx:39
 msgid "State"
-msgstr ""
+msgstr "État"
 
 #: static/app/components/events/contexts/trace/getTraceKnownDataDetails.tsx:102
 #: static/app/components/events/contexts/trace/getTraceKnownDataDetails.tsx:108
@@ -5319,7 +5333,7 @@ msgstr "Statut"
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:75
 #: static/app/views/settings/project/projectFilters/projectFiltersChart.tsx:37
 msgid "IP Address"
-msgstr ""
+msgstr "Adresse IP"
 
 #: static/app/components/events/contexts/utils.tsx:58
 msgid "before this event"
@@ -5410,6 +5424,7 @@ msgid "There was %s problem processing this event"
 msgid_plural "There were %s problems processing this event"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/errors.tsx:155
 #: static/app/views/settings/project/projectEnvironments.tsx:148
@@ -5486,7 +5501,7 @@ msgstr ""
 
 #: static/app/components/events/eventAttachmentActions.tsx:74
 msgid "This attachment cannot be previewed"
-msgstr ""
+msgstr "Cette pièce jointe ne peut être prévisualisé"
 
 #: static/app/components/events/eventAttachments.tsx:107
 #, python-format
@@ -5495,7 +5510,7 @@ msgstr ""
 
 #: static/app/components/events/eventAttachments.tsx:127
 msgid "File Name"
-msgstr ""
+msgstr "Nom du fichier"
 
 #: static/app/components/events/eventAttachments.tsx:128
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:71
@@ -5561,11 +5576,11 @@ msgstr "Pour identifier quel commit a causé ce problème"
 #: static/app/views/settings/project/projectUserFeedback.tsx:84
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:107
 msgid "Read the docs"
-msgstr ""
+msgstr "Lire la documentation"
 
 #: static/app/components/events/eventCauseEmpty.tsx:182
 msgid "Remind me next week"
-msgstr ""
+msgstr "Rappelle-moi la semaine prochaine"
 
 #: static/app/components/events/eventCauseEmpty.tsx:191
 #: static/app/views/organizationGroupDetails/quickTrace/configureDistributedTracing.tsx:166
@@ -5621,7 +5636,7 @@ msgstr "ID d'évènement"
 
 #: static/app/components/events/eventMetadata.tsx:52
 msgid "Preview JSON"
-msgstr ""
+msgstr "Aperçu JSON"
 
 #: static/app/components/events/eventSdk.tsx:11
 msgid "SDK"
@@ -5641,7 +5656,7 @@ msgstr ""
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:44
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:69
 msgid "Screenshot"
-msgstr ""
+msgstr "Capture d'écran"
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/index.tsx:125
 msgid "Screenshot help identify what the user saw when the event happened"
@@ -5649,14 +5664,14 @@ msgstr ""
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/index.tsx:77
 msgid "View screenshot"
-msgstr ""
+msgstr "Voir la capture d'écran"
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:47
 #: static/app/views/releases/detail/overview/sidebar/releaseStats.tsx:23
 #: static/app/views/releases/list/releasesSortOptions.tsx:37
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:154
 msgid "Date Created"
-msgstr ""
+msgstr "Date de création"
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:76
 msgid "MIME Type"
@@ -5768,7 +5783,7 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:223
 msgid "All values"
-msgstr ""
+msgstr "Toutes les valeurs"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:37
 msgid "Fingerprint rule"
@@ -5807,11 +5822,11 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/index.tsx:146
 msgid "Hide Details"
-msgstr ""
+msgstr "Cacher les détails"
 
 #: static/app/components/events/groupingInfo/index.tsx:146
 msgid "Show Details"
-msgstr ""
+msgstr "Afficher les détails"
 
 #: static/app/components/events/groupingInfo/index.tsx:75
 msgid "grouped by"
@@ -5819,11 +5834,11 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/index.tsx:76
 msgid "nothing"
-msgstr ""
+msgstr "rien"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/category.tsx:14
 msgid "generic"
-msgstr ""
+msgstr "générique"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/data/http.tsx:37
 msgid "Invalid URL"
@@ -5836,7 +5851,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/level.tsx:19
 msgid "Fatal"
-msgstr ""
+msgstr "Fatal"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/level.tsx:37
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:107
@@ -5850,7 +5865,7 @@ msgstr "Avertissement"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/level.tsx:43
 msgid "Undefined"
-msgstr ""
+msgstr "Indéfini"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/time/utils.tsx:29
 #, python-format
@@ -5859,7 +5874,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:131
 msgid "Category"
-msgstr ""
+msgstr "Catégorie"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:133
 msgid "Level"
@@ -5883,11 +5898,11 @@ msgstr "Durée"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:119
 msgid "Types"
-msgstr ""
+msgstr "Types"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:123
 msgid "Levels"
-msgstr ""
+msgstr "Niveaux"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:352
 msgid "Sorry, no breadcrumbs match your search query"
@@ -5897,13 +5912,13 @@ msgstr ""
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidates.tsx:234
 #: static/app/components/events/interfaces/debugMeta-v2/index.tsx:490
 msgid "Reset filter"
-msgstr ""
+msgstr "Réinitialiser le filtre"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:359
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidates.tsx:238
 #: static/app/components/events/interfaces/debugMeta-v2/index.tsx:494
 msgid "Clear search bar"
-msgstr ""
+msgstr "Effacer la barre de recherche"
 
 #: static/app/components/events/interfaces/breadcrumbs/index.tsx:366
 msgid "There are no breadcrumbs to be displayed"
@@ -5939,7 +5954,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:77
 msgid "Navigation"
-msgstr ""
+msgstr "Navigation"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:83
 msgid "Debug"
@@ -6204,12 +6219,12 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImage/status.tsx:21
 msgid "Missing"
-msgstr ""
+msgstr "Manquant"
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImage/status.tsx:24
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/status/index.tsx:14
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImage/status.tsx:27
 msgid "Unreferenced"
@@ -6332,12 +6347,12 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidates.tsx:245
 msgid "There are no debug files to be displayed"
-msgstr ""
+msgstr "Il n'y a aucun fichier de débogage à afficher"
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidates.tsx:26
 #: static/app/views/settings/components/dataScrubbing/modals/form/sourceField.tsx:389
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidates.tsx:315
 msgid "Debug File Candidates"
@@ -6401,7 +6416,7 @@ msgstr ""
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/index.tsx:296
 #: static/app/components/events/interfaces/debugMeta-v2/index.tsx:559
 msgid "Image"
-msgstr ""
+msgstr "Image"
 
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/index.tsx:335
 #, python-format
@@ -6475,7 +6490,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:26
 msgid "ok"
-msgstr ""
+msgstr "ok"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:28
 msgid "unused"
@@ -6483,7 +6498,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:30
 msgid "missing"
-msgstr ""
+msgstr "manquant"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:35
 msgid "failed"
@@ -6536,7 +6551,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:299
 msgid "details"
-msgstr ""
+msgstr "détails"
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:308
 msgid "show unreferenced"
@@ -6619,6 +6634,7 @@ msgid "Frame repeated %s time"
 msgid_plural "Frame repeated %s times"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/frame/openInContextLine.tsx:31
 #: static/app/components/events/interfaces/frame/stacktraceLink.tsx:329
@@ -6795,11 +6811,12 @@ msgid "%s Active Filter"
 msgid_plural "%s Active Filters"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/searchBarAction/dropDownButton.tsx:36
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:74
 msgid "Filter By"
-msgstr ""
+msgstr "Filtrer par"
 
 #: static/app/components/events/interfaces/spans/filter.tsx:115
 #: static/app/views/performance/transactionSummary/filter.tsx:111
@@ -6817,6 +6834,7 @@ msgid "%s error in "
 msgid_plural "%s errors in "
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/index.tsx:184
 msgid "Search for spans"
@@ -6833,6 +6851,7 @@ msgid_plural ""
 "There are %s error events associated with this transaction event."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/inlineDocs.tsx:101
 msgid ""
@@ -6894,7 +6913,7 @@ msgstr ""
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:178
 #: static/app/views/performance/traceDetails/transactionDetail.tsx:94
 msgid "View Transaction"
-msgstr ""
+msgstr "Voir la transaction"
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:201
 #: static/app/views/eventsV2/table/tableView.tsx:282
@@ -6914,6 +6933,7 @@ msgid "An error event occurred in this transaction."
 msgid_plural "%s error events occurred in this transaction."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:94
 msgid "No Children"
@@ -6967,12 +6987,12 @@ msgstr "Template"
 #: static/app/components/events/interfaces/threads/content.tsx:43
 #: static/app/components/events/interfaces/threadsV2.tsx:114
 msgid "id"
-msgstr ""
+msgstr "id"
 
 #: static/app/components/events/interfaces/threads/content.tsx:45
 #: static/app/components/events/interfaces/threadsV2.tsx:116
 msgid "was active"
-msgstr ""
+msgstr "était actif"
 
 #: static/app/components/events/interfaces/threads/content.tsx:46
 #: static/app/components/events/interfaces/threadsV2.tsx:118
@@ -7027,7 +7047,7 @@ msgstr ""
 
 #: static/app/components/events/meta/annotatedText/index.tsx:67
 msgid "Errors:"
-msgstr ""
+msgstr "Erreurs :"
 
 #: static/app/components/events/meta/annotatedText/utils.tsx:24
 #, python-format
@@ -7043,7 +7063,7 @@ msgstr ""
 #: static/app/components/tagsTable.tsx:70
 #: static/app/components/tagsTable.tsx:79
 msgid "invalid"
-msgstr ""
+msgstr "invalide"
 
 #: static/app/components/events/meta/annotatedText/valueElement.tsx:33
 msgid "redacted"
@@ -7110,7 +7130,7 @@ msgstr ""
 
 #: static/app/components/events/traceEventDataSection/displayOptions.tsx:141
 msgid "Options"
-msgstr ""
+msgstr "Options"
 
 #: static/app/components/events/traceEventDataSection/displayOptions.tsx:145
 msgid "[activeOptionsQuantity] Active"
@@ -7174,7 +7194,7 @@ msgstr ""
 #: static/app/views/performance/transactionSummary/transactionSpans/utils.tsx:83
 #: static/app/views/releases/list/releasesSortOptions.tsx:68
 msgid "Sort By"
-msgstr ""
+msgstr "Trier par"
 
 #: static/app/components/events/traceEventDataSection/sortOptions.tsx:40
 msgid "Stack trace contains only 1 frame"
@@ -7195,7 +7215,7 @@ msgstr ""
 #: static/app/components/eventTitleError.tsx:9
 #: static/app/components/events/interfaces/frame/functionName.tsx:52
 msgid "<unknown>"
-msgstr ""
+msgstr "<unknown>"
 
 #: static/app/components/externalIssues/abstractExternalIssueForm.tsx:180
 msgid "This is your current [label]."
@@ -7220,11 +7240,11 @@ msgstr ""
 
 #: static/app/components/featureBadge.tsx:27
 msgid "alpha"
-msgstr ""
+msgstr "alpha"
 
 #: static/app/components/featureBadge.tsx:28
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 #: static/app/components/featureBadge.tsx:29
 msgid "new"
@@ -7232,7 +7252,7 @@ msgstr ""
 
 #: static/app/components/footer.tsx:40
 msgid "Terms of Use"
-msgstr ""
+msgstr "Conditions d'utilisation"
 
 #: static/app/components/footer.tsx:45 static/app/routes.tsx:324
 #: static/app/views/settings/account/navigationConfiguration.tsx:70
@@ -7398,7 +7418,7 @@ msgstr ""
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:126
 msgid "Manual"
-msgstr ""
+msgstr "Manuel"
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:128
 #, python-format
@@ -7416,7 +7436,7 @@ msgstr ""
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:146
 msgid "New Issue"
-msgstr ""
+msgstr "Nouveau problème"
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:149
 #, python-format
@@ -7474,6 +7494,7 @@ msgid "%s Participant"
 msgid_plural "%s Participants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/group/pluginActions.tsx:157
 #: static/app/components/group/sentryAppExternalIssueModal.tsx:56
@@ -7532,7 +7553,7 @@ msgstr "Tous les environnements"
 
 #: static/app/components/group/releaseStats.tsx:40
 msgid "selected environments"
-msgstr ""
+msgstr "environnements sélectionnés"
 
 #: static/app/components/group/releaseStats.tsx:63
 msgid "Last 24 Hours"
@@ -7553,7 +7574,7 @@ msgstr ""
 #: static/app/components/group/seenInfo.tsx:64
 #: static/app/components/group/seenInfo.tsx:91
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 #: static/app/components/group/seenInfo.tsx:98
 msgid "in release "
@@ -7660,6 +7681,7 @@ msgid "%s result"
 msgid_plural "%s results"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/helpSearch.tsx:36
 #, python-format
@@ -7826,7 +7848,7 @@ msgstr ""
 
 #: static/app/components/modals/addDashboardWidgetModal.tsx:461
 msgid "Unable to fetch dashboards"
-msgstr ""
+msgstr "Impossible de récupérer les tableaux de bord"
 
 #: static/app/components/modals/addDashboardWidgetModal.tsx:483
 msgid ""
@@ -7836,11 +7858,11 @@ msgstr ""
 
 #: static/app/components/modals/addDashboardWidgetModal.tsx:488
 msgid "Custom Dashboard"
-msgstr ""
+msgstr "Tableau de bord personnalisé"
 
 #: static/app/components/modals/addDashboardWidgetModal.tsx:499
 msgid "+ Create New Dashboard"
-msgstr ""
+msgstr "+ Créer un nouveau tableau de bord"
 
 #: static/app/components/modals/addDashboardWidgetModal.tsx:508
 #: static/app/views/dashboardsV2/controls.tsx:124
@@ -8033,7 +8055,7 @@ msgstr ""
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/stepTwo.tsx:23
 msgid "Select application"
-msgstr ""
+msgstr "Sélectionner une application"
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/utils.tsx:15
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/utils.tsx:18
@@ -8112,7 +8134,7 @@ msgstr ""
 
 #: static/app/components/modals/debugFileCustomRepository/http.tsx:251
 msgid "Save changes"
-msgstr ""
+msgstr "Sauvegarder les changements"
 
 #: static/app/components/modals/debugFileCustomRepository/utils.tsx:111
 msgid "Access Key ID"
@@ -8239,6 +8261,7 @@ msgid "%s invite"
 msgid_plural "%s invites"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:258
 msgid "Sent [invites], [failed] failed to send."
@@ -8254,6 +8277,7 @@ msgid "%s invite request"
 msgid_plural "%s invite requests"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:274
 msgid "[inviteRequests] pending approval, [failed] failed to send."
@@ -8312,7 +8336,7 @@ msgstr ""
 #: static/app/components/modals/inviteMembersModal/index.tsx:352
 #: static/app/views/settings/components/dataScrubbing/utils.tsx:14
 msgid "Email addresses"
-msgstr ""
+msgstr "Adresses e-mail"
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:353
 #: static/app/views/settings/organizationMembers/inviteMember/roleSelect.tsx:31
@@ -8806,7 +8830,7 @@ msgstr ""
 
 #: static/app/components/onboardingWizard/taskConfig.tsx:241
 msgid "Waiting for event"
-msgstr ""
+msgstr "En attente d'événement"
 
 #: static/app/components/onboardingWizard/taskConfig.tsx:50
 msgid "Create a project"
@@ -8880,11 +8904,11 @@ msgstr ""
 
 #: static/app/components/organizations/multipleProjectSelector.tsx:372
 msgid "Select All Projects"
-msgstr ""
+msgstr "Sélectionner tous les projets"
 
 #: static/app/components/organizations/multipleProjectSelector.tsx:373
 msgid "Select My Projects"
-msgstr ""
+msgstr "Sélectionner Mes Projets"
 
 #: static/app/components/organizations/multipleProjectSelector.tsx:410
 msgid "Apply Filter"
@@ -8892,7 +8916,7 @@ msgstr ""
 
 #: static/app/components/organizations/multipleProjectSelector.tsx:53
 msgid "page"
-msgstr ""
+msgstr "page"
 
 #: static/app/components/organizations/multipleSelectorSubmitRow.tsx:16
 #: static/app/views/eventsV2/table/columnEditModal.tsx:105
@@ -8908,7 +8932,7 @@ msgstr "Retour au Flux de Problèmes"
 
 #: static/app/components/organizations/projectSelector/index.tsx:154
 msgid "Projects I don't belong to"
-msgstr ""
+msgstr "Les projets auxquels je n'appartiens pas"
 
 #: static/app/components/organizations/projectSelector/index.tsx:167
 msgid "Filter projects"
@@ -8926,7 +8950,7 @@ msgstr "Aucun projet trouvé"
 
 #: static/app/components/organizations/projectSelector/index.tsx:189
 msgid "You don't have permission to add a project"
-msgstr ""
+msgstr "Vous n'avez pas la permission d'ajouter un projet"
 
 #: static/app/components/organizations/projectSelector/selectorItem.tsx:87
 msgid "Multiple project selection disabled"
@@ -8942,7 +8966,7 @@ msgstr "Utiliser UTC"
 
 #: static/app/components/organizations/timeRangeSelector/dateRange/selectorItems.tsx:38
 msgid "Absolute date"
-msgstr ""
+msgstr "Date absolue"
 
 #: static/app/components/organizations/timeRangeSelector/dateSummary.tsx:47
 msgid "to"
@@ -8980,6 +9004,7 @@ msgid "%s other platform"
 msgid_plural "%s other platforms"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/platformPicker.tsx:125
 msgid "Filter Platforms"
@@ -9077,7 +9102,7 @@ msgstr ""
 #: static/app/components/projects/missingProjectMembership.tsx:179
 #: static/app/views/projectInstall/createProject.tsx:114
 msgid "Select a Team"
-msgstr ""
+msgstr "Sélectionner une équipe"
 
 #: static/app/components/projects/missingProjectMembership.tsx:56
 msgid "Request to join team sent."
@@ -9105,6 +9130,7 @@ msgid "%s Ancestor"
 msgid_plural "%s Ancestors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:135
 msgid "Parent"
@@ -9112,7 +9138,7 @@ msgstr ""
 
 #: static/app/components/quickTrace/index.tsx:150
 msgid "This Event"
-msgstr ""
+msgstr "Cet événement"
 
 #: static/app/components/quickTrace/index.tsx:214
 #, python-format
@@ -9120,6 +9146,7 @@ msgid "%s Child"
 msgid_plural "%s Children"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:232
 #, python-format
@@ -9127,6 +9154,7 @@ msgid "%s Descendant"
 msgid_plural "%s Descendants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:320
 msgid "View the error for this Transaction"
@@ -9141,6 +9169,7 @@ msgid "Related Error"
 msgid_plural "Related Errors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:429
 #: static/app/views/performance/transactionSummary/transactionTags/tagsHeatMap.tsx:409
@@ -9149,15 +9178,15 @@ msgstr ""
 
 #: static/app/components/quickTrace/index.tsx:604
 msgid "No services connected"
-msgstr ""
+msgstr "Aucun service connecté"
 
 #: static/app/components/quickTrace/index.tsx:612
 msgid "Connect to a service"
-msgstr ""
+msgstr "Se connecter à un service"
 
 #: static/app/components/quickTrace/index.tsx:99
 msgid "Root"
-msgstr ""
+msgstr "Racine"
 
 #: static/app/components/repositoryEditForm.tsx:36
 msgid "Name of your repository."
@@ -9268,6 +9297,7 @@ msgid "See %s new event"
 msgid_plural "See %s new events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/reprocessedBox.tsx:58
 msgid "Events in this issue were successfully reprocessed. [link]"
@@ -9279,6 +9309,7 @@ msgid "See %s reprocessed event"
 msgid_plural "See %s reprocessed events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/resolutionBox.tsx:111
 msgid "This issue has been marked as resolved."
@@ -9437,6 +9468,7 @@ msgid_plural ""
 "You have %s projects using a deprecated version of the Sentry client"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/broadcastSdkUpdates.tsx:80
 msgid "Deprecated"
@@ -9491,7 +9523,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/title.tsx:19
 #: static/app/views/dashboardsV2/widget/header.tsx:43
 msgid "Dashboards"
-msgstr ""
+msgstr "Tableaux de bord"
 
 #: static/app/components/sidebar/index.tsx:310
 #: static/app/views/organizationActivity/index.tsx:32
@@ -9579,6 +9611,7 @@ msgid "%s project"
 msgid_plural "%s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/sidebarPanelItem.tsx:41
 msgid "Read More"
@@ -9756,6 +9789,7 @@ msgid "There is %s issue blocking event processing"
 msgid_plural "There are %s issues blocking event processing"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:46
 msgid "last event from [ago]"
@@ -9768,6 +9802,7 @@ msgid "Reprocessing %s event …"
 msgid_plural "Reprocessing %s events …"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:65
 #, python-format
@@ -9775,6 +9810,7 @@ msgid "There is %s event pending reprocessing."
 msgid_plural "There are %s events pending reprocessing."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:85
 msgid "Show details"
@@ -9967,7 +10003,7 @@ msgstr ""
 
 #: static/app/constants/index.tsx:204
 msgid "Last hour"
-msgstr ""
+msgstr "Dernière heure"
 
 #: static/app/constants/index.tsx:205
 #: static/app/views/alerts/incidentRules/triggers/chart/index.tsx:69
@@ -9993,7 +10029,7 @@ msgstr "30 derniers jours"
 
 #: static/app/constants/index.tsx:209
 msgid "Last 90 days"
-msgstr ""
+msgstr "90 derniers jours"
 
 #: static/app/constants/index.tsx:262
 msgid "Unknown error. Please try again."
@@ -10525,6 +10561,7 @@ msgid "%s minute"
 msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectGeneralSettings.tsx:102
 msgid ""
@@ -10636,16 +10673,18 @@ msgstr "Désactivé"
 #, python-format
 msgid "%s day"
 msgid_plural "%s days"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s jour"
+msgstr[1] "%s jours"
+msgstr[2] "%s jours"
 
 #: static/app/data/forms/projectGeneralSettings.tsx:99
 #: static/app/views/issueList/testSessionPercent.tsx:171
 #, python-format
 msgid "%s hour"
 msgid_plural "%s hours"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s heure"
+msgstr[1] "%s heures"
+msgstr[2] "%s heures"
 
 #: static/app/data/forms/projectIssueGrouping.tsx:109
 msgid ""
@@ -11332,7 +11371,7 @@ msgstr ""
 
 #: static/app/utils/crashReports.tsx:17
 msgid "Unlimited"
-msgstr ""
+msgstr "Illimité"
 
 #: static/app/utils/crashReports.tsx:24
 msgid "[value] per issue"
@@ -11431,8 +11470,9 @@ msgstr ""
 #: static/app/utils/formatters.tsx:100 static/app/utils/formatters.tsx:158
 msgid "hour"
 msgid_plural "hours"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "heure"
+msgstr[1] "heures"
+msgstr[2] "heures"
 
 #: static/app/utils/formatters.tsx:109 static/app/utils/formatters.tsx:165
 msgid "min"
@@ -11443,6 +11483,7 @@ msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:117 static/app/utils/formatters.tsx:172
 msgid "s"
@@ -11453,6 +11494,7 @@ msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:124 static/app/utils/formatters.tsx:180
 #: static/app/utils/formatters.tsx:189
@@ -11468,6 +11510,7 @@ msgid "week"
 msgid_plural "weeks"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:88 static/app/utils/formatters.tsx:151
 msgid "d"
@@ -11476,8 +11519,9 @@ msgstr ""
 #: static/app/utils/formatters.tsx:88 static/app/utils/formatters.tsx:151
 msgid "day"
 msgid_plural "days"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "jour"
+msgstr[1] "jours"
+msgstr[2] "jours"
 
 #: static/app/utils/formatters.tsx:98 static/app/utils/formatters.tsx:158
 msgid "hr"
@@ -11486,24 +11530,27 @@ msgstr ""
 #: static/app/utils/formatters.tsx:180
 msgid "millisecond"
 msgid_plural "milliseconds"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "milliseconde"
+msgstr[1] "millisecondes"
+msgstr[2] "millisecondes"
 
 #: static/app/utils/formatters.tsx:189
 msgid "milliseconds"
-msgstr ""
+msgstr "millisecondes"
 
 #: static/app/utils/formatters.tsx:70
 msgid "mo"
 msgid_plural "mos"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:70
 msgid "month"
 msgid_plural "months"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:77
 msgid "w"
@@ -12291,7 +12338,7 @@ msgstr ""
 
 #: static/app/views/alerts/incidentRules/constants.tsx:75
 msgid "same time one day ago"
-msgstr ""
+msgstr "même heure, il y a un jour"
 
 #: static/app/views/alerts/incidentRules/constants.tsx:76
 msgid "same time one week ago"
@@ -12380,7 +12427,7 @@ msgstr ""
 #: static/app/views/projectDetail/charts/projectErrorsBasicChart.tsx:95
 #: static/app/views/projectsDashboard/chart.tsx:55
 msgid "Errors"
-msgstr ""
+msgstr "Erreurs"
 
 #: static/app/views/alerts/incidentRules/ruleConditionsForm.tsx:224
 msgid "Filter events"
@@ -12498,7 +12545,7 @@ msgstr ""
 #: static/app/views/alerts/incidentRules/ruleForm/index.tsx:346
 #: static/app/views/settings/components/forms/model.tsx:337
 msgid "Field is required"
-msgstr ""
+msgstr "Le champ est obligatoire"
 
 #: static/app/views/alerts/incidentRules/ruleForm/index.tsx:382
 msgid "Warning threshold must be greater than critical alert"
@@ -12662,12 +12709,12 @@ msgstr ""
 #: static/app/views/alerts/incidentRules/triggers/chart/index.tsx:68
 #: static/app/views/alerts/rules/details/constants.tsx:8
 msgid "Last 6 hours"
-msgstr ""
+msgstr "Dernières 6 heures"
 
 #: static/app/views/alerts/incidentRules/triggers/chart/index.tsx:70
 #: static/app/views/alerts/rules/details/constants.tsx:10
 msgid "Last 3 days"
-msgstr ""
+msgstr "3 derniers jours"
 
 #: static/app/views/alerts/incidentRules/triggers/form.tsx:223
 msgid "The threshold[units] that will activate the [severity] status."
@@ -12799,7 +12846,7 @@ msgstr ""
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:617
 msgid "Select an Environment"
-msgstr ""
+msgstr "Sélectionner un environnement"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:62
 #: static/app/views/organizationStats/teamInsights/teamIssuesAge.tsx:48
@@ -12890,7 +12937,7 @@ msgstr ""
 
 #: static/app/views/alerts/issueRuleEditor/ruleNode.tsx:180
 msgid "No One"
-msgstr ""
+msgstr "Personne"
 
 #: static/app/views/alerts/issueRuleEditor/ruleNode.tsx:254
 msgid "This project doesn't support sessions. [link:View supported platforms]"
@@ -13293,7 +13340,7 @@ msgstr ""
 msgid ""
 "Create a JIRA ticket when an issue changes state from resolved to unresolved"
 " and is unassigned."
-msgstr ""
+msgstr "Créer un ticket JIRA quand une erreur passe du statut résolu à non résolu et n'est pas assigné."
 
 #: static/app/views/alerts/wizard/options.tsx:116
 msgid ""
@@ -13475,7 +13522,7 @@ msgstr ""
 #: static/app/views/projectDetail/projectCharts.tsx:176
 #: static/app/views/projectDetail/projectCharts.tsx:336
 msgid "Number of Errors"
-msgstr ""
+msgstr "Nombre d'erreurs"
 
 #: static/app/views/alerts/wizard/options.tsx:44
 msgid "Users Experiencing Errors"
@@ -13544,15 +13591,15 @@ msgstr ""
 
 #: static/app/views/auth/loginForm.tsx:39
 msgid "Sign in with Google"
-msgstr ""
+msgstr "Se connecter avec Google"
 
 #: static/app/views/auth/loginForm.tsx:49
 msgid "Sign in with GitHub"
-msgstr ""
+msgstr "Se connecter avec GitHub"
 
 #: static/app/views/auth/loginForm.tsx:59
 msgid "Sign in with Azure DevOps"
-msgstr ""
+msgstr "Se connecter avec Azure DevOps"
 
 #: static/app/views/auth/registerForm.tsx:115
 msgid "you@example.com"
@@ -13565,12 +13612,12 @@ msgstr ""
 #: static/app/views/auth/registerForm.tsx:20
 #: static/app/views/newsletterConsent.tsx:51
 msgid "Yes, I would like to receive updates via email"
-msgstr ""
+msgstr "Oui, j'aimerais recevoir de nouvelles mises à jour par e-mail"
 
 #: static/app/views/auth/registerForm.tsx:21
 #: static/app/views/newsletterConsent.tsx:52
 msgid "No, I'd prefer not to receive these updates"
-msgstr ""
+msgstr "Non, je préfèrerais ne pas recevoir ces mises à jour"
 
 #: static/app/views/auth/registerForm.tsx:22
 msgid ""
@@ -13586,7 +13633,7 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/controls.tsx:120
 msgid "Edit Dashboard"
-msgstr ""
+msgstr "Editer le tableau de bord"
 
 #: static/app/views/dashboardsV2/controls.tsx:161
 msgid "Requires dashboard editing."
@@ -13595,7 +13642,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/controls.tsx:63
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:149
 msgid "Are you sure you want to delete this dashboard?"
-msgstr ""
+msgstr "Êtes-vous certain de vouloir supprimer ce tableau de bord ?"
 
 #: static/app/views/dashboardsV2/controls.tsx:79
 #: static/app/views/dashboardsV2/controls.tsx:97
@@ -13629,45 +13676,45 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/data.tsx:24
 msgid "1 Minute"
-msgstr ""
+msgstr "1 Minute"
 
 #: static/app/views/dashboardsV2/data.tsx:25
 msgid "5 Minutes"
-msgstr ""
+msgstr "5 Minutes"
 
 #: static/app/views/dashboardsV2/data.tsx:26
 msgid "15 Minutes"
-msgstr ""
+msgstr "15 Minutes"
 
 #: static/app/views/dashboardsV2/data.tsx:27
 msgid "30 Minutes"
-msgstr ""
+msgstr "30 Minutes"
 
 #: static/app/views/dashboardsV2/data.tsx:28
 msgid "1 Hour"
-msgstr ""
+msgstr "1 heure"
 
 #: static/app/views/dashboardsV2/data.tsx:29
 msgid "1 Day"
-msgstr ""
+msgstr "1 jour"
 
 #: static/app/views/dashboardsV2/data.tsx:9
 msgid "Untitled dashboard"
-msgstr ""
+msgstr "Tableau de bord sans titre"
 
 #: static/app/views/dashboardsV2/detail.tsx:225
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:83
 msgid "Dashboard deleted"
-msgstr ""
+msgstr "Tableau de bord supprimé"
 
 #: static/app/views/dashboardsV2/detail.tsx:289
 #: static/app/views/dashboardsV2/detail.tsx:418
 msgid "Dashboard updated"
-msgstr ""
+msgstr "Tableau de bord mis à jour"
 
 #: static/app/views/dashboardsV2/detail.tsx:366
 msgid "Dashboard created"
-msgstr ""
+msgstr "Tableau de bord créé"
 
 #: static/app/views/dashboardsV2/detail.tsx:43
 msgid "You have unsaved changes, are you sure you want to leave?"
@@ -13676,11 +13723,11 @@ msgstr ""
 #: static/app/views/dashboardsV2/detail.tsx:593
 #: static/app/views/dashboardsV2/manage/index.tsx:265
 msgid "Create Dashboard"
-msgstr ""
+msgstr "Créer le tableau de bord"
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:103
 msgid "Dashboard duplicated"
-msgstr ""
+msgstr "Tableau de bord dupliqué"
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:106
 msgid "Error duplicating Dashboard"
@@ -13692,22 +13739,23 @@ msgid "%s widget"
 msgid_plural "%s widgets"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:164
 msgid "Duplicate"
-msgstr ""
+msgstr "Dupliquer"
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:177
 msgid "Sorry, no Dashboards match your filters."
-msgstr ""
+msgstr "Désolé, aucun Tableau de bord ne correspond à vos filtres."
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:86
 msgid "Error deleting Dashboard"
-msgstr ""
+msgstr "Erreur lors de la suppression du Tableau de bord"
 
 #: static/app/views/dashboardsV2/manage/index.tsx:160
 msgid "Search Dashboards"
-msgstr ""
+msgstr "Rechercher des Tableaux de bord"
 
 #: static/app/views/dashboardsV2/manage/index.tsx:248
 msgid "Show Templates"
@@ -13715,11 +13763,11 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/manage/index.tsx:33
 msgid "My Dashboards"
-msgstr ""
+msgstr "Mes tableaux de bord"
 
 #: static/app/views/dashboardsV2/manage/index.tsx:34
 msgid "Dashboard Name (A-Z)"
-msgstr ""
+msgstr "Nom du tableau de bord (A-Z)"
 
 #: static/app/views/dashboardsV2/manage/index.tsx:35
 #: static/app/views/eventsV2/landing.tsx:36
@@ -13748,7 +13796,7 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/manage/templateCard.tsx:29
 msgid "Add Dashboard"
-msgstr ""
+msgstr "Ajouter un tableau de bord"
 
 #: static/app/views/dashboardsV2/title.tsx:30
 msgid "Please set a title for this dashboard"
@@ -13955,7 +14003,7 @@ msgstr ""
 
 #: static/app/views/dashboardsV2/widgetLibrary/data.tsx:131
 msgid "Users Affected by Errors"
-msgstr ""
+msgstr "Utilisateurs affectés par les erreurs"
 
 #: static/app/views/dashboardsV2/widgetLibrary/data.tsx:132
 msgid "Footprint of unique users affected by errors."
@@ -14009,7 +14057,7 @@ msgstr ""
 
 #: static/app/views/dataExport/dataDownload.tsx:120
 msgid "This is awkward."
-msgstr ""
+msgstr "C'est gênant."
 
 #: static/app/views/dataExport/dataDownload.tsx:124
 msgid ""
@@ -14157,11 +14205,11 @@ msgstr "Tous les événements"
 
 #: static/app/views/eventsV2/data.tsx:60
 msgid "Errors by Title"
-msgstr ""
+msgstr "Erreurs par titre"
 
 #: static/app/views/eventsV2/data.tsx:71
 msgid "Errors by URL"
-msgstr ""
+msgstr "Erreurs par URL"
 
 #: static/app/views/eventsV2/eventDetails/content.tsx:169
 #: static/app/views/performance/transactionDetails/content.tsx:160
@@ -14230,7 +14278,7 @@ msgstr ""
 #: static/app/views/eventsV2/queryList.tsx:305
 #: static/app/views/eventsV2/savedQuery/index.tsx:379
 msgid "Add to Dashboard"
-msgstr ""
+msgstr "Ajouter au tableau de bord"
 
 #: static/app/views/eventsV2/queryList.tsx:323
 msgid "Duplicate Query"
@@ -14273,7 +14321,7 @@ msgstr ""
 
 #: static/app/views/eventsV2/resultsHeader.tsx:84
 msgid "Created by:"
-msgstr ""
+msgstr "Créé par :"
 
 #: static/app/views/eventsV2/resultsHeader.tsx:84
 msgid "Last edited:"
@@ -14310,27 +14358,27 @@ msgstr ""
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:150
 msgid "Query name saved"
-msgstr ""
+msgstr "Nom de la requête enregistrée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:160
 msgid "Query name not saved"
-msgstr ""
+msgstr "Nom de la requête non enregistrée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:190
 msgid "Query deleted"
-msgstr ""
+msgstr "Requête supprimée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:200
 msgid "Query not deleted"
-msgstr ""
+msgstr "Requête non supprimée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:37
 msgid "Query saved"
-msgstr ""
+msgstr "Requête enregistrée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:48
 msgid "Query not saved"
-msgstr ""
+msgstr "Requête non enregistrée"
 
 #: static/app/views/eventsV2/savedQuery/utils.tsx:84
 msgid "Please name your query"
@@ -14343,7 +14391,7 @@ msgstr ""
 #: static/app/views/eventsV2/table/cellAction.tsx:245
 #: static/app/views/performance/transactionSummary/transactionTags/tagValueTable.tsx:199
 msgid "Add to filter"
-msgstr ""
+msgstr "Ajouter au filtre"
 
 #: static/app/views/eventsV2/table/cellAction.tsx:257
 msgid "Exclude from filter"
@@ -14396,7 +14444,7 @@ msgstr ""
 
 #: static/app/views/eventsV2/table/columnEditModal.tsx:103
 msgid "Read the Docs"
-msgstr ""
+msgstr "Lire la documentation"
 
 #: static/app/views/eventsV2/table/columnEditModal.tsx:77
 msgid "Edit Columns"
@@ -14412,7 +14460,7 @@ msgstr ""
 #: static/app/views/eventsV2/table/queryField.tsx:419
 #: static/app/views/eventsV2/table/queryField.tsx:478
 msgid "Select value"
-msgstr ""
+msgstr "Sélectionner une valeur"
 
 #: static/app/views/eventsV2/table/queryField.tsx:424
 #: static/app/views/eventsV2/table/queryField.tsx:483
@@ -14421,7 +14469,7 @@ msgstr ""
 
 #: static/app/views/eventsV2/table/queryField.tsx:559
 msgid "(Required)"
-msgstr ""
+msgstr "(Requis)"
 
 #: static/app/views/eventsV2/table/queryField.tsx:562
 msgid "Function: "
@@ -14429,7 +14477,7 @@ msgstr ""
 
 #: static/app/views/eventsV2/table/queryField.tsx:731
 msgid "No parameter"
-msgstr ""
+msgstr "Pas de paramètre"
 
 #: static/app/views/eventsV2/table/tableActions.tsx:114
 msgid "Hide Tags"
@@ -14445,7 +14493,7 @@ msgstr ""
 
 #: static/app/views/eventsV2/table/tableActions.tsx:65
 msgid "Export"
-msgstr ""
+msgstr "Exporter"
 
 #: static/app/views/eventsV2/table/tableActions.tsx:82
 msgid "Export All"
@@ -14519,11 +14567,11 @@ msgstr ""
 
 #: static/app/views/integrationPipeline/awsLambdaCloudformation.tsx:126
 msgid "Account number required"
-msgstr ""
+msgstr "Numéro de compte requis"
 
 #: static/app/views/integrationPipeline/awsLambdaCloudformation.tsx:128
 msgid "Invalid account number"
-msgstr ""
+msgstr "Numéro de compte invalide"
 
 #: static/app/views/integrationPipeline/awsLambdaCloudformation.tsx:201
 msgid "Add Sentry's CloudFormation"
@@ -14567,7 +14615,7 @@ msgstr ""
 
 #: static/app/views/integrationPipeline/awsLambdaCloudformation.tsx:260
 msgid "External ID Required"
-msgstr ""
+msgstr "ID externe requis"
 
 #: static/app/views/integrationPipeline/awsLambdaCloudformation.tsx:261
 msgid "External ID"
@@ -14585,6 +14633,7 @@ msgid "successfully updated %s function"
 msgid_plural "successfully updated %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:42
 #, python-format
@@ -14592,6 +14641,7 @@ msgid "Failed to update %s function"
 msgid_plural "Failed to update %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:49
 msgid "See [link:Troubleshooting Docs]"
@@ -14632,6 +14682,7 @@ msgid "We found %s function with a Node or Python runtime"
 msgid_plural "We found %s functions with Node or Python runtimes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:49
 msgid "Select a project for your AWS Lambdas"
@@ -14668,7 +14719,7 @@ msgstr ""
 #: static/app/views/issueList/actions/reviewAction.tsx:16
 #: static/app/views/issueList/actions/reviewAction.tsx:19
 msgid "Mark Reviewed"
-msgstr ""
+msgstr "Marquer révisé"
 
 #: static/app/views/issueList/actions/actionSet.tsx:166
 #: static/app/views/issueList/actions/actionSet.tsx:168
@@ -14746,6 +14797,7 @@ msgid "%s issue on this page selected."
 msgid_plural "%s issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/issueList/actions/index.tsx:314
 msgid "Select the first [count] issues that match this search query."
@@ -14851,7 +14903,7 @@ msgstr "Recherches enregistrées"
 
 #: static/app/views/issueList/savedSearchMenu.tsx:106
 msgid "No saved searches yet."
-msgstr ""
+msgstr "Pas encore de recherches enregistrées."
 
 #: static/app/views/issueList/savedSearchMenu.tsx:117
 msgid "Recommended Searches"
@@ -14872,7 +14924,7 @@ msgstr ""
 
 #: static/app/views/issueList/savedSearchMenu.tsx:72
 msgid "Delete this saved search"
-msgstr ""
+msgstr "Supprimer cette recherche enregistrée"
 
 #: static/app/views/issueList/savedSearchTab.tsx:44
 msgid "Custom Search"
@@ -14913,11 +14965,11 @@ msgstr ""
 
 #: static/app/views/issueList/sortOptions.tsx:25
 msgid "Number of events in the time selected."
-msgstr ""
+msgstr "Nombre d'événements dans la période sélectionnée."
 
 #: static/app/views/issueList/sortOptions.tsx:27
 msgid "Number of users affected in the time selected."
-msgstr ""
+msgstr "Nombre d'utilisateurs concernés dans la période sélectionnée."
 
 #: static/app/views/issueList/sortOptions.tsx:29
 #, python-format
@@ -14946,23 +14998,23 @@ msgstr ""
 
 #: static/app/views/issueList/utils.tsx:36
 msgid "All Unresolved"
-msgstr ""
+msgstr "Tous Non Résolus"
 
 #: static/app/views/issueList/utils.tsx:40
 msgid "All unresolved issues."
-msgstr ""
+msgstr "Tous les problèmes non résolus."
 
 #: static/app/views/issueList/utils.tsx:46
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:158
 msgid "For Review"
-msgstr ""
+msgstr "Pour révision"
 
 #: static/app/views/issueList/utils.tsx:51
 msgid ""
 "Issues are marked for review when they are created, unresolved, or unignored.\n"
 "          Mark an issue reviewed to move it out of this list.\n"
 "          Issues are automatically marked reviewed in 7 days."
-msgstr ""
+msgstr "Les problèmes sont marqués pour révision lorsqu'ils sont créés, non résolus ou non ignorés.\n          Marquer un problème comme étant révisé pour le retirer de cette liste.\n          Les problèmes sont automatiquement marqués comme ayant été examinés dans les 7 jours."
 
 #: static/app/views/issueList/utils.tsx:63
 msgid ""
@@ -15054,7 +15106,7 @@ msgstr ""
 
 #: static/app/views/monitors/monitorHeaderActions.tsx:79
 msgid "Pause"
-msgstr ""
+msgstr "Pause"
 
 #: static/app/views/monitors/monitorHeaderActions.tsx:79
 #: static/app/views/settings/project/projectKeys/list/keyRow.tsx:60
@@ -15245,7 +15297,7 @@ msgstr ""
 
 #: static/app/views/onboarding/onboarding.tsx:27
 msgid "Welcome"
-msgstr ""
+msgstr "Bienvenue"
 
 #: static/app/views/onboarding/onboarding.tsx:319
 msgid "Go back"
@@ -15257,7 +15309,7 @@ msgstr "Sélectionnez une plateform"
 
 #: static/app/views/onboarding/onboarding.tsx:38
 msgid "Install the Sentry SDK"
-msgstr ""
+msgstr "Installer le SDK Sentry"
 
 #: static/app/views/onboarding/otherSetup.tsx:59
 msgid "Prepare the SDK for your language following this [docsLink:guide]."
@@ -15424,6 +15476,7 @@ msgid "%2$s migrated %1$s fingerprint from %3$s to %4$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s to %4$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationActivity/activityFeedItem.tsx:250
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:210
@@ -15470,7 +15523,7 @@ msgstr "[author] a déployé la version [version] sur [environment]."
 
 #: static/app/views/organizationActivity/activityFeedItem.tsx:322
 msgid "[author] marked [issue] as reviewed"
-msgstr ""
+msgstr "[author] a marqué [issue] comme résolu"
 
 #: static/app/views/organizationActivity/activityFeedItem.tsx:90
 msgid "[author] commented on [issue]"
@@ -15718,12 +15771,14 @@ msgid "%2$s migrated %1$s fingerprint to %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints to %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:217
 msgid "%2$s migrated %1$s fingerprint from %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:230
 msgid "[author] first saw this issue"
@@ -15738,6 +15793,7 @@ msgid "%2$s merged %1$s issue into this issue"
 msgid_plural "%2$s merged %1$s issues into this issue"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:248
 msgid "[author] reprocessed the events in this issue. [new-events]"
@@ -15745,7 +15801,7 @@ msgstr ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:260
 msgid "[author] marked this issue as reviewed"
-msgstr ""
+msgstr "[author] a marqué ce problème comme résolu"
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:34
 msgid "[author] ignored this issue for [duration]"
@@ -15929,13 +15985,14 @@ msgstr ""
 
 #: static/app/views/organizationGroupDetails/grouping/grouping.tsx:283
 msgid "results"
-msgstr ""
+msgstr "résultats"
 
 #: static/app/views/organizationGroupDetails/grouping/grouping.tsx:284
 msgid "result"
 msgid_plural "results"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "résultat"
+msgstr[1] "résultats"
+msgstr[2] "résultats"
 
 #: static/app/views/organizationGroupDetails/groupMerged/index.tsx:103
 msgid "Unmerging events…"
@@ -16009,7 +16066,7 @@ msgstr ""
 
 #: static/app/views/organizationGroupDetails/groupSimilarIssues/similarStackTrace/index.tsx:198
 msgid "New Algorithm"
-msgstr ""
+msgstr "Nouvel Algorithme"
 
 #: static/app/views/organizationGroupDetails/groupSimilarIssues/similarStackTrace/index.tsx:206
 msgid "Unable to load similar issues, please try again later"
@@ -16075,7 +16132,7 @@ msgstr "Exporter la page en CSV"
 
 #: static/app/views/organizationGroupDetails/groupTagValues.tsx:257
 msgid "Percent"
-msgstr ""
+msgstr "Pourcent"
 
 #: static/app/views/organizationGroupDetails/groupTagValues.tsx:262
 msgid "Sorry, the tags for this issue could not be found."
@@ -16105,7 +16162,7 @@ msgstr "Pièces jointes"
 
 #: static/app/views/organizationGroupDetails/header.tsx:317
 msgid "Merged Issues"
-msgstr ""
+msgstr "Problèmes fusionnés"
 
 #: static/app/views/organizationGroupDetails/header.tsx:334
 msgid "Similar Issues"
@@ -16143,11 +16200,11 @@ msgstr ""
 #: static/app/views/releases/detail/overview/index.tsx:390
 #: static/app/views/settings/project/filtersAndSampling/rulesPanel.tsx:27
 msgid "transaction"
-msgstr ""
+msgstr "transaction"
 
 #: static/app/views/organizationGroupDetails/quickTrace/issueQuickTrace.tsx:124
 msgid "Read the docs to understand why."
-msgstr ""
+msgstr "Lire la documentation pour comprendre pourquoi."
 
 #: static/app/views/organizationGroupDetails/quickTrace/issueQuickTrace.tsx:130
 msgid "Dismiss for a month"
@@ -16174,8 +16231,9 @@ msgstr ""
 #: static/app/views/organizationGroupDetails/reprocessingProgress.tsx:34
 msgid "event"
 msgid_plural "events"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "événement"
+msgstr[1] "événements"
+msgstr[2] "événements"
 
 #: static/app/views/organizationGroupDetails/sampleEventAlert.tsx:37
 msgid ""
@@ -16269,7 +16327,7 @@ msgstr ""
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:134
 #: static/app/views/organizationIntegrations/integrationListDirectory.tsx:392
 msgid "Update Now"
-msgstr ""
+msgstr "Mettre à jour Maintenant"
 
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:159
 msgid "You must be an organization owner, manager or admin to uninstall"
@@ -16279,7 +16337,7 @@ msgstr ""
 #: static/app/views/organizationIntegrations/installedPlugin.tsx:158
 #: static/app/views/organizationIntegrations/sentryAppDetailedView.tsx:253
 msgid "Uninstall"
-msgstr ""
+msgstr "Désinstaller"
 
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:220
 msgid "enabled"
@@ -16364,7 +16422,7 @@ msgstr ""
 
 #: static/app/views/organizationIntegrations/integrationAlertRules.tsx:33
 msgid "Add Alert Rule"
-msgstr ""
+msgstr "Ajouter une Règle d'Alerte"
 
 #: static/app/views/organizationIntegrations/integrationCodeMappings.tsx:122
 #: static/app/views/organizationIntegrations/integrationExternalTeamMappings.tsx:59
@@ -16412,7 +16470,7 @@ msgstr ""
 
 #: static/app/views/organizationIntegrations/integrationListDirectory.tsx:498
 msgid "All Categories"
-msgstr ""
+msgstr "Toutes les Catégories"
 
 #: static/app/views/organizationIntegrations/integrationListDirectory.tsx:508
 msgid "Filter Integrations..."
@@ -16449,7 +16507,7 @@ msgstr ""
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:142
 msgid ""
 "You must be an organization owner, manager or admin to add repositories"
-msgstr ""
+msgstr "Vous devez être propriétaire, gestionnaire ou administrateur d'une organisation pour ajouter des dépôts."
 
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:148
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:186
@@ -16459,11 +16517,11 @@ msgstr "Ajouter un dépôt"
 
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:179
 msgid "No repositories available"
-msgstr ""
+msgstr "Aucun dépôt disponible"
 
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:180
 msgid "No repositories found"
-msgstr ""
+msgstr "Aucun dépôt trouvé"
 
 #: static/app/views/organizationIntegrations/integrationRepos.tsx:200
 msgid ""
@@ -16498,7 +16556,7 @@ msgstr ""
 
 #: static/app/views/organizationIntegrations/integrationRequest/RequestIntegrationModal.tsx:103
 msgid "Optional message…"
-msgstr ""
+msgstr "Message optionnel..."
 
 #: static/app/views/organizationIntegrations/integrationRequest/RequestIntegrationModal.tsx:106
 msgid ""
@@ -16539,7 +16597,7 @@ msgstr ""
 
 #: static/app/views/organizationIntegrations/integrationRow.tsx:136
 msgid "Resolve Now"
-msgstr ""
+msgstr "Résoudre maintenant"
 
 #: static/app/views/organizationIntegrations/integrationServerlessFunctions.tsx:73
 msgid ""
@@ -16559,12 +16617,12 @@ msgstr "Activé"
 
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:106
 msgid "Latest"
-msgstr ""
+msgstr "Dernier"
 
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:69
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:95
 msgid "Success"
-msgstr ""
+msgstr "Succès"
 
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:73
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:99
@@ -16627,7 +16685,7 @@ msgstr ""
 
 #: static/app/views/organizationStats/index.tsx:286
 msgid "Organization Usage Stats"
-msgstr ""
+msgstr "Statistiques d'utilisation de l'organisation"
 
 #: static/app/views/organizationStats/index.tsx:289
 msgid ""
@@ -16747,7 +16805,7 @@ msgstr ""
 
 #: static/app/views/organizationStats/teamInsights/overview.tsx:362
 msgid "All Unresolved Issues"
-msgstr ""
+msgstr "Tous les Problèmes Non Résolus"
 
 #: static/app/views/organizationStats/teamInsights/overview.tsx:363
 msgid ""
@@ -16860,7 +16918,7 @@ msgstr ""
 #: static/app/views/organizationStats/teamInsights/teamStability.tsx:256
 #: static/app/views/organizationStats/teamInsights/teamUnresolvedIssues.tsx:189
 msgid "Last 7 Days"
-msgstr ""
+msgstr "7 derniers jours"
 
 #: static/app/views/organizationStats/teamInsights/teamMisery.tsx:161
 msgid "change"
@@ -17369,7 +17427,7 @@ msgstr ""
 
 #: static/app/views/performance/landing/widgets/widgets/lineChartListWidget.tsx:285
 msgid "[count] errors"
-msgstr ""
+msgstr "[count] erreurs"
 
 #: static/app/views/performance/landing/widgets/widgets/singleFieldAreaWidget.tsx:74
 #: static/app/views/performance/landing/widgets/widgets/singleFieldAreaWidgetMetrics.tsx:88
@@ -17498,15 +17556,17 @@ msgstr ""
 #, python-format
 msgid "%s Transaction"
 msgid_plural "%s Transactions"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s Transaction"
+msgstr[1] "%s Transactions"
+msgstr[2] "%s Transactions"
 
 #: static/app/views/performance/traceDetails/content.tsx:222
 #, python-format
 msgid "%s Error"
 msgid_plural "%s Errors"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s Erreur"
+msgstr[1] "%s Erreurs"
+msgstr[2] "%s Erreurs"
 
 #: static/app/views/performance/traceDetails/content.tsx:224
 #, python-format
@@ -17514,6 +17574,7 @@ msgid "Across %s project"
 msgid_plural "Across %s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:232
 msgid "Total Duration"
@@ -17608,6 +17669,7 @@ msgid " (%s event)"
 msgid_plural " (%s events)"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionDetails/quickTraceMeta.tsx:152
 msgid "Trace Navigator"
@@ -17637,6 +17699,7 @@ msgid "Starred for Team"
 msgid_plural "Starred for Teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/teamKeyTransactionButton.tsx:32
 msgid "Star for Team"
@@ -17651,7 +17714,7 @@ msgstr ""
 #: static/app/views/performance/transactionSummary/transactionEvents/content.tsx:56
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:222
 msgid "total duration"
-msgstr ""
+msgstr "durée totale"
 
 #: static/app/views/performance/transactionSummary/transactionEvents/content.tsx:57
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:223
@@ -17670,7 +17733,7 @@ msgstr ""
 #: static/app/views/performance/transactionSummary/transactionTags/index.tsx:46
 #: static/app/views/performance/transactionSummary/transactionVitals/index.tsx:49
 msgid "Summary"
-msgstr ""
+msgstr "Résumé"
 
 #: static/app/views/performance/transactionSummary/transactionEvents/operationSort.tsx:123
 msgid "Sort By HTTP"
@@ -17750,11 +17813,11 @@ msgstr ""
 
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:427
 msgid "Fastest Transactions"
-msgstr ""
+msgstr "Transactions les plus rapides"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:433
 msgid "Slow Transactions (p95)"
-msgstr ""
+msgstr "Transactions lentes (p95)"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:438
 msgid "Outlier Transactions (p100)"
@@ -17763,7 +17826,7 @@ msgstr ""
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:443
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:471
 msgid "Recent Transactions"
-msgstr ""
+msgstr "Transactions récentes"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/content.tsx:455
 #, python-format
@@ -17950,6 +18013,7 @@ msgid "%s event"
 msgid_plural "%s events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/transactionSpans/spanTable.tsx:168
 msgid "Timestamp"
@@ -18188,12 +18252,12 @@ msgstr ""
 #: static/app/views/projectDetail/projectCharts.tsx:181
 #: static/app/views/projectDetail/projectCharts.tsx:393
 msgid "Number of Sessions"
-msgstr ""
+msgstr "Nombre de sessions"
 
 #: static/app/views/projectDetail/projectCharts.tsx:188
 #: static/app/views/projectDetail/projectCharts.tsx:362
 msgid "Number of Transactions"
-msgstr ""
+msgstr "Nombre de transactions"
 
 #: static/app/views/projectDetail/projectCharts.tsx:201
 msgid "Total Errors"
@@ -18210,7 +18274,7 @@ msgstr ""
 #: static/app/views/projectDetail/projectDetail.tsx:61
 #, python-format
 msgid "Project %s"
-msgstr ""
+msgstr "Project %s"
 
 #: static/app/views/projectDetail/projectFilters.tsx:26
 msgid "Search by release version, build, package, or stage"
@@ -18236,11 +18300,11 @@ msgstr ""
 
 #: static/app/views/projectDetail/projectLatestAlerts.tsx:197
 msgid "No alerts found"
-msgstr ""
+msgstr "Aucune alerte trouvée"
 
 #: static/app/views/projectDetail/projectLatestAlerts.tsx:212
 msgid "Latest Alerts"
-msgstr ""
+msgstr "Dernières Alertes"
 
 #: static/app/views/projectDetail/projectLatestReleases.tsx:175
 msgid "No releases found"
@@ -18296,6 +18360,7 @@ msgid "Show %s collapsed team"
 msgid_plural "Show %s collapsed teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/projectDetail/projectTeamAccess.tsx:71
 msgid "Team Access"
@@ -18338,7 +18403,7 @@ msgstr "Donnez un nom à votre projet"
 
 #: static/app/views/projectInstall/createProject.tsx:293
 msgid "Create a new Project"
-msgstr ""
+msgstr "Créer un nouveau Projet"
 
 #: static/app/views/projectInstall/createProject.tsx:295
 msgid ""
@@ -18454,7 +18519,7 @@ msgstr ""
 
 #: static/app/views/projectsDashboard/index.tsx:74
 msgid "Projects Dashboard"
-msgstr ""
+msgstr "Tableau de bord des projets"
 
 #: static/app/views/projectsDashboard/index.tsx:84
 #: static/app/views/settings/organizationProjects/index.tsx:93
@@ -18468,7 +18533,7 @@ msgstr "Aucune activité pour l'instant."
 #: static/app/views/projectsDashboard/projectCard.tsx:156
 #, python-format
 msgid "errors: %s"
-msgstr ""
+msgstr "erreurs : %s"
 
 #: static/app/views/projectsDashboard/projectCard.tsx:165
 #, python-format
@@ -18485,7 +18550,7 @@ msgstr ""
 
 #: static/app/views/projectsDashboard/projectCard.tsx:96
 msgid "Not Available"
-msgstr ""
+msgstr "Non Disponible"
 
 #: static/app/views/projectsDashboard/projectCard.tsx:98
 msgid "Release Health is not yet supported on this platform."
@@ -18525,6 +18590,7 @@ msgid "%s file changed"
 msgid_plural "%s files changed"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/commitsAndFiles/filesChanged.tsx:42
 #, python-format
@@ -18571,6 +18637,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:180
 #: static/app/views/releases/detail/header/releaseActions.tsx:182
@@ -18588,6 +18655,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:88
 #, python-format
@@ -18595,6 +18663,7 @@ msgid "%s other project"
 msgid_plural "%s other projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseHeader.tsx:62
 msgid "Files Changed"
@@ -18663,7 +18732,7 @@ msgstr ""
 
 #: static/app/views/releases/detail/overview/index.tsx:659
 msgid "Slow Transactions"
-msgstr ""
+msgstr "Transactions lentes"
 
 #: static/app/views/releases/detail/overview/index.tsx:664
 msgid "Slow LCP"
@@ -18707,6 +18776,7 @@ msgid "Hide %s Other"
 msgid_plural "Hide %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:997
 #, python-format
@@ -18714,6 +18784,7 @@ msgid "Show %s Other"
 msgid_plural "Show %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseComparisonChartRow.tsx:98
 msgid "Toggle chart group"
@@ -18771,6 +18842,7 @@ msgid "%s commit"
 msgid_plural "%s commits"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/commitAuthorBreakdown.tsx:86
 msgid "Commit Author Breakdown"
@@ -18782,12 +18854,14 @@ msgid "Show %s collapsed author"
 msgid_plural "Show %s collapsed authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:23
 msgid "Other Project for This Release"
 msgid_plural "Other Projects for This Release"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:32
 #, python-format
@@ -18795,6 +18869,7 @@ msgid "Show %s collapsed project"
 msgid_plural "Show %s collapsed projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/projectReleaseDetails.tsx:25
 msgid "Project Release Details"
@@ -18817,6 +18892,7 @@ msgid "artifact"
 msgid_plural "artifacts"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/releaseAdoption.tsx:235
 #: static/app/views/releases/list/releaseCard/index.tsx:142
@@ -19028,6 +19104,7 @@ msgid "and %s more"
 msgid_plural "and %s more"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/index.tsx:140
 msgid "Project Name"
@@ -19069,12 +19146,14 @@ msgid "%s author"
 msgid_plural "%s authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardProjectRow.tsx:141
 msgid "session"
 msgid_plural "sessions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardStatsPeriod.tsx:44
 msgid "14d"
@@ -19090,6 +19169,7 @@ msgid "%s Other"
 msgid_plural "%s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releasesAdoptionChart.tsx:280
 msgid "Total [display]"
@@ -19828,7 +19908,7 @@ msgid ""
 "              Regulation (GDPR), starting on 25 May 2018, we’ll only email you\n"
 "              according to the marketing categories to which you’ve explicitly\n"
 "              opted-in."
-msgstr ""
+msgstr "Dans le cadre de notre conformité avec le Règlement Général sur la Protection des Données (RGPD) de l'UE,\nà partir du 25 mai 2018, nous vous enverrons uniquement des courriels\nselon les catégories de marketing auxquelles vous avez explicitement\nchoisi de participer."
 
 #: static/app/views/settings/account/apiApplications/details.tsx:28
 msgid "Application Details"
@@ -20280,7 +20360,7 @@ msgstr ""
 
 #: static/app/views/settings/components/dataScrubbing/modals/form/index.tsx:81
 msgid "Select method"
-msgstr ""
+msgstr "Sélectionner une méthode"
 
 #: static/app/views/settings/components/dataScrubbing/modals/form/index.tsx:94
 msgid "Custom Placeholder (Optional)"
@@ -20539,11 +20619,11 @@ msgstr ""
 #: static/app/views/settings/organizationGeneralSettings/index.tsx:97
 #: static/app/views/settings/project/navigationConfiguration.tsx:26
 msgid "General Settings"
-msgstr ""
+msgstr "Paramètres généraux"
 
 #: static/app/views/settings/organization/navigationConfiguration.tsx:14
 msgid "Configure general settings for an organization"
-msgstr ""
+msgstr "Configurer les paramètres généraux pour une organisation"
 
 #: static/app/views/settings/organization/navigationConfiguration.tsx:20
 msgid "View and manage an organization's projects"
@@ -20588,7 +20668,7 @@ msgstr ""
 
 #: static/app/views/settings/organization/navigationConfiguration.tsx:81
 msgid "Manage repositories connected to the organization"
-msgstr ""
+msgstr "Gérer les dépôts connectés à l'organisation"
 
 #: static/app/views/settings/organization/navigationConfiguration.tsx:87
 msgid ""
@@ -20878,7 +20958,7 @@ msgstr ""
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:188
 #, python-format
 msgid "%s successfully saved."
-msgstr ""
+msgstr "%s a été enregistré avec succès."
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:190
 #, python-format
@@ -21063,7 +21143,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:104
 msgid "Saved"
-msgstr ""
+msgstr "Enregistré"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:108
 msgid "Could not save..."
@@ -21521,8 +21601,9 @@ msgstr "Impossible de quitter [team]"
 #, python-format
 msgid "%s Member"
 msgid_plural "%s Members"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s Membre"
+msgstr[1] "%s Membres"
+msgstr[2] "%s Membres"
 
 #: static/app/views/settings/organizationTeams/allTeamsRow.tsx:185
 msgid "Leave Team"
@@ -21593,7 +21674,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationTeams/organizationTeams.tsx:99
 msgid "Search teams"
-msgstr ""
+msgstr "Rechercher des équipes"
 
 #: static/app/views/settings/organizationTeams/teamDetails.tsx:152
 msgid "You do not have access to the [teamSlug] team."
@@ -21815,7 +21896,7 @@ msgstr ""
 
 #: static/app/views/settings/project/filtersAndSampling/modal/legacyBrowsers.tsx:36
 msgid "All browsers"
-msgstr ""
+msgstr "Tous les navigateurs"
 
 #: static/app/views/settings/project/filtersAndSampling/modal/ruleModal.tsx:135
 msgid "Successfully edited dynamic sampling rule"
@@ -21836,7 +21917,7 @@ msgstr ""
 
 #: static/app/views/settings/project/filtersAndSampling/modal/ruleModal.tsx:245
 msgid "Add Condition"
-msgstr ""
+msgstr "Ajouter une condition"
 
 #: static/app/views/settings/project/filtersAndSampling/modal/ruleModal.tsx:267
 msgid "Sampling Rate"
@@ -21906,11 +21987,11 @@ msgstr ""
 
 #: static/app/views/settings/project/filtersAndSampling/modal/utils.tsx:60
 msgid "ex. prod, dev"
-msgstr ""
+msgstr "ex. prod, dev"
 
 #: static/app/views/settings/project/filtersAndSampling/modal/utils.tsx:63
 msgid "ex. 1*, [I3].[0-9].*"
-msgstr ""
+msgstr "ex. 1*, [I3].[0-9].*"
 
 #: static/app/views/settings/project/filtersAndSampling/modal/utils.tsx:65
 msgid "ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)"
@@ -21984,35 +22065,35 @@ msgstr ""
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:13
 msgid "Internet Explorer version 8 and lower"
-msgstr ""
+msgstr "Internet Explorer version 8 et inférieure"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:17
 msgid "Internet Explorer version 9"
-msgstr ""
+msgstr "Internet Explorer version 9"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:21
 msgid "Internet Explorer version 10"
-msgstr ""
+msgstr "Internet Explorer version 10"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:25
 msgid "Internet Explorer version 11"
-msgstr ""
+msgstr "Internet Explorer version 11"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:29
 msgid "Safari version 5 and lower"
-msgstr ""
+msgstr "Safari version 5 et inférieure"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:33
 msgid "Opera version 14 and lower"
-msgstr ""
+msgstr "Opera version 14 et inférieure"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:37
 msgid "Opera Mini version 8 and lower"
-msgstr ""
+msgstr "Opera Mini version 8 et inférieure"
 
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:41
 msgid "Android version 3 and lower"
-msgstr ""
+msgstr "Android version 3 et inférieure"
 
 #: static/app/views/settings/project/navigationConfiguration.tsx:105
 #: static/app/views/settings/projectDebugFiles/index.tsx:40
@@ -22021,7 +22102,7 @@ msgstr ""
 
 #: static/app/views/settings/project/navigationConfiguration.tsx:110
 msgid "ProGuard"
-msgstr ""
+msgstr "ProGuard"
 
 #: static/app/views/settings/project/navigationConfiguration.tsx:124
 msgid "SDK Setup"
@@ -22045,7 +22126,7 @@ msgstr ""
 
 #: static/app/views/settings/project/navigationConfiguration.tsx:27
 msgid "Configure general settings for a project"
-msgstr ""
+msgstr "Configurer les paramètres généraux pour un projet"
 
 #: static/app/views/settings/project/navigationConfiguration.tsx:31
 #: static/app/views/settings/project/projectTeams.tsx:36
@@ -22241,8 +22322,9 @@ msgstr ""
 #, python-format
 msgid "%s error "
 msgid_plural "%s errors "
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s erreur"
+msgstr[1] "%s erreurs"
+msgstr[2] "%s erreurs"
 
 #: static/app/views/settings/project/projectKeys/details/keyRateLimitsForm.tsx:159
 msgid "no time window"
@@ -22274,7 +22356,7 @@ msgstr ""
 msgid ""
 "Copy this script into your website to setup your JavaScript SDK without any "
 "additional configuration. [link]"
-msgstr ""
+msgstr "Copiez ce script dans votre site web pour configurer le SDK JavaScript sans aucune configuration additionelle. [link]"
 
 #: static/app/views/settings/project/projectKeys/details/keySettings.tsx:166
 msgid "4.x"
@@ -22449,7 +22531,7 @@ msgstr "Afficher les DSN dépréciés"
 
 #: static/app/views/settings/project/projectOwnership/addCodeOwnerModal.tsx:123
 msgid "Preview File"
-msgstr ""
+msgstr "Aperçu du fichier"
 
 #: static/app/views/settings/project/projectOwnership/addCodeOwnerModal.tsx:141
 msgid ""
@@ -22485,7 +22567,7 @@ msgstr ""
 #: static/app/views/settings/project/projectOwnership/addCodeOwnerModal.tsx:254
 #: static/app/views/settings/project/projectOwnership/addCodeOwnerModal.tsx:258
 msgid "Add File"
-msgstr ""
+msgstr "Ajouter un fichier"
 
 #: static/app/views/settings/project/projectOwnership/codeowners.tsx:57
 msgid "CODEOWNERS file sync successful."
@@ -22527,7 +22609,7 @@ msgstr ""
 
 #: static/app/views/settings/project/projectOwnership/index.tsx:304
 msgid "View Issues"
-msgstr ""
+msgstr "Voir les problèmes"
 
 #: static/app/views/settings/project/projectOwnership/index.tsx:316
 msgid "Add CODEOWNERS File"
@@ -22572,7 +22654,7 @@ msgstr ""
 
 #: static/app/views/settings/project/projectOwnership/selectOwners.tsx:297
 msgid "owners"
-msgstr ""
+msgstr "propriétaires"
 
 #: static/app/views/settings/project/projectProcessingIssues.tsx:148
 msgid "Started reprocessing…"
@@ -22588,6 +22670,7 @@ msgid "Click here to trigger processing for %s pending event"
 msgid_plural "Click here to trigger processing for %s pending events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/project/projectProcessingIssues.tsx:336
 msgid "Pro Tip"
@@ -22842,7 +22925,7 @@ msgstr ""
 #: static/app/views/settings/project/projectTeams.tsx:151
 #, python-format
 msgid "%s Teams"
-msgstr ""
+msgstr "%s équipes"
 
 #: static/app/views/settings/project/projectTeams.tsx:57
 #, python-format
@@ -22933,7 +23016,7 @@ msgstr ""
 
 #: static/app/views/settings/projectDataForwarding.tsx:55
 msgid "Forwarded"
-msgstr ""
+msgstr "Transféré"
 
 #: static/app/views/settings/projectDataForwarding.tsx:63
 msgid "Forwarded events in the last 30 days (by day)"
@@ -23071,17 +23154,17 @@ msgstr ""
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:17
 msgid "Last detected version"
-msgstr ""
+msgstr "Dernière version détectée"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:20
 msgid "v[version]"
-msgstr ""
+msgstr "v[version]"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:22
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:27
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:34
 msgid "Not available"
-msgstr ""
+msgstr "Non disponible"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/details.tsx:26
 msgid "Last detected build"
@@ -23093,15 +23176,15 @@ msgstr ""
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/index.tsx:223
 msgid "You do not have permission to add custom repositories."
-msgstr ""
+msgstr "Vous n'avez pas la permission d'ajouter des dépôts personnalisés."
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/index.tsx:297
 msgid "No custom repositories configured"
-msgstr ""
+msgstr "Aucun dépôt personnalisé configuré"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/index.tsx:36
 msgid "Custom Repositories"
-msgstr ""
+msgstr "Dépôts personnalisés"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/index.tsx:92
 msgid "apple store connect itunes ios"
@@ -23121,10 +23204,11 @@ msgid "%s build pending"
 msgid_plural "%s builds pending"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/utils.tsx:18
 msgid "aws amazon s3 bucket"
-msgstr ""
+msgstr "aws amazon s3 compartiment"
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/utils.tsx:23
 msgid "gcs google cloud storage bucket"
@@ -23188,7 +23272,7 @@ msgstr "La suppression de ce projet est définitive et ne peut pas être annulé
 
 #: static/app/views/settings/projectGeneralSettings.tsx:136
 msgid "This will also remove all associated event data."
-msgstr ""
+msgstr "Cette opération supprimera également toutes les données relatives aux événements associés."
 
 #: static/app/views/settings/projectGeneralSettings.tsx:160
 msgid ""
@@ -23204,11 +23288,11 @@ msgstr "Vous n'êtes pas autorisé à transférer ce projet."
 msgid ""
 "This project cannot be transferred. It is used internally by the Sentry "
 "server."
-msgstr ""
+msgstr "Ce projet ne peut pas être transféré. Il est utilisé en interne par le serveur Sentry."
 
 #: static/app/views/settings/projectGeneralSettings.tsx:180
 msgid "Transfer project"
-msgstr ""
+msgstr "Transférer le projet"
 
 #: static/app/views/settings/projectGeneralSettings.tsx:185
 msgid "Transferring this project is permanent and cannot be undone!"
@@ -23218,7 +23302,7 @@ msgstr "Le transfert de ce projet est définitif et ne peut pas être annulé."
 msgid ""
 "Please enter the email of an organization owner to whom you would like to "
 "transfer this project."
-msgstr ""
+msgstr "Veuillez saisir l'adresse électronique d'un propriétaire d'organisation à qui vous souhaitez transférer ce projet."
 
 #: static/app/views/settings/projectGeneralSettings.tsx:204
 msgid "Organization Owner"
@@ -23228,7 +23312,7 @@ msgstr "Propriétaire de l'organisation"
 msgid ""
 "A request will be emailed to this address, asking the organization owner to "
 "accept the project transfer."
-msgstr ""
+msgstr "Une demande sera envoyée par courrier électronique à cette adresse, demandant au propriétaire de l'organisation d'accepter le transfert du projet."
 
 #: static/app/views/settings/projectGeneralSettings.tsx:282
 msgid "Event Settings"
@@ -23251,11 +23335,11 @@ msgstr "Les demandes seront filtrées en fonction des en-têtes [Origin] et [Ref
 
 #: static/app/views/settings/projectGeneralSettings.tsx:323
 msgid "Project Administration"
-msgstr ""
+msgstr "Administration du projet"
 
 #: static/app/views/settings/projectIssueGrouping/index.tsx:106
 msgid "Change defaults"
-msgstr ""
+msgstr "Modifier les valeurs par défaut"
 
 #: static/app/views/settings/projectIssueGrouping/index.tsx:73
 msgid ""
@@ -23268,7 +23352,7 @@ msgstr ""
 msgid ""
 "You can upgrade the grouping strategy to the latest but this is an "
 "irreversible operation."
-msgstr ""
+msgstr "Vous pouvez mettre à jour la stratégie de regroupement, mais il s'agit d'une opération irréversible."
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:111
 msgid "New Behavior"
@@ -23276,15 +23360,15 @@ msgstr "Nouveau comportement"
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:124
 msgid "You do not have sufficient permissions to do this"
-msgstr ""
+msgstr "Vous n'avez pas les permissions nécessaire pour effectuer cette action"
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:128
 msgid "You are already on the latest version"
-msgstr ""
+msgstr "Vous êtes sur la dernière version disponible"
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:136
 msgid "Upgrade Grouping"
-msgstr ""
+msgstr "Mis à jour du groupage"
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:140
 msgid ""
@@ -23294,19 +23378,19 @@ msgstr ""
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:78
 msgid "Changing grouping…"
-msgstr ""
+msgstr "Changement de groupe..."
 
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:91
 msgid "Unable to upgrade config"
-msgstr ""
+msgstr "Impossible de mettre à jour la configuration"
 
 #: static/app/views/settings/projectIssueGrouping/utils.tsx:52
 msgid "This upgrade has the chance to create some new issues."
-msgstr ""
+msgstr "Cette mise à jour a de la chance de créer des nouveaux problèmes."
 
 #: static/app/views/settings/projectIssueGrouping/utils.tsx:57
 msgid "This upgrade will create some new issues."
-msgstr ""
+msgstr "Cette mise à jour entraînera de nouveaux problèmes."
 
 #: static/app/views/settings/projectIssueGrouping/utils.tsx:64
 msgid ""
@@ -23324,7 +23408,7 @@ msgstr ""
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:77
 msgid "There is no threshold set for this project."
-msgstr ""
+msgstr "Aucun seuil n'a été fixé pour ce projet."
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:98
 msgid ""
@@ -23363,7 +23447,7 @@ msgstr "Configurer le plug-in"
 
 #: static/app/views/settings/projectPlugins/projectPlugins.tsx:47
 msgid "Legacy Integration"
-msgstr ""
+msgstr "Intégration Legacy"
 
 #: static/app/views/settings/projectPlugins/projectPlugins.tsx:55
 msgid ""
@@ -23382,7 +23466,7 @@ msgstr ""
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:135
 msgid "Filter mappings"
-msgstr ""
+msgstr "Filtre mappage"
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:144
 msgid ""
@@ -23393,46 +23477,46 @@ msgstr ""
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:156
 msgid "Mapping"
-msgstr ""
+msgstr "Mappage"
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:157
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:211
 msgid "File Size"
-msgstr ""
+msgstr "Taille du fichier"
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:90
 msgid "There are no mappings that match your search."
-msgstr ""
+msgstr "Il n'y a pas de mappage pour ce résultat de recherche."
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:93
 msgid "There are no mappings for this project."
-msgstr ""
+msgstr "Il n'y a pas de mappage pour ce projet."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:34
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:40
 msgid "empty"
-msgstr ""
+msgstr "vide"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:48
 msgid "You do not have permission to download mappings."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation de télécharger des mappings."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:56
 msgid "Download Mapping"
-msgstr ""
+msgstr "Télécharger les mappages"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:66
 msgid "You do not have permission to delete mappings."
-msgstr ""
+msgstr "Vous n'avez pas le droit de supprimer des mappings."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:69
 msgid "Are you sure you want to remove this mapping?"
-msgstr ""
+msgstr "Êtes-vous sûr de vouloir supprimer ce mappage ?"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:76
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:77
 msgid "Remove Mapping"
-msgstr ""
+msgstr "Supprimer Mappage"
 
 #: static/app/views/settings/projectSecurityAndPrivacy/index.tsx:62
 msgid ""
@@ -23468,7 +23552,7 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/csp.tsx:37
 msgid "Content Security Policy (CSP)"
-msgstr ""
+msgstr "Contenu de la Police de Sécurité (CSP)"
 
 #: static/app/views/settings/projectSecurityHeaders/csp.tsx:94
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:72
@@ -23487,7 +23571,7 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/expectCt.tsx:29
 msgid "Certificate Transparency (Expect-CT)"
-msgstr ""
+msgstr "Certificat Transparent (Expect-CT)"
 
 #: static/app/views/settings/projectSecurityHeaders/expectCt.tsx:55
 msgid ""
@@ -23544,7 +23628,7 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:58
 msgid "Security Header Reports"
-msgstr ""
+msgstr "Rapports sur l'en-tête de sécurité"
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:63
 msgid "Additional Configuration"
@@ -23580,64 +23664,64 @@ msgstr ""
 msgid ""
 "We've automatically pulled these credentials from your available "
 "[link:Client Keys]"
-msgstr ""
+msgstr "Nous avons automatiquement mis en ligne ces identifiants pour les rendre disponible [lien:clé client]"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:104
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:75
 msgid "Artifacts removed."
-msgstr ""
+msgstr "Artéfact supprimé."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:106
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:77
 msgid "Unable to remove artifacts. Please try again."
-msgstr ""
+msgstr "Impossible de supprimer l'artéfact. Veuillez réessayer plus tard."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:118
 msgid "There are no artifacts that match your search."
-msgstr ""
+msgstr "Il n'y a pas d'artéfact correspondant à votre recherche."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:121
 msgid "There are no artifacts in this archive."
-msgstr ""
+msgstr "Il n'y a pas d'artéfact dans cette archive."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:173
 msgid "Go to Release"
-msgstr ""
+msgstr "Aller à la version"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:179
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:80
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:53
 msgid "You do not have permission to delete artifacts."
-msgstr ""
+msgstr "Vous n'avez pas la permission de supprimer les artéfacts."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:182
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:57
 msgid "Are you sure you want to remove all artifacts in this archive?"
-msgstr ""
+msgstr "Êtes-vous sûr de vouloir supprimer tous les artefacts de cette archive ?"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:190
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:191
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:65
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:66
 msgid "Remove All Artifacts"
-msgstr ""
+msgstr "Supprimer tous les artéfacts"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:200
 msgid "Filter artifacts"
-msgstr ""
+msgstr "Filtrer les artéfacts"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:210
 msgid "Artifact"
-msgstr ""
+msgstr "Artéfact"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:47
 #, python-format
 msgid "Archive %s"
-msgstr ""
+msgstr "archive %s"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:77
 msgid "Removing artifact…"
-msgstr ""
+msgstr "Suppression de l'artéfact..."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:84
 msgid "Artifact removed."
@@ -23650,19 +23734,19 @@ msgstr "Impossible de supprimer l'artéfact. Veuillez réessayer."
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:93
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:68
 msgid "Removing artifacts…"
-msgstr ""
+msgstr "Suppression des artéfacts..."
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:48
 msgid "No distribution set"
-msgstr ""
+msgstr "Pas de distribution de définis"
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:62
 msgid "You do not have permission to download artifacts."
-msgstr ""
+msgstr "Vous n'avez pas la permission de supprimer l'artéfact"
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:70
 msgid "Download Artifact"
-msgstr ""
+msgstr "Télécharger cet artéfact"
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:83
 msgid "Are you sure you want to remove this artifact?"
@@ -23671,11 +23755,11 @@ msgstr "Etes-vous sûr(e) de vouloir supprimer cet artéfact ?"
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:90
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:91
 msgid "Remove Artifact"
-msgstr ""
+msgstr "Supprimer cet artefact"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:130
 msgid "Filter Archives"
-msgstr ""
+msgstr "Filtrer archives"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:139
 msgid ""
@@ -23691,19 +23775,19 @@ msgstr "Artefacts"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:89
 msgid "There are no archives that match your search."
-msgstr ""
+msgstr "Il n'y a pas d'archive pour ce résultat de recherche."
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:92
 msgid "There are no archives for this project."
-msgstr ""
+msgstr "Il n'y a pas d'archive pour ce projet."
 
 #: static/app/views/settings/projectTags.tsx:105
 msgid "Are you sure you want to remove this tag?"
-msgstr ""
+msgstr "êtes-vous sure de vouloir supprimer ce tag ?"
 
 #: static/app/views/settings/projectTags.tsx:113
 msgid "Remove tag"
-msgstr ""
+msgstr "Supprimer tag"
 
 #: static/app/views/settings/projectTags.tsx:115
 msgid "This tag cannot be deleted."
@@ -23721,7 +23805,7 @@ msgstr ""
 
 #: static/app/views/settings/projectTags.tsx:89
 msgid "There are no tags, [link:learn how to add tags]"
-msgstr ""
+msgstr "Il n'y a pas de tag, [lien:apprendre comment faire des tags]"
 
 #: static/app/views/settings/settingsIndex.tsx:100
 #: static/app/views/settings/settingsIndex.tsx:143
@@ -23785,19 +23869,19 @@ msgstr "Mon compte"
 
 #: static/app/views/setupWizard/index.tsx:38
 msgid "Waiting for wizard to connect"
-msgstr ""
+msgstr "Attente de la connexion de l'assistant"
 
 #: static/app/views/setupWizard/index.tsx:43
 msgid "Return to your terminal to complete your setup"
-msgstr ""
+msgstr "Retournez à votre terminal pour finir la configuration"
 
 #: static/app/views/setupWizard/index.tsx:44
 msgid "(This window will close in 10 seconds)"
-msgstr ""
+msgstr "(Cette fenêtre va se fermer dans 10 secondes)"
 
 #: static/app/views/setupWizard/index.tsx:45
 msgid "Close browser tab"
-msgstr ""
+msgstr "Fermer l'onglet du navigateur"
 
 #: static/app/views/teamCreate.tsx:32
 msgid "Create a New Team"
@@ -23805,7 +23889,7 @@ msgstr "Créer une nouvelle équipe"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:122
 msgid "See an example"
-msgstr ""
+msgstr "Voir un exemple"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:82
 msgid "Sorry, no user reports match your filters."
@@ -23813,10 +23897,10 @@ msgstr "Désolé, aucun rapport d'utilisateur ne correspond à ces filtres."
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:89
 msgid "What do users think?"
-msgstr ""
+msgstr "Qu'est-ce que les utilisateurs pensent ?"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:91
 msgid ""
 "You can't read minds. At least we hope not. Ask users for feedback on the "
 "impact of their crashes or bugs and you shall receive."
-msgstr ""
+msgstr "Vous ne pouvez pas lire dans les mémoires. Enfin, nous espérons que non. Demandez aux utilisateurs pour un retour sur l'impact de leur crash ou bug et vous devrez en recevoir."
