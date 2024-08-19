@@ -13,6 +13,8 @@ class PendingTasks(Model):
     and unprocessable messages
     """
 
+    __relocation_scope__ = RelocationScope.Excluded
+
     class States(models.TextChoices):
         PENDING = "pending"
         PROCESSING = "processing"
@@ -22,9 +24,9 @@ class PendingTasks(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    id = (models.UUIDField(),)
+    id = models.UUIDField()
     # Could be omitted if pending tasks are stored in redis, or kafka.
-    topic = (models.CharField(blank=True, null=True),)
+    topic = models.CharField(blank=True, null=True)
     # Could be omitted if pending tasks are stored in redis, or kafka.
     partition = models.IntegerField(default=2, blank=True, null=True)
     offset = models.IntegerField(blank=True, null=True)

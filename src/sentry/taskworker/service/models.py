@@ -18,11 +18,11 @@ class RpcTask(RpcModel):
 
 def serialize_task(pending_task: PendingTasks) -> RpcTask:
     return RpcTask(
-        id=PendingTasks.id,
-        topic=PendingTasks.topic,
-        partition=PendingTasks.partition,
-        offset=PendingTasks.offset,
-        state=PendingTasks.state,
+        id=pending_task.id,
+        topic=pending_task.topic,
+        partition=pending_task.partition,
+        offset=pending_task.offset,
+        state=pending_task.state,
         received_at=pending_task.received_at,
         added_at=pending_task.added_at,
         deadletter_at=pending_task.deadletter_at,
