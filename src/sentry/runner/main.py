@@ -61,6 +61,7 @@ for cmd in map(
         "sentry.runner.commands.rpcschema.rpcschema",
         "sentry.runner.commands.run.run",
         "sentry.runner.commands.start.start",
+        "sentry.runner.commands.task_worker.task_worker",
         "sentry.runner.commands.tsdb.tsdb",
         "sentry.runner.commands.upgrade.upgrade",
         "sentry.runner.commands.permissions.permissions",

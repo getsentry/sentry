@@ -28,7 +28,7 @@ class TaskService:
             with transaction.atomic(using=router.db_for_write(PendingTasks)):
                 task = PendingTasks.objects.filter(id=task_id).get()
 
-                if task_status != PendingTasks.States.COMPLETE:
+                if task.state != PendingTasks.States.COMPLETE:
                     task.update(state=task_status)
                 return serialize_task(task)
         except PendingTasks.DoesNotExist:
