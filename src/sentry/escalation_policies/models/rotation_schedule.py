@@ -1,5 +1,5 @@
 from datetime import datetime
-from datetime import timezone as tz
+from typing import TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -45,6 +45,14 @@ class RotationScheduleLayerRotationType(models.TextChoices):
     MONTHLY = "monthly", gettext_lazy("Monthly")
 
 
+rotation_schedule_layer_rotation_type_to_days = {
+    RotationScheduleLayerRotationType.DAILY: 1,
+    RotationScheduleLayerRotationType.WEEKLY: 7,
+    RotationScheduleLayerRotationType.FORTNIGHTLY: 14,
+    RotationScheduleLayerRotationType.MONTHLY: 30,
+}
+
+
 @region_silo_model
 class RotationScheduleLayer(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -55,11 +63,7 @@ class RotationScheduleLayer(Model):
     rotation_type = models.CharField(
         max_length=20, choices=RotationScheduleLayerRotationType.choices
     )
-    # %% Validate that for:
-    # %% Daily: cron is just a time
-    # %% Weekly: cron is a weekday and time
-    # %% Fortnightly: cron is a weekday and time
-    # %% Monthly: cron is a day of month and a time
+    # %% Validate that this is just a time HH:MM ("%H:%M")
     handoff_time = models.CharField(max_length=20)
     """
     {
@@ -70,13 +74,35 @@ class RotationScheduleLayer(Model):
     }
     """
     schedule_layer_restrictions = models.JSONField()
-    start_time = models.DateTimeField(default=timezone.now)
+
+    # Must be a DATE, time is handoff time
+    start_date = models.DateField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rotation_schedule_layer"
         unique_together = ("schedule_id", "precedence")
         ordering = ("precedence",)
+
+
+"""
+    {
+        "Sun": [["08:00", "10:00"]],
+        "Mon": [["08:00", "17:00"]],
+        "Tues": [["08:00", "17:00"]],
+        ...
+    }
+"""
+
+
+class ScheduleLayerRestriction(TypedDict, total=False):
+    Sun: list[tuple[str, str]]
+    Mon: list[tuple[str, str]]
+    Tue: list[tuple[str, str]]
+    Wed: list[tuple[str, str]]
+    Thu: list[tuple[str, str]]
+    Fri: list[tuple[str, str]]
+    Sat: list[tuple[str, str]]
 
 
 @region_silo_model
@@ -109,4 +135,4 @@ class RotationScheduleOverride(Model):
         db_table = "sentry_rotation_schedule_override"
 
 
-DEFAULT_ROTATION_START_TIME = datetime(2020, 1, 1).replace(tzinfo=tz.utc)
+DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1)

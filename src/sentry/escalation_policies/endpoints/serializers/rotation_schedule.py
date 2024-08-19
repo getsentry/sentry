@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from typing import TypedDict
 
 from django.db import router, transaction
-from django.db.models.query import QuerySet
 from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
@@ -27,6 +26,7 @@ class RotationScheduleLayerPutSerializer(serializers.Serializer):
 
 class RotationSchedulePutSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=False)
+    organization_id = serializers.IntegerField(required=False)
     name = serializers.CharField(max_length=256, required=True)
 
     schedule_layers = serializers.ListField(
@@ -36,13 +36,13 @@ class RotationSchedulePutSerializer(serializers.Serializer):
     team_id = serializers.IntegerField(required=False)
     user_id = serializers.IntegerField(required=False)
 
-    def create(self, validated_data: "RotationScheduleSerializer"):
+    def create(self, validated_data):
         """
         Create or replace an RotationSchedule instance from the validated data.
         """
         validated_data["organization_id"] = self.context["organization"].id
         with transaction.atomic(router.db_for_write(RotationSchedule)):
-            overrides: QuerySet[RotationScheduleOverride, RotationScheduleOverride] = []
+            overrides = []
             if "id" in validated_data:
                 # We're updating, so we need to maintain overrides
                 overrides = RotationScheduleOverride.objects.filter(

@@ -1675,7 +1675,7 @@ class Factories:
         user_ids,
         precedence,
         rotation_type=RotationScheduleLayerRotationType.WEEKLY,
-        handoff_time="0 16 * * 1",
+        handoff_time="00:00",
         restrictions=None,
         start_time=DEFAULT_ROTATION_START_TIME,
     ):
@@ -1685,7 +1685,7 @@ class Factories:
             rotation_type=rotation_type,
             handoff_time=handoff_time,
             schedule_layer_restrictions=restrictions,
-            start_time=start_time,
+            start_date=start_time,
         )
         for i, id in enumerate(user_ids):
             RotationScheduleUserOrder.objects.create(
