@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.taskworker.models import PendingTasks, State
 from sentry.taskworker.service.models import RpcTask, serialize_task
@@ -6,21 +6,25 @@ from sentry.taskworker.service.models import RpcTask, serialize_task
 
 class TaskService:
     def get_task(self, *partition: int | None, topic: str | None) -> RpcTask | None:
-        query_set = PendingTasks.objects.filter(state=State.PENDING).limit(1)
 
-        if partition is not None:
-            query_set = query_set.filter(partition=partition)
+        with transaction.atomic(using=router.db_for_write(PendingTasks)):
+            query_set = PendingTasks.objects.filter(state=State.PENDING).limit(1)
 
-        if topic is not None:
-            query_set = query_set.filter(topic=topic)
+            if partition is not None:
+                query_set = query_set.filter(partition=partition)
 
-        task = query_set.get()
+            if topic is not None:
+                query_set = query_set.filter(topic=topic)
 
-        return serialize_task(task)
+            task = query_set.get()
+            if task is not None:
+                task.update(state=State.PROCESSING)
+
+            return serialize_task(task)
 
     def set_task_status(self, *, task_id: int, task_status: State) -> RpcTask | None:
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(PendingTasks)):
                 task = PendingTasks.objects.filter(id=task_id).get()
 
                 if task_status != State.COMPLETE:

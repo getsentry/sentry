@@ -8,6 +8,7 @@ from sentry.db.models import Model
 
 class State:
     PENDING = "pending"
+    PROCESSING = "processing"
     COMPLETE = "complete"
     FAILURE = "failure"
     RETRY = "retry"
